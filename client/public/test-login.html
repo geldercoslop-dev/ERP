@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login - GRS MÓVEIS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #4f46e5;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        .debug {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Teste de Login - GRS MÓVEIS</h1>
+        <p>Esta página permite testar o fluxo de autenticação do sistema.</p>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Usuário:</label>
+                <input type="text" id="username" name="username" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" name="password" value="admin123" required>
+            </div>
+            <button type="submit" id="loginBtn">🚀 Fazer Login</button>
+            <button type="button" id="checkAuthBtn">🔍 Verificar Sessão</button>
+            <button type="button" id="logoutBtn">🚪 Logout</button>
+            <button type="button" id="clearBtn">🗑️ Limpar Tudo</button>
+        </form>
+
+        <div id="result"></div>
+
+        <div class="debug" id="debugInfo">
+            <strong>Informações de Depuração:</strong><br>
+            • Cookies: <span id="cookieInfo">Verificando...</span><br>
+            • LocalStorage: <span id="localStorageInfo">Verificando...</span><br>
+            • Última verificação: <span id="lastCheck">Nunca</span>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        
+        function updateDebugInfo() {
+            // Cookies
+            const cookies = document.cookie.split(';').map(c => c.trim()).join(', ');
+            document.getElementById('cookieInfo').textContent = cookies || 'Nenhum';
+            
+            // LocalStorage
+            const authStore = localStorage.getItem('manus-auth-store');
+            const runtimeUser = localStorage.getItem('manus-runtime-user-info');
+            document.getElementById('localStorageInfo').textContent = 
+                `authStore: ${authStore ? 'Sim' : 'Não'}, runtimeUser: ${runtimeUser ? 'Sim' : 'Não'}`;
+            
+            // Timestamp
+            document.getElementById('lastCheck').textContent = new Date().toLocaleTimeString();
+        }
+
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+            updateDebugInfo();
+        }
+
+        async function login(username, password) {
+            showResult('🔄 Fazendo login...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/trpc/auth.login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        json: {
+                            username: username.trim(),
+                            password: password.trim(),
+                        }
+                    }),
+                    credentials: 'include',
+                });
+
+                const result = await response.json();
+                console.log('Resposta do servidor:', result);
+
+                if (result.result?.data?.ok) {
+                    const data = result.result.data;
+                    showResult(`✅ Login successful!\n\nUsuário: ${data.name}\nFunção: ${data.role}\nOpenID: ${data.openId}\nToken: ${data.sessionToken}`, 'success');
+                    
+                    // Verificar sessão após login
+                    setTimeout(checkAuth, 1000);
+                } else {
+                    showResult(`❌ Login failed!\n\n${JSON.stringify(result, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                console.error('Erro no login:', error);
+                showResult(`❌ Erro ao fazer login: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAuth() {
+            showResult('🔍 Verificando sessão...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/trpc/auth.me`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                });
+
+                const result = await response.json();
+                console.log('Verificação de sessão:', result);
+
+                if (result.result?.data) {
+                    const user = result.result.data;
+                    showResult(`✅ Usuário autenticado!\n\nID: ${user.id}\nNome: ${user.name}\nFunção: ${user.role}\nEmail: ${user.email || 'N/A'}\nOpenID: ${user.openId}`, 'success');
+                } else {
+                    showResult('❌ Nenhum usuário autenticado', 'error');
+                }
+            } catch (error) {
+                console.error('Erro na verificação:', error);
+                showResult(`❌ Erro ao verificar sessão: ${error.message}`, 'error');
+            }
+        }
+
+        async function logout() {
+            showResult('🚪 Fazendo logout...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/trpc/auth.logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                    credentials: 'include',
+                });
+
+                const result = await response.json();
+                console.log('Logout response:', result);
+                
+                showResult('✅ Logout realizado com sucesso!', 'success');
+                updateDebugInfo();
+            } catch (error) {
+                console.error('Erro no logout:', error);
+                showResult(`❌ Erro ao fazer logout: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAll() {
+            // Limpar cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Limpar localStorage
+            localStorage.clear();
+            
+            showResult('🗑️ Todos os dados de sessão foram limpos!', 'info');
+            updateDebugInfo();
+        }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            await login(username, password);
+        });
+
+        document.getElementById('checkAuthBtn').addEventListener('click', checkAuth);
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+        // Atualizar informações de depuração ao carregar
+        updateDebugInfo();
+        
+        // Verificar sessão automaticamente ao carregar
+        setTimeout(checkAuth, 500);
+    </script>
+</body>
+</html>

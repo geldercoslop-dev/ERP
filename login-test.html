@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Teste de Login</h1>
+    
+    <div class="form-group">
+        <label for="username">Usuário:</label>
+        <input type="text" id="username" value="GELDER">
+    </div>
+    
+    <div class="form-group">
+        <label for="password">Senha:</label>
+        <input type="password" id="password" value="787578">
+    </div>
+    
+    <button onclick="testLogin()">Fazer Login</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = 'Enviando requisição...';
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/trpc/auth.login?batch=1', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        0: {
+                            json: {
+                                username,
+                                password
+                            }
+                        }
+                    }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                resultDiv.textContent = 'Resposta do servidor:\n' + JSON.stringify(data, null, 2);
+                
+                // Verificar se o login foi bem-sucedido
+                if (data[0]?.result?.data?.json?.ok) {
+                    resultDiv.textContent += '\n\nLogin bem-sucedido!';
+                    
+                    // Verificar cookies
+                    resultDiv.textContent += '\n\nCookies definidos:\n' + document.cookie;
+                    
+                    // Redirecionar para a página inicial após 2 segundos
+                    setTimeout(() => {
+                        window.location.href = 'http://localhost:3001/';
+                    }, 2000);
+                } else {
+                    resultDiv.textContent += '\n\nFalha no login!';
+                }
+            } catch (error) {
+                resultDiv.textContent = 'Erro ao testar login: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

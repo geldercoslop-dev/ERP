@@ -1,0 +1,233 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
+
+// Tipos
+export type UserRole = 'admin' | 'vendedor';
+
+export interface User {
+  id: number;
+  openId: string;
+  name: string;
+  email?: string | null;
+  role: UserRole;
+}
+
+interface AuthState {
+  // Estado
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  
+  // Ações
+  setUser: (user: User | null) => void;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<boolean>;
+}
+
+// Chave para armazenamento no localStorage
+const STORAGE_KEY = 'manus-auth-store';
+
+// Store de autenticação com persistência
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      // Estado inicial
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
+      
+      // Ações
+      setUser: (user) => {
+        set({ 
+          user,
+          isAuthenticated: !!user
+        });
+        
+        // Também manter o localStorage legado para compatibilidade
+        if (user) {
+          localStorage.setItem(
+            "manus-runtime-user-info",
+            JSON.stringify({
+              openId: user.openId,
+              name: user.name,
+              role: user.role,
+            })
+          );
+        } else {
+          localStorage.removeItem("manus-runtime-user-info");
+        }
+      },
+      
+      login: async (username, password) => {
+        set({ isLoading: true });
+        
+        try {
+          // Usar o cliente tRPC diretamente para evitar problemas de hooks
+          const utils = trpc.useUtils();
+          const result = await utils.client.auth.login.mutate({
+            username: username.trim(),
+            password: password.trim(),
+          });
+          
+          if (result?.ok) {
+            // Criar objeto de usuário
+            const user: User = {
+              id: -1, // ID real será obtido em checkAuth
+              openId: result.openId,
+              name: result.name,
+              role: result.role as UserRole,
+            };
+            
+            set({ 
+              user,
+              isAuthenticated: true,
+              isLoading: false
+            });
+            
+            // Invalidar a query de me para forçar uma atualização
+            await utils.auth.me.invalidate();
+            
+            // Verificar autenticação para obter dados completos
+            await get().checkAuth();
+            
+            return true;
+          } else {
+            set({ isLoading: false });
+            return false;
+          }
+        } catch (error) {
+          set({ isLoading: false });
+          
+          // Mostrar mensagem de erro
+          const errorMessage = error instanceof Error 
+            ? error.message 
+            : "Erro ao fazer login. Tente novamente.";
+          
+          toast.error(errorMessage);
+          return false;
+        }
+      },
+      
+      logout: async () => {
+        set({ isLoading: true });
+        
+        try {
+          // Usar o cliente tRPC diretamente
+          const utils = trpc.useUtils();
+          await utils.client.auth.logout.mutate();
+          
+          // Limpar dados do usuário
+          set({ 
+            user: null,
+            isAuthenticated: false,
+            isLoading: false
+          });
+          
+          // Limpar localStorage legado
+          localStorage.removeItem("manus-runtime-user-info");
+          
+          // Invalidar a query de me
+          await utils.auth.me.invalidate();
+          
+          // Limpar cookies manualmente
+          document.cookie = "session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          document.cookie = "session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost";
+          document.cookie = "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          
+          // Mostrar mensagem de sucesso
+          toast.info("Sessão encerrada com sucesso");
+          
+          // Redirecionar para login
+          window.location.href = `/login?t=${Date.now()}`;
+        } catch (error) {
+          set({ isLoading: false });
+          
+          // Forçar logout mesmo com erro
+          set({ user: null, isAuthenticated: false });
+          localStorage.removeItem("manus-runtime-user-info");
+          
+          // Redirecionar para login
+          window.location.href = `/login?t=${Date.now()}`;
+        }
+      },
+      
+      checkAuth: async () => {
+        const currentUser = get().user;
+        
+        // Se já temos um usuário e não estamos carregando, não precisamos verificar
+        if (currentUser && !get().isLoading) {
+          return true;
+        }
+        
+        set({ isLoading: true });
+        
+        try {
+          // Verificar autenticação com o servidor
+          const utils = trpc.useUtils();
+          const userData = await utils.client.auth.me.query();
+          
+          if (userData) {
+            // Atualizar dados do usuário
+            const user: User = {
+              id: userData.id,
+              openId: userData.openId,
+              name: userData.name,
+              email: userData.email,
+              role: userData.role as UserRole,
+            };
+            
+            set({ 
+              user,
+              isAuthenticated: true,
+              isLoading: false
+            });
+            
+            return true;
+          } else {
+            // Usuário não autenticado
+            set({ 
+              user: null,
+              isAuthenticated: false,
+              isLoading: false
+            });
+            
+            return false;
+          }
+        } catch (error) {
+          // Em caso de erro, considerar não autenticado
+          set({ 
+            user: null,
+            isAuthenticated: false,
+            isLoading: false
+          });
+          
+          return false;
+        }
+      }
+    }),
+    {
+      name: STORAGE_KEY,
+      // Armazenar apenas dados do usuário, não o estado de loading
+      partialize: (state) => ({ 
+        user: state.user,
+        isAuthenticated: state.isAuthenticated
+      }),
+    }
+  )
+);
+
+import { useEffect } from 'react';
+
+// Hook para verificar autenticação no carregamento da aplicação
+export function useAuthInitializer() {
+  const { checkAuth } = useAuthStore();
+  
+  // Verificar autenticação ao montar o componente
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+}

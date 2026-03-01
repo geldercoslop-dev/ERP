@@ -1,0 +1,2 @@
+ALTER TABLE `cargas` MODIFY COLUMN `status` enum('ABERTA','EM_ROTA','ENTREGUE') NOT NULL DEFAULT 'ABERTA';
+--> statement-breakpoint

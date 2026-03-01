@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Completo de Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { background: #6366f1; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #4f46e5; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+        .success { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+        .info { background: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
+        .debug { background: #f3f4f6; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 11px; }
+        .status { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .status-ok { background: #10b981; color: white; }
+        .status-error { background: #ef4444; color: white; }
+        .status-pending { background: #f59e0b; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Teste Completo de Login - GRS MÓVEIS</h1>
+        <p><strong>Status do Backend:</strong> <span id="backendStatus" class="status status-pending">Verificando...</span></p>
+        <p><strong>Status Frontend:</strong> <span id="frontendStatus" class="status status-ok">Rodando</span></p>
+    </div>
+
+    <div class="container">
+        <h2>Teste de Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Usuário:</label>
+                <input type="text" id="username" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" value="admin123" required>
+            </div>
+            <button type="submit" id="loginBtn">🚀 Fazer Login</button>
+            <button type="button" id="checkBtn">🔍 Verificar Sessão</button>
+            <button type="button" id="logoutBtn">🚪 Logout</button>
+            <button type="button" id="clearBtn">🗑️ Limpar Tudo</button>
+        </form>
+
+        <div id="result"></div>
+
+        <div class="debug" id="debugInfo">
+            <strong>🔍 Informações de Depuração:</strong><br>
+            • URL da API: <span id="apiUrl">Verificando...</span><br>
+            • Cookies: <span id="cookieInfo">Verificando...</span><br>
+            • LocalStorage: <span id="localStorageInfo">Verificando...</span><br>
+            • User Agent: <span id="userAgent">Verificando...</span><br>
+            • Última verificação: <span id="lastCheck">Nunca</span><br>
+            • Protocolo: <span id="protocol">Verificando...</span>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:3000/api/trpc';
+        
+        function updateDebugInfo() {
+            document.getElementById('apiUrl').textContent = API_BASE;
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            document.getElementById('protocol').textContent = window.location.protocol;
+            
+            // Cookies
+            const cookies = document.cookie.split(';').map(c => c.trim()).filter(c => c.length > 0);
+            document.getElementById('cookieInfo').textContent = cookies.length > 0 ? cookies.join(', ') : 'Nenhum';
+            
+            // LocalStorage
+            const authStore = localStorage.getItem('manus-auth-store');
+            const runtimeUser = localStorage.getItem('manus-runtime-user-info');
+            document.getElementById('localStorageInfo').textContent = 
+                `authStore: ${authStore ? 'Sim' : 'Não'}, runtimeUser: ${runtimeUser ? 'Sim' : 'Não'}`;
+            
+            // Timestamp
+            document.getElementById('lastCheck').textContent = new Date().toLocaleTimeString();
+        }
+
+        async function checkBackendStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/auth.me`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                const status = document.getElementById('backendStatus');
+                if (response.ok) {
+                    status.textContent = 'Online ✅';
+                    status.className = 'status status-ok';
+                } else {
+                    status.textContent = `Erro ${response.status} ❌`;
+                    status.className = 'status status-error';
+                }
+            } catch (error) {
+                const status = document.getElementById('backendStatus');
+                status.textContent = 'Offline ❌';
+                status.className = 'status status-error';
+                console.error('Backend status check failed:', error);
+            }
+        }
+
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+            updateDebugInfo();
+        }
+
+        async function login(username, password) {
+            showResult('🔄 Fazendo login...', 'info');
+            
+            try {
+                console.log('🔍 Enviando requisição para:', `${API_BASE}/auth.login`);
+                console.log('📤 Body:', JSON.stringify({
+                    json: { username: username.trim(), password: password.trim() }
+                }));
+                
+                const response = await fetch(`${API_BASE}/auth.login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        json: { username: username.trim(), password: password.trim() }
+                    }),
+                    credentials: 'include'
+                });
+                
+                console.log('📥 Response status:', response.status);
+                console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const text = await response.text();
+                console.log('📥 Response text:', text);
+                
+                const data = JSON.parse(text);
+                console.log('📥 Parsed data:', data);
+                
+                if (data.result?.data?.json?.ok) {
+                    const user = data.result.data.json;
+                    showResult(`✅ Login successful!\n\nUsuário: ${user.name}\nFunção: ${user.role}\nToken: ${user.sessionToken}\nOpenID: ${user.openId}`, 'success');
+                    
+                    // Verificar sessão após login
+                    setTimeout(checkSession, 1000);
+                } else {
+                    showResult(`❌ Login failed!\n\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erro completo:', error);
+                showResult(`❌ Erro: ${error.message}\n\nStack: ${error.stack}\n\nPossíveis causas:\n1. Backend offline\n2. Problema de CORS\n3. Firewall/Antivírus bloqueando\n4. Problema de rede (IPv4 vs IPv6)`, 'error');
+            }
+        }
+
+        async function checkSession() {
+            showResult('🔍 Verificando sessão...', 'info');
+            
+            try {
+                console.log('🔍 Verificando sessão em:', `${API_BASE}/auth.me`);
+                
+                const response = await fetch(`${API_BASE}/auth.me`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                console.log('📥 Check session status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const text = await response.text();
+                console.log('📥 Check session text:', text);
+                
+                const data = JSON.parse(text);
+                console.log('📥 Check session data:', data);
+                
+                if (data.result?.data?.json) {
+                    const user = data.result.data.json;
+                    showResult(`✅ Usuário autenticado!\n\nNome: ${user.name}\nFunção: ${user.role}\nEmail: ${user.email || 'N/A'}\nID: ${user.id}\nOpenID: ${user.openId}`, 'success');
+                } else {
+                    showResult('❌ Nenhum usuário autenticado', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erro na verificação:', error);
+                showResult(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+
+        async function logout() {
+            showResult('🚪 Fazendo logout...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth.logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    showResult('✅ Logout realizado com sucesso!', 'success');
+                } else {
+                    showResult(`❌ Erro no logout: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erro no logout:', error);
+                showResult(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAll() {
+            // Limpar cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Limpar localStorage
+            localStorage.clear();
+            
+            showResult('🗑️ Todos os dados de sessão foram limpos!', 'info');
+            updateDebugInfo();
+        }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            login(username, password);
+        });
+
+        document.getElementById('checkBtn').addEventListener('click', checkSession);
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+        // Inicialização
+        updateDebugInfo();
+        checkBackendStatus();
+        
+        // Verificar backend periodicamente
+        setInterval(checkBackendStatus, 10000);
+    </script>
+</body>
+</html>

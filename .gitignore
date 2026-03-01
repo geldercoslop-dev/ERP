@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build / output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment (nunca versionar segredos)
+.env
+.env.*
+!.env.example
+!.env.development.example
+!.env.production.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Temp
+.tmp/
+tmp/
+temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives (nunca versionar)
+*.zip
+*.7z
+*.rar
+
+# Database dumps (nunca versionar)
+*.sql
+*.dump
+
+# IDE (manter só settings.json se quiser compartilhar)
+.vscode/*
+!.vscode/settings.json
+.idea/
+
+# Sentry / build artifacts
+.sentryclirc
+
+# Port file gerado pelo servidor (opcional)
+# server/_core/port.ts

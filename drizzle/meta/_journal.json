@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1771126029270,
+      "tag": "0000_puzzling_mysterio",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1771126757780,
+      "tag": "0001_busy_vargas",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1771129015413,
+      "tag": "0002_gray_vengeance",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1771129208719,
+      "tag": "0003_wild_hedge_knight",
+      "breakpoints": true
+    }
+  ]
+}

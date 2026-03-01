@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        h1, h2 {
+            color: #f5f5f5;
+        }
+        .card {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input, button {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #444;
+        }
+        input {
+            background-color: #333;
+            color: #fff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+        pre {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            color: #f5f5f5;
+        }
+        .success {
+            color: #4caf50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .info {
+            color: #2196f3;
+        }
+        .section {
+            margin-top: 30px;
+        }
+        .cookie-item {
+            background-color: #333;
+            padding: 8px;
+            margin: 4px 0;
+            border-radius: 4px;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ferramenta de Diagnóstico de Login</h1>
+    
+    <div class="card">
+        <h2>Login Manual</h2>
+        <div>
+            <label for="username">Usuário:</label>
+            <input type="text" id="username" value="GELDER">
+        </div>
+        <div>
+            <label for="password">Senha:</label>
+            <input type="password" id="password" value="787578">
+        </div>
+        <div class="actions">
+            <button onclick="testLogin()">Testar Login</button>
+            <button onclick="testLogout()">Testar Logout</button>
+            <button onclick="testMe()">Verificar Sessão</button>
+            <button onclick="redirectToApp()">Ir para App</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Cookies Atuais</h2>
+        <div id="cookies-container">Carregando...</div>
+        <div class="actions">
+            <button onclick="updateCookies()">Atualizar</button>
+            <button onclick="clearAllCookies()">Limpar Todos</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>LocalStorage</h2>
+        <div id="localstorage-container">Carregando...</div>
+        <div class="actions">
+            <button onclick="updateLocalStorage()">Atualizar</button>
+            <button onclick="clearLocalStorage()">Limpar</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Resposta da API</h2>
+        <pre id="response">Nenhuma resposta ainda</pre>
+    </div>
+
+    <script>
+        // Atualizar cookies ao carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCookies();
+            updateLocalStorage();
+        });
+
+        function updateCookies() {
+            const cookiesContainer = document.getElementById('cookies-container');
+            const cookies = document.cookie.split(';').map(cookie => cookie.trim());
+            
+            if (cookies.length === 0 || (cookies.length === 1 && cookies[0] === '')) {
+                cookiesContainer.innerHTML = '<div class="info">Nenhum cookie encontrado</div>';
+                return;
+            }
+            
+            let html = '';
+            cookies.forEach(cookie => {
+                const [name, value] = cookie.split('=').map(part => part.trim());
+                html += `<div class="cookie-item"><strong>${name}:</strong> ${value}</div>`;
+            });
+            
+            cookiesContainer.innerHTML = html;
+        }
+        
+        function updateLocalStorage() {
+            const container = document.getElementById('localstorage-container');
+            try {
+                const userInfo = localStorage.getItem('manus-runtime-user-info');
+                if (userInfo) {
+                    const parsed = JSON.parse(userInfo);
+                    container.innerHTML = `<pre>${JSON.stringify(parsed, null, 2)}</pre>`;
+                } else {
+                    container.innerHTML = '<div class="info">Nenhum dado de usuário no localStorage</div>';
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="error">Erro ao ler localStorage: ${error.message}</div>`;
+            }
+        }
+        
+        function clearAllCookies() {
+            document.cookie.split(';').forEach(cookie => {
+                const [name] = cookie.split('=').map(part => part.trim());
+                if (name) {
+                    // Limpar em diferentes paths e domains
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`;
+                }
+            });
+            updateCookies();
+            showResponse('Cookies limpos com sucesso', 'success');
+        }
+        
+        function clearLocalStorage() {
+            localStorage.removeItem('manus-runtime-user-info');
+            updateLocalStorage();
+            showResponse('LocalStorage limpo com sucesso', 'success');
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showResponse('Por favor, preencha usuário e senha', 'error');
+                return;
+            }
+            
+            try {
+                showResponse('Enviando requisição de login...', 'info');
+                
+                const response = await fetch('/api/trpc/auth.login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        0: {
+                            json: {
+                                username,
+                                password
+                            }
+                        }
+                    }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                showResponse(data, null);
+                
+                if (data[0]?.result?.data?.json?.ok) {
+                    showResponse('Login bem-sucedido! Verificando cookies...', 'success');
+                    setTimeout(() => {
+                        updateCookies();
+                        updateLocalStorage();
+                    }, 500);
+                } else {
+                    showResponse('Falha no login. Verifique a resposta para mais detalhes.', 'error');
+                }
+            } catch (error) {
+                showResponse(`Erro na requisição: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogout() {
+            try {
+                showResponse('Enviando requisição de logout...', 'info');
+                
+                const response = await fetch('/api/trpc/auth.logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        0: {
+                            json: {}
+                        }
+                    }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                showResponse(data, null);
+                
+                showResponse('Logout processado. Verificando cookies...', 'info');
+                setTimeout(() => {
+                    updateCookies();
+                }, 500);
+            } catch (error) {
+                showResponse(`Erro na requisição: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testMe() {
+            try {
+                showResponse('Verificando sessão atual...', 'info');
+                
+                const response = await fetch('/api/trpc/auth.me', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                showResponse(data, null);
+                
+                if (data.result?.data) {
+                    showResponse('Usuário autenticado: ' + JSON.stringify(data.result.data), 'success');
+                } else {
+                    showResponse('Não autenticado ou sessão inválida', 'error');
+                }
+            } catch (error) {
+                showResponse(`Erro na requisição: ${error.message}`, 'error');
+            }
+        }
+        
+        function redirectToApp() {
+            window.location.href = '/';
+        }
+        
+        function showResponse(data, type) {
+            const responseElement = document.getElementById('response');
+            
+            if (typeof data === 'object') {
+                responseElement.textContent = JSON.stringify(data, null, 2);
+                return;
+            }
+            
+            if (type) {
+                responseElement.className = type;
+            } else {
+                responseElement.className = '';
+            }
+            
+            responseElement.textContent = data;
+        }
+    </script>
+</body>
+</html>
