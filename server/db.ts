@@ -7,31 +7,103 @@ import { getConnectionPool, executeQuery } from "./config/database";
 export { eq, and, or, desc, asc, sql, inArray };
 export * from "../drizzle/schema";
 import { 
-  InsertUser, users, 
-  vendedores, InsertVendedor, Vendedor,
-  produtos, InsertProduto, Produto,
-  cores, InsertCor, Cor,
-  clientes, InsertCliente, Cliente,
-  pedidos, InsertPedido, Pedido,
-  itensPedido, InsertItemPedido, ItemPedido,
-  cargas, InsertCarga, Carga,
-  pedidosCarga, InsertPedidoCarga, PedidoCarga,
-  comissoes, InsertComissao, Comissao,
-  gruposPrecificacao, InsertGrupoPrecificacao, GrupoPrecificacao,
-  pendencias, InsertPendencia, Pendencia,
+  users,
+  vendedores,
+  produtos,
+  cores,
+  clientes,
+  clienteVendedores,
+  pedidos,
+  itensPedido,
+  cargas,
+  pedidosCarga,
+  comissoes,
+  gruposPrecificacao,
+  pendencias,
   counters,
   contasFixas,
   contasPagar,
   contasReceber,
   caixaMensal,
   planoContas,
+  boletos,
+  pagamentosBoleto,
+  configuracoes,
   produtoVariacoes,
   promocoes,
   promocoesItens,
   schemaVersion,
+  auditLog,
+  idempotencyKeys,
 } from "../drizzle/schema";
+import { nanoid } from "nanoid";
 import { ENV } from './_core/env';
 import { EXPECTED_SCHEMA_VERSION } from './_core/schemaVersion';
+
+/** Normaliza telefone: só dígitos (máx 32). */
+export function normalizeTelefone(telefone: string | null | undefined): string {
+  if (telefone == null || telefone === '') return '';
+  const digits = String(telefone).replace(/\D/g, '');
+  return digits.slice(0, 32);
+}
+
+/** Normaliza nome completo: trim, lowercase, colapsa espaços; retorna nomeNorm + sobrenomeNorm (última palavra). */
+export function normalizeNomeSobrenome(nome: string | null | undefined): { nomeNorm: string; sobrenomeNorm: string } {
+  if (nome == null || nome === '') return { nomeNorm: '', sobrenomeNorm: '' };
+  const s = String(nome).trim().toLowerCase().replace(/\s+/g, ' ');
+  const max = 120;
+  const truncated = s.slice(0, max * 2);
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace <= 0) return { nomeNorm: truncated.slice(0, max), sobrenomeNorm: '' };
+  const nomeNorm = truncated.slice(0, lastSpace).slice(0, max);
+  const sobrenomeNorm = truncated.slice(lastSpace + 1).slice(0, max);
+  return { nomeNorm, sobrenomeNorm };
+}
+
+// Tipos inferidos do schema (evita depender de aliases que podem não existir no schema.ts).
+export type InsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type InsertVendedor = typeof vendedores.$inferInsert;
+export type Vendedor = typeof vendedores.$inferSelect;
+export type InsertProduto = typeof produtos.$inferInsert;
+export type Produto = typeof produtos.$inferSelect;
+export type InsertCor = typeof cores.$inferInsert;
+export type Cor = typeof cores.$inferSelect;
+export type InsertCliente = typeof clientes.$inferInsert;
+export type Cliente = typeof clientes.$inferSelect;
+/** Input para createCliente: nome e telefone obrigatórios (validados no router); norms calculados internamente. */
+export type CreateClienteInput = {
+  nome: string;
+  telefone: string;
+  telefoneRecado?: string | null;
+  rua?: string | null;
+  numero?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  referencia?: string | null;
+  condominio?: string | null;
+  bloco?: string | null;
+  apartamento?: string | null;
+  id?: number;
+  vendedorIdPrincipal?: number;
+};
+export type InsertClienteVendedor = typeof clienteVendedores.$inferInsert;
+export type ClienteVendedor = typeof clienteVendedores.$inferSelect;
+export type InsertPedido = typeof pedidos.$inferInsert;
+export type Pedido = typeof pedidos.$inferSelect;
+export type InsertItemPedido = typeof itensPedido.$inferInsert;
+export type ItemPedido = typeof itensPedido.$inferSelect;
+export type InsertCarga = typeof cargas.$inferInsert;
+export type Carga = typeof cargas.$inferSelect;
+export type InsertPedidoCarga = typeof pedidosCarga.$inferInsert;
+export type PedidoCarga = typeof pedidosCarga.$inferSelect;
+export type InsertComissao = typeof comissoes.$inferInsert;
+export type Comissao = typeof comissoes.$inferSelect;
+export type InsertGrupoPrecificacao = typeof gruposPrecificacao.$inferInsert;
+export type GrupoPrecificacao = typeof gruposPrecificacao.$inferSelect;
+export type InsertPendencia = typeof pendencias.$inferInsert;
+export type Pendencia = typeof pendencias.$inferSelect;
 
 /** Tipo do erro MySQL (mysql2 / Drizzle). */
 type MySqlError = Error & { code?: string; errno?: number; sqlState?: string; sqlMessage?: string; sql?: string };
@@ -49,186 +121,21 @@ function logMySqlError(err: unknown, context?: string, query?: string) {
 }
 
 // Variáveis globais para manter o ORM
-let _db: ReturnType<typeof drizzle> | null = null;
+// Tipos do drizzle/mysql2 podem divergir entre Pool callback vs promise.
+// O runtime funciona com mysql2/promise Pool; mantemos type como any para não bloquear o build.
+let _db: any | null = null;
 let _pool: mysql.Pool | null = null;
 let _schemaEnsured = false;
 
-async function ensureSchema(db: ReturnType<typeof drizzle>) {
+/** Apenas valida conexão e status do schema (sem DDL). Todas alterações de schema via migrations Drizzle. */
+async function ensureSchema(db: any) {
   if (_schemaEnsured) return;
   _schemaEnsured = true;
   try {
-    // Garante que os ENUMs aceitam "EM_ROTA" (módulo de Cargas).
-    // Faz de forma idempotente para evitar erro em produção.
-    const [pedidoCol]: any = await (db as any).execute(sql`
-      SELECT COLUMN_TYPE as ct
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pedidos' AND COLUMN_NAME = 'status'
-      LIMIT 1;
-    `);
-    const pedidoCt = (pedidoCol?.[0]?.ct || '').toString();
-    if (pedidoCt && !pedidoCt.includes('EM_ROTA')) {
-      await (db as any).execute(sql`
-        ALTER TABLE pedidos
-        MODIFY COLUMN status ENUM('GERADO','IMPRESSO','EM_ROTA','ENTREGUE','CANCELADO') NOT NULL DEFAULT 'GERADO';
-      `);
-    }
-
-    const [cargaCol]: any = await (db as any).execute(sql`
-      SELECT COLUMN_TYPE as ct
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cargas' AND COLUMN_NAME = 'status'
-      LIMIT 1;
-    `);
-    const cargaCt = (cargaCol?.[0]?.ct || '').toString();
-    if (cargaCt && !cargaCt.includes('EM_ROTA')) {
-      // Mantém ABERTA se existir no banco legado.
-      await (db as any).execute(sql`
-        ALTER TABLE cargas
-        MODIFY COLUMN status ENUM('ABERTA','EM_ROTA','ENTREGUE') NOT NULL DEFAULT 'EM_ROTA';
-      `);
-    }
-
-    // Promoções: cria tabelas caso ainda não existam (idempotente).
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS promocoes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(255) NOT NULL,
-        inicio DATETIME NOT NULL,
-        fim DATETIME NOT NULL,
-        ativo TINYINT(1) NOT NULL DEFAULT 1,
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX promocoes_ativo_idx (ativo),
-        INDEX promocoes_inicio_idx (inicio),
-        INDEX promocoes_fim_idx (fim)
-      ) ENGINE=InnoDB;
-    `);
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS promocoes_itens (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        promocaoId INT NOT NULL,
-        produtoId INT NOT NULL,
-        precoPromocional DECIMAL(10,2) NOT NULL,
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        INDEX promocoes_itens_promocao_idx (promocaoId),
-        INDEX promocoes_itens_produto_idx (produtoId),
-        CONSTRAINT fk_promocoes_itens_promocao FOREIGN KEY (promocaoId) REFERENCES promocoes(id) ON DELETE CASCADE,
-        CONSTRAINT fk_promocoes_itens_produto FOREIGN KEY (produtoId) REFERENCES produtos(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB;
-    `);
-
-    // ===== Caixa movimentos (entrada/saída) =====
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS caixa_movimentos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        dataMovimento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        tipo ENUM('ENTRADA','SAIDA') NOT NULL,
-        formaPagamento ENUM('PIX','BOLETO','CARTAO','DINHEIRO','CHEQUE') NOT NULL,
-        valor DECIMAL(12,2) NOT NULL,
-        descricao VARCHAR(255) NOT NULL,
-        referenciaTipo VARCHAR(50),
-        referenciaId INT,
-        marca VARCHAR(255),
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        INDEX caixa_mov_tipo_idx (tipo),
-        INDEX caixa_mov_data_idx (dataMovimento),
-        INDEX caixa_mov_ref_idx (referenciaTipo, referenciaId)
-      ) ENGINE=InnoDB;
-    `);
-
-    // ===== Reposições (pendências de compra para estoque) =====
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS reposicoes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        produtoId INT NOT NULL,
-        marca VARCHAR(255),
-        representante VARCHAR(255),
-        quantidade INT NOT NULL,
-        valor DECIMAL(10,2),
-        dataPedido DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        status ENUM('AGUARDANDO','RESOLVIDO') NOT NULL DEFAULT 'AGUARDANDO',
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        INDEX reposicoes_produto_idx (produtoId),
-        INDEX reposicoes_status_idx (status),
-        INDEX reposicoes_marca_idx (marca),
-        CONSTRAINT fk_reposicoes_produto FOREIGN KEY (produtoId) REFERENCES produtos(id) ON DELETE RESTRICT
-      ) ENGINE=InnoDB;
-    `);
-
-    // ===== Nota de Entrada (1 marca por nota) =====
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS notas_entrada (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        marca VARCHAR(255) NOT NULL,
-        dataChegada DATETIME NOT NULL,
-        valorTotal DECIMAL(12,2) NOT NULL,
-        formaPagamento ENUM('PIX','BOLETO','DINHEIRO','CHEQUE','CARTAO') NOT NULL,
-        parcelas INT,
-        observacao TEXT,
-        createdBy INT,
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        INDEX notas_entrada_marca_idx (marca),
-        INDEX notas_entrada_data_idx (dataChegada)
-      ) ENGINE=InnoDB;
-    `);
-
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS notas_entrada_itens (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        notaId INT NOT NULL,
-        produtoId INT NOT NULL,
-        quantidade INT NOT NULL,
-        custoUnit DECIMAL(10,2),
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        INDEX notas_itens_nota_idx (notaId),
-        INDEX notas_itens_prod_idx (produtoId),
-        CONSTRAINT fk_notas_itens_nota FOREIGN KEY (notaId) REFERENCES notas_entrada(id) ON DELETE CASCADE,
-        CONSTRAINT fk_notas_itens_produto FOREIGN KEY (produtoId) REFERENCES produtos(id) ON DELETE RESTRICT
-      ) ENGINE=InnoDB;
-    `);
-
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS notas_entrada_parcelas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        notaId INT NOT NULL,
-        parcela INT NOT NULL,
-        valor DECIMAL(12,2) NOT NULL,
-        dataVencimento DATETIME NOT NULL,
-        status ENUM('PENDENTE','PAGO') NOT NULL DEFAULT 'PENDENTE',
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        INDEX notas_parc_nota_idx (notaId),
-        CONSTRAINT fk_notas_parc_nota FOREIGN KEY (notaId) REFERENCES notas_entrada(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB;
-    `);
-
-    // Compat: versões antigas (marcaId) -> adiciona coluna marca sem quebrar.
-    const ensureColumn = async (table: string, col: string, ddl: any) => {
-      const [rows]: any = await (db as any).execute(sql`
-        SELECT COUNT(*) as c
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ${table} AND COLUMN_NAME = ${col};
-      `);
-      const c = Number(rows?.[0]?.c ?? 0);
-      if (c === 0) {
-        await (db as any).execute(ddl);
-      }
-    };
-    await ensureColumn('caixa_movimentos', 'marca', sql`ALTER TABLE caixa_movimentos ADD COLUMN marca VARCHAR(255) NULL;`);
-    await ensureColumn('reposicoes', 'marca', sql`ALTER TABLE reposicoes ADD COLUMN marca VARCHAR(255) NULL;`);
-    await ensureColumn('notas_entrada', 'marca', sql`ALTER TABLE notas_entrada ADD COLUMN marca VARCHAR(255) NULL;`);
-
-    // Tabela de versão do schema (usada por /api/health)
-    await (db as any).execute(sql`
-      CREATE TABLE IF NOT EXISTS schema_version (
-        id INT PRIMARY KEY,
-        version INT NOT NULL,
-        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB;
-    `);
-    await (db as any).execute(sql`INSERT IGNORE INTO schema_version (id, version) VALUES (1, ${EXPECTED_SCHEMA_VERSION})`);
+    await (db as any).execute(sql`SELECT 1`);
   } catch (e) {
     logMySqlError(e, "ensureSchema");
-    console.warn('[Database] ensureSchema skipped:', (e as any)?.message || e);
+    console.warn('[Database] ensureSchema check:', (e as any)?.message || e);
   }
 }
 
@@ -256,15 +163,18 @@ export async function getDb() {
     
     console.log("[Database] Drizzle ORM inicializado com sucesso");
     
-    // Configurar evento para monitorar a saúde do pool
-    _pool.on('error', (err) => {
-      console.error('[Database] Erro no pool de conexões:', err);
-      
-      // Se for um erro de conexão perdida, resetar para forçar recriação
-      if (err.code === 'PROTOCOL_CONNECTION_LOST' || 
-          err.code === 'ECONNREFUSED' || 
-          err.code === 'ETIMEDOUT') {
-        console.log('[Database] Conexão perdida. Resetando instâncias...');
+    // Configurar evento para monitorar a saúde do pool.
+    // Tipos do mysql2/promise não expõem todos os eventos, mas runtime é EventEmitter.
+    (_pool as any).on?.("error", (err: any) => {
+      console.error("[Database] Erro no pool de conexões:", err);
+
+      const code = err?.code as string | undefined;
+      if (
+        code === "PROTOCOL_CONNECTION_LOST" ||
+        code === "ECONNREFUSED" ||
+        code === "ETIMEDOUT"
+      ) {
+        console.log("[Database] Conexão perdida. Resetando instâncias...");
         _db = null;
         _pool = null;
       }
@@ -297,6 +207,156 @@ export async function getDb() {
     _pool = null;
     
     return null;
+  }
+}
+
+/** Ações de auditoria (inclui movimentação estoque: ENTRADA, SAIDA, AJUSTE, BAIXA). */
+export type AuditAction = "create" | "update" | "delete" | "ENTRADA" | "SAIDA" | "AJUSTE" | "BAIXA";
+
+/** Registra ação na audit_log (sem senha nem dados sensíveis). Se tx for passado, usa a transação. */
+export async function insertAuditLog(params: {
+  actorUserId?: number | null;
+  actorVendedorId?: number | null;
+  action: AuditAction;
+  entity: string;
+  entityId?: string | number | null;
+  payloadJson?: string | null;
+  traceId?: string | null;
+}, tx?: any): Promise<void> {
+  const client = tx ?? await getDb();
+  if (!client) return;
+  try {
+    await client.insert(auditLog).values({
+      actorUserId: params.actorUserId ?? null,
+      actorVendedorId: params.actorVendedorId ?? null,
+      action: params.action,
+      entity: params.entity,
+      entityId: params.entityId != null ? String(params.entityId) : null,
+      payloadJson: params.payloadJson ?? null,
+      traceId: params.traceId ?? null,
+    } as any);
+  } catch (e) {
+    logMySqlError(e, "insertAuditLog");
+  }
+}
+
+function isNoSuchTableError(err: any): boolean {
+  const code = err?.code ?? err?.cause?.code ?? err?.nativeError?.code;
+  const errno = err?.errno ?? err?.cause?.errno ?? err?.nativeError?.errno;
+  return code === "ER_NO_SUCH_TABLE" || errno === 1146 || String(err?.message ?? "").includes("doesn't exist");
+}
+
+/** Retorna resultado já executado para (commandName, key), ou null. */
+export async function getIdempotencyResult(
+  commandName: string,
+  key: string,
+  tx?: any
+): Promise<{ resultJson: string; traceId: string | null } | null> {
+  const client = tx ?? await getDb();
+  if (!client) return null;
+  try {
+    const rows = await client
+      .select({ resultJson: idempotencyKeys.resultJson, traceId: idempotencyKeys.traceId })
+      .from(idempotencyKeys)
+      .where(and(eq(idempotencyKeys.commandName, commandName), eq(idempotencyKeys.key, key)))
+      .limit(1);
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return r.resultJson != null ? { resultJson: r.resultJson, traceId: r.traceId } : null;
+  } catch (err: any) {
+    if (isNoSuchTableError(err)) {
+      throw new Error("Tabela idempotency_keys não existe. Rode: npm run db:migrate");
+    }
+    throw err;
+  }
+}
+
+/**
+ * Reserva a chave de idempotência dentro da transação (INSERT).
+ * Retorna { reserved: true } se inseriu; { reserved: false, resultJson, traceId } se já existia (duplicata).
+ * Em caso de "em processamento" (resultJson null na linha existente), resultJson será null.
+ */
+export async function reserveIdempotencyKey(
+  tx: any,
+  commandName: string,
+  key: string
+): Promise<
+  | { reserved: true }
+  | { reserved: false; resultJson: string | null; traceId: string | null }
+> {
+  try {
+    await tx.insert(idempotencyKeys).values({
+      key,
+      commandName,
+      resultJson: null,
+      traceId: null,
+    } as any);
+    return { reserved: true };
+  } catch (err: any) {
+    if (isNoSuchTableError(err)) {
+      throw new Error("Tabela idempotency_keys não existe. Rode: npm run db:migrate");
+    }
+    const code = err?.code ?? err?.cause?.code ?? err?.nativeError?.code;
+    const errno = err?.errno ?? err?.cause?.errno ?? err?.nativeError?.errno;
+    const isDup = code === "ER_DUP_ENTRY" || errno === 1062 || (err?.message && String(err.message).includes("Duplicate"));
+    if (!isDup) throw err;
+    const rows = await tx
+      .select({ resultJson: idempotencyKeys.resultJson, traceId: idempotencyKeys.traceId })
+      .from(idempotencyKeys)
+      .where(and(eq(idempotencyKeys.commandName, commandName), eq(idempotencyKeys.key, key)))
+      .limit(1);
+    const r = rows[0];
+    return {
+      reserved: false,
+      resultJson: r?.resultJson ?? null,
+      traceId: r?.traceId ?? null,
+    };
+  }
+}
+
+/** Atualiza resultado da chave (dentro da mesma transação após handler). */
+export async function updateIdempotencyResult(
+  tx: any,
+  commandName: string,
+  key: string,
+  resultJson: string,
+  traceId: string | null
+): Promise<void> {
+  try {
+    await tx
+      .update(idempotencyKeys)
+      .set({ resultJson, traceId } as any)
+      .where(and(eq(idempotencyKeys.commandName, commandName), eq(idempotencyKeys.key, key)));
+  } catch (err: any) {
+    if (isNoSuchTableError(err)) {
+      throw new Error("Tabela idempotency_keys não existe. Rode: npm run db:migrate");
+    }
+    throw err;
+  }
+}
+
+/** @deprecated Use reserveIdempotencyKey + updateIdempotencyResult. Mantido para compat. */
+export async function setIdempotencyResult(
+  key: string,
+  commandName: string,
+  resultJson: string,
+  traceId: string | null,
+  tx?: any
+): Promise<void> {
+  const client = tx ?? await getDb();
+  if (!client) return;
+  try {
+    await client.insert(idempotencyKeys).values({
+      key,
+      commandName,
+      resultJson,
+      traceId,
+    } as any);
+  } catch (err: any) {
+    if (isNoSuchTableError(err)) {
+      throw new Error("Tabela idempotency_keys não existe. Rode: npm run db:migrate");
+    }
+    throw err;
   }
 }
 
@@ -370,6 +430,65 @@ export async function getUserByOpenId(openId: string) {
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/** Atualiza lastSignedIn e updatedAt do user (após login). */
+export async function touchLastSignedIn(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    const now = new Date();
+    await db.update(users).set({ lastSignedIn: now, updatedAt: now }).where(eq(users.id, userId));
+  } catch (err) {
+    logMySqlError(err, "touchLastSignedIn");
+  }
+}
+
+/** Retorna user pelo openId; se não existir, cria e retorna. Usado por linkUser. */
+export async function findOrCreateUserByOpenId(openId: string, name?: string | null): Promise<User | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const existing = await getUserByOpenId(openId);
+  if (existing) return existing;
+  try {
+    const result = await db.insert(users).values({
+      openId: openId.trim().toLowerCase(),
+      name: name ?? openId,
+      role: "user",
+    });
+    const id = (result as any)?.[0]?.insertId ?? (result as any)?.insertId;
+    if (id) return await getUserById(Number(id));
+  } catch (err) {
+    logMySqlError(err, "findOrCreateUserByOpenId");
+  }
+  return undefined;
+}
+
+/** Garante que exista user admin (openId "admin", role "admin"). Chamado no boot. */
+export async function ensureAdminUser(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const adminUser = await getUserByOpenId("admin");
+  if (adminUser) return;
+  try {
+    await db.insert(users).values({
+      openId: "admin",
+      name: "Administrador",
+      email: "admin@sistema.com",
+      loginMethod: "simple",
+      role: "admin",
+    });
+    console.log("Usuário admin (admin/admin123) criado automaticamente.");
+  } catch (err) {
+    logMySqlError(err, "ensureAdminUser");
+  }
 }
 
 // ===== VENDEDORES =====
@@ -835,12 +954,26 @@ export async function setPromocaoItens(promocaoId: number, itens: Array<{ produt
 
 /**
  * ATUALIZAÇÃO DE ESTOQUE COM LÓGICA DE PENDÊNCIAS (FIFO)
- * Quando entra mercadoria (quantidade > 0), o sistema dá baixa nas pendências
- * mais antigas primeiro (status COMPRADO primeiro, depois PENDENTE).
+ * Invariante: produto.estoque >= 0. Toda movimentação registrada em audit_log.
  */
-export async function updateEstoqueProduto(id: number, quantidade: number) {
+export async function updateEstoqueProduto(
+  id: number,
+  quantidade: number,
+  audit?: { actorUserId?: number; actorVendedorId?: number; traceId?: string; motivo?: string }
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  const res = await db.select({ estoque: produtos.estoque, descricao: produtos.descricao }).from(produtos).where(eq(produtos.id, id)).limit(1);
+  const row = res[0];
+  const saldoAnterior = Number(row?.estoque ?? 0);
+
+  if (quantidade < 0 && saldoAnterior + quantidade < 0) {
+    const msg = `Estoque insuficiente para baixa. Produto "${row?.descricao ?? id}": saldo atual ${saldoAnterior}, tentativa de baixa ${Math.abs(quantidade)}.`;
+    const err = new Error(msg) as Error & { code?: string };
+    err.code = "ESTOQUE_NEGATIVO";
+    throw err;
+  }
   
   // Se for entrada de mercadoria, processar pendências
   if (quantidade > 0) {
@@ -904,6 +1037,18 @@ export async function updateEstoqueProduto(id: number, quantidade: number) {
   await db.update(produtos).set({ 
     estoque: sql`${produtos.estoque} + ${quantidade}` 
   }).where(eq(produtos.id, id));
+
+  const saldoNovo = saldoAnterior + quantidade;
+  const action: AuditAction = quantidade > 0 ? "ENTRADA" : "SAIDA";
+  await insertAuditLog({
+    actorUserId: audit?.actorUserId ?? null,
+    actorVendedorId: audit?.actorVendedorId ?? null,
+    action,
+    entity: "estoque",
+    entityId: String(id),
+    payloadJson: JSON.stringify({ quantidade, saldoAnterior, saldoNovo, motivo: audit?.motivo ?? "updateEstoqueProduto", produtoId: id }),
+    traceId: audit?.traceId ?? nanoid(10),
+  });
 }
 
 // ===== CORES =====
@@ -953,15 +1098,174 @@ export async function getAllClientes() {
   return await db.select().from(clientes).orderBy(asc(clientes.nome));
 }
 
-export async function createCliente(data: InsertCliente) {
+/** Clientes vinculados ao vendedor (cliente_vendedores). Por padrão lista só vinculados. */
+export async function listClientesByVendedor(vendedorId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ clienteId: clienteVendedores.clienteId })
+    .from(clienteVendedores)
+    .where(eq(clienteVendedores.vendedorId, vendedorId));
+  const idList: number[] = Array.from(new Set(rows.map((r) => r.clienteId).filter((id): id is number => id != null)));
+  if (idList.length === 0) return [];
+  return await db.select().from(clientes).where(inArray(clientes.id, idList)).orderBy(asc(clientes.nome));
+}
+
+/** Busca clientes por termo restrita a clientes vinculados ao vendedor. */
+export async function searchClientesByVendedor(searchTerm: string, vendedorId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const term = `%${searchTerm}%`;
+  const rows = await db.select({ clienteId: clienteVendedores.clienteId })
+    .from(clienteVendedores)
+    .where(eq(clienteVendedores.vendedorId, vendedorId));
+  const idList: number[] = Array.from(new Set(rows.map((r) => r.clienteId).filter((id): id is number => id != null)));
+  if (idList.length === 0) return [];
+  return await db.select().from(clientes)
+    .where(and(
+      inArray(clientes.id, idList),
+      or(
+        sql`LOWER(${clientes.nome}) LIKE LOWER(${term})`,
+        sql`${clientes.telefone} LIKE ${term}`
+      )
+    ))
+    .orderBy(asc(clientes.nome))
+    .limit(50);
+}
+
+/** Retorna true se o cliente está vinculado ao vendedor (ou tem pedido do vendedor, compat). */
+export async function clienteTemPedidoDoVendedor(clienteId: number, vendedorId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const vinculo = await db.select({ id: clienteVendedores.id }).from(clienteVendedores)
+    .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)))
+    .limit(1);
+  if (vinculo.length > 0) return true;
+  const rows = await db.select({ id: pedidos.id }).from(pedidos)
+    .where(and(eq(pedidos.clienteId, clienteId), eq(pedidos.vendedorId, vendedorId)))
+    .limit(1);
+  return rows.length > 0;
+}
+
+/** Busca global: todos os clientes por nome/telefone (para vendedor escolher e vincular). */
+export async function searchClientesGlobal(searchTerm: string, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  const term = `%${searchTerm}%`;
+  return await db.select().from(clientes)
+    .where(or(
+      sql`LOWER(${clientes.nome}) LIKE LOWER(${term})`,
+      sql`${clientes.telefone} LIKE ${term}`,
+      sql`${clientes.telefoneRecado} LIKE ${term}`
+    ))
+    .orderBy(asc(clientes.nome))
+    .limit(limit);
+}
+
+/** Vendedor principal do cliente (tipo PRINCIPAL). Retorna { vendedorId, nome } ou null. */
+export async function getVendedorPrincipalDoCliente(clienteId: number): Promise<{ vendedorId: number; nome: string } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select({
+    vendedorId: vendedores.id,
+    nome: vendedores.nome,
+  })
+    .from(clienteVendedores)
+    .innerJoin(vendedores, eq(clienteVendedores.vendedorId, vendedores.id))
+    .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.tipo, 'PRINCIPAL')))
+    .limit(1);
+  if (rows.length === 0) return null;
+  return { vendedorId: rows[0].vendedorId, nome: rows[0].nome ?? '' };
+}
+
+/** Cria vínculo cliente ↔ vendedor (ignora se já existir). */
+export async function createClienteVinculo(clienteId: number, vendedorId: number, tipo: 'PRINCIPAL' | 'SECUNDARIO' = 'SECUNDARIO') {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    await db.insert(clienteVendedores).values({ clienteId, vendedorId, tipo });
+  } catch (e: any) {
+    if (e?.errno !== 1062 && e?.code !== 'ER_DUP_ENTRY') throw e;
+  }
+}
+
+/**
+ * Garante vínculo (clienteId, vendedorId) de forma idempotente dentro de uma transação.
+ * Se já existe vínculo, não faz nada. Se o cliente já tem PRINCIPAL com outro vendedor, insere SECUNDARIO; senão insere PRINCIPAL.
+ */
+export async function ensureClienteVendedorLink(tx: any, clienteId: number, vendedorId: number): Promise<void> {
+  const existing = await tx.select({ id: clienteVendedores.id }).from(clienteVendedores)
+    .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)))
+    .limit(1);
+  if (existing.length > 0) return;
+
+  const principal = await tx.select({ id: clienteVendedores.id }).from(clienteVendedores)
+    .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.tipo, 'PRINCIPAL')))
+    .limit(1);
+  const tipo: 'PRINCIPAL' | 'SECUNDARIO' = principal.length > 0 ? 'SECUNDARIO' : 'PRINCIPAL';
+
+  try {
+    await tx.insert(clienteVendedores).values({ clienteId, vendedorId, tipo });
+  } catch (e: any) {
+    if (e?.errno !== 1062 && e?.code !== 'ER_DUP_ENTRY') throw e;
+  }
+}
+
+export async function createCliente(data: CreateClienteInput, vendedorIdPrincipal?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Código global do cliente: 4 dígitos no frontend (padStart).
-  // Aqui geramos um número reaproveitável usando a tabela counters.
-  const id = (data as any).id ?? await getNextCounter('clientes');
-  const payload: InsertCliente = { ...(data as any), id };
-  await db.insert(clientes).values(payload);
+  const raw = data as any;
+  const telefone = raw.telefone === '' || raw.telefone == null ? null : raw.telefone;
+  const telefoneNorm = normalizeTelefone(raw.telefone);
+  const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(raw.nome);
+
+  const existing = await db.select({ id: clientes.id }).from(clientes)
+    .where(and(
+      eq(clientes.telefoneNorm, telefoneNorm),
+      eq(clientes.nomeNorm, nomeNorm.slice(0, 120)),
+      eq(clientes.sobrenomeNorm, sobrenomeNorm.slice(0, 120))
+    ))
+    .limit(1);
+  if (existing.length > 0) {
+    const id = existing[0].id;
+    if (vendedorIdPrincipal != null) {
+      try {
+        await db.insert(clienteVendedores).values({ clienteId: id, vendedorId: vendedorIdPrincipal, tipo: 'PRINCIPAL' });
+      } catch (e: any) {
+        if (e?.errno !== 1062 && e?.code !== 'ER_DUP_ENTRY') throw e;
+      }
+    }
+    return { id };
+  }
+
+  const payload: InsertCliente = {
+    nome: raw.nome,
+    telefone,
+    telefoneNorm: telefoneNorm.slice(0, 32),
+    nomeNorm: nomeNorm.slice(0, 120),
+    sobrenomeNorm: sobrenomeNorm.slice(0, 120),
+    telefoneRecado: raw.telefoneRecado ?? null,
+    rua: raw.rua ?? null,
+    numero: raw.numero ?? null,
+    bairro: raw.bairro ?? null,
+    cidade: raw.cidade ?? null,
+    uf: raw.uf ?? null,
+    referencia: raw.referencia ?? null,
+    condominio: raw.condominio ?? null,
+    bloco: raw.bloco ?? null,
+    apartamento: raw.apartamento ?? null,
+  };
+  if (raw.id != null) (payload as any).id = raw.id;
+  const result = await db.insert(clientes).values(payload);
+  const id = raw.id ?? (result as any)?.[0]?.insertId ?? (result as any)?.insertId;
+  if (id == null) throw new Error("Falha ao obter id do cliente");
+  if (vendedorIdPrincipal != null) {
+    try {
+      await db.insert(clienteVendedores).values({ clienteId: id, vendedorId: vendedorIdPrincipal, tipo: 'PRINCIPAL' });
+    } catch (e: any) {
+      if (e?.errno !== 1062 && e?.code !== 'ER_DUP_ENTRY') throw e;
+    }
+  }
   return { id };
 }
 
@@ -982,8 +1286,18 @@ export async function searchClientes(searchTerm: string) {
 export async function updateCliente(id: number, data: Partial<InsertCliente>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  await db.update(clientes).set(data).where(eq(clientes.id, id));
+
+  const raw = data as any;
+  const set: Record<string, unknown> = { ...raw };
+  if (raw.nome !== undefined) {
+    const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(raw.nome);
+    set.nomeNorm = nomeNorm.slice(0, 120);
+    set.sobrenomeNorm = sobrenomeNorm.slice(0, 120);
+  }
+  if (raw.telefone !== undefined) {
+    set.telefoneNorm = normalizeTelefone(raw.telefone).slice(0, 32);
+  }
+  await db.update(clientes).set(set as any).where(eq(clientes.id, id));
 }
 
 // Versão SQL (usada pelo fluxo novo)
@@ -1056,12 +1370,13 @@ export async function createItensPedido(items: InsertItemPedido[]) {
     if (item.tipo === "CATALOGO" && item.produtoId) {
       const produto = await getProdutoById(item.produtoId);
       if (produto) {
-        const novoEstoque = produto.estoque - item.quantidade;
+        const qtd = Number(item.quantidade ?? 0);
+        const novoEstoque = Number(produto.estoque) - qtd;
         
         // Se o estoque ficar negativo, criar linha em pendências
         if (novoEstoque < 0) {
           // Quantidade pendente é o que faltou (ou a quantidade total da linha se já estava negativo)
-          const qtdPendente = produto.estoque > 0 ? Math.abs(novoEstoque) : item.quantidade;
+          const qtdPendente = Number(produto.estoque) > 0 ? Math.abs(novoEstoque) : qtd;
           
           const pedido = await getPedidoById(item.pedidoId);
           
@@ -1105,11 +1420,16 @@ export async function getItensByPedido(pedidoId: number) {
 }
 
 // ===== PENDÊNCIAS =====
-export async function listPendencias() {
+/** Lista pendências. Se vendedorId for informado, retorna apenas as do vendedor. */
+export async function listPendencias(vendedorId?: number) {
   const db = await getDb();
   if (!db) return [];
-  
-  // Query complexa para trazer nomes de vendedor e produto
+
+  const statusFilter = inArray(pendencias.status, ["PENDENTE", "COMPRADO"]);
+  const whereClause = vendedorId != null
+    ? and(statusFilter, eq(pendencias.vendedorId, vendedorId))
+    : statusFilter;
+
   return await db.select({
     id: pendencias.id,
     pedidoId: pendencias.pedidoId,
@@ -1128,20 +1448,24 @@ export async function listPendencias() {
   .innerJoin(vendedores, eq(pendencias.vendedorId, vendedores.id))
   .innerJoin(produtos, eq(pendencias.produtoId, produtos.id))
   .leftJoin(cores, eq(pendencias.corId, cores.id))
-  .where(inArray(pendencias.status, ["PENDENTE", "COMPRADO"]))
+  .where(whereClause)
   .orderBy(asc(pendencias.dataPedido));
 }
 
-export async function updateStatusPendencia(id: number, status: "PENDENTE" | "COMPRADO" | "RESOLVIDO") {
+/** Atualiza status da pendência. Se vendedorId for informado, só atualiza se a pendência for desse vendedor. */
+export async function updateStatusPendencia(id: number, status: "PENDENTE" | "COMPRADO" | "RESOLVIDO", vendedorId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const updateData: any = { status };
   if (status === "RESOLVIDO") {
     updateData.dataResolvido = new Date();
   }
-  
-  await db.update(pendencias).set(updateData).where(eq(pendencias.id, id));
+
+  const whereClause = vendedorId != null
+    ? and(eq(pendencias.id, id), eq(pendencias.vendedorId, vendedorId))
+    : eq(pendencias.id, id);
+  await db.update(pendencias).set(updateData).where(whereClause);
 }
 
 // (Restante das funções omitidas para brevidade, mantendo a estrutura original do arquivo)
@@ -1166,35 +1490,50 @@ export async function deleteGrupoPrecificacao(id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(gruposPrecificacao).where(eq(gruposPrecificacao.id, id));
 }
-export async function listFornecedores() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(fornecedores).where(eq(fornecedores.ativo, true));
-}
 export async function listPlanoContas() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(planoContas).where(eq(planoContas.ativo, true));
+  return await db.select().from(planoContas).where(eq(planoContas.ativo, true));
 }
 export async function listContasPagar() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(contasPagar);
+  return await db.select().from(contasPagar);
 }
 export async function listContasReceber() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(contasReceber);
+  return await db.select().from(contasReceber);
 }
 export async function listContasFixas() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(contasFixas).where(eq(contasFixas.ativo, true));
+  return await db.select().from(contasFixas).where(eq(contasFixas.ativo, true));
 }
 export async function getAllComissoes() {
   const db = await getDb();
   if (!db) return [];
   return await db.select().from(comissoes).orderBy(desc(comissoes.createdAt));
+}
+
+export async function getComissoesByVendedor(vendedorId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select()
+    .from(comissoes)
+    .where(eq(comissoes.vendedorId, vendedorId))
+    .orderBy(desc(comissoes.createdAt));
+}
+
+export async function marcarComissaoPaga(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(comissoes)
+    .set({ status: "PAGA" as any, dataPagamento: new Date() } as any)
+    .where(eq(comissoes.id, id));
+  return { ok: true as const };
 }
 export async function getAllCargas() {
   const db = await getDb();
@@ -1226,17 +1565,93 @@ export async function getAllCargas() {
   }
 }
 
+/** Backup completo (JSON) para download ZIP. */
+export async function gerarBackupCompleto() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [
+    produtosRows,
+    clientesRows,
+    vendedoresRows,
+    pedidosRows,
+    coresRows,
+    planoContasRows,
+    contasFixasRows,
+    contasPagarRows,
+    contasReceberRows,
+    comissoesRows,
+    cargasRows,
+  ] = await Promise.all([
+    db.select().from(produtos),
+    db.select().from(clientes),
+    db.select().from(vendedores),
+    db.select().from(pedidos),
+    db.select().from(cores),
+    db.select().from(planoContas),
+    db.select().from(contasFixas),
+    db.select().from(contasPagar),
+    db.select().from(contasReceber),
+    db.select().from(comissoes),
+    db.select().from(cargas),
+  ]);
+
+  return {
+    dataBackup: new Date().toISOString(),
+    produtos: produtosRows,
+    clientes: clientesRows,
+    vendedores: vendedoresRows,
+    pedidos: pedidosRows,
+    cores: coresRows,
+    // Schema atual não possui tabela dedicada de fornecedores.
+    fornecedores: [] as any[],
+    planoContas: planoContasRows,
+    contasFixas: contasFixasRows,
+    contasPagar: contasPagarRows,
+    contasReceber: contasReceberRows,
+    comissoes: comissoesRows,
+    cargas: cargasRows,
+  };
+}
+
 // ===== AJUSTE RÁPIDO DE ESTOQUE =====
-export async function ajusteRapidoEstoque(produtoId: number, quantidade: number, tipo: "entrada" | "saida") {
+/** Estoque nunca negativo; movimentação registrada em audit_log. */
+export async function ajusteRapidoEstoque(
+  produtoId: number,
+  quantidade: number,
+  tipo: "entrada" | "saida",
+  audit?: { actorUserId?: number; actorVendedorId?: number; traceId?: string; motivo?: string }
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   const ajuste = tipo === "entrada" ? quantidade : -quantidade;
+  const res = await db.select({ estoque: produtos.estoque, descricao: produtos.descricao }).from(produtos).where(eq(produtos.id, produtoId)).limit(1);
+  const row = res[0];
+  const saldoAnterior = Number(row?.estoque ?? 0);
+
+  if (tipo === "saida" && quantidade > 0 && saldoAnterior < quantidade) {
+    const msg = `Estoque insuficiente para saída. Produto "${row?.descricao ?? produtoId}": saldo atual ${saldoAnterior}, solicitado ${quantidade}.`;
+    const err = new Error(msg) as Error & { code?: string };
+    err.code = "ESTOQUE_NEGATIVO";
+    throw err;
+  }
   
-  // Atualizar estoque
   await db.update(produtos).set({ 
     estoque: sql`${produtos.estoque} + ${ajuste}` 
   }).where(eq(produtos.id, produtoId));
+
+  const saldoNovo = saldoAnterior + ajuste;
+  const action: AuditAction = tipo === "entrada" ? "ENTRADA" : "SAIDA";
+  await insertAuditLog({
+    actorUserId: audit?.actorUserId ?? null,
+    actorVendedorId: audit?.actorVendedorId ?? null,
+    action,
+    entity: "estoque",
+    entityId: String(produtoId),
+    payloadJson: JSON.stringify({ quantidade, saldoAnterior, saldoNovo, motivo: audit?.motivo ?? "ajusteRapidoEstoque", tipo }),
+    traceId: audit?.traceId ?? nanoid(10),
+  });
   
   // Se for entrada, processar pendências FIFO
   if (tipo === "entrada" && ajuste > 0) {
@@ -1613,44 +2028,22 @@ export async function baixarPedidoCarga(pedidoCargaId: number, data: {
   };
 }
 
-export async function finalizarCarga(cargaId: number, data: {
-  formaPagamento: string,
-  dataVencimentoBoleto?: Date,
-}) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-
-  const pendentes = await db.select({ id: pedidosCarga.id })
-    .from(pedidosCarga)
-    .where(and(eq(pedidosCarga.cargaId, cargaId), eq(pedidosCarga.entregue, false)));
-
-  for (const p of pendentes) {
-    await baixarPedidoCarga(p.id, {
-      formaPagamento: data.formaPagamento,
-      dataVencimentoBoleto: data.dataVencimentoBoleto,
-    });
-  }
-
-  return { success: true, totalBaixados: pendentes.length };
-}
-
 // ===== BAIXA DIRETA (SEM CARGA) =====
 // Usado pela tela "Meus Pedidos": marca ENTREGUE e integra Financeiro (contas a receber + caixa) e comissão.
+// Se tx for passado, usa a transação existente (para executeCommand/idempotência).
 export async function baixarPedidoDireto(pedidoId: number, data: {
-  // Pagamento na entrega: pode ser 1 forma ou 2 formas (entrada + boletos)
   entradaForma: 'PIX' | 'BOLETO' | 'CARTAO' | 'DINHEIRO',
   entradaValor?: number,
   segundaForma?: 'PIX' | 'CARTAO' | 'DINHEIRO',
   segundaValor?: number,
   boletoParcelas?: number,
-  // Vencimentos editáveis (se fornecido, substitui o cálculo automático)
   boletoVencimentos?: Date[],
   boletoPrimeiroVencimento?: Date,
-}) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+}, tx?: any) {
+  const client = tx ?? await getDb();
+  if (!client) throw new Error('Database not available');
 
-  const pedidoRows = await db.select().from(pedidos).where(eq(pedidos.id, pedidoId)).limit(1);
+  const pedidoRows = await client.select().from(pedidos).where(eq(pedidos.id, pedidoId)).limit(1);
   if (pedidoRows.length === 0) throw new Error('Pedido não encontrado');
   const pedido = pedidoRows[0];
 
@@ -1706,99 +2099,37 @@ export async function baixarPedidoDireto(pedidoId: number, data: {
       : null,
   });
 
-  // 1) Atualiza o pedido
-  await db.update(pedidos).set({
-    status: 'ENTREGUE',
-    dataEntrega: new Date(),
-    formaPagamento: formaPagamentoJson,
-  }).where(eq(pedidos.id, pedidoId));
-
-  // 2) Contas a Receber + Caixa
   const dataAtual = new Date();
   const mesAno = `${dataAtual.getFullYear()}-${String(dataAtual.getMonth() + 1).padStart(2, '0')}`;
 
-  // Remove a conta provisória (gerada na criação do pedido)
-  await db.delete(contasReceber).where(and(
-    eq(contasReceber.pedidoNumero, pedido.numero),
-    eq(contasReceber.status, 'PENDENTE')
-  ));
+  const runBody = async (t: any) => {
+    // 1) Atualiza o pedido
+    await t.update(pedidos).set({
+      status: 'ENTREGUE',
+      dataEntrega: new Date(),
+      formaPagamento: formaPagamentoJson,
+    }).where(eq(pedidos.id, pedidoId));
 
-  const boletoIds: number[] = [];
+    // 2) Contas a Receber + Caixa
+    await t.delete(contasReceber).where(and(
+      eq(contasReceber.pedidoNumero, pedido.numero),
+      eq(contasReceber.status, 'PENDENTE')
+    ));
 
-  // BOLETO como forma única = dívida real em aberto
-  if (data.entradaForma === 'BOLETO') {
-    // BOLETO ÚNICO (ou parcelado) = dívida real em aberto
-    const parcelas = boletoParcelas;
-    const total = valorTotal;
-    const base = Math.floor((total / parcelas) * 100) / 100;
-    let restanteCentavos = Math.round(total * 100) - Math.round(base * 100) * parcelas;
+    const boletoIds: number[] = [];
 
-    for (let i = 0; i < parcelas; i++) {
-      const valorParcela = base + (restanteCentavos > 0 ? 0.01 : 0);
-      if (restanteCentavos > 0) restanteCentavos -= 1;
-      const venc = (Array.isArray(data.boletoVencimentos) && data.boletoVencimentos[i])
-        ? new Date(data.boletoVencimentos[i])
-        : new Date(boletoPrimeiroVenc.getTime() + i * 30 * 24 * 60 * 60 * 1000);
-      const inserted = await db.insert(contasReceber).values({
-        pedidoNumero: pedido.numero,
-        clienteNome: pedido.clienteNome,
-        vendedorId: pedido.vendedorId,
-        descricao: `Boleto ${i + 1}/${parcelas} - Pedido #${pedido.numero}`,
-        valor: valorParcela.toFixed(2) as any,
-        dataVencimento: venc,
-        status: 'PENDENTE',
-        formaPagamento: 'BOLETO',
-      });
-      // drizzle mysql2 returns insertId
-      const insertId = (inserted as any)[0]?.insertId ?? (inserted as any).insertId;
-      if (typeof insertId === 'number') boletoIds.push(insertId);
-    }
-  } else {
-    // Recebeu agora (PIX/DINHEIRO/CARTAO) - pode ser 1 ou 2 formas
-    const recebido1 = entradaValor;
-    if (recebido1 > 0) {
-      await db.insert(contasReceber).values({
-        pedidoNumero: pedido.numero,
-        clienteNome: pedido.clienteNome,
-        vendedorId: pedido.vendedorId,
-        descricao: `Entrada - Pedido #${pedido.numero}`,
-        valor: recebido1.toFixed(2) as any,
-        dataVencimento: dataAtual,
-        status: 'RECEBIDA',
-        dataRecebimento: dataAtual,
-        formaPagamento: data.entradaForma as any,
-      });
-      await atualizarCaixaMensal(mesAno, data.entradaForma, recebido1);
-    }
-
-    if (data.segundaForma && segundaValor > 0) {
-      await db.insert(contasReceber).values({
-        pedidoNumero: pedido.numero,
-        clienteNome: pedido.clienteNome,
-        vendedorId: pedido.vendedorId,
-        descricao: `2ª Forma - Pedido #${pedido.numero}`,
-        valor: segundaValor.toFixed(2) as any,
-        dataVencimento: dataAtual,
-        status: 'RECEBIDA',
-        dataRecebimento: dataAtual,
-        formaPagamento: data.segundaForma as any,
-      });
-      await atualizarCaixaMensal(mesAno, data.segundaForma, segundaValor);
-    }
-
-    // Boletos do restante (dívida real em aberto)
-    if (boletoTotal > 0) {
+    if (data.entradaForma === 'BOLETO') {
       const parcelas = boletoParcelas;
-      const base = Math.floor((boletoTotal / parcelas) * 100) / 100;
-      let restanteCentavos = Math.round(boletoTotal * 100) - Math.round(base * 100) * parcelas;
-
+      const total = valorTotal;
+      const base = Math.floor((total / parcelas) * 100) / 100;
+      let restanteCentavos = Math.round(total * 100) - Math.round(base * 100) * parcelas;
       for (let i = 0; i < parcelas; i++) {
         const valorParcela = base + (restanteCentavos > 0 ? 0.01 : 0);
         if (restanteCentavos > 0) restanteCentavos -= 1;
         const venc = (Array.isArray(data.boletoVencimentos) && data.boletoVencimentos[i])
-        ? new Date(data.boletoVencimentos[i])
-        : new Date(boletoPrimeiroVenc.getTime() + i * 30 * 24 * 60 * 60 * 1000);
-        const inserted = await db.insert(contasReceber).values({
+          ? new Date(data.boletoVencimentos[i])
+          : new Date(boletoPrimeiroVenc.getTime() + i * 30 * 24 * 60 * 60 * 1000);
+        const inserted = await t.insert(contasReceber).values({
           pedidoNumero: pedido.numero,
           clienteNome: pedido.clienteNome,
           vendedorId: pedido.vendedorId,
@@ -1811,60 +2142,113 @@ export async function baixarPedidoDireto(pedidoId: number, data: {
         const insertId = (inserted as any)[0]?.insertId ?? (inserted as any).insertId;
         if (typeof insertId === 'number') boletoIds.push(insertId);
       }
+    } else {
+      const recebido1 = entradaValor;
+      if (recebido1 > 0) {
+        await t.insert(contasReceber).values({
+          pedidoNumero: pedido.numero,
+          clienteNome: pedido.clienteNome,
+          vendedorId: pedido.vendedorId,
+          descricao: `Entrada - Pedido #${pedido.numero}`,
+          valor: recebido1.toFixed(2) as any,
+          dataVencimento: dataAtual,
+          status: 'RECEBIDA',
+          dataRecebimento: dataAtual,
+          formaPagamento: data.entradaForma as any,
+        });
+        await atualizarCaixaMensal(mesAno, data.entradaForma, recebido1, t);
+      }
+      if (data.segundaForma && segundaValor > 0) {
+        await t.insert(contasReceber).values({
+          pedidoNumero: pedido.numero,
+          clienteNome: pedido.clienteNome,
+          vendedorId: pedido.vendedorId,
+          descricao: `2ª Forma - Pedido #${pedido.numero}`,
+          valor: segundaValor.toFixed(2) as any,
+          dataVencimento: dataAtual,
+          status: 'RECEBIDA',
+          dataRecebimento: dataAtual,
+          formaPagamento: data.segundaForma as any,
+        });
+        await atualizarCaixaMensal(mesAno, data.segundaForma, segundaValor, t);
+      }
+      if (boletoTotal > 0) {
+        const parcelas = boletoParcelas;
+        const base = Math.floor((boletoTotal / parcelas) * 100) / 100;
+        let restanteCentavos = Math.round(boletoTotal * 100) - Math.round(base * 100) * parcelas;
+        for (let i = 0; i < parcelas; i++) {
+          const valorParcela = base + (restanteCentavos > 0 ? 0.01 : 0);
+          if (restanteCentavos > 0) restanteCentavos -= 1;
+          const venc = (Array.isArray(data.boletoVencimentos) && data.boletoVencimentos[i])
+            ? new Date(data.boletoVencimentos[i])
+            : new Date(boletoPrimeiroVenc.getTime() + i * 30 * 24 * 60 * 60 * 1000);
+          const inserted = await t.insert(contasReceber).values({
+            pedidoNumero: pedido.numero,
+            clienteNome: pedido.clienteNome,
+            vendedorId: pedido.vendedorId,
+            descricao: `Boleto ${i + 1}/${parcelas} - Pedido #${pedido.numero}`,
+            valor: valorParcela.toFixed(2) as any,
+            dataVencimento: venc,
+            status: 'PENDENTE',
+            formaPagamento: 'BOLETO',
+          });
+          const insertId = (inserted as any)[0]?.insertId ?? (inserted as any).insertId;
+          if (typeof insertId === 'number') boletoIds.push(insertId);
+        }
+      }
     }
-  }
 
-  // 3) Comissão do vendedor
-  // Regra: para itens de catálogo, usa % do produto (campo produtos.comissao). Itens livres/premio = 0.
-  const jaExiste = await db.select({ id: comissoes.id }).from(comissoes)
-    .where(eq(comissoes.pedidoId, pedido.id)).limit(1);
-  if (jaExiste.length > 0) {
+    const jaExiste = await t.select({ id: comissoes.id }).from(comissoes)
+      .where(eq(comissoes.pedidoId, pedido.id)).limit(1);
+    if (jaExiste.length > 0) {
+      return { success: true, boletoIds, pedidoNumero: pedido.numero, clienteNome: pedido.clienteNome };
+    }
+
+    const itens = await t.select({
+      quantidade: itensPedido.quantidade,
+      valorUnitario: itensPedido.valorUnitario,
+      produtoId: itensPedido.produtoId,
+    }).from(itensPedido).where(eq(itensPedido.pedidoId, pedidoId));
+
+    const produtoIds: number[] = Array.from(
+      new Set(itens.filter((i) => i.produtoId != null).map((i) => i.produtoId as number))
+    );
+    const produtosRows = produtoIds.length
+      ? await t
+          .select({ id: produtos.id, comissao: produtos.comissao })
+          .from(produtos)
+          .where(inArray(produtos.id, produtoIds))
+      : [];
+    const mapComissao = new Map<number, number>();
+    for (const p of produtosRows) mapComissao.set(p.id, parseFloat(p.comissao.toString()));
+
+    let valorComissao = 0;
+    for (const i of itens) {
+      if (!i.produtoId) continue;
+      const perc = mapComissao.get(i.produtoId) ?? 0;
+      const itemTotal = Number(i.quantidade) * parseFloat(i.valorUnitario.toString());
+      valorComissao += itemTotal * (perc / 100);
+    }
+    const percentualComissao = valorTotal > 0 ? (valorComissao / valorTotal) * 100 : 0;
+
+    await t.insert(comissoes).values({
+      vendedorId: pedido.vendedorId,
+      pedidoId: pedido.id,
+      valorVenda: pedido.total,
+      percentualComissao: percentualComissao.toFixed(2) as any,
+      valorComissao: valorComissao.toFixed(2) as any,
+      status: 'PENDENTE',
+    } as any);
+
     return {
       success: true,
       boletoIds,
       pedidoNumero: pedido.numero,
       clienteNome: pedido.clienteNome,
     };
-  }
-
-  const itens = await db.select({
-    quantidade: itensPedido.quantidade,
-    valorUnitario: itensPedido.valorUnitario,
-    produtoId: itensPedido.produtoId,
-  }).from(itensPedido).where(eq(itensPedido.pedidoId, pedidoId));
-
-  const produtoIds = Array.from(new Set(itens.filter(i => i.produtoId != null).map(i => i.produtoId as number)));
-  const produtosRows = produtoIds.length
-    ? await db.select({ id: produtos.id, comissao: produtos.comissao }).from(produtos).where(inArray(produtos.id, produtoIds))
-    : [];
-  const mapComissao = new Map<number, number>();
-  for (const p of produtosRows) mapComissao.set(p.id, parseFloat(p.comissao.toString()));
-
-  let valorComissao = 0;
-  for (const i of itens) {
-    if (!i.produtoId) continue;
-    const perc = mapComissao.get(i.produtoId) ?? 0;
-    const itemTotal = Number(i.quantidade) * parseFloat(i.valorUnitario.toString());
-    valorComissao += itemTotal * (perc / 100);
-  }
-
-  const percentualComissao = valorTotal > 0 ? (valorComissao / valorTotal) * 100 : 0;
-
-  await db.insert(comissoes).values({
-    vendedorId: pedido.vendedorId,
-    pedidoId: pedido.id,
-    valorVenda: pedido.total,
-    percentualComissao: percentualComissao.toFixed(2) as any,
-    valorComissao: valorComissao.toFixed(2) as any,
-    status: 'PENDENTE',
-  } as any);
-
-  return {
-    success: true,
-    boletoIds,
-    pedidoNumero: pedido.numero,
-    clienteNome: pedido.clienteNome,
   };
+  if (tx) return runBody(tx);
+  return await client.transaction(runBody);
 }
 
 // ===== FINANCEIRO BOLETOS =====
@@ -1925,6 +2309,14 @@ export async function getConfig(chave: string) {
   return result.length > 0 ? result[0].valor : null;
 }
 
+/** Retorna boleto por id (campos mínimos para ownership check). */
+export async function getBoletoById(id: number): Promise<{ id: number; vendedorId: number } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select({ id: boletos.id, vendedorId: boletos.vendedorId }).from(boletos).where(eq(boletos.id, id)).limit(1);
+  return rows.length > 0 ? { id: rows[0].id, vendedorId: rows[0].vendedorId } : null;
+}
+
 export async function getBoletoCompleto(id: number) {
   const db = await getDb();
   if (!db) return null;
@@ -1961,36 +2353,38 @@ export async function getAllContasReceber(status?: string) {
   return await query.orderBy(desc(contasReceber.dataVencimento));
 }
 
+export async function getContaReceberById(id: number): Promise<{ id: number; vendedorId: number | null } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select({ id: contasReceber.id, vendedorId: contasReceber.vendedorId }).from(contasReceber).where(eq(contasReceber.id, id)).limit(1);
+  return rows.length > 0 ? { id: rows[0].id, vendedorId: rows[0].vendedorId } : null;
+}
+
 export async function getContasReceberByVendedor(vendedorId: number, status?: string) {
   const db = await getDb();
   if (!db) return [];
-  
-  let query = db.select().from(contasReceber).where(eq(contasReceber.vendedorId, vendedorId));
-  
-  if (status) {
-    query = query.where(and(
-      eq(contasReceber.vendedorId, vendedorId),
-      eq(contasReceber.status, status as any)
-    ));
-  }
-  
-  return await query.orderBy(desc(contasReceber.dataVencimento));
+  const whereClause = status
+    ? and(eq(contasReceber.vendedorId, vendedorId), eq(contasReceber.status, status as any))
+    : eq(contasReceber.vendedorId, vendedorId);
+  return await db.select().from(contasReceber).where(whereClause).orderBy(desc(contasReceber.dataVencimento));
 }
 
-export async function createContaReceber(data: {
-  pedidoNumero?: number;
-  clienteNome: string;
-  vendedorId?: number;
-  descricao: string;
-  valor: number;
-  dataVencimento: string;
-  formaPagamento?: string;
-  observacoes?: string;
-}) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db.insert(contasReceber).values({
+export async function createContaReceber(
+  data: {
+    pedidoNumero?: number;
+    clienteNome: string;
+    vendedorId?: number;
+    descricao: string;
+    valor: number;
+    dataVencimento: string;
+    formaPagamento?: string;
+    observacoes?: string;
+  },
+  tx?: any
+) {
+  const client = tx ?? await getDb();
+  if (!client) throw new Error("Database not available");
+  await client.insert(contasReceber).values({
     pedidoNumero: data.pedidoNumero,
     clienteNome: data.clienteNome,
     vendedorId: data.vendedorId,
@@ -1999,9 +2393,8 @@ export async function createContaReceber(data: {
     dataVencimento: new Date(data.dataVencimento),
     formaPagamento: data.formaPagamento as any,
     observacoes: data.observacoes,
-    status: 'PENDENTE',
-  });
-  
+    status: "PENDENTE",
+  } as any);
   return { success: true };
 }
 
@@ -2041,15 +2434,14 @@ export async function deleteContaReceber(id: number) {
 }
 
 // ===== CAIXA MENSAL =====
-export async function atualizarCaixaMensal(mesAno: string, formaPagamento: string, valor: number) {
-  const db = await getDb();
+/** Quando tx é passado, usa a transação (para baixarPedidoDireto). */
+export async function atualizarCaixaMensal(mesAno: string, formaPagamento: string, valor: number, tx?: any) {
+  const db = tx ?? await getDb();
   if (!db) throw new Error("Database not available");
   
-  // Buscar registro existente
   const existing = await db.select().from(caixaMensal).where(eq(caixaMensal.mesAno, mesAno)).limit(1);
   
   if (existing.length === 0) {
-    // Criar novo registro
     const novoRegistro: any = {
       mesAno,
       totalBoleto: '0',
@@ -2058,35 +2450,22 @@ export async function atualizarCaixaMensal(mesAno: string, formaPagamento: strin
       totalDinheiro: '0',
       totalGeral: '0',
     };
-    
     if (formaPagamento === 'BOLETO') novoRegistro.totalBoleto = valor.toString();
     else if (formaPagamento === 'PIX') novoRegistro.totalPix = valor.toString();
     else if (formaPagamento === 'CARTAO') novoRegistro.totalCartao = valor.toString();
     else if (formaPagamento === 'DINHEIRO') novoRegistro.totalDinheiro = valor.toString();
-    
     novoRegistro.totalGeral = valor.toString();
-    
     await db.insert(caixaMensal).values(novoRegistro);
   } else {
-    // Atualizar registro existente
     const atual = existing[0];
     const updates: any = {};
-    
-    if (formaPagamento === 'BOLETO') {
-      updates.totalBoleto = (parseFloat(atual.totalBoleto) + valor).toString();
-    } else if (formaPagamento === 'PIX') {
-      updates.totalPix = (parseFloat(atual.totalPix) + valor).toString();
-    } else if (formaPagamento === 'CARTAO') {
-      updates.totalCartao = (parseFloat(atual.totalCartao) + valor).toString();
-    } else if (formaPagamento === 'DINHEIRO') {
-      updates.totalDinheiro = (parseFloat(atual.totalDinheiro) + valor).toString();
-    }
-    
+    if (formaPagamento === 'BOLETO') updates.totalBoleto = (parseFloat(atual.totalBoleto) + valor).toString();
+    else if (formaPagamento === 'PIX') updates.totalPix = (parseFloat(atual.totalPix) + valor).toString();
+    else if (formaPagamento === 'CARTAO') updates.totalCartao = (parseFloat(atual.totalCartao) + valor).toString();
+    else if (formaPagamento === 'DINHEIRO') updates.totalDinheiro = (parseFloat(atual.totalDinheiro) + valor).toString();
     updates.totalGeral = (parseFloat(atual.totalGeral) + valor).toString();
-    
     await db.update(caixaMensal).set(updates).where(eq(caixaMensal.id, atual.id));
   }
-  
   return { success: true };
 }
 
@@ -2215,7 +2594,7 @@ export async function criarNotaEntrada(input: {
           valor: p.valor.toString(),
           dataVencimento: p.dataVencimento,
           status: 'PENDENTE',
-          fornecedorId: null,
+          fornecedor: null,
         } as any);
       }
     }
@@ -2273,8 +2652,20 @@ export async function criarNotaEntrada(input: {
         }
       }
 
-      // 3) Atualiza estoque físico do produto
+      // 3) Saldo anterior para auditoria, depois atualiza estoque físico
+      const [row] = await tx.select({ estoque: produtos.estoque }).from(produtos).where(eq(produtos.id, it.produtoId)).limit(1);
+      const saldoAnterior = Number(row?.estoque ?? 0);
+      const saldoNovo = saldoAnterior + it.quantidade;
       await tx.update(produtos).set({ estoque: sql`${produtos.estoque} + ${it.quantidade}` }).where(eq(produtos.id, it.produtoId));
+      await insertAuditLog({
+        actorUserId: input.createdBy ?? null,
+        actorVendedorId: null,
+        action: "ENTRADA",
+        entity: "estoque",
+        entityId: String(it.produtoId),
+        payloadJson: JSON.stringify({ quantidade: it.quantidade, saldoAnterior, saldoNovo, motivo: "nota_entrada", notaId, produtoId: it.produtoId }),
+        traceId: nanoid(10),
+      }, tx);
     }
 
     return notaId;
@@ -2288,7 +2679,7 @@ export async function createPlanoContas(data: any) {
   return await db.insert(planoContas).values(data);
 }
 
-export async function getPlanoContas(tipo?: 'ENTRADA' | 'SAIDA') {
+export async function getPlanoContas(tipo?: 'RECEITA' | 'DESPESA') {
   const db = await getDb();
   if (!db) return [];
   if (tipo) {
@@ -2308,11 +2699,12 @@ export async function listContasPagarFiltro(status?: 'PENDENTE' | 'PAGO', fornec
   const db = await getDb();
   if (!db) return [];
   
-  let query = db.select().from(contasPagar);
-  const conditions = [];
+  let query: any = db.select().from(contasPagar);
+  const conditions: any[] = [];
   
   if (status) conditions.push(eq(contasPagar.status, status));
-  if (fornecedor) conditions.push(sql`${contasPagar.fornecedor} LIKE ${'%' + fornecedor + '%'}`);
+  // Busca por texto no campo fornecedor (varchar)
+  if (fornecedor?.trim()) conditions.push(sql`${contasPagar.fornecedor} LIKE ${'%' + fornecedor.trim() + '%'}`);
   
   if (conditions.length > 0) {
     return await query.where(and(...conditions)).orderBy(asc(contasPagar.dataVencimento));
@@ -2345,6 +2737,91 @@ export async function createContaFixa(data: any) {
 }
 
 
+
+/** Resultado de um item do diagnóstico: tipoProblema, entidade, id, detalhe, sugestão. */
+export type ProblemaDiagnostico = {
+  tipoProblema: string;
+  entidade: string;
+  id?: string | number;
+  detalhe: string;
+  sugestao: string;
+  /** Compatibilidade: mesmo que detalhe */
+  mensagem?: string;
+  /** Compatibilidade: mesmo que id */
+  entityId?: string | number;
+};
+
+/** Diagnóstico de consistência (admin): pedidos sem itens, itens órfãos, pendencias quebradas, totais inconsistentes, estoque negativo, contas a receber órfãs. */
+export async function runDiagnosticoConsistencia(): Promise<ProblemaDiagnostico[]> {
+  const db = await getDb();
+  if (!db) return [{ tipoProblema: "erro", entidade: "sistema", detalhe: "Banco indisponível.", sugestao: "Verifique a conexão MySQL." }];
+  const problemas: ProblemaDiagnostico[] = [];
+
+  function add(tipoProblema: string, entidade: string, id: string | number | undefined, detalhe: string, sugestao: string) {
+    problemas.push({ tipoProblema, entidade, id, detalhe, sugestao, mensagem: detalhe, entityId: id });
+  }
+
+  try {
+    const [pedidosSemItens]: any[] = await (db as any).execute(sql`
+      SELECT p.id, p.numero FROM pedidos p
+      LEFT JOIN itens_pedido i ON i.pedidoId = p.id
+      WHERE i.id IS NULL AND p.status != 'CANCELADO'
+    `);
+    for (const r of pedidosSemItens || []) {
+      add("pedido_sem_itens", "pedido", r.id, `Pedido #${r.numero} (id ${r.id}) sem itens.`, "Inclua itens no pedido ou cancele-o.");
+    }
+
+    const [itensSemProduto]: any[] = await (db as any).execute(sql`
+      SELECT i.id, i.pedidoId, i.descricao FROM itens_pedido i
+      WHERE i.tipo = 'CATALOGO' AND (i.produtoId IS NULL OR i.produtoId NOT IN (SELECT id FROM produtos))
+    `);
+    for (const r of itensSemProduto || []) {
+      add("item_sem_produto", "item_pedido", r.id, `Item pedido ${r.pedidoId} (${r.descricao}) sem produto válido.`, "Vincule a um produto do catálogo ou altere o tipo do item.");
+    }
+
+    const [pendenciasOrfas]: any[] = await (db as any).execute(sql`
+      SELECT pe.id FROM pendencias pe
+      LEFT JOIN pedidos p ON p.id = pe.pedidoId
+      LEFT JOIN produtos pr ON pr.id = pe.produtoId
+      WHERE p.id IS NULL OR pr.id IS NULL
+    `);
+    for (const r of pendenciasOrfas || []) {
+      add("pendencia_quebrada", "pendencia", r.id, `Pendência id ${r.id} com pedido ou produto inexistente.`, "Corrija a referência ou remova a pendência.");
+    }
+
+    const [estoqueNegativo]: any[] = await (db as any).execute(sql`SELECT id, descricao, estoque FROM produtos WHERE estoque < 0`);
+    for (const r of estoqueNegativo || []) {
+      add("estoque_negativo", "produto", r.id, `Produto "${r.descricao}" (id ${r.id}): estoque ${r.estoque}.`, "Faça entrada de estoque ou ajuste manual para valor >= 0.");
+    }
+
+    const pedidosList = await db.select({ id: pedidos.id, numero: pedidos.numero, total: pedidos.total }).from(pedidos);
+    for (const p of pedidosList) {
+      const itens = await db.select({
+        qtd: itensPedido.quantidade,
+        valor: itensPedido.valorUnitario,
+      }).from(itensPedido).where(eq(itensPedido.pedidoId, p.id));
+      const soma = itens.reduce((s, i) => s + Number(i.qtd) * parseFloat(String(i.valor)), 0);
+      const totalPedido = parseFloat(String(p.total));
+      if (Math.abs(soma - totalPedido) > 0.02) {
+        add("total_inconsistente", "pedido", p.id, `Pedido #${p.numero}: soma itens ${soma.toFixed(2)} != total ${totalPedido.toFixed(2)}.`, "Recalcule o total do pedido ou edite os itens.");
+      }
+    }
+
+    // Contas a receber órfãs: pedidoNumero não existe em pedidos ou pedido está cancelado
+    const [contasOrfas]: any[] = await (db as any).execute(sql`
+      SELECT c.id, c.pedidoNumero, c.descricao FROM contas_receber c
+      LEFT JOIN pedidos p ON p.numero = c.pedidoNumero
+      WHERE p.id IS NULL OR p.status = 'CANCELADO'
+    `);
+    for (const r of contasOrfas || []) {
+      add("conta_receber_orfa", "contas_receber", r.id, `Conta id ${r.id} (pedido #${r.pedidoNumero}): pedido inexistente ou cancelado.`, "Vincule a um pedido válido ou remova/ajuste a conta.");
+    }
+  } catch (e) {
+    logMySqlError(e, "runDiagnosticoConsistencia");
+    problemas.push({ tipoProblema: "erro", entidade: "sistema", detalhe: (e as Error).message, sugestao: "Verifique os logs do servidor." });
+  }
+  return problemas;
+}
 
 /** Retorna a versão do schema gravada no banco (tabela schema_version, id=1). */
 export async function getSchemaVersion(): Promise<number | null> {
@@ -2381,21 +2858,28 @@ export async function gerarContasFixasMes(mesAno: string) {
   
   for (const f of fixas) {
     const dataVencimento = new Date(ano, mes - 1, f.diaVencimento);
+    const descricaoGerada = `Conta Fixa: ${String((f as any).descricao ?? "")} - ${mesAno}`;
     
     // Verifica se já foi gerada para este mês (evita duplicidade)
-    const existe = await db.select().from(contasPagar).where(and(
-      eq(contasPagar.fornecedor, f.nome),
-      sql`DATE_FORMAT(${contasPagar.dataVencimento}, '%Y-%m') = ${mesAno}`
-    )).limit(1);
+    const existe = await db
+      .select({ id: contasPagar.id })
+      .from(contasPagar)
+      .where(
+        and(
+          eq(contasPagar.descricao, descricaoGerada),
+          sql`DATE_FORMAT(${contasPagar.dataVencimento}, '%Y-%m') = ${mesAno}`
+        )
+      )
+      .limit(1);
     
     if (existe.length === 0) {
       await db.insert(contasPagar).values({
-        fornecedor: f.nome,
-        descricao: `Conta Fixa - ${mesAno}`,
-        valor: f.valorPadrao,
-        dataVencimento: dataVencimento,
-        status: 'PENDENTE',
-        planoContasId: f.planoContasId
+        descricao: descricaoGerada,
+        valor: String((f as any).valor ?? "0"),
+        dataVencimento,
+        status: "PENDENTE",
+        planoContasId: (f as any).planoContasId ?? null,
+        fornecedor: null,
       });
     }
   }
