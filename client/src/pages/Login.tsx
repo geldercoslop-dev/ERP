@@ -132,18 +132,17 @@ function LoginForm({
         </div>
       </div>
 
-      {/* Lembrar usuário (apenas username em localStorage; senha nunca salva) */}
-      <div className="flex items-center gap-2" style={{ marginBottom: isMobile ? "12px" : "4%" }}>
+      {/* Lembrar usuário: checkbox sem texto visível (apenas username em localStorage; senha nunca salva) */}
+      <div className="flex items-center" style={{ marginBottom: isMobile ? "8px" : "3%" }}>
         <input
           type="checkbox"
           id="remember-user"
           checked={rememberUser}
           onChange={(e) => setRememberUser(e.target.checked)}
-          className="rounded border-amber-600/50 bg-[#f5e8c0] text-amber-700 focus:ring-amber-500"
+          aria-label="Lembrar usuário"
+          title="Lembrar usuário"
+          className="rounded border-amber-600/50 bg-[#f5e8c0] text-amber-700 focus:ring-amber-500 w-4 h-4 shrink-0"
         />
-        <label htmlFor="remember-user" className="wood-label cursor-pointer" style={{ fontSize: fs.version }}>
-          Lembrar usuário
-        </label>
       </div>
 
       {/* Botão: disabled SOMENTE durante envio (isLoading); sempre clicável; submit lê valores do DOM (refs) */}
