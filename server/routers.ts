@@ -7,6 +7,10 @@ import { z } from "zod";
 import * as db from "./db";
 import * as pdf from "./pdf";
 import { roundToTwo, sumWithPrecision, subtractWithPrecision, multiplyWithPrecision } from "./utils/financialUtils";
+import { nanoid } from "nanoid";
+import { assertOwnership } from "./_core/ownership";
+import { executeCommand, commandResult } from "./_core/command";
+import { isInProgress } from "@shared/idempotency";
 
 /**
  * Gerenciador de bcrypt robusto com fallback seguro e cache
@@ -80,10 +84,12 @@ async function getBcrypt(): Promise<{
       return bcryptCache;
     } catch (testError) {
       console.error("[getBcrypt] Teste de bcrypt falhou:", testError);
-      throw new Error(`Teste de bcrypt falhou: ${testError.message}`);
+      const msg = testError instanceof Error ? testError.message : String(testError);
+      throw new Error(`Teste de bcrypt falhou: ${msg}`);
     }
   } catch (error) {
-    console.warn("[getBcrypt] Não foi possível usar bcryptjs:", error.message);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn("[getBcrypt] Não foi possível usar bcryptjs:", msg);
     
     if (process.env.NODE_ENV === 'production') {
       console.error("[getBcrypt] AVISO DE SEGURANÇA: Usando fallback de bcrypt em produção!");
@@ -178,8 +184,9 @@ async function getBcrypt(): Promise<{
   }
 }
 
-/** Retorna o vendedor do contexto (por id ou por userId, para compatibilidade). */
-async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null }) {
+/** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
+async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: db.Vendedor | null }) {
+  if (ctx.vendedor) return ctx.vendedor;
   if (!ctx.user || ctx.user.role === "admin") return null;
   return (await db.getVendedorById(ctx.user.id)) ?? (await db.getVendedorByUserId(ctx.user.id));
 }
@@ -201,7 +208,38 @@ export const appRouter = router({
   system: systemRouter,
   
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(({ ctx }) => {
+      if (!ctx.user) return null;
+      const role = ctx.user.role === "admin" ? "admin" : "vendedor";
+      return {
+        id: ctx.user.id,
+        openId: ctx.user.openId,
+        name: ctx.user.name,
+        email: ctx.user.email,
+        role,
+        loginMethod: ctx.user.loginMethod,
+        vendedorId: ctx.vendedor?.id ?? undefined,
+      };
+    }),
+    /**
+     * Info mínima para depuração (não vaza token):
+     * - user atual (se autenticado)
+     * - origem efetiva (cookie/header/bearer/none) e tipo do token
+     */
+    sessionInfo: publicProcedure.query(({ ctx }) => {
+      const user = ctx.user
+        ? {
+            id: ctx.user.id,
+            openId: ctx.user.openId,
+            name: ctx.user.name,
+            email: ctx.user.email,
+            role: ctx.user.role === "admin" ? "admin" : "vendedor",
+            loginMethod: ctx.user.loginMethod,
+            vendedorId: ctx.vendedor?.id,
+          }
+        : null;
+      return { user, session: ctx.session };
+    }),
     login: publicProcedure
       .input(z.object({ username: z.string().min(1), password: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
@@ -209,114 +247,86 @@ export const appRouter = router({
         const password = input.password;
         const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
 
-        console.log(`[auth.login] Tentativa de login para usuário: ${username}`);
+        const user = await db.getUserByOpenId(username);
+        if (!user) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário inválido" });
+        }
 
-        // 1) Tentar login por vendedores no DB (senha com hash bcrypt), se bcrypt estiver disponível
-        const bcrypt = await getBcrypt();
-        const vendedor = await db.getVendedorByNome(username);
-        
-        console.log(`[auth.login] Vendedor encontrado:`, vendedor ? {
-          id: vendedor.id,
-          nome: vendedor.nome,
-          admin: vendedor.admin,
-          senhaInicia: vendedor.senha ? vendedor.senha.substring(0, 10) + '...' : 'null'
-        } : 'null');
-        
-        if (vendedor?.senha) {
-          // Verificar se a senha está com hash bcrypt ou se é texto simples
+        if (user.role === "admin" || user.openId === "admin") {
+          if (password !== "admin123") {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos" });
+          }
+          const sessionValue = `u:${user.id}`;
+          ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
+          ctx.res.cookie("session", sessionValue, cookieOptions);
+          await db.touchLastSignedIn(user.id);
+          if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (admin)`);
+          return {
+            ok: true,
+            sessionToken: sessionValue,
+            openId: user.openId,
+            name: user.name ?? "Administrador",
+            role: "admin",
+          };
+        }
+
+        const vendedor = await db.getVendedorByUserId(user.id);
+        if (!vendedor) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Usuário sem vendedor vinculado. Peça ao admin para vincular.",
+          });
+        }
+        if (vendedor.senha) {
+          const bcrypt = await getBcrypt();
           if (vendedor.senha.startsWith("$2")) {
-            // Senha com hash bcrypt
             try {
               const match = await bcrypt.compare(password, vendedor.senha);
-              console.log(`[auth.login] Verificação bcrypt: ${match ? 'Sucesso' : 'Falha'}`);
-              
               if (match) {
-            const sessionValue = `v:${vendedor.id}`;
-            // Um único cookie por resposta: sem domain explícito em dev para o navegador vincular ao host atual (localhost ou 127.0.0.1)
-            ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
-            ctx.res.cookie("session", sessionValue, cookieOptions);
-
-            console.log(`[auth.login] Cookie definido (vendedor):`, {
-              name: COOKIE_NAME,
-              host: ctx.req.headers.host,
-              path: cookieOptions.path,
-            });
-            
-            return {
-              ok: true,
-              sessionToken: sessionValue,
-              openId: `vendedor-${vendedor.id}`,
-              name: vendedor.nome ?? "Vendedor",
-              role: vendedor.admin ? "admin" : "vendedor",
-            };
+                const sessionValue = `v:${vendedor.id}`;
+                ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
+                ctx.res.cookie("session", sessionValue, cookieOptions);
+                await db.touchLastSignedIn(user.id);
+                if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (vendedor)`);
+                return {
+                  ok: true,
+                  sessionToken: sessionValue,
+                  openId: user.openId,
+                  name: vendedor.nome ?? user.name ?? "Vendedor",
+                  role: vendedor.admin ? "admin" : "vendedor",
+                  vendedorId: vendedor.id,
+                };
               }
             } catch (bcryptError) {
               console.error("[auth.login] Erro na verificação bcrypt:", bcryptError);
             }
-          } else {
-            // Tentar comparação direta primeiro (fallback para senhas em texto simples)
-            if (vendedor.senha === password) {
-              console.log(`[auth.login] Verificação texto simples: Sucesso`);
-              
-              // Migrar senha em texto plano para hash bcrypt
-              try {
-                console.log(`[auth.login] Migrando senha em texto plano para hash bcrypt...`);
-                const hashedPassword = await bcrypt.migratePlaintext(password);
-                
-                // Atualizar senha no banco de dados
-                await db.updateVendedorSenha(vendedor.id, hashedPassword);
-                console.log(`[auth.login] Senha migrada com sucesso para vendedor ID ${vendedor.id}`);
-              } catch (migrationError) {
-                console.error("[auth.login] Erro ao migrar senha:", migrationError);
-                // Continuar com o login mesmo se a migração falhar
-              }
-              
-              const sessionValue = `v:${vendedor.id}`;
-              ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
-              ctx.res.cookie("session", sessionValue, cookieOptions);
-              console.log(`[auth.login] Cookie definido (vendedor, texto):`, { name: COOKIE_NAME, host: ctx.req.headers.host });
-
-              return {
-                ok: true,
-                sessionToken: sessionValue,
-                openId: `vendedor-${vendedor.id}`,
-                name: vendedor.nome ?? "Vendedor",
-                role: vendedor.admin ? "admin" : "vendedor",
-              };
-            }
+          } else if (vendedor.senha === password) {
+            try {
+              const bcryptPlain = await getBcrypt();
+              const hashedPassword = await bcryptPlain.migratePlaintext(password);
+              await db.updateVendedorSenha(vendedor.id, hashedPassword);
+            } catch (_) {}
+            const sessionValue = `v:${vendedor.id}`;
+            ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
+            ctx.res.cookie("session", sessionValue, cookieOptions);
+            await db.touchLastSignedIn(user.id);
+            return {
+              ok: true,
+              sessionToken: sessionValue,
+              openId: user.openId,
+              name: vendedor.nome ?? "Vendedor",
+              role: vendedor.admin ? "admin" : "vendedor",
+              vendedorId: vendedor.id,
+            };
           }
         }
 
-        // 2) Fallback: credenciais em código (dev/MVP) — migrar para DB depois
-        const isAdmin = username === "admin" && password === "admin123";
-        const isVendedor = (username === "vendedor" && password === "vendedor123") || (/^\d{4,6}$/.test(password) && username !== "admin");
-        
-        console.log(`[auth.login] Fallback: isAdmin=${isAdmin}, isVendedor=${isVendedor}`);
-
-        if (!isAdmin && !isVendedor) {
-          console.log(`[auth.login] Falha na autenticação para ${username}`);
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos" });
-        }
-
-        const sessionToken = isAdmin ? "admin-session" : "vendedor-session";
-        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
-        ctx.res.cookie("session", sessionToken, cookieOptions);
-        console.log(`[auth.login] Cookie definido (fallback):`, { name: COOKIE_NAME, host: ctx.req.headers.host });
-
-        return {
-          ok: true,
-          sessionToken,
-          openId: isAdmin ? "admin-local" : "vendedor-local",
-          name: isAdmin ? "Administrador" : "Vendedor",
-          role: isAdmin ? "admin" : "vendedor",
-        };
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos" });
       }),
 
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      
-      console.log("[auth.logout] Removendo cookies de sessão");
-      
+      if (process.env.NODE_ENV !== "production") console.log("[auth.logout] Removendo cookies de sessão");
       // Limpar todos os possíveis cookies em todas as combinações de path/domain
       const cookieNames = [COOKIE_NAME, "session", "auth_token"];
       const domains = ["localhost", undefined];
@@ -337,9 +347,8 @@ export const appRouter = router({
       }
       
       // Definir um header para indicar que o logout foi bem-sucedido
-      ctx.res.setHeader('X-Logout-Success', 'true');
-      
-      console.log("[auth.logout] Cookies de sessão removidos");
+      ctx.res.setHeader("X-Logout-Success", "true");
+      if (process.env.NODE_ENV !== "production") console.log("[auth.logout] Cookies de sessão removidos");
       return { 
         success: true,
         message: "Logout realizado com sucesso" 
@@ -438,6 +447,16 @@ export const appRouter = router({
             } : 'não encontrado');
           }
           
+          if (result?.id) {
+            await db.insertAuditLog({
+              actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
+              actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
+              action: "create",
+              entity: "vendedor",
+              entityId: result.id,
+              payloadJson: JSON.stringify({ nome: input.nome }),
+            });
+          }
           return result;
         } catch (e) {
           const err = e as Error & { code?: string; errno?: number; sqlMessage?: string };
@@ -469,54 +488,111 @@ export const appRouter = router({
         cidade: z.string().optional(),
         admin: z.boolean().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { id, senha, ...rest } = input;
         const bcrypt = await getBcrypt();
-        let data = rest;
+        let data: Partial<db.InsertVendedor> = rest as any;
         
         if (senha) {
           if (bcrypt) {
             try {
-              data = { ...rest, senha: await bcrypt.hash(senha, 10) };
+              data = { ...(rest as any), senha: await bcrypt.hash(senha, 10) };
             } catch (error) {
               console.error("[vendedores.update] Erro ao gerar hash com bcrypt:", error);
-              // Se falhar o hash, usa a senha em texto plano
-              data = { ...rest, senha };
+              data = { ...(rest as any), senha };
             }
           } else {
             console.warn("[vendedores.update] bcrypt não disponível, usando senha em texto plano");
-            data = { ...rest, senha };
+            data = { ...(rest as any), senha };
           }
         }
-        return await db.updateVendedor(id, data);
+        const out = await db.updateVendedor(id, data);
+        await db.insertAuditLog({
+          actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
+          actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
+          action: "update",
+          entity: "vendedor",
+          entityId: id,
+          payloadJson: JSON.stringify({ nome: input.nome ?? undefined }),
+        });
+        return out;
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        return await db.deleteVendedor(input.id);
+      .mutation(async ({ input, ctx }) => {
+        const out = await db.deleteVendedor(input.id);
+        await db.insertAuditLog({
+          actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
+          actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
+          action: "delete",
+          entity: "vendedor",
+          entityId: input.id,
+        });
+        return out;
+      }),
+    /** Vincula vendedor a um user (por openId). Cria user se não existir. Opcional: define senha do vendedor. */
+    linkUser: adminProcedure
+      .input(z.object({
+        vendedorId: z.number(),
+        openId: z.string().min(1, "openId (usuário de login) é obrigatório"),
+        password: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const vendedor = await db.getVendedorById(input.vendedorId);
+        if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
+        const user = await db.findOrCreateUserByOpenId(input.openId.trim().toLowerCase(), vendedor.nome);
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao criar/buscar usuário" });
+        await db.updateVendedor(input.vendedorId, { userId: user.id });
+        if (input.password != null && input.password !== "") {
+          const bcrypt = await getBcrypt();
+          const hashed = bcrypt ? await bcrypt.hash(input.password, 10) : input.password;
+          await db.updateVendedorSenha(input.vendedorId, hashed);
+        }
+        await db.insertAuditLog({
+          actorUserId: ctx.user?.id ?? null,
+          actorVendedorId: null,
+          action: "update",
+          entity: "vendedor",
+          entityId: input.vendedorId,
+          payloadJson: JSON.stringify({ linkUser: user.id, openId: input.openId }),
+        });
+        return { ok: true, userId: user.id, vendedorId: input.vendedorId };
       }),
   }),
 
   // ===== PRODUTOS =====
   produtos: router({
-    list: protectedProcedure.query(async () => {
-      const result = await produtosRoutes.getProdutos({} as any, { send: (data: any) => data } as any);
-      return result;
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        page: z.number().min(1).optional(),
+        pageSize: z.number().min(1).max(100).optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const all = await db.getAllProdutosComPrecoVigente(new Date());
+        const page = input?.page ?? 1;
+        const pageSize = Math.min(input?.pageSize ?? 50, 100);
+        const start = (page - 1) * pageSize;
+        const items = all.slice(start, start + pageSize);
+        return {
+          items,
+          total: all.length,
+          page,
+          pageSize,
+          hasMore: start + items.length < all.length,
+        };
+      }),
     
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
-        const result = await produtosRoutes.getProdutoById({ params: { id: input.id.toString() } } as any, { send: (data: any) => data } as any);
-        return result;
+        return await db.getProdutoById(input.id);
       }),
 
     create: adminProcedure
       .input(z.any())
       .mutation(async ({ input }) => {
         // Validação real fica em server/routes/produtos.ts (Zod)
-        const result = await produtosRoutes.createProduto({ body: input } as any, { send: (data: any) => data } as any);
-        return result;
+        return await produtosRoutes.createProduto({ body: input } as any);
       }),
 
     update: adminProcedure
@@ -527,7 +603,10 @@ export const appRouter = router({
         marca: z.string().optional().nullable(),
         valorVenda: z.number().min(0, "Valor de venda não pode ser negativo"),
         custo: z.number().min(0, "Custo não pode ser negativo"),
-        estoque: z.number().int("Estoque deve ser um número inteiro"),
+        estoque: z.preprocess(
+          (v) => (v === "" || v == null ? 0 : typeof v === "string" ? Number(v) : v),
+          z.number().int().min(0).refine((n) => !Number.isNaN(n), { message: "Estoque inválido" })
+        ),
         prazoGarantia: z.number().int("Prazo de garantia deve ser um número inteiro").min(0, "Prazo de garantia não pode ser negativo"),
         ativo: z.boolean().optional(),
         grupoId: z.number().optional().nullable(),
@@ -537,7 +616,12 @@ export const appRouter = router({
         
         try {
           // Usar a função updateProduto com verificação de versão
-          return await db.updateProduto(id, data, version);
+          const patch: any = {
+            ...data,
+            custo: Number(data.custo).toFixed(2),
+            valorVenda: Number(data.valorVenda).toFixed(2),
+          };
+          return await db.updateProduto(id, patch, version);
         } catch (error) {
           if (error instanceof Error && error.message.includes("modificado por outro usuário")) {
             throw new TRPCError({ 
@@ -555,64 +639,84 @@ export const appRouter = router({
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        const result = await produtosRoutes.deleteProduto({ params: { id: input.id.toString() } } as any, { send: (data: any) => data } as any);
-        return result;
+        return await produtosRoutes.deleteProduto({ params: { id: input.id.toString() } } as any);
       }),
 
     buscar: protectedProcedure
       .input(z.object({ query: z.string().optional() }))
       .query(async ({ input }) => {
-        const result = await produtosRoutes.buscarProdutos({ query: { query: input.query } } as any, { send: (data: any) => data } as any);
-        return result;
+        const produtos = await db.getAllProdutosComPrecoVigente(new Date());
+        const q = (input.query ?? "").trim().toLowerCase();
+        if (!q) return { produtos, total: produtos.length };
+        const filtrados = produtos.filter((p: any) => {
+          const desc = String(p?.descricao ?? "").toLowerCase();
+          const marca = String(p?.marca ?? "").toLowerCase();
+          const cat = String(p?.categoria ?? "").toLowerCase();
+          const op = String((p as any)?.descricaoOperacional ?? "").toLowerCase();
+          return desc.includes(q) || marca.includes(q) || cat.includes(q) || op.includes(q);
+        });
+        return { produtos: filtrados, total: filtrados.length };
       }),
 
     atualizarEstoque: adminProcedure
       .input(z.object({
         id: z.number(),
-        quantidade: z.number().min(1),
+        quantidade: z.preprocess(
+          (v) => (v === "" || v == null ? 0 : typeof v === "string" ? Number(v) : v),
+          z.number().int().min(1).refine((n) => !Number.isNaN(n), { message: "Quantidade inválida" })
+        ),
         tipo: z.enum(['entrada', 'saida'])
       }))
-      .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        const result = await produtosRoutes.atualizarEstoque({ params: { id: id.toString() }, body: data } as any, { send: (data: any) => data } as any);
-        return result;
+      .mutation(async ({ input, ctx }) => {
+        const traceId = nanoid(10);
+        const qtd = input.tipo === "entrada" ? input.quantidade : -input.quantidade;
+        const vendedor = await getVendedorFromContext(ctx);
+        const audit = {
+          actorUserId: ctx.user?.role === "admin" ? ctx.user.id : undefined,
+          actorVendedorId: ctx.user?.role !== "admin" && vendedor ? vendedor.id : undefined,
+          traceId,
+          motivo: "atualizarEstoque",
+        };
+        try {
+          await db.updateEstoqueProduto(input.id, qtd, audit);
+          return { message: "Estoque atualizado" };
+        } catch (e: any) {
+          if (e?.code === "ESTOQUE_NEGATIVO" || e?.code === "ESTOQUE_INSUFICIENTE") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: e?.message ?? "Estoque insuficiente para esta operação." });
+          }
+          throw e;
+        }
       }),
 
     estoqueBaixo: protectedProcedure.query(async () => {
-      const result = await produtosRoutes.verificarEstoqueBaixo({} as any, { send: (data: any) => data } as any);
-      return result;
+      return await produtosRoutes.verificarEstoqueBaixo({} as any);
     }),
   }),
 
   // ===== PROMOÇÕES =====
   promocoes: router({
     list: protectedProcedure.query(async () => {
-      const result = await promocoesRoutes.listar({} as any, { send: (d: any) => d } as any);
-      return result;
+      return await promocoesRoutes.listar({} as any);
     }),
     detalhes: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
-        const result = await promocoesRoutes.detalhes({ params: { id: String(input.id) } } as any, { send: (d: any) => d } as any);
-        return result;
+        return await promocoesRoutes.detalhes({ params: { id: String(input.id) } } as any);
       }),
     create: adminProcedure
       .input(z.any())
       .mutation(async ({ input }) => {
-        const result = await promocoesRoutes.criar({ body: input } as any, { send: (d: any) => d } as any);
-        return result;
+        return await promocoesRoutes.criar({ body: input } as any);
       }),
     update: adminProcedure
       .input(z.object({ id: z.number(), data: z.any() }))
       .mutation(async ({ input }) => {
-        const result = await promocoesRoutes.atualizar({ params: { id: String(input.id) }, body: input.data } as any, { send: (d: any) => d } as any);
-        return result;
+        return await promocoesRoutes.atualizar({ params: { id: String(input.id) }, body: input.data } as any);
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        const result = await promocoesRoutes.remover({ params: { id: String(input.id) } } as any, { send: (d: any) => d } as any);
-        return result;
+        return await promocoesRoutes.remover({ params: { id: String(input.id) } } as any);
       }),
   }),
 
@@ -661,6 +765,18 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return await db.createCor(input);
       }),
+    update: adminProcedure
+      .input(z.object({ id: z.number(), nome: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        await db.updateCor(input.id, { nome: input.nome });
+        return { ok: true as const };
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteCor(input.id);
+        return { ok: true as const };
+      }),
   }),
 
   // ===== GRUPOS =====
@@ -671,30 +787,118 @@ export const appRouter = router({
       return await db_conn.select().from(db.gruposPrecificacao);
     }),
     create: adminProcedure
-      .input(z.object({ nome: z.string().min(1) }))
+      .input(z.object({ nome: z.string().min(1), idempotencyKey: z.string().max(64).optional() }))
       .mutation(async ({ input }) => {
-        const db_conn = await db.getDb();
-        if (!db_conn) throw new Error("Database not available");
-        return await db_conn.insert(db.gruposPrecificacao).values(input);
+        const { idempotencyKey, ...data } = input;
+        const result = await executeCommand(
+          { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },
+          async (tx) => {
+            const res = await tx.insert(db.gruposPrecificacao).values(data);
+            const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;
+            return { ...commandResult(true, ["Grupo criado"]), id };
+          }
+        );
+        if (isInProgress(result)) return result;
+        return result;
+      }),
+    update: adminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          nome: z.string().min(1),
+          descontoFabrica: z.number().optional(),
+          ipi: z.number().optional(),
+          frete: z.number().optional(),
+          montagem: z.number().optional(),
+          lucro: z.number().optional(),
+          comissao: z.number().optional(),
+          jurosCartao: z.number().optional(),
+          prazoGarantia: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateGrupoPrecificacao(id, data);
+        return { ok: true as const };
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteGrupoPrecificacao(input.id);
+        return { ok: true as const };
+      }),
+  }),
+
+  // ===== AJUSTE RÁPIDO DE ESTOQUE (admin) =====
+  ajusteEstoque: router({
+    rapido: adminProcedure
+      .input(
+        z.object({
+          produtoId: z.number().min(1),
+          quantidade: z.preprocess(
+            (v) => (v === "" || v == null ? 0 : typeof v === "string" ? Number(v) : v),
+            z.number().int().min(1).refine((n) => !Number.isNaN(n), { message: "Quantidade inválida" })
+          ),
+          tipo: z.enum(["entrada", "saida"]),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const traceId = nanoid(10);
+        const out = await db.ajusteRapidoEstoque(
+          input.produtoId,
+          input.quantidade,
+          input.tipo,
+          {
+            actorUserId: ctx.user.id,
+            traceId,
+            motivo: "ajuste_rapido",
+          }
+        );
+        return { ...out, traceId };
       }),
   }),
 
   // ===== CLIENTES =====
   clientes: router({
-    list: protectedProcedure.query(async () => {
-      return await db.getAllClientes();
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        page: z.number().min(1).optional(),
+        pageSize: z.number().min(1).max(100).optional(),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        let all: any[];
+        if (ctx.user.role === "admin") {
+          all = await db.getAllClientes();
+        } else {
+          const vendedor = await getVendedorFromContext(ctx);
+          all = vendedor ? await db.listClientesByVendedor(vendedor.id) : [];
+        }
+        const page = input?.page ?? 1;
+        const pageSize = Math.min(input?.pageSize ?? 50, 100);
+        const start = (page - 1) * pageSize;
+        const items = all.slice(start, start + pageSize);
+        return {
+          items,
+          total: all.length,
+          page,
+          pageSize,
+          hasMore: start + items.length < all.length,
+        };
+      }),
     
     search: protectedProcedure
       .input(z.object({ term: z.string() }))
-      .query(async ({ input }) => {
-        return await db.searchClientes(input.term);
+      .query(async ({ input, ctx }) => {
+        if (ctx.user.role === "admin") return await db.searchClientes(input.term);
+        const vendedor = await getVendedorFromContext(ctx);
+        if (!vendedor) return [];
+        return await db.searchClientesByVendedor(input.term, vendedor.id);
       }),
     
     create: protectedProcedure
       .input(z.object({
-        nome: z.string().min(1),
-        telefone: z.string().optional(),
+        nome: z.string().min(1, "Informe o nome"),
+        telefone: z.string().min(1, "Informe o telefone"),
         telefoneRecado: z.string().optional(),
         cpf: z.string().optional(),
         cep: z.string().optional(),
@@ -704,16 +908,44 @@ export const appRouter = router({
         cidade: z.string().optional(),
         uf: z.string().optional(),
         referencia: z.string().optional(),
+        condominio: z.string().optional(),
+        bloco: z.string().optional(),
+        apartamento: z.string().optional(),
+        vendedorIdPrincipal: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
-        return await db.createCliente(input);
+      .mutation(async ({ input, ctx }) => {
+        const vendedorId = ctx.user.role === "admin"
+          ? input.vendedorIdPrincipal
+          : (await getVendedorFromContext(ctx))?.id;
+        return await db.createCliente(input, vendedorId);
+      }),
+
+    buscaGlobal: protectedProcedure
+      .input(z.object({ term: z.string(), limit: z.number().min(1).max(100).optional() }))
+      .query(async ({ input }) => {
+        return await db.searchClientesGlobal(input.term, input.limit ?? 50);
+      }),
+
+    getVendedorPrincipal: protectedProcedure
+      .input(z.object({ clienteId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getVendedorPrincipalDoCliente(input.clienteId);
+      }),
+
+    vinculate: protectedProcedure
+      .input(z.object({ clienteId: z.number(), tipo: z.enum(["PRINCIPAL", "SECUNDARIO"]).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const vendedor = await getVendedorFromContext(ctx);
+        if (!vendedor) throw new TRPCError({ code: "BAD_REQUEST", message: "Vendedor não identificado." });
+        await db.createClienteVinculo(input.clienteId, vendedor.id, input.tipo ?? "SECUNDARIO");
+        return { ok: true };
       }),
     
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
-        nome: z.string().optional(),
-        telefone: z.string().optional(),
+        nome: z.string().min(1, "Informe o nome").optional(),
+        telefone: z.string().min(1, "Informe o telefone").optional(),
         telefoneRecado: z.string().optional(),
         cpf: z.string().optional(),
         cep: z.string().optional(),
@@ -724,7 +956,8 @@ export const appRouter = router({
         uf: z.string().optional(),
         referencia: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "cliente", input.id);
         const { id, ...data } = input;
         return await db.updateCliente(id, data);
       }),
@@ -747,6 +980,8 @@ export const appRouter = router({
         busca: z.string().optional(),
         dataInicio: z.date().optional(),
         dataFim: z.date().optional(),
+        page: z.number().min(1).optional(),
+        pageSize: z.number().min(1).max(100).optional(),
       }).optional())
       .query(async ({ input, ctx }) => {
         const db_conn = await db.getDb();
@@ -787,43 +1022,57 @@ export const appRouter = router({
           ? (whereParts.length === 1 ? whereParts[0] : db.and(...whereParts))
           : undefined;
 
-        const rows = await db_conn.select({
+        const sel = {
           id: db.pedidos.id,
           numero: db.pedidos.numero,
           clienteNome: db.pedidos.clienteNome,
+          clienteCidade: db.pedidos.clienteCidade,
+          clienteUf: db.pedidos.clienteUf,
           vendedorId: db.pedidos.vendedorId,
           vendedorNome: db.vendedores.nome,
           total: db.pedidos.total,
           status: db.pedidos.status,
           formaPagamento: db.pedidos.formaPagamento,
           createdAt: db.pedidos.createdAt,
-        })
-        .from(db.pedidos)
-        .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id))
-        .where(where as any)
-        .orderBy(db.desc(db.pedidos.createdAt));
+          dataEntrega: db.pedidos.dataEntrega,
+        };
+        const from = db_conn.select(sel)
+          .from(db.pedidos)
+          .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id))
+          .where(where as any)
+          .orderBy(db.desc(db.pedidos.createdAt));
 
-        return rows;
+        const MAX_PAGE_SIZE = 100;
+        const page = input?.page ?? 1;
+        const pageSize = Math.min(input?.pageSize ?? 50, MAX_PAGE_SIZE);
+        const countResult = await db_conn.select({ count: db.sql<number>`count(*)` })
+          .from(db.pedidos)
+          .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id))
+          .where(where as any);
+        const total = Number((countResult as any)[0]?.count ?? 0);
+        const items = await from.limit(pageSize).offset((page - 1) * pageSize);
+        return { items, total, page, pageSize, hasMore: (page - 1) * pageSize + items.length < total };
       }),
     
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "pedido", input.id);
         const db_conn = await db.getDb();
         if (!db_conn) return null;
         const pedido = await db.getPedidoById(input.id);
         if (!pedido) return null;
-
-        // autorização: vendedor vê só o dele
-        if (ctx.user.role !== 'admin') {
-          const vendedor = await getVendedorFromContext(ctx);
-          if (!vendedor || pedido.vendedorId !== vendedor.id) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado.' });
-          }
-        }
-
         const itens = await db.getItensByPedido(pedido.id);
         return { ...pedido, itens };
+      }),
+
+    getItens: protectedProcedure
+      .input(z.object({ pedidoId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "pedido", input.pedidoId);
+        const pedido = await db.getPedidoById(input.pedidoId);
+        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        return await db.getItensByPedido(pedido.id);
       }),
 
     create: protectedProcedure
@@ -844,8 +1093,7 @@ export const appRouter = router({
         }))
       }))
       .mutation(async ({ input, ctx }) => {
-        const result = await pedidosRoutes.createPedido({ body: input } as any, { send: (data: any) => data } as any);
-        return result;
+        return await pedidosRoutes.createPedido({ body: input } as any);
       }),
 
     update: protectedProcedure
@@ -866,12 +1114,13 @@ export const appRouter = router({
           subtotal: z.number().min(0)
         }))
       }))
-      .mutation(async ({ input }) => {
-        const { id, version, ...data } = input;
-        
+      .mutation(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "pedido", input.id);
+        const pedido = await db.getPedidoById(input.id);
+        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        const { id, ...data } = input;
         try {
-          // Usar a função updatePedido com verificação de versão
-          return await db.updatePedido(id, data, data.items, version);
+          return await db.updatePedido(id, data, (input as any).itens);
         } catch (error) {
           if (error instanceof Error && error.message.includes("modificado por outro usuário")) {
             throw new TRPCError({ 
@@ -890,30 +1139,53 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "pedido", input.id);
         const pedido = await db.getPedidoById(input.id);
-        if (!pedido) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado.' });
-
-        // Bloqueio definitivo: pedido ENTREGUE não pode ser excluído
-        if ((pedido.status as any) === 'ENTREGUE') {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Pedido ENTREGUE não pode ser excluído.' });
+        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        if ((pedido.status as any) === "ENTREGUE") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Pedido ENTREGUE não pode ser excluído." });
         }
-
-        // autorização: vendedor só exclui o próprio
-        if (ctx.user.role !== 'admin') {
-          const vendedor = await getVendedorFromContext(ctx);
-          if (!vendedor || pedido.vendedorId !== vendedor.id) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado.' });
-          }
-        }
-
         return await db.deletePedido(input.id);
       }),
 
     buscar: protectedProcedure
       .input(z.object({ query: z.string().optional() }))
-      .query(async ({ input }) => {
-        const result = await pedidosRoutes.buscarPedidos({ query: input.query } as any, { send: (data: any) => data } as any);
-        return result;
+      .query(async ({ input, ctx }) => {
+        const db_conn = await db.getDb();
+        if (!db_conn) return { pedidos: [], total: 0 };
+        const vendedor = ctx.user.role === "admin" ? null : await getVendedorFromContext(ctx);
+        const whereParts: any[] = [];
+        if (ctx.user.role !== "admin") {
+          if (!vendedor) return { pedidos: [], total: 0 };
+          whereParts.push(db.eq(db.pedidos.vendedorId, vendedor.id));
+        }
+        if (input.query?.trim()) {
+          const term = `%${input.query.trim()}%`;
+          whereParts.push(db.or(
+            db.sql`LOWER(${db.pedidos.clienteNome}) LIKE LOWER(${term})`,
+            db.sql`${db.pedidos.numero} LIKE ${term}`
+          ));
+        }
+        const where = whereParts.length ? (whereParts.length === 1 ? whereParts[0] : db.and(...whereParts)) : undefined;
+        const rows = await db_conn.select({
+          id: db.pedidos.id,
+          numero: db.pedidos.numero,
+          clienteNome: db.pedidos.clienteNome,
+          clienteCidade: db.pedidos.clienteCidade,
+          clienteUf: db.pedidos.clienteUf,
+          vendedorId: db.pedidos.vendedorId,
+          vendedorNome: db.vendedores.nome,
+          total: db.pedidos.total,
+          status: db.pedidos.status,
+          formaPagamento: db.pedidos.formaPagamento,
+          createdAt: db.pedidos.createdAt,
+          dataEntrega: db.pedidos.dataEntrega,
+        })
+          .from(db.pedidos)
+          .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id))
+          .where(where as any)
+          .orderBy(db.desc(db.pedidos.createdAt));
+        return { pedidos: rows, total: rows.length };
       }),
 
     // Atualiza status (fluxo de pedidos do GRS)
@@ -921,26 +1193,14 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         status: z.enum(['GERADO','IMPRESSO','EM_ROTA','ENTREGUE','CANCELADO']),
+        idempotencyKey: z.string().max(64).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const db_conn = await db.getDb();
-        if (!db_conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Banco indisponível.' });
-
+        await assertOwnership(ctx, "pedido", input.id);
         const pedido = await db.getPedidoById(input.id);
-        if (!pedido) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado.' });
-
-        // autorização: vendedor mexe só no dele
-        if (ctx.user.role !== 'admin') {
-          const vendedor = await getVendedorFromContext(ctx);
-          if (!vendedor || pedido.vendedorId !== vendedor.id) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado.' });
-          }
-        }
-
-        // Regras de transição (simples e seguras)
+        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
         const atual = pedido.status as any;
         const proximo = input.status as any;
-
         if (atual === 'ENTREGUE' && proximo !== 'ENTREGUE') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Pedido ENTREGUE não pode voltar status.' });
         }
@@ -953,8 +1213,14 @@ export const appRouter = router({
         if (proximo === 'EM_ROTA' && atual !== 'IMPRESSO' && atual !== 'EM_ROTA') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'EM_ROTA só pode vir de IMPRESSO.' });
         }
-
-        await db_conn.update(db.pedidos).set({ status: proximo }).where(db.eq(db.pedidos.id, input.id));
+        const result = await executeCommand(
+          { commandName: "pedidos.updateStatus", idempotencyKey: input.idempotencyKey ?? undefined },
+          async (tx) => {
+            await tx.update(db.pedidos).set({ status: proximo }).where(db.eq(db.pedidos.id, input.id));
+            return { ...commandResult(true, ["Status atualizado"]), success: true };
+          }
+        );
+        if (isInProgress(result)) return result;
         return { success: true };
       }),
 
@@ -962,16 +1228,7 @@ export const appRouter = router({
     gerarPDF: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        const pedido = await db.getPedidoById(input.id);
-        if (!pedido) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado.' });
-
-        if (ctx.user.role !== 'admin') {
-          const vendedor = await getVendedorFromContext(ctx);
-          if (!vendedor || pedido.vendedorId !== vendedor.id) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado.' });
-          }
-        }
-
+        await assertOwnership(ctx, "pedido", input.id);
         return await pdf.gerarPedidoPDF(input.id);
       }),
 
@@ -979,49 +1236,62 @@ export const appRouter = router({
     marcarEntregue: protectedProcedure
       .input(z.object({
         id: z.number(),
-        // Forma 1 (principal)
         entradaForma: z.enum(['PIX','BOLETO','CARTAO','DINHEIRO']),
         entradaValor: z.number().optional(),
-        // Forma 2 (opcional). Se BOLETO estiver presente, é sempre a forma 2 (parcelada).
         segundaForma: z.enum(['PIX','CARTAO','DINHEIRO']).optional(),
         segundaValor: z.number().optional(),
-        // Boleto (quando usado como 2ª forma ou como forma única)
         boletoParcelas: z.number().optional(),
         boletoVencimentos: z.array(z.date()).optional(),
         boletoPrimeiroVencimento: z.date().optional(),
+        idempotencyKey: z.string().max(64).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "pedido", input.id);
         const pedido = await db.getPedidoById(input.id);
-        if (!pedido) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado.' });
+        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        try {
+          const result = await executeCommand(
+            { commandName: "baixarPedidoDireto", idempotencyKey: input.idempotencyKey },
+            async (tx) => {
+              const out = await db.baixarPedidoDireto(
+                input.id,
+                {
+                  entradaForma: input.entradaForma,
+                  entradaValor: input.entradaValor,
+                  segundaForma: input.segundaForma,
+                  segundaValor: input.segundaValor,
+                  boletoParcelas: input.boletoParcelas,
+                  boletoVencimentos: (input as any).boletoVencimentos,
+                  boletoPrimeiroVencimento: input.boletoPrimeiroVencimento,
+                },
+                tx
+              );
+              return { ok: true, traceId: nanoid(10), ...out };
+            }
+          );
+          if (isInProgress(result)) return result;
 
-        if (ctx.user.role !== 'admin') {
-          const vendedor = await getVendedorFromContext(ctx);
-          if (!vendedor || pedido.vendedorId !== vendedor.id) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado.' });
-          }
-        }
-
-        const result = await db.baixarPedidoDireto(input.id, {
-          entradaForma: input.entradaForma,
-          entradaValor: input.entradaValor,
-          segundaForma: input.segundaForma,
-          segundaValor: input.segundaValor,
-          boletoParcelas: input.boletoParcelas,
-          boletoVencimentos: (input as any).boletoVencimentos,
-          boletoPrimeiroVencimento: input.boletoPrimeiroVencimento,
-        });
-
-        // Se houver boletos, gera ZIP imediatamente para o vendedor enviar ao cliente.
-        if (result.boletoIds?.length) {
-          const zip = await pdf.gerarZipBoletos({
-            boletoIds: result.boletoIds,
-            pedidoNumero: result.pedidoNumero,
-            clienteNome: result.clienteNome,
+          await db.insertAuditLog({
+            actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
+            actorVendedorId: ctx.user?.role !== "admin" ? (await getVendedorFromContext(ctx))?.id : null,
+            action: "BAIXA",
+            entity: "pedido",
+            entityId: String(input.id),
+            payloadJson: JSON.stringify({ pedidoNumero: result.pedidoNumero }),
           });
-          return { success: true, boletosZip: zip };
-        }
 
-        return { success: true };
+          if (result.boletoIds?.length) {
+            const zip = await pdf.gerarZipBoletos({
+              boletoIds: result.boletoIds,
+              pedidoNumero: result.pedidoNumero,
+              clienteNome: result.clienteNome,
+            });
+            return { success: true, boletosZip: zip };
+          }
+          return { success: true };
+        } catch (e) {
+          throw e;
+        }
       }),
 
     // ===== NOVA VENDA (CARDS) =====
@@ -1118,43 +1388,69 @@ export const appRouter = router({
           ),
           "Valores dos itens devem ter no máximo 2 casas decimais"
         ),
+        idempotencyKey: z.string().max(64).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const vendedor = await getVendedorFromContext(ctx);
-        if (!vendedor) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Usuário não está vinculado a um vendedor.' });
-        }
-
-        const db_conn = await db.getDb();
-        if (!db_conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Banco indisponível.' });
-
-        const result = await db_conn.transaction(async (tx) => {
-          let gerouPendencia = false;
-          // 1) Cliente (cria automaticamente se necessário)
+        try {
+          const result = await executeCommand(
+            { commandName: "createVenda", idempotencyKey: input.idempotencyKey },
+            async (tx) => {
+              const vendedor = await getVendedorFromContext(ctx);
+              if (!vendedor) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Usuário não está vinculado a um vendedor." });
+              }
+              let gerouPendencia = false;
+              // 1) Cliente (cria automaticamente se necessário)
           let clienteId = input.clienteId;
 
           if (!clienteId) {
-            const created = await tx.insert(db.clientes).values({
-              nome: input.cliente.nome,
-              telefone: input.cliente.telefone || null,
-              telefoneRecado: input.cliente.telefoneRecado || null,
-              rua: input.cliente.rua || null,
-              numero: input.cliente.numero || null,
-              bairro: input.cliente.bairro || null,
-              cidade: input.cliente.cidade || null,
-              uf: input.cliente.uf || null,
-              referencia: input.cliente.referencia || null,
-              condominio: input.cliente.condominio || null,
-              bloco: input.cliente.bloco || null,
-              apartamento: input.cliente.apartamento || null,
-            } as any);
-
-            clienteId = (created as any)[0]?.insertId;
+            const nomeOk = input.cliente.nome?.trim();
+            const telOk = input.cliente.telefone?.trim();
+            if (!nomeOk || !telOk) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Informe telefone e nome." });
+            }
+            const telefoneNorm = db.normalizeTelefone(input.cliente.telefone);
+            const { nomeNorm, sobrenomeNorm } = db.normalizeNomeSobrenome(input.cliente.nome);
+            const nn = nomeNorm.slice(0, 120);
+            const sn = sobrenomeNorm.slice(0, 120);
+            const existing = await tx.select({ id: db.clientes.id }).from(db.clientes)
+              .where(db.and(
+                db.eq(db.clientes.telefoneNorm, telefoneNorm),
+                db.eq(db.clientes.nomeNorm, nn),
+                db.eq(db.clientes.sobrenomeNorm, sn)
+              ))
+              .limit(1);
+            if (existing.length > 0) {
+              clienteId = existing[0].id;
+            } else {
+              const tel = input.cliente.telefone === '' || input.cliente.telefone == null ? null : (input.cliente.telefone || null);
+              const created = await tx.insert(db.clientes).values({
+                nome: input.cliente.nome,
+                telefone: tel,
+                telefoneNorm: telefoneNorm.slice(0, 32),
+                nomeNorm: nn,
+                sobrenomeNorm: sn,
+                telefoneRecado: input.cliente.telefoneRecado || null,
+                rua: input.cliente.rua || null,
+                numero: input.cliente.numero || null,
+                bairro: input.cliente.bairro || null,
+                cidade: input.cliente.cidade || null,
+                uf: input.cliente.uf || null,
+                referencia: input.cliente.referencia || null,
+                condominio: input.cliente.condominio || null,
+                bloco: input.cliente.bloco || null,
+                apartamento: input.cliente.apartamento || null,
+              } as any);
+              clienteId = (created as any)[0]?.insertId;
+            }
           }
 
           if (!clienteId) {
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Falha ao criar cliente.' });
           }
+
+          // Vínculo idempotente: se já existe (clienteId, vendedorId), não insere; senão PRINCIPAL ou SECUNDARIO conforme já existir principal.
+          await db.ensureClienteVendedorLink(tx, clienteId, vendedor.id);
 
           // 2) Número do pedido (travado para não duplicar)
           const [counterRows]: any = await (tx as any).execute(db.sql`
@@ -1233,12 +1529,28 @@ export const appRouter = router({
             });
           })();
 
-          // 4) Segurança contra furo de estoque (BACKEND FIRST) + Pendências
-          // Regra do seu negócio: pode vender com estoque 0/negativo.
-          // O que NÃO pode é confiar no estoque do front.
-          // Então a validação é "travar e calcular" (FOR UPDATE), e se faltar, gera pendência.
+          // 4) Estoque: verificar se algum item de catálogo tem estoque insuficiente (FOR UPDATE).
+          // Se tiver: salvar pedido como PENDENTE_ESTOQUE, criar pendências, NÃO mexer no estoque. Idempotência mantida.
+          const catalogIds = Array.from(new Set(input.itens.filter((x: any) => x.tipo === 'CATALOGO' && x.produtoId).map((x: any) => x.produtoId))) as number[];
+          const estoquePorProduto: Record<number, number> = {};
+          if (catalogIds.length > 0) {
+            const [rows]: any = await (tx as any).execute(
+              db.sql`SELECT id, estoque FROM produtos WHERE id IN (${db.sql.join(catalogIds.map((id) => db.sql`${id}`), db.sql`, `)}) FOR UPDATE`
+            );
+            for (const r of rows || []) {
+              estoquePorProduto[Number(r.id)] = Number(r.estoque ?? 0);
+            }
+          }
+          const itensComFalta: Set<number> = new Set();
+          for (const i of input.itens) {
+            if (i.tipo === 'CATALOGO' && i.produtoId) {
+              const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
+              if (estoqueAtual < i.quantidade) itensComFalta.add(i.produtoId);
+            }
+          }
+          const statusPedido = itensComFalta.size > 0 ? 'PENDENTE_ESTOQUE' : 'GERADO';
 
-          // 5) Pedido
+          // 5) Pedido (com status GERADO ou PENDENTE_ESTOQUE)
           const pedidoInsert = await tx.insert(db.pedidos).values({
             numero,
             vendedorId: vendedor.id,
@@ -1259,7 +1571,7 @@ export const appRouter = router({
             desconto: roundToTwo(input.desconto) as any,
             frete: roundToTwo(input.frete) as any,
             total: roundToTwo(input.total) as any,
-            status: 'GERADO',
+            status: statusPedido,
             formaPagamento: pagamentoPlanejado,
             observacoes: input.observacoes || null,
           } as any);
@@ -1267,61 +1579,29 @@ export const appRouter = router({
           const pedidoId = (pedidoInsert as any)[0]?.insertId;
           if (!pedidoId) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Falha ao criar pedido.' });
 
-          // Produto "ITEM AVULSO" para pendências de itens livres (regra: avulso sempre gera pendência)
-          let produtoAvulsoId: number | null = null;
-          const [avulsoRows]: any = await (tx as any).execute(db.sql`
-            SELECT id FROM produtos WHERE LOWER(TRIM(descricao)) = 'item avulso' LIMIT 1
-          `);
-          if (avulsoRows?.[0]?.id) {
-            produtoAvulsoId = Number(avulsoRows[0].id);
-          } else {
-            const [ins]: any = await tx.insert(db.produtos).values({
-              descricao: 'ITEM AVULSO',
-            } as any);
-            produtoAvulsoId = (ins as any)[0]?.insertId ?? null;
-          }
-
-          // 6) Itens + baixa de estoque + geração automática de pendências (tudo dentro da transação)
+          // 6) Itens + (se GERADO) baixa de estoque; (se PENDENTE_ESTOQUE) apenas pendências para itens de catálogo com falta (LIVRE/avulso não gera pendência por estoque)
           for (const i of input.itens) {
-            // Item LIVRE (avulso): sempre gera pendência de compra
-            if (i.tipo === 'LIVRE' && produtoAvulsoId) {
-              gerouPendencia = true;
-              await tx.insert(db.pendencias).values({
-                pedidoId,
-                vendedorId: vendedor.id,
-                produtoId: produtoAvulsoId,
-                corId: i.corId || null,
-                quantidade: i.quantidade,
-                status: 'PENDENTE',
-              } as any);
-            }
-
-            // estoque / pendência (somente catálogo)
             if (i.tipo === 'CATALOGO' && i.produtoId) {
-              // trava a linha do produto para evitar corrida entre vendedores
-              const [prodRows]: any = await (tx as any).execute(db.sql`
-                SELECT estoque, descricao
-                FROM produtos
-                WHERE id = ${i.produtoId}
-                FOR UPDATE;
-              `);
-
-              const estoqueAtual = Number(prodRows?.[0]?.estoque ?? 0);
-              const produtoDescricao = prodRows?.[0]?.descricao || `Produto ID ${i.produtoId}`;
-              const novoEstoque = estoqueAtual - i.quantidade;
-
-              // TRAVA DE ESTOQUE: Impedir a venda se o estoque não for suficiente
-              if (estoqueAtual < i.quantidade) {
-                throw new TRPCError({ 
-                  code: 'BAD_REQUEST', 
-                  message: `Estoque insuficiente para "${produtoDescricao}". Disponível: ${estoqueAtual}, Solicitado: ${i.quantidade}.` 
-                });
+              const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
+              const falta = estoqueAtual < i.quantidade;
+              if (statusPedido === 'PENDENTE_ESTOQUE' && falta) {
+                gerouPendencia = true;
+                const qtdPendente = estoqueAtual > 0 ? i.quantidade - estoqueAtual : i.quantidade;
+                await tx.insert(db.pendencias).values({
+                  pedidoId,
+                  vendedorId: vendedor.id,
+                  produtoId: i.produtoId,
+                  corId: i.corId || null,
+                  quantidade: qtdPendente,
+                  status: 'PENDENTE',
+                } as any);
               }
-
-              // Atualiza estoque (agora garantido que não ficará negativo)
-              await tx.update(db.produtos)
-                .set({ estoque: novoEstoque } as any)
-                .where(db.eq(db.produtos.id, i.produtoId));
+              if (statusPedido === 'GERADO' && !falta) {
+                const novoEstoque = estoqueAtual - i.quantidade;
+                await tx.update(db.produtos)
+                  .set({ estoque: novoEstoque } as any)
+                  .where(db.eq(db.produtos.id, i.produtoId));
+              }
             }
 
             await tx.insert(db.itensPedido).values({
@@ -1353,11 +1633,24 @@ export const appRouter = router({
             observacoes: 'Gerada automaticamente no pedido. Será substituída/ajustada na baixa.',
           } as any);
 
-          return { pedidoId, numero, clienteId, gerouPendencia };
+              return { ok: true, traceId: nanoid(10), pedidoId, numero, clienteId, gerouPendencia, pendenteEstoque: statusPedido === 'PENDENTE_ESTOQUE' };
+            }
+          );
+        if (isInProgress(result)) return result;
+
+        await db.insertAuditLog({
+          actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
+          actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
+          action: "create",
+          entity: "pedido",
+          entityId: String(result.pedidoId),
+          payloadJson: JSON.stringify({ numero: result.numero }),
+          traceId: result.traceId ?? undefined,
         });
-
-        return { id: result.pedidoId, numero: result.numero, clienteId: result.clienteId, gerouPendencia: (result as any).gerouPendencia };
-
+        return { pedidoId: result.pedidoId, numero: result.numero, clienteId: result.clienteId, gerouPendencia: result.gerouPendencia, pendenteEstoque: result.pendenteEstoque };
+        } catch (e) {
+          throw e;
+        }
       }),
   }),
 
@@ -1459,17 +1752,20 @@ baixarPedido: adminProcedure
 
 // ===== PENDÊNCIAS =====
 pendencias: router({
-  list: adminProcedure.query(async () => {
-    return await db.listPendencias();
+  list: protectedProcedure.query(async ({ ctx }) => {
+    const vendedorId = ctx.user?.role === "admin" ? undefined : (await getVendedorFromContext(ctx))?.id;
+    if (ctx.user?.role !== "admin" && vendedorId == null) return [];
+    return await db.listPendencias(vendedorId ?? undefined);
   }),
 
-  updateStatus: adminProcedure
+  updateStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(["PENDENTE", "COMPRADO", "RESOLVIDO"]),
     }))
-    .mutation(async ({ input }) => {
-      await db.updateStatusPendencia(input.id, input.status);
+    .mutation(async ({ input, ctx }) => {
+      const vendedorId = ctx.user?.role === "admin" ? undefined : (await getVendedorFromContext(ctx))?.id;
+      await db.updateStatusPendencia(input.id, input.status, vendedorId);
       return { ok: true as const };
     }),
 }),
@@ -1478,7 +1774,7 @@ pendencias: router({
     list: protectedProcedure
       .input(z.object({ busca: z.string().optional() }).optional())
       .query(async ({ input, ctx }) => {
-        let boletosData = [];
+        let boletosData: any[] = [];
         if (ctx.user.role === 'admin') {
           const db_conn = await db.getDb();
           if (!db_conn) return [];
@@ -1522,14 +1818,24 @@ pendencias: router({
 
     gerarPDF: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "boleto", input.id);
         return await pdf.gerarBoletoPDF(input.id);
       }),
 
     gerarExtrato: protectedProcedure
       .input(z.object({ clienteId: z.number() }))
-      .mutation(async ({ input }) => {
-        return await pdf.gerarExtratoClientePDF(input.clienteId);
+      .mutation(async ({ input, ctx }) => {
+        let vendedorIdFilter: number | undefined;
+        if (ctx.user.role !== "admin") {
+          const vendedor = await getVendedorFromContext(ctx);
+          if (!vendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+          const lista = await db.getBoletosByVendedor(vendedor.id);
+          const doCliente = lista.filter((b: any) => Number(b.clienteId) === input.clienteId);
+          if (doCliente.length === 0) throw new TRPCError({ code: "FORBIDDEN", message: "Nenhum boleto seu para este cliente." });
+          vendedorIdFilter = vendedor.id;
+        }
+        return await pdf.gerarExtratoClientePDF(input.clienteId, vendedorIdFilter);
       }),
 
     gerarBoletosCarga: protectedProcedure
@@ -1537,7 +1843,20 @@ pendencias: router({
         cargaId: z.number(),
         pedidoNumero: z.number().optional()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") {
+          const carga = await db.getCargaById(input.cargaId);
+          if (!carga) throw new TRPCError({ code: "NOT_FOUND", message: "Carga não encontrada." });
+          const pedidosIds = (carga as any).pedidos?.map((p: any) => p.id) ?? [];
+          if (pedidosIds.length === 0) throw new TRPCError({ code: "FORBIDDEN", message: "Carga sem pedidos." });
+          const vendedor = await getVendedorFromContext(ctx);
+          if (!vendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+          const db_conn = await db.getDb();
+          if (!db_conn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível." });
+          const rows = await db_conn.select({ vendedorId: db.pedidos.vendedorId }).from(db.pedidos).where(db.inArray(db.pedidos.id, pedidosIds));
+          const todosDoVendedor = rows.every((r: any) => r.vendedorId === vendedor.id);
+          if (!todosDoVendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Carga contém pedidos de outro vendedor." });
+        }
         return await pdf.gerarBoletosCargaPDF(input.cargaId, input.pedidoNumero);
       }),
 
@@ -1548,7 +1867,16 @@ pendencias: router({
         pedidoNumero: z.number(),
         clienteNome: z.string(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") {
+          const vendedor = await getVendedorFromContext(ctx);
+          if (!vendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+          for (const bid of input.boletoIds) {
+            const b = await db.getBoletoById(bid);
+            if (!b) throw new TRPCError({ code: "NOT_FOUND", message: `Boleto ${bid} não encontrado.` });
+            if (b.vendedorId !== vendedor.id) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado a um ou mais boletos." });
+          }
+        }
         return await pdf.gerarZipBoletos(input);
       }),
 
@@ -1585,18 +1913,39 @@ pendencias: router({
         dataVencimento: z.string(),
         formaPagamento: z.string().optional(),
         observacoes: z.string().optional(),
+        idempotencyKey: z.string().max(64).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        let vendedorId: number | undefined;
-        if (ctx.user.role !== 'admin') {
-          const vendedor = await getVendedorFromContext(ctx);
-          vendedorId = vendedor?.id;
+        try {
+          const result = await executeCommand(
+            { commandName: "contasReceber.create", idempotencyKey: input.idempotencyKey },
+            async (tx) => {
+              let vendedorId: number | undefined;
+              if (ctx.user.role !== "admin") {
+                const vendedor = await getVendedorFromContext(ctx);
+                vendedorId = vendedor?.id;
+              }
+              await db.createContaReceber(
+                {
+                  pedidoNumero: input.pedidoNumero,
+                  clienteNome: input.clienteNome,
+                  descricao: input.descricao,
+                  valor: input.valor,
+                  dataVencimento: input.dataVencimento,
+                  formaPagamento: input.formaPagamento,
+                  observacoes: input.observacoes,
+                  vendedorId,
+                },
+                tx
+              );
+              return { ok: true, traceId: nanoid(10), success: true };
+            }
+          );
+          if (isInProgress(result)) return result;
+          return { success: true };
+        } catch (e) {
+          throw e;
         }
-        
-        return await db.createContaReceber({
-          ...input,
-          vendedorId,
-        });
       }),
     
     marcarRecebida: protectedProcedure
@@ -1605,25 +1954,27 @@ pendencias: router({
         dataRecebimento: z.string(),
         formaPagamento: z.string(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "conta_receber", input.id);
         return await db.marcarContaRecebida(input.id, input.dataRecebimento, input.formaPagamento);
       }),
     
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await assertOwnership(ctx, "conta_receber", input.id);
         return await db.deleteContaReceber(input.id);
       }),
   }),
 
-  // ===== CAIXA MENSAL =====
+  // ===== CAIXA MENSAL (dados globais da empresa — apenas admin) =====
   caixaMensal: router({
-    get: protectedProcedure
+    get: adminProcedure
       .input(z.object({ mesAno: z.string().optional() }))
       .query(async ({ input }) => {
         return await db.getCaixaMensal(input.mesAno);
       }),
-    listAll: protectedProcedure
+    listAll: adminProcedure
       .query(async () => {
         return await db.getAllCaixaMensal();
       }),
@@ -1632,23 +1983,50 @@ pendencias: router({
   // ===== PLANO DE CONTAS =====
   planoContas: router({
     list: protectedProcedure
-      .input(z.object({ tipo: z.enum(['ENTRADA', 'SAIDA']).optional() }))
+      .input(z.object({ tipo: z.enum(["RECEITA", "DESPESA"]).optional() }))
       .query(async ({ input }) => {
         return await db.getPlanoContas(input.tipo);
       }),
-    create: protectedProcedure
+    create: adminProcedure
       .input(z.object({ 
         nome: z.string(), 
-        tipo: z.enum(['ENTRADA', 'SAIDA']) 
+        tipo: z.enum(["RECEITA", "DESPESA"]),
       }))
       .mutation(async ({ input }) => {
         return await db.createPlanoContas(input);
       }),
+    update: adminProcedure
+      .input(z.object({ id: z.number(), nome: z.string().min(1), tipo: z.enum(["RECEITA", "DESPESA"]), idempotencyKey: z.string().max(64).optional() }))
+      .mutation(async ({ input }) => {
+        const { idempotencyKey, ...data } = input;
+        const result = await executeCommand(
+          { commandName: "planoContas.update", idempotencyKey: idempotencyKey ?? undefined },
+          async (tx) => {
+            await tx.update(db.planoContas).set({ nome: data.nome, tipo: data.tipo } as any).where(db.eq(db.planoContas.id, data.id));
+            return commandResult(true, ["Plano de contas atualizado"]);
+          }
+        );
+        if (isInProgress(result)) return result;
+        return { ok: true as const };
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number(), idempotencyKey: z.string().max(64).optional() }))
+      .mutation(async ({ input }) => {
+        const result = await executeCommand(
+          { commandName: "planoContas.delete", idempotencyKey: input.idempotencyKey ?? undefined },
+          async (tx) => {
+            await tx.delete(db.planoContas).where(db.eq(db.planoContas.id, input.id));
+            return commandResult(true, ["Plano de contas excluído"]);
+          }
+        );
+        if (isInProgress(result)) return result;
+        return { ok: true as const };
+      }),
   }),
 
-  // ===== CONTAS A PAGAR =====
+  // ===== CONTAS A PAGAR (somente admin — dados financeiros globais) =====
   contasPagar: router({
-    list: protectedProcedure
+    list: adminProcedure
       .input(z.object({ 
         status: z.enum(['PENDENTE', 'PAGO']).optional(),
         fornecedor: z.string().optional()
@@ -1656,36 +2034,39 @@ pendencias: router({
       .query(async ({ input }) => {
         return await db.listContasPagarFiltro(input.status, input.fornecedor);
       }),
-    create: protectedProcedure
+    create: adminProcedure
       .input(z.object({
         fornecedor: z.string(),
         descricao: z.string().optional(),
         valor: z.string(),
-        dataVencimento: z.date(),
+        dataVencimento: z.preprocess(
+          (v) => (typeof v === "string" || typeof v === "number") ? new Date(v) : v,
+          z.date().refine((d) => !Number.isNaN(d.getTime()), { message: "Data de vencimento inválida" })
+        ),
         planoContasId: z.number().optional(),
         observacoes: z.string().optional()
       }))
       .mutation(async ({ input }) => {
         return await db.createContaPagar(input);
       }),
-    pagar: protectedProcedure
+    pagar: adminProcedure
       .input(z.object({ id: z.number(), valorPago: z.number() }))
       .mutation(async ({ input }) => {
         return await db.pagarConta(input.id, input.valorPago);
       }),
-    delete: protectedProcedure
+    delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteContaPagar(input.id);
       }),
   }),
 
-  // ===== CONTAS FIXAS =====
+  // ===== CONTAS FIXAS (somente admin) =====
   contasFixas: router({
-    list: protectedProcedure.query(async () => {
+    list: adminProcedure.query(async () => {
       return await db.listContasFixas();
     }),
-    create: protectedProcedure
+    create: adminProcedure
       .input(z.object({
         nome: z.string(),
         valorPadrao: z.string(),
@@ -1695,10 +2076,27 @@ pendencias: router({
       .mutation(async ({ input }) => {
         return await db.createContaFixa(input);
       }),
-    gerarMes: protectedProcedure
+    gerarMes: adminProcedure
       .input(z.object({ mesAno: z.string() }))
       .mutation(async ({ input }) => {
         return await db.gerarContasFixasMes(input.mesAno);
+      }),
+  }),
+
+  // ===== COMISSÕES =====
+  comissoes: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role === "admin") {
+        return await db.getAllComissoes();
+      }
+      const vendedor = await getVendedorFromContext(ctx);
+      if (!vendedor) return [];
+      return await db.getComissoesByVendedor(vendedor.id);
+    }),
+    marcarPaga: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.marcarComissaoPaga(input.id);
       }),
   }),
 
@@ -1715,6 +2113,13 @@ pendencias: router({
       .mutation(async ({ input }) => {
         return await db.setConfig(input.chave, input.valor);
       }),
+  }),
+
+  // ===== DIAGNÓSTICO DE CONSISTÊNCIA (admin) =====
+  diagnostico: router({
+    run: adminProcedure.query(async () => {
+      return await db.runDiagnosticoConsistencia();
+    }),
   }),
 });
 
