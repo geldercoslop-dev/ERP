@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
-const cartoonStyle = `
-  @import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&display=swap');
+const REMEMBERED_USERNAME_KEY = "remembered_username";
 
+const cartoonStyle = `
   .wood-input {
     font-family: 'Architects Daughter', cursive;
     background: #f5e8c0;
@@ -70,10 +70,12 @@ function CartoonFilters() {
   );
 }
 
-/* Formulário reutilizado nos dois layouts */
+/* Formulário reutilizado nos dois layouts. Usa apenas a prop isLoading (nunca isLoggingIn). */
 function LoginForm({
   username, setUsername, password, setPassword,
-  showPass, setShowPass, error, canSubmit, isLoading, onSubmit, isMobile
+  showPass, setShowPass, error, isLoading, onSubmit, isMobile,
+  rememberUser, setRememberUser,
+  usernameInputRef, passwordInputRef,
 }: any) {
   const fs = isMobile
     ? { label: "14px", input: "15px", btn: "15px", title: "18px", version: "12px" }
@@ -88,15 +90,21 @@ function LoginForm({
         </span>
       </div>
 
-      {/* Usuário */}
+      {/* Usuário — apenas visual em maiúsculo; valor enviado é o do input (trim), sem toUpperCase */}
       <div className="flex flex-col" style={{ gap: isMobile ? "5px" : "3%", marginBottom: isMobile ? "12px" : "4%" }}>
-        <label className="wood-label font-semibold tracking-widest" style={{ fontSize: fs.label }}>USUÁRIO</label>
-        <div style={{ filter: "url(#outline)", borderRadius: "5px", height: inputH }}>
+        <div style={{ filter: isMobile ? "none" : "url(#outline)", borderRadius: "5px", height: inputH, border: isMobile ? "2px solid rgba(74,42,8,0.4)" : undefined }}>
           <input
-            value={username} onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username" placeholder="Digite seu usuário"
+            ref={usernameInputRef}
+            name="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
+            autoComplete="username"
+            autoCapitalize="characters"
+            inputMode="text"
+            placeholder="USUÁRIO"
             className="wood-input w-full h-full px-3"
-            style={{ fontSize: fs.input, borderRadius: "4px" }}
+            style={{ fontSize: fs.input, borderRadius: "4px", textTransform: "uppercase" }}
           />
         </div>
       </div>
@@ -104,11 +112,15 @@ function LoginForm({
       {/* Senha */}
       <div className="flex flex-col" style={{ gap: isMobile ? "5px" : "3%", marginBottom: isMobile ? "16px" : "6%" }}>
         <label className="wood-label font-semibold tracking-widest" style={{ fontSize: fs.label }}>SENHA</label>
-        <div style={{ filter: "url(#outline)", borderRadius: "5px", height: inputH, position: "relative" }}>
+        <div style={{ filter: isMobile ? "none" : "url(#outline)", borderRadius: "5px", height: inputH, position: "relative", border: isMobile ? "2px solid rgba(74,42,8,0.4)" : undefined }}>
           <input
-            value={password} onChange={(e) => setPassword(e.target.value)}
+            ref={passwordInputRef}
+            defaultValue=""
+            onChange={(e) => setPassword(e.target.value)}
             type={showPass ? "text" : "password"}
-            autoComplete="current-password" placeholder="Digite sua senha"
+            autoComplete="current-password"
+            autoCapitalize="none"
+            placeholder="Digite sua senha"
             className="wood-input w-full h-full px-3 pr-10"
             style={{ fontSize: fs.input, borderRadius: "4px" }}
           />
@@ -120,14 +132,25 @@ function LoginForm({
         </div>
       </div>
 
-      {/* Botão: desabilita quando faltar usuário/senha ou durante o envio (estado local isLoggingIn). */}
-      <button type="submit" disabled={!canSubmit || isLoading} className="wood-btn w-full font-bold tracking-widest uppercase"
+      {/* Lembrar usuário (apenas username em localStorage; senha nunca salva) */}
+      <div className="flex items-center gap-2" style={{ marginBottom: isMobile ? "12px" : "4%" }}>
+        <input
+          type="checkbox"
+          id="remember-user"
+          checked={rememberUser}
+          onChange={(e) => setRememberUser(e.target.checked)}
+          className="rounded border-amber-600/50 bg-[#f5e8c0] text-amber-700 focus:ring-amber-500"
+        />
+        <label htmlFor="remember-user" className="wood-label cursor-pointer" style={{ fontSize: fs.version }}>
+          Lembrar usuário
+        </label>
+      </div>
+
+      {/* Botão: disabled SOMENTE durante envio (isLoading); sempre clicável; submit lê valores do DOM (refs) */}
+      <button type="submit" disabled={isLoading} className="wood-btn w-full font-bold tracking-widest uppercase"
         style={{ height: inputH, fontSize: fs.btn, borderRadius: "5px", backgroundColor: "#2e9e52" }}>
         {isLoading ? "Entrando…" : "Entrar"}
       </button>
-      {!canSubmit && !isLoading && !error && (
-        <p className="wood-version mt-1" style={{ fontSize: fs.version }}>Preencha usuário e senha para continuar.</p>
-      )}
 
       {error && (
         <div className="rounded border border-red-500/20 bg-red-900/40 px-2 py-1 text-red-200/90"
@@ -144,13 +167,35 @@ function LoginForm({
 }
 
 export default function Login() {
+  if (import.meta.env.DEV) console.time("Login mount");
   const [, setLocation] = useLocation();
   const { login, isAuthenticated } = useAuthStore();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [rememberUser, setRememberUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const id = requestAnimationFrame(() => {
+      console.timeEnd("Login mount");
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBERED_USERNAME_KEY);
+      if (saved) {
+        setUsername(saved);
+        setRememberUser(true);
+      }
+    } catch {}
+  }, []);
 
   const url = new URL(window.location.href);
   const force = url.searchParams.get("force") === "true";
@@ -159,19 +204,32 @@ export default function Login() {
     if (isAuthenticated && !force) setLocation("/");
   }, [isAuthenticated, force, setLocation]);
 
-  // canSubmit: só bloqueia se faltar usuário/senha. Botão desabilitado pelo isLoading (isLoggingIn local), não pelo store.
-  const canSubmit = !!username.trim() && !!password;
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!username.trim() || !password) { setError("Informe usuário e senha."); return; }
-    if (isLoggingIn) return; // evita duplo clique
+    const u = (usernameInputRef.current?.value ?? "").trim();
+    const p = passwordInputRef.current?.value ?? "";
+    if (!u) {
+      setError("Informe o usuário.");
+      return;
+    }
+    if (!p) {
+      setError("Informe a senha.");
+      return;
+    }
+    if (isLoggingIn) return;
     setIsLoggingIn(true);
     try {
-      const ok = await login(username.trim(), password);
-      if (ok) setLocation("/");
-      else setError("Usuário ou senha inválidos.");
+      const ok = await login(u, p);
+      if (ok) {
+        try {
+          if (rememberUser) localStorage.setItem(REMEMBERED_USERNAME_KEY, u);
+          else localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+        } catch {}
+        setLocation("/");
+      } else {
+        setError("Usuário ou senha inválidos.");
+      }
     } catch (err: any) {
       setError(err?.message || "Erro ao entrar.");
     } finally {
@@ -179,7 +237,12 @@ export default function Login() {
     }
   }
 
-  const formProps = { username, setUsername, password, setPassword, showPass, setShowPass, error, canSubmit, isLoading: isLoggingIn, onSubmit };
+  const formProps = {
+    username, setUsername, password, setPassword,
+    showPass, setShowPass, error, isLoading: isLoggingIn, onSubmit,
+    rememberUser, setRememberUser,
+    usernameInputRef, passwordInputRef,
+  };
 
   return (
     <div className="min-h-screen w-full bg-[#0d0d14] flex items-center justify-center p-4">
@@ -195,8 +258,8 @@ export default function Login() {
       <div className="login-desktop relative z-10 w-full max-w-[900px]">
         <div className="relative w-full overflow-hidden rounded-2xl"
           style={{ aspectRatio: "3/2", boxShadow: "0 32px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.06)" }}>
-          <img src="/login-grs-leo-v2.png?cb=20260227e" alt="GRS Móveis"
-            className="absolute inset-0 h-full w-full object-cover select-none pointer-events-none" draggable={false} />
+          <img src="/login-grs-leo-v2.png?cb=20260227e" alt="GRS Móveis" width={900} height={600}
+            loading="lazy" className="absolute inset-0 h-full w-full object-cover select-none pointer-events-none" draggable={false} />
           <div className="absolute flex flex-col pointer-events-auto"
             style={{ left: "30%", top: "36%", width: "38%", height: "50%", padding: "0 4%", zIndex: 2 }}>
             <LoginForm {...formProps} isMobile={false} />
@@ -217,11 +280,15 @@ export default function Login() {
           src="/assets/avatar.png?cb=20260227e"
           alt=""
           aria-hidden="true"
+          width={320}
+          height={400}
+          loading="lazy"
           className="absolute select-none pointer-events-none"
           style={{
             bottom: "0",
             right: "-5%",
             height: "65%",
+            width: "auto",
             opacity: 0.12,
             filter: "grayscale(20%)",
           }}
@@ -234,7 +301,8 @@ export default function Login() {
 
           {/* Logo / título topo */}
           <div className="flex flex-col items-center" style={{ marginBottom: "28px" }}>
-            <img src="/assets/logo.png" alt="GRS Móveis" style={{ height: "52px", marginBottom: "8px" }}
+            <img src="/assets/logo.png" alt="GRS Móveis" width={160} height={52} loading="lazy"
+              style={{ height: "52px", marginBottom: "8px" }}
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
             <span style={{
               fontFamily: "'Architects Daughter', cursive",
