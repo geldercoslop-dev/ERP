@@ -19,7 +19,7 @@ export function PageHeader({ title, subtitle, actions, icon, backTo = defaultBac
   const [, setLocation] = useLocation();
 
   return (
-    <header className="bg-card border-b border-border shadow-sm sticky top-0 z-10">
+    <header className="bg-card border-b border-border shadow-sm sticky top-0 z-10 pointer-events-none [&>*]:pointer-events-auto">
       <div className="container py-4 flex items-center gap-4 flex-wrap">
         <Button variant="ghost" size="icon" onClick={() => setLocation(backTo)} aria-label="Voltar">
           <ArrowLeft className="h-5 w-5" />

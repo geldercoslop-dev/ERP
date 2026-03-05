@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 
 const pedidoItemSchema = z.object({
   produto_id: z.number().min(1, 'ID do produto é obrigatório'),
@@ -85,7 +86,7 @@ let pedidos: Pedido[] = [
 
 // Função para verificar estoque
 function verificarEstoqueDisponivel(itens: PedidoItem[]): { disponivel: boolean; itensIndisponiveis: any[] } {
-  const itensIndisponiveis = [];
+  const itensIndisponiveis: any[] = [];
   
   for (const item of itens) {
     const produto = produtos.find(p => p.id === item.produto_id);
@@ -139,7 +140,7 @@ function calcularValorTotal(itens: PedidoItem[]): number {
   return itens.reduce((total, item) => total + item.subtotal, 0);
 }
 
-export async function getPedidos(request: Request, reply: Response) {
+export async function getPedidos(request: Request) {
   try {
     // Enriquece os pedidos com informações do cliente e produtos
     const pedidosEnriquecidos = pedidos.map(pedido => ({
@@ -153,17 +154,17 @@ export async function getPedidos(request: Request, reply: Response) {
     
     return { pedidos: pedidosEnriquecidos, total: pedidosEnriquecidos.length };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar pedidos' });
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar pedidos' });
   }
 }
 
-export async function getPedidoById(request: Request, reply: Response) {
+export async function getPedidoById(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const pedido = pedidos.find(p => p.id === parseInt(id));
     
     if (!pedido) {
-      return reply.status(404).send({ error: 'Pedido não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado' });
     }
     
     // Enriquece com informações do cliente e produtos
@@ -178,11 +179,12 @@ export async function getPedidoById(request: Request, reply: Response) {
     
     return pedidoEnriquecido;
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar pedido' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar pedido' });
   }
 }
 
-export async function createPedido(request: Request, reply: Response) {
+export async function createPedido(request: Request) {
   try {
     const pedidoData = pedidoSchema.parse(request.body);
     
@@ -190,10 +192,7 @@ export async function createPedido(request: Request, reply: Response) {
     const verificacaoEstoque = verificarEstoqueDisponivel(pedidoData.itens);
     
     if (!verificacaoEstoque.disponivel) {
-      return reply.status(400).send({
-        error: 'Estoque insuficiente',
-        detalhes: verificacaoEstoque.itensIndisponiveis
-      });
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Estoque insuficiente' });
     }
     
     // Calcula valor total no servidor (não confia no frontend)
@@ -213,7 +212,7 @@ export async function createPedido(request: Request, reply: Response) {
     
     pedidos.push(novoPedido);
     
-    return reply.status(201).send({
+    return {
       message: 'Pedido criado com sucesso',
       pedido: novoPedido,
       estoque_atualizado: produtos.map(p => ({
@@ -222,26 +221,24 @@ export async function createPedido(request: Request, reply: Response) {
         estoque_anterior: p.estoque + (pedidoData.itens.find(item => item.produto_id === p.id)?.quantidade || 0),
         estoque_atual: p.estoque
       }))
-    });
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return reply.status(400).send({
-        error: 'Dados inválidos',
-        details: error.issues
-      });
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
     }
-    reply.status(500).send({ error: 'Erro ao criar pedido' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao criar pedido' });
   }
 }
 
-export async function updatePedido(request: Request, reply: Response) {
+export async function updatePedido(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const pedidoData = pedidoSchema.parse(request.body);
     
     const index = pedidos.findIndex(p => p.id === parseInt(id));
     if (index === -1) {
-      return reply.status(404).send({ error: 'Pedido não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado' });
     }
     
     // Se os itens mudaram, verifica estoque novamente
@@ -249,10 +246,7 @@ export async function updatePedido(request: Request, reply: Response) {
       const verificacaoEstoque = verificarEstoqueDisponivel(pedidoData.itens);
       
       if (!verificacaoEstoque.disponivel) {
-        return reply.status(400).send({
-          error: 'Estoque insuficiente',
-          detalhes: verificacaoEstoque.itensIndisponiveis
-        });
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Estoque insuficiente' });
       }
       
       // Recalcula o estoque (devolve o antigo e subtrai o novo)
@@ -275,22 +269,17 @@ export async function updatePedido(request: Request, reply: Response) {
       valor_total: valorFinal
     };
     
-    return reply.status(200).send({
-      message: 'Pedido atualizado com sucesso',
-      pedido: pedidos[index]
-    });
+    return { message: 'Pedido atualizado com sucesso', pedido: pedidos[index] };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return reply.status(400).send({
-        error: 'Dados inválidos',
-        details: error.issues
-      });
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
     }
-    reply.status(500).send({ error: 'Erro ao atualizar pedido' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao atualizar pedido' });
   }
 }
 
-export async function updateStatusPedido(request: Request, reply: Response) {
+export async function updateStatusPedido(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const { status, data_entrega } = request.body as { 
@@ -300,7 +289,7 @@ export async function updateStatusPedido(request: Request, reply: Response) {
     
     const index = pedidos.findIndex(p => p.id === parseInt(id));
     if (index === -1) {
-      return reply.status(404).send({ error: 'Pedido não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado' });
     }
     
     pedidos[index] = {
@@ -309,22 +298,20 @@ export async function updateStatusPedido(request: Request, reply: Response) {
       data_entrega: data_entrega || pedidos[index].data_entrega
     };
     
-    return reply.status(200).send({
-      message: 'Status do pedido atualizado com sucesso',
-      pedido: pedidos[index]
-    });
+    return { message: 'Status do pedido atualizado com sucesso', pedido: pedidos[index] };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao atualizar status do pedido' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao atualizar status do pedido' });
   }
 }
 
-export async function deletePedido(request: Request, reply: Response) {
+export async function deletePedido(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const index = pedidos.findIndex(p => p.id === parseInt(id));
     
     if (index === -1) {
-      return reply.status(404).send({ error: 'Pedido não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Pedido não encontrado' });
     }
     
     const pedidoRemovido = pedidos.splice(index, 1)[0];
@@ -332,7 +319,7 @@ export async function deletePedido(request: Request, reply: Response) {
     // Devolve produtos ao estoque usando função dedicada
     devolverEstoque(pedidoRemovido.itens);
     
-    return reply.status(200).send({
+    return {
       message: 'Pedido removido com sucesso',
       pedido: pedidoRemovido,
       estoque_devolvido: produtos.map(p => ({
@@ -340,13 +327,14 @@ export async function deletePedido(request: Request, reply: Response) {
         nome: p.nome,
         estoque_atual: p.estoque
       }))
-    });
+    };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao remover pedido' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao remover pedido' });
   }
 }
 
-export async function buscarPedidos(request: Request, reply: Response) {
+export async function buscarPedidos(request: Request) {
   try {
     const { 
       query, 
@@ -376,7 +364,7 @@ export async function buscarPedidos(request: Request, reply: Response) {
       const queryLower = query.toLowerCase();
       pedidosFiltrados = pedidosFiltrados.filter(pedido => 
         pedido.cliente?.nome.toLowerCase().includes(queryLower) ||
-        pedido.id.toString().includes(query)
+        String(pedido.id ?? "").includes(query)
       );
     }
     
@@ -403,11 +391,12 @@ export async function buscarPedidos(request: Request, reply: Response) {
     
     return { pedidos: pedidosFiltrados, total: pedidosFiltrados.length };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar pedidos' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar pedidos' });
   }
 }
 
-export async function getPedidosPorCliente(request: Request, reply: Response) {
+export async function getPedidosPorCliente(request: Request) {
   try {
     const { cliente_id } = request.params as { cliente_id: string };
     
@@ -429,11 +418,12 @@ export async function getPedidosPorCliente(request: Request, reply: Response) {
       valor_total: pedidosCliente.reduce((sum, pedido) => sum + pedido.valor_total, 0)
     };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar pedidos do cliente' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar pedidos do cliente' });
   }
 }
 
-export async function getRelatorioVendas(request: Request, reply: Response) {
+export async function getRelatorioVendas(request: Request) {
   try {
     const { data_inicio, data_fim } = request.query as { 
       data_inicio?: string; 
@@ -482,6 +472,7 @@ export async function getRelatorioVendas(request: Request, reply: Response) {
     
     return relatorio;
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao gerar relatório de vendas' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao gerar relatório de vendas' });
   }
 }

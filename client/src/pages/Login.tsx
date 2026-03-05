@@ -132,20 +132,22 @@ function LoginForm({
         </div>
       </div>
 
-      {/* Lembrar usuário: checkbox sem texto visível (apenas username em localStorage; senha nunca salva) */}
-      <div className="flex items-center" style={{ marginBottom: isMobile ? "8px" : "3%" }}>
+      {/* Acima do botão ENTRAR: apenas checkbox + label "Lembrar usuário e senha" (sem texto residual) */}
+      <div className="flex items-center gap-2" style={{ marginTop: isMobile ? "6px" : "2%", marginBottom: isMobile ? "8px" : "3%" }}>
         <input
           type="checkbox"
           id="remember-user"
           checked={rememberUser}
           onChange={(e) => setRememberUser(e.target.checked)}
-          aria-label="Lembrar usuário"
-          title="Lembrar usuário"
-          className="rounded border-amber-600/50 bg-[#f5e8c0] text-amber-700 focus:ring-amber-500 w-4 h-4 shrink-0"
+          aria-label="Lembrar usuário e senha"
+          className="cursor-pointer rounded border-amber-600/50 bg-[#f5e8c0] text-amber-700 focus:ring-amber-500 w-4 h-4 shrink-0"
         />
+        <label htmlFor="remember-user" className="wood-label text-sm cursor-pointer" style={{ fontSize: fs.version, color: "rgba(255,255,255,0.9)" }}>
+          Lembrar usuário e senha
+        </label>
       </div>
 
-      {/* Botão: disabled SOMENTE durante envio (isLoading); sempre clicável; submit lê valores do DOM (refs) */}
+      {/* Botão: disabled SOMENTE durante envio (isLoading); submit lê valores do DOM (refs) */}
       <button type="submit" disabled={isLoading} className="wood-btn w-full font-bold tracking-widest uppercase"
         style={{ height: inputH, fontSize: fs.btn, borderRadius: "5px", backgroundColor: "#2e9e52" }}>
         {isLoading ? "Entrando…" : "Entrar"}

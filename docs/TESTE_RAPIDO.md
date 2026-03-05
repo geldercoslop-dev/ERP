@@ -1,88 +1,97 @@
-# Teste rápido (smoke test)
+# Teste rápido – rodar e saber se está OK
 
-Checklist passo a passo para validar que o sistema está saudável após mudanças ou deploy. Use em desenvolvimento e antes de considerar um deploy estável.
-
----
-
-## Pré-requisitos
-
-- [ ] MySQL rodando (XAMPP ou outro; porta 3306).
-- [ ] Variáveis de ambiente configuradas (`.env` ou `.env.development` com DATABASE_URL ou DB_*).
-- [ ] Na pasta do projeto: `npm install` já foi executado.
+Checklist operacional com comandos exatos (um por linha). Use após mudanças ou antes de voltar a mexer no layout.
 
 ---
 
-## 1. Subir o sistema
+## Botões “1 clique” (pasta scripts/)
 
-- [ ] Rodar `npm run dev` (ou `npm run start` em produção).
-- [ ] Abrir no navegador a URL que aparecer no terminal (ex.: `http://localhost:3003`).
-- [ ] A tela de login deve abrir sem erro de conexão.
+| Arquivo | Uso |
+|---------|-----|
+| **BOTAO_1_INICIAR_DEV.bat** | Liga o ambiente: inicia `npm run dev` e abre o navegador. Use para começar o dia. |
+| **BOTAO_2_TESTAR_SAUDE.bat** | Roda `npm run test:db`, `npm run check:db` e tenta `GET /api/health`. Use para validar que DB e servidor estão OK. |
+| **BOTAO_3_BACKUP_DB_DEV.bat** | Tenta backup via mysqldump; se não tiver no PATH, mostra instruções para phpMyAdmin. Use antes de mudar schema. |
+| **BOTAO_4_COMMIT_PUSH.bat** | Pede mensagem, executa `git add .`, `git commit -m "..."`, `git push`. Use após cada entrega (tela/bug/banco). |
+| **BOTAO_RODAR_TESTES_CORE.bat** | Roda `npm run test:core` (estoque nunca negativo, rollback de transação, diagnóstico). Use após mudanças em estoque/financeiro. |
 
----
-
-## 2. Healthcheck
-
-- [ ] Abrir em outra aba: `http://localhost:3003/api/health` (ajuste a porta se for outra).
-- [ ] A resposta deve ter:
-  - `status`: "ok" ou "degraded".
-  - `db.status`: "ok".
-  - `schemaMatch`: true (versão do banco = versão esperada pelo código).
-- [ ] Se `schemaMatch` for false ou `db.status` for "error", corrigir antes de continuar (ver BASE_DE_DADOS.md e RECUPERACAO_SISTEMA.md).
+Execute os .bat pela pasta do projeto ou pela pasta `scripts/` (eles fazem `cd` para a raiz).
 
 ---
 
-## 3. Login (admin)
+## 1. Pré-requisito
 
-- [ ] Na tela de login, entrar com usuário **admin** (o que foi criado pelo seed ou já existia).
-- [ ] Após enviar, deve redirecionar para a página inicial (não voltar ao login).
-- [ ] Se pedir login de novo ou der "Acesso negado", seguir RECUPERACAO_SISTEMA.md (sessão/cookies).
+- XAMPP/MySQL **ligado** (porta 3306).
 
 ---
 
-## 4. CRUD de vendedores
+## 2. Comandos (rodar na pasta do projeto, um por vez)
 
-- [ ] Ir até a tela de **Vendedores** (ou Cadastro de Vendedor).
-- [ ] **Listar:** a lista de vendedores deve carregar (pode estar vazia).
-- [ ] **Criar:** preencher nome, cidade e senha (6 dígitos), clicar em Salvar.
-- [ ] Deve aparecer mensagem de sucesso e a **lista deve atualizar** sozinha (sem dar F5), mostrando o novo vendedor.
-- [ ] **Editar:** clicar em Editar em um vendedor, alterar algo, Salvar. Lista deve atualizar.
-- [ ] **Excluir:** clicar em Excluir em um vendedor (pode ser o de teste), confirmar. Lista deve atualizar.
-- Se a lista **não** atualizar após salvar/editar/excluir, ver CONVENCOES_DE_CODIGO.md (invalidar lista após mutation).
+```bash
+npm run test:db
+```
 
----
+**Resultado esperado:** conexão OK (sem ECONNREFUSED).
 
-## 5. Listas principais
+```bash
+npm run check:db
+```
 
-- [ ] Abrir **Pedidos** (ou equivalente): a lista deve carregar (pode estar vazia), sem erro na tela.
-- [ ] Abrir **Cargas** (ou equivalente): a lista deve carregar, sem erro na tela.
-- Se aparecer erro de "Failed query" ou TRPCError, anotar e seguir RECUPERACAO_SISTEMA.md (coletar err.code e err.sqlMessage).
+**Resultado esperado:** "Conexão estabelecida" e lista de tabelas.
 
----
+```bash
+npm run dev
+```
 
-## 6. Debug de sessão (só em desenvolvimento)
-
-- [ ] Com o usuário logado, abrir `http://localhost:3003/api/debug/headers` (porta correta).
-- [ ] A resposta deve mostrar algo em `cookie` ou `xSessionToken` (não vazio). Se estiver vazio com usuário logado, o cookie não está sendo enviado (ver RECUPERACAO_SISTEMA.md).
+**Resultado esperado:** servidor sobe e mostra a URL (ex.: http://localhost:3003). Deixe rodando.
 
 ---
 
-## O que coletar se algo falhar
+## 3. No navegador
 
-- **Tela de login / "precisa estar logado":**  
-  - Valor de cookie/session no DevTools (Application → Cookies).  
-  - Resposta de `/api/debug/headers`.  
-  - Trecho do log do servidor com `[createContext]`.
+1. Abrir a URL que apareceu no terminal (ex.: http://localhost:3003).
+2. **Login admin** → deve redirecionar para a aplicação (não voltar ao login).
+3. **CRUD vendedores:** listar → criar (nome, cidade, senha 6 dígitos) → confirmar que a **lista atualiza** sem F5 → editar um → excluir um → lista atualiza de novo.
+4. Abrir as telas **Pedidos**, **Cargas**, **Pendências** (só abrir; as listas disparam e não devem dar TRPCError na tela).
 
-- **Erro de tela (TRPCError / Failed query):**  
-  - No log do servidor: linha com `[TRPC onError] traceId: ...` e as linhas com `err.code` e `err.sqlMessage`.  
-  - Resposta de `/api/health` (status, schemaMatch, schemaVersion, expectedSchemaVersion).
+---
 
-- **Lista não atualiza:**  
-  - Qual tela e qual ação (criar/editar/excluir).  
-  - Se naquele fluxo está sendo chamado invalidate/refetch da lista (ver código ou CONVENCOES_DE_CODIGO.md).
+## 4. Healthcheck
 
-- **Botão não salva / fica travado:**  
-  - Se o botão usa estado local (isSubmitting) ou loading global.  
-  - Mensagem de erro na tela ou no console do navegador.
+Abrir no navegador (ajuste a porta se for outra):
 
-Com essas informações, um desenvolvedor ou o manual (RECUPERACAO_SISTEMA.md, CONVENCOES_DE_CODIGO.md) pode orientar o próximo passo.
+```
+http://localhost:3003/api/health
+```
+
+**Confirmar:**
+
+- `db.status` = `"ok"`
+- `schemaMatch` = `true`
+
+Se `db.status` for `"error"` ou `schemaMatch` for `false`, corrigir antes de seguir (ver docs/RECUPERACAO_SISTEMA.md e docs/BASE_DE_DADOS.md).
+
+---
+
+## 5. Validação após mudanças em Estoque / Financeiro
+
+Depois de alterar código de pedidos, estoque, caixa, contas a receber ou transações:
+
+1. Rodar **BOTAO_2_TESTAR_SAUDE.bat** (ou `npm run test:db` + `npm run check:db` + abrir `/api/health`).
+2. Rodar **BOTAO_RODAR_TESTES_CORE.bat** (ou `npm run test:core`).
+   - Resultado esperado: "Todos os testes passaram" (bloqueio de estoque negativo, rollback de transação, formato do diagnóstico).
+3. No navegador: login → criar/editar pedido → baixar pedido → conferir que listas atualizam e que não aparece estoque negativo.
+4. Se houver tela **Diagnóstico** (admin): clicar em "Rodar verificação" e conferir que a lista de problemas (se houver) mostra tipo, detalhe e sugestão.
+
+---
+
+## Se falhar – coletar isso e colar no chat
+
+Quando der erro (TRPCError, Failed query, tela em branco, "precisa estar logado"), junte e envie:
+
+1. **err.code** – linha do log do servidor que mostra `MySQL err.code:`
+2. **err.sqlMessage** – linha que mostra `MySQL err.sqlMessage:`
+3. **traceId** – se existir, a linha `[TRPC onError] traceId: XXXXX`
+4. **Print (ou JSON) do /api/health** – resposta completa de `GET /api/health`
+5. **Log da request /api/trpc que falhou** – trecho do terminal do servidor com método, url, cookie, x-session-token e a linha de erro (traceId, err.code, err.sqlMessage)
+
+Com isso dá para diagnosticar rápido sem adivinhar.

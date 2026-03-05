@@ -14,7 +14,7 @@ interface UseAuthOptions {
  */
 export function useAuth(options?: UseAuthOptions) {
   const [, setLocation] = useLocation();
-  const { user, isLoading, isAuthenticated, login, logout, checkAuth } = useAuthStore();
+  const { user, isLoading, isAuthenticated, login, logout, checkAuth, isImpersonating, vendedorNome, vendedorId, voltarAoAdmin } = useAuthStore();
 
   const { redirectOnUnauthenticated = false, redirectPath = "/login?force=true" } = options ?? {};
 
@@ -28,12 +28,24 @@ export function useAuth(options?: UseAuthOptions) {
     setLocation(redirectPath);
   }, [redirectOnUnauthenticated, redirectPath, isLoading, isAuthenticated, setLocation]);
 
+  const isAdmin = user?.role === "admin";
+  const isVendedor = user?.role === "vendedor";
+  /** View de estoque/regras: admin não impersonando = admin; caso contrário = vendedor. Evita lógica negativa (!isAdmin). */
+  const effectiveRoleView = isAdmin && !(isImpersonating ?? false) ? "admin" as const : "vendedor" as const;
+
   return {
     user,
     isLoading,
     isAuthenticated,
+    isImpersonating: isImpersonating ?? false,
+    vendedorNome: vendedorNome ?? undefined,
+    vendedorId: vendedorId ?? undefined,
+    isAdmin,
+    isVendedor,
+    effectiveRoleView,
     login,
     logout,
     refresh: checkAuth,
+    voltarAoAdmin,
   };
 }

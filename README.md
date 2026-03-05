@@ -36,19 +36,19 @@ Sistema profissional de gestão de vendas, pedidos, cargas, vendedores e finance
 
 4. **Criar o banco** no MySQL (ex.: `vendas_app`) e usuário com permissão.
 
-5. **Testar conexão:**
-   ```bash
+5. **Testar conexão** (rodar um comando por vez):
+   ```
    npm run check:db
    ```
 
 6. **Sincronizar o schema (desenvolvimento):**
-   ```bash
+   ```
    npm run db:push:dev
    ```
    Ou, se usar migrações: `npm run db:migrate`
 
 7. **Subir o servidor:**
-   ```bash
+   ```
    npm run dev
    ```
 
@@ -86,10 +86,15 @@ Sistema profissional de gestão de vendas, pedidos, cargas, vendedores e finance
 | [TESTE_RAPIDO.md](docs/TESTE_RAPIDO.md) | Checklist de smoke test (login, CRUD vendedores, listas, health) |
 | [RISCO_ATUAL.md](docs/RISCO_ATUAL.md) | Riscos do sistema e como mitigar |
 | [RELATORIO_HARDENING.md](docs/RELATORIO_HARDENING.md) | Relatório da blindagem do sistema (para não programadores) |
+| [RELATORIO_HARDENING_FINAL.md](docs/RELATORIO_HARDENING_FINAL.md) | Relatório consolidado hardening + workflow (comandos e checklist) |
+| [RELATORIO_CONSOLIDACAO_FINAL.md](docs/RELATORIO_CONSOLIDACAO_FINAL.md) | Relatório desta consolidação (arquivos alterados, comandos, resultado esperado) |
 | [BACKUP_BANCO_DEV.md](docs/BACKUP_BANCO_DEV.md) | Como fazer backup do banco em desenvolvimento |
 | [REGRAS_PARA_IA.md](docs/REGRAS_PARA_IA.md) | Regras para assistentes de código (Cursor/IA) |
 | [STATUS_PROJETO.md](docs/STATUS_PROJETO.md) | Checklist de projeto saudável |
 | [RELATORIO_GIT_GITHUB.md](docs/RELATORIO_GIT_GITHUB.md) | Configuração Git + GitHub e como trabalhar sem ZIP (para iniciantes) |
+| [WORKFLOW_GIT.md](docs/WORKFLOW_GIT.md) | Branches (dev/main) e regra de commit pequeno |
+| [LEMBRETE_COMMIT.md](docs/LEMBRETE_COMMIT.md) | **Lembrete:** quando fazer commit e comandos (git checkout dev, add, commit, push) |
+| [RELATORIO_ERRO_ZERO.md](docs/RELATORIO_ERRO_ZERO.md) | Pacote ERRO ZERO: transações, estoque nunca negativo, auditoria, diagnóstico, testes e botões .bat |
 
 ---
 

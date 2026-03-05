@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import {
   createProduto as dbCreateProduto,
   updateProduto as dbUpdateProduto,
@@ -8,6 +9,11 @@ import {
   getAllProdutosComPrecoVigente,
   updateEstoqueProduto,
 } from '../db';
+
+const preprocessEstoque = z.preprocess(
+  (v) => (v === '' || v == null ? 0 : typeof v === 'string' ? Number(v) : v),
+  z.number().int().min(0).refine((n) => !Number.isNaN(n), { message: 'Estoque inválido' })
+);
 
 const createSchema = z.object({
   descricao: z.string().min(2),
@@ -27,38 +33,39 @@ const createSchema = z.object({
   grupoId: z.number().optional(),
   ativo: z.boolean().optional(),
   // Variações
-  cores: z.array(z.object({ corId: z.number().min(1), estoque: z.coerce.number().min(0) })).optional(),
+  cores: z.array(z.object({ corId: z.number().min(1), estoque: preprocessEstoque })).optional(),
   variacoes: z.array(z.object({
     tamanho: z.string().optional().default(''),
     temEspelho: z.boolean().default(false),
     acrescimoCusto: z.coerce.number().min(0).default(0),
-    estoque: z.coerce.number().min(0).default(0),
+    estoque: preprocessEstoque.default(0),
   })).optional(),
 });
 
 const updateSchema = createSchema.partial();
 
-export async function getProdutos(_req: Request, reply: Response) {
+export async function getProdutos(_req: Request) {
   try {
     const produtos = await getAllProdutosComPrecoVigente(new Date());
     return { produtos, total: produtos.length };
   } catch (e) {
-    return reply.status(500).send({ error: 'Erro ao buscar produtos' });
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar produtos' });
   }
 }
 
-export async function getProdutoById(request: Request, reply: Response) {
+export async function getProdutoById(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const produto = await dbGetProdutoById(Number(id));
-    if (!produto) return reply.status(404).send({ error: 'Produto não encontrado' });
+    if (!produto) throw new TRPCError({ code: 'NOT_FOUND', message: 'Produto não encontrado' });
     return produto;
   } catch (e) {
-    return reply.status(500).send({ error: 'Erro ao buscar produto' });
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar produto' });
   }
 }
 
-export async function createProduto(request: Request, reply: Response) {
+export async function createProduto(request: Request) {
   try {
     const data = createSchema.parse(request.body);
     const estoqueCores = (data.cores || []).reduce((s, c) => s + Number(c.estoque || 0), 0);
@@ -82,15 +89,20 @@ export async function createProduto(request: Request, reply: Response) {
       prazoGarantia: data.prazoGarantia,
       grupoId: data.grupoId,
       ativo: data.ativo ?? true,
-    } as any, data.cores, data.variacoes);
-    return reply.status(201).send({ message: 'Produto criado', produto: result });
+      cores: data.cores,
+      variacoes: data.variacoes,
+    } as any);
+    return { message: 'Produto criado', produto: result };
   } catch (e: any) {
-    if (e instanceof z.ZodError) return reply.status(400).send({ error: 'Dados inválidos', details: e.issues });
-    return reply.status(500).send({ error: 'Erro ao criar produto' });
+    if (e instanceof z.ZodError) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
+    }
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao criar produto' });
   }
 }
 
-export async function updateProduto(request: Request, reply: Response) {
+export async function updateProduto(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const data = updateSchema.parse(request.body);
@@ -100,24 +112,28 @@ export async function updateProduto(request: Request, reply: Response) {
     if (data.custo !== undefined) patch.custo = Number(data.custo).toFixed(2);
     if (data.valorVenda !== undefined) patch.valorVenda = Number(data.valorVenda).toFixed(2);
     await dbUpdateProduto(Number(id), patch);
-    return reply.status(200).send({ message: 'Produto atualizado' });
+    return { message: 'Produto atualizado' };
   } catch (e: any) {
-    if (e instanceof z.ZodError) return reply.status(400).send({ error: 'Dados inválidos', details: e.issues });
-    return reply.status(500).send({ error: 'Erro ao atualizar produto' });
+    if (e instanceof z.ZodError) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
+    }
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao atualizar produto' });
   }
 }
 
-export async function deleteProduto(request: Request, reply: Response) {
+export async function deleteProduto(request: Request) {
   try {
     const { id } = request.params as { id: string };
     await dbDeleteProduto(Number(id));
-    return reply.status(200).send({ message: 'Produto removido' });
+    return { message: 'Produto removido' };
   } catch (e) {
-    return reply.status(500).send({ error: 'Erro ao remover produto' });
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao remover produto' });
   }
 }
 
-export async function buscarProdutos(request: Request, reply: Response) {
+export async function buscarProdutos(request: Request) {
   try {
     const { query } = request.query as { query?: string };
     const produtos = await getAllProdutosComPrecoVigente(new Date());
@@ -130,30 +146,42 @@ export async function buscarProdutos(request: Request, reply: Response) {
     );
     return { produtos: filtrados, total: filtrados.length };
   } catch (e) {
-    return reply.status(500).send({ error: 'Erro ao buscar produtos' });
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar produtos' });
   }
 }
 
-export async function atualizarEstoque(request: Request, reply: Response) {
+export async function atualizarEstoque(request: Request) {
   try {
     const { id } = request.params as { id: string };
-    const body = z.object({ quantidade: z.coerce.number(), tipo: z.enum(['entrada', 'saida']) }).parse(request.body);
+    const body = z.object({
+      quantidade: z.preprocess(
+        (v) => (v === '' || v == null ? 0 : typeof v === 'string' ? Number(v) : v),
+        z.number().int().min(0).refine((n) => !Number.isNaN(n), { message: 'Quantidade inválida' })
+      ),
+      tipo: z.enum(['entrada', 'saida']),
+    }).parse(request.body);
     const qtd = body.tipo === 'entrada' ? body.quantidade : -body.quantidade;
     await updateEstoqueProduto(Number(id), qtd);
-    return reply.status(200).send({ message: 'Estoque atualizado' });
+    return { message: 'Estoque atualizado' };
   } catch (e: any) {
-    if (e instanceof z.ZodError) return reply.status(400).send({ error: 'Dados inválidos', details: e.issues });
-    return reply.status(500).send({ error: 'Erro ao atualizar estoque' });
+    if (e instanceof z.ZodError) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
+    if (e?.code === 'ESTOQUE_NEGATIVO' || e?.code === 'ESTOQUE_INSUFICIENTE') {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: e?.message ?? 'Estoque insuficiente para esta operação.' });
+    }
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao atualizar estoque' });
   }
 }
 
-export async function verificarEstoqueBaixo(_req: Request, reply: Response) {
+export async function verificarEstoqueBaixo(_req: Request) {
   try {
     // Mantido por compatibilidade (pode evoluir depois).
     const produtos = await getAllProdutosComPrecoVigente(new Date());
     const baixo = produtos.filter((p: any) => Number(p.estoque) <= 0);
     return { produtos: baixo, total: baixo.length };
   } catch (e) {
-    return reply.status(500).send({ error: 'Erro ao verificar estoque baixo' });
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao verificar estoque baixo' });
   }
 }

@@ -1,2 +1,2 @@
-// Este arquivo é gerado automaticamente pelo servidor para armazenar a porta atual
+// Gerado automaticamente pelo servidor
 export const PORT = 3003;

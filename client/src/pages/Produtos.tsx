@@ -23,11 +23,12 @@ export default function Produtos() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
-  // Data — normalizar resposta (pode vir array ou { produtos: [] })
+  // Data — resposta paginada { items, total, page, pageSize, hasMore }
   const { data: produtosRaw, isLoading } = trpc.produtos.list.useQuery();
   const produtos = useMemo(() => {
     const d = produtosRaw;
     if (Array.isArray(d)) return d;
+    if (d && typeof d === "object" && Array.isArray((d as any).items)) return (d as any).items;
     if (d && typeof d === "object" && Array.isArray((d as any).produtos)) return (d as any).produtos;
     return [];
   }, [produtosRaw]);
@@ -184,9 +185,14 @@ export default function Produtos() {
     }
 
     try {
+      const estoqueCores = coresSelecionadas.reduce((s, c) => s + Number(c.estoque ?? 0), 0);
+      const estoqueOpcionais = opcionais.reduce((s, o) => s + Number(o.estoque ?? 0), 0);
+      const estoqueTotal = estoqueCores + estoqueOpcionais;
+
       const payload = {
         ...formData,
-        cores: coresSelecionadas,
+        estoque: Number(estoqueTotal),
+        cores: coresSelecionadas.map((c) => ({ corId: c.corId, estoque: Number(c.estoque ?? 0) })),
         // envia opcionais no mesmo campo "variacoes" (compat com backend atual)
         variacoes: opcionais
           .filter((o) => o.nome.trim())
@@ -195,7 +201,7 @@ export default function Produtos() {
             temEspelho: false, // compat
             nome: o.nome.trim().toUpperCase(),
             acrescimoCusto: Number(o.acrescimoCusto || 0),
-            estoque: Number(o.estoque || 0),
+            estoque: Number(o.estoque ?? 0),
           })),
       };
 
@@ -358,10 +364,12 @@ export default function Produtos() {
                         type="number"
                         className="mt-1 h-9"
                         placeholder="Qtd"
-                        value={cs.estoque}
+                        min={0}
+                        value={cs.estoque == null ? "" : cs.estoque}
                         onChange={(e) => {
                           const next = [...coresSelecionadas];
-                          next[idx].estoque = Number(e.target.value);
+                          const raw = e.target.value;
+                          next[idx].estoque = raw === "" ? 0 : Number(raw);
                           setCoresSelecionadas(next);
                         }}
                       />
@@ -443,10 +451,12 @@ export default function Produtos() {
                         <Input
                           type="number"
                           className="h-9"
-                          value={o.estoque}
+                          min={0}
+                          value={o.estoque == null ? "" : o.estoque}
                           onChange={(e) => {
                             const next = [...opcionais];
-                            next[idx].estoque = Number(e.target.value);
+                            const raw = e.target.value;
+                            next[idx].estoque = raw === "" ? 0 : Number(raw);
                             setOpcionais(next);
                           }}
                         />

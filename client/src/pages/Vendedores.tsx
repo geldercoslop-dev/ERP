@@ -1,19 +1,26 @@
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Pencil, Plus, Search, Shield, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Search, Shield, Trash2, UserPlus, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpcClient"; // Usar o novo cliente tRPC
+import { trpc } from "@/lib/trpcClient";
 import { onlyDigits, maskPhoneBr } from "@/lib/masks";
 import { toast } from "sonner";
-import { TRPCClientError } from "@trpc/client"; // Para tipagem de erros
 
-// Importar tipo do schema do Drizzle
-import type { Vendedor } from "../../../drizzle/schema";
+type Vendedor = {
+  id: number;
+  nome: string;
+  telefone: string | null;
+  email: string | null;
+  cidade: string | null;
+  admin: boolean;
+  ativo?: boolean | null;
+  userId?: number | null;
+};
 
 
 
@@ -23,6 +30,9 @@ export default function Vendedores() {
 
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Vendedor | null>(null);
+  const [linkModalVendedor, setLinkModalVendedor] = useState<Vendedor | null>(null);
+  const [linkOpenId, setLinkOpenId] = useState("");
+  const [linkPassword, setLinkPassword] = useState("");
 
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -31,6 +41,16 @@ export default function Vendedores() {
   const [admin, setAdmin] = useState(false);
 
   const vendedoresQuery = trpc.vendedores.list.useQuery();
+  const linkUserMutation = trpc.vendedores.linkUser.useMutation({
+    onSuccess: () => {
+      toast.success("Login vinculado ao vendedor");
+      setLinkModalVendedor(null);
+      setLinkOpenId("");
+      setLinkPassword("");
+      utils.vendedores.list.invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao vincular login"),
+  });
 
   const criar = trpc.vendedores.create.useMutation({
     onSuccess: async () => {
@@ -39,7 +59,7 @@ export default function Vendedores() {
       await utils.vendedores.list.invalidate();
       await utils.vendedores.list.refetch();
     },
-    onError: (error: TRPCClientError<any>) => {
+    onError: (error: any) => {
       console.error("Erro ao criar vendedor:", error);
       const code = error.data?.code;
       let msg = "Erro ao salvar vendedor.";
@@ -135,19 +155,24 @@ export default function Vendedores() {
       editando ? "Atualizando vendedor..." : "Cadastrando vendedor..."
     );
 
-    // Preparar payload com tipagem correta
-    const payload = {
+    const telefoneValue = telefone.trim();
+    const basePayload = {
       nome: nome.trim(),
-      telefone: telefone.trim() || null,
       cidade: cidade.trim(),
-      email: null, // Adicionar campo email mesmo que vazio
       admin: !!admin,
     };
 
     try {
       if (editando) {
         // Atualizar vendedor existente
-        const updatePayload = { ...payload, id: editando.id };
+        const updatePayload: {
+          id: number;
+          nome: string;
+          telefone?: string;
+          cidade: string;
+          admin: boolean;
+          senha?: string;
+        } = { ...basePayload, id: editando.id, telefone: telefoneValue || undefined };
         if (pin.length === 6) updatePayload.senha = pin;
         
         console.log("Atualizando vendedor:", { ...updatePayload, senha: pin ? "***" : undefined });
@@ -165,7 +190,7 @@ export default function Vendedores() {
           return;
         }
         
-        const createPayload = { ...payload, senha: pin };
+        const createPayload = { ...basePayload, telefone: telefoneValue || null, email: null as string | null, senha: pin };
         console.log("Criando vendedor:", { ...createPayload, senha: "***" });
         await criar.mutateAsync(createPayload);
         
@@ -184,14 +209,13 @@ export default function Vendedores() {
       // Este bloco catch só será acionado se houver um erro não tratado pelo onError do useMutation
       console.error("Erro não tratado ao salvar vendedor:", err);
       
-      // Tipagem mais segura para o erro
-      let errorMessage = "Erro ao salvar. Verifique se está logado como administrador.";
-      
-      if (err instanceof TRPCClientError) {
-        errorMessage = err.message;
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
+      const e = err as any;
+      const errorMessage =
+        typeof e?.message === "string"
+          ? e.message
+          : err instanceof Error
+            ? err.message
+            : "Erro ao salvar. Verifique se está logado como administrador.";
       
       toast.error(errorMessage);
     }
@@ -201,6 +225,24 @@ export default function Vendedores() {
     if (!confirm(`Excluir o vendedor "${v.nome}"?`)) return;
     await deletar.mutateAsync({ id: v.id });
     if (editando?.id === v.id) limparForm();
+  };
+
+  const abrirModalLink = (v: Vendedor) => {
+    setLinkModalVendedor(v);
+    setLinkOpenId("");
+    setLinkPassword("");
+  };
+
+  const vincularLogin = () => {
+    if (!linkModalVendedor || !linkOpenId.trim()) {
+      toast.error("Informe o usuário (openId).");
+      return;
+    }
+    linkUserMutation.mutate({
+      vendedorId: linkModalVendedor.id,
+      openId: linkOpenId.trim().toLowerCase(),
+      password: linkPassword.trim() || undefined,
+    });
   };
 
   const vendedoresFiltrados = useMemo(() => {
@@ -365,16 +407,27 @@ export default function Vendedores() {
 
             <div className="divide-y rounded-xl border">
               {vendedoresFiltrados.map((v) => (
-                <div key={v.id} className="flex items-center gap-3 p-3">
+                <div key={v.id} className="flex flex-wrap items-center gap-3 p-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{v.nome}</div>
                     <div className="truncate text-sm text-slate-500">
                       {(v.telefone || "—")} • {(v.cidade || "—")}
                       {v.admin ? " • ADMIN" : ""}
+                      {v.userId != null ? " • Login vinculado" : ""}
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {v.userId != null ? (
+                      <span className="text-xs text-emerald-600 font-medium px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200">
+                        Login vinculado
+                      </span>
+                    ) : (
+                      <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => abrirModalLink(v)}>
+                        <UserPlus className="h-4 w-4" />
+                        Vincular Login
+                      </Button>
+                    )}
                     <Button variant="outline" className="rounded-xl" onClick={() => editar(v)}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Editar
@@ -392,6 +445,40 @@ export default function Vendedores() {
                 </div>
               ))}
             </div>
+
+            {/* Modal Vincular Login */}
+            {linkModalVendedor && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setLinkModalVendedor(null)}>
+                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="font-semibold text-lg">Vincular Login — {linkModalVendedor.nome}</h3>
+                  <div>
+                    <Label>Usuário (openId) *</Label>
+                    <Input
+                      value={linkOpenId}
+                      onChange={(e) => setLinkOpenId(e.target.value)}
+                      placeholder="ex: joao.silva"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Senha (opcional)</Label>
+                    <Input
+                      type="password"
+                      value={linkPassword}
+                      onChange={(e) => setLinkPassword(e.target.value)}
+                      placeholder="Deixe em branco para não alterar"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <Button variant="outline" onClick={() => setLinkModalVendedor(null)}>Cancelar</Button>
+                    <Button onClick={vincularLogin} disabled={!linkOpenId.trim() || linkUserMutation.isPending}>
+                      {linkUserMutation.isPending ? "Vinculando…" : "Vincular"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -26,6 +26,8 @@ export type TrpcContext = {
   user: typeof users.$inferSelect | null;
   /** Preenchido quando sessão é vendedor (token "v:..."). */
   vendedor: Vendedor | null;
+  /** True quando admin está impersonando vendedor (cookie admin_session presente). */
+  isImpersonating: boolean;
   session: SessionInfo;
 };
 
@@ -50,6 +52,7 @@ export async function createContext(
 ): Promise<TrpcContext> {
   let user: typeof users.$inferSelect | null = null;
   let vendedor: Vendedor | null = null;
+  let isImpersonating = false;
   const session: SessionInfo = {
     origin: "none",
     tokenPresent: false,
@@ -59,6 +62,7 @@ export async function createContext(
   try {
     const rawCookie = opts.req.headers.cookie;
     const parsed = rawCookie ? cookie.parse(rawCookie) : {};
+    const adminSessionToken = parsed.admin_session as string | undefined;
     const cookieToken = (parsed.session_token || parsed.session || parsed.auth_token) as string | undefined;
     const cookieName: SessionInfo["cookieName"] =
       parsed.session_token != null
@@ -115,6 +119,7 @@ export async function createContext(
         if (v?.ativo) {
           vendedor = v;
           user = buildUserFromVendedor(v);
+          isImpersonating = Boolean(typeof adminSessionToken === "string" && adminSessionToken.length > 0);
         } else {
           const cookieNames = ["session_token", "session", "auth_token"];
           cookieNames.forEach(name => {
@@ -199,6 +204,7 @@ export async function createContext(
     res: opts.res,
     user,
     vendedor,
+    isImpersonating,
     session,
   };
 }

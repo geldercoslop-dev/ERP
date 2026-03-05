@@ -1,4 +1,5 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import cookie from "cookie";
+import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -219,6 +220,8 @@ export const appRouter = router({
         role,
         loginMethod: ctx.user.loginMethod,
         vendedorId: ctx.vendedor?.id ?? undefined,
+        isImpersonating: ctx.isImpersonating ?? false,
+        vendedorNome: ctx.vendedor?.nome ?? undefined,
       };
     }),
     /**
@@ -324,11 +327,66 @@ export const appRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos" });
       }),
 
+    /** Admin only: troca sessão para vendedor (impersonate). Guarda token admin em cookie por 10 min. */
+    impersonateVendedor: adminProcedure
+      .input(z.object({ vendedorId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const vendedor = await db.getVendedorById(input.vendedorId);
+        if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
+        const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
+        const currentToken = typeof ctx.req.headers.cookie === "string"
+          ? (cookie.parse(ctx.req.headers.cookie)[COOKIE_NAME] as string | undefined)
+          : undefined;
+        if (currentToken) {
+          const adminOpts = { ...getSessionCookieOptions(ctx.req), maxAge: ADMIN_SESSION_MAX_AGE_MS, path: "/" };
+          ctx.res.cookie(ADMIN_SESSION_COOKIE, currentToken, adminOpts);
+        }
+        const sessionValue = `v:${vendedor.id}`;
+        ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
+        ctx.res.cookie("session", sessionValue, cookieOptions);
+        const traceId = nanoid(10);
+        await db.insertAuditLog({
+          actorUserId: ctx.user.id,
+          actorVendedorId: null,
+          action: "IMPERSONATE_START",
+          entity: "vendedor",
+          entityId: String(vendedor.id),
+          payloadJson: JSON.stringify({ vendedorNome: vendedor.nome }),
+          traceId,
+        });
+        return { ok: true, vendedorId: vendedor.id, vendedorNome: vendedor.nome ?? undefined };
+      }),
+
+    /** Restaura sessão admin a partir do cookie admin_session (só quando isImpersonating). */
+    stopImpersonation: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.isImpersonating) throw new TRPCError({ code: "BAD_REQUEST", message: "Não está em modo impersonation." });
+      const rawCookie = ctx.req.headers.cookie;
+      const parsed = rawCookie ? cookie.parse(rawCookie) : {};
+      const adminToken = parsed[ADMIN_SESSION_COOKIE] as string | undefined;
+      if (!adminToken || typeof adminToken !== "string") throw new TRPCError({ code: "BAD_REQUEST", message: "Sessão admin não encontrada." });
+      const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
+      ctx.res.cookie(COOKIE_NAME, adminToken, cookieOptions);
+      ctx.res.cookie("session", adminToken, cookieOptions);
+      ctx.res.clearCookie(ADMIN_SESSION_COOKIE, { path: "/", maxAge: 0, expires: new Date(0) });
+      const adminUserId = adminToken.startsWith("u:") ? parseInt(adminToken.slice(2), 10) : null;
+      const traceId = nanoid(10);
+      await db.insertAuditLog({
+        actorUserId: Number.isFinite(adminUserId) ? adminUserId : null,
+        actorVendedorId: ctx.vendedor?.id ?? null,
+        action: "IMPERSONATE_STOP",
+        entity: "admin",
+        entityId: adminUserId != null ? String(adminUserId) : null,
+        payloadJson: JSON.stringify({ restoredFrom: "admin_session" }),
+        traceId,
+      });
+      return { ok: true };
+    }),
+
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       if (process.env.NODE_ENV !== "production") console.log("[auth.logout] Removendo cookies de sessão");
       // Limpar todos os possíveis cookies em todas as combinações de path/domain
-      const cookieNames = [COOKIE_NAME, "session", "auth_token"];
+      const cookieNames = [COOKIE_NAME, "session", "auth_token", ADMIN_SESSION_COOKIE];
       const domains = ["localhost", undefined];
       const paths = ["/", "/api", undefined];
       
@@ -562,6 +620,7 @@ export const appRouter = router({
 
   // ===== PRODUTOS =====
   produtos: router({
+    /** Estoque global: mesmo resultado para admin e vendedor (sem filtro por ctx.vendedor). */
     list: protectedProcedure
       .input(z.object({
         page: z.number().min(1).optional(),
@@ -1299,6 +1358,8 @@ export const appRouter = router({
     // O código do cliente é o próprio ID (4 dígitos no frontend) com reaproveitamento via counters.
     createVenda: protectedProcedure
       .input(z.object({
+        // Admin sem impersonation: obrigatório. Impersonando ou vendedor: ignorado (usa ctx).
+        vendedorId: z.number().int().positive().optional(),
         // Cliente existente ou novo
         clienteId: z.number().optional(),
         cliente: z.object({
@@ -1395,9 +1456,21 @@ export const appRouter = router({
           const result = await executeCommand(
             { commandName: "createVenda", idempotencyKey: input.idempotencyKey },
             async (tx) => {
-              const vendedor = await getVendedorFromContext(ctx);
+              const isAdmin = ctx.user?.role === "admin";
+              let vendedor: db.Vendedor | null = ctx.vendedor ?? null;
+              if (!vendedor && isAdmin && input.vendedorId) {
+                vendedor = await db.getVendedorById(input.vendedorId);
+              }
+              if (!vendedor && !isAdmin) {
+                vendedor = await getVendedorFromContext(ctx);
+              }
               if (!vendedor) {
-                throw new TRPCError({ code: "BAD_REQUEST", message: "Usuário não está vinculado a um vendedor." });
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: isAdmin
+                    ? "Selecione o vendedor responsável pelo pedido."
+                    : "Usuário não está vinculado a um vendedor.",
+                });
               }
               let gerouPendencia = false;
               // 1) Cliente (cria automaticamente se necessário)
@@ -1601,6 +1674,21 @@ export const appRouter = router({
                 await tx.update(db.produtos)
                   .set({ estoque: novoEstoque } as any)
                   .where(db.eq(db.produtos.id, i.produtoId));
+                await db.insertAuditLog({
+                  actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
+                  actorVendedorId: ctx.user?.role !== "admin" ? vendedor?.id ?? null : null,
+                  action: "SAIDA",
+                  entity: "estoque",
+                  entityId: String(i.produtoId),
+                  payloadJson: JSON.stringify({
+                    pedidoId,
+                    produtoId: i.produtoId,
+                    quantidade: i.quantidade,
+                    saldoAnterior: estoqueAtual,
+                    saldoNovo: novoEstoque,
+                  }),
+                  traceId: nanoid(10),
+                }, tx);
               }
             }
 

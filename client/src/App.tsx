@@ -70,9 +70,13 @@ export default function App() {
         {/* ✅ ROTA PÚBLICA */}
         <Route path="/login" component={Login} />
 
-        {/* Rotas de diagnóstico (públicas) */}
         <Route path="/debug-auth" component={DebugAuth} />
-        <Route path="/diagnostico" component={Diagnostico} />
+        {/* Diagnóstico: apenas admin (protegido) */}
+        <Route path="/diagnostico">
+          <ProtectedShell>
+            <AdminOnly><Diagnostico /></AdminOnly>
+          </ProtectedShell>
+        </Route>
 
         {/* ✅ Rotas protegidas */}
         <Route path="/vendas">

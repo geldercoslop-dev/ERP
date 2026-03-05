@@ -27,6 +27,7 @@ function createVendedorContext(): TrpcContext {
   return {
     user,
     vendedor: null,
+    isImpersonating: false,
     session: defaultSession,
     req: { headers: {} } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
@@ -48,6 +49,7 @@ function createAdminContext(): TrpcContext {
   return {
     user,
     vendedor: null,
+    isImpersonating: false,
     session: defaultSession,
     req: { headers: {} } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
@@ -59,6 +61,7 @@ describe("Fluxo principal: Login", () => {
     const ctx: TrpcContext = {
       user: null,
       vendedor: null,
+      isImpersonating: false,
       session: { origin: "none", tokenPresent: false, tokenKind: "unknown" },
       req: {} as any,
       res: {} as any,
@@ -77,6 +80,7 @@ describe("Fluxo principal: Login", () => {
     const ctx: TrpcContext = {
       user: null,
       vendedor: null,
+      isImpersonating: false,
       session: { origin: "none", tokenPresent: false, tokenKind: "unknown" },
       req: {} as any,
       res: {} as any,

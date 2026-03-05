@@ -1,13 +1,4 @@
-import path from "path";
-import { fileURLToPath } from "url";
-// Carregar .env e .env.NODE_ENV para drizzle-kit (quando rodado via npm script)
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-import dotenv from "dotenv";
-dotenv.config({ path: path.resolve(__dirname, ".env") });
-if (process.env.NODE_ENV) {
-  dotenv.config({ path: path.resolve(__dirname, `.env.${process.env.NODE_ENV}`) });
-}
-
+import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
 function getDbUrl(): string {
@@ -22,7 +13,7 @@ function getDbUrl(): string {
 }
 
 export default defineConfig({
-  out: "./drizzle/migrations",
+  out: "./drizzle",
   schema: "./drizzle/schema.ts",
   dialect: "mysql",
   dbCredentials: {

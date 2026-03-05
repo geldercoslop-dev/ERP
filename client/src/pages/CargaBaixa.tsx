@@ -120,6 +120,10 @@ export default function CargaBaixa() {
       setShowBaixa(false);
       setPedidoSelecionado(null);
       utils.cargas.getById.invalidate({ id: cargaId });
+      utils.cargas.list.invalidate();
+      utils.pedidos.list.invalidate();
+      utils.contasReceber.list.invalidate();
+      utils.comissoes.list.invalidate();
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
     } finally {

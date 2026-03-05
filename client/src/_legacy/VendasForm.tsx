@@ -92,8 +92,8 @@ export default function VendasForm() {
     }
   });
 
-  const produtos = produtosData || [];
-  const clientes = clientesData || [];
+  const produtos = (produtosData as any)?.items ?? [];
+  const clientes = (clientesData as any)?.items ?? [];
 
   // Calcular totais
   const subtotalItens = itens.reduce((sum, item) => sum + item.subtotal, 0);

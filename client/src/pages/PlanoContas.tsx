@@ -27,9 +27,8 @@ export default function PlanoContas() {
   
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<"DESPESA" | "RECEITA">("DESPESA");
-  const [categoria, setCategoria] = useState("");
   
-  const { data: planos, refetch } = trpc.planoContas.list.useQuery();
+  const { data: planos, refetch } = trpc.planoContas.list.useQuery({});
   const criar = trpc.planoContas.create.useMutation();
   const atualizar = trpc.planoContas.update.useMutation();
   
@@ -38,7 +37,6 @@ export default function PlanoContas() {
       setEditando(plano);
       setNome(plano.nome);
       setTipo(plano.tipo);
-      setCategoria(plano.categoria || '');
     } else {
       setEditando(null);
       limparForm();
@@ -49,7 +47,6 @@ export default function PlanoContas() {
   const limparForm = () => {
     setNome('');
     setTipo('DESPESA');
-    setCategoria('');
   };
   
   const salvar = async () => {
@@ -62,8 +59,7 @@ export default function PlanoContas() {
       const dados = {
         nome: nome.trim(),
         tipo,
-        categoria: categoria.trim() || undefined,
-      };
+      } as const;
       
       if (editando) {
         await atualizar.mutateAsync({ id: editando.id, ...dados });
@@ -226,15 +222,7 @@ export default function PlanoContas() {
               </Select>
             </div>
             
-            <div>
-              <Label htmlFor="categoria">Categoria (opcional)</Label>
-              <Input
-                id="categoria"
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
-                placeholder="Ex: Fixa, Variável, Operacional..."
-              />
-            </div>
+            
           </div>
           
           <div className="flex gap-3">

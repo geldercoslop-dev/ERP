@@ -2,7 +2,7 @@
 
 Passos curtos para quando algo quebra: "precisa estar logado", TRPCError de SQL, listas não atualizam, botões não salvam.
 
-**Riscos do sistema (o que evitar):** Ver [RISCO_ATUAL.md](./RISCO_ATUAL.md). **Relatório completo do hardening (para não-programadores):** Ver [RELATORIO_HARDENING.md](./RELATORIO_HARDENING.md).
+**Riscos do sistema (o que evitar):** Ver [RISCO_ATUAL.md](./RISCO_ATUAL.md). **Relatório consolidado (hardening + workflow):** Ver [RELATORIO_HARDENING_FINAL.md](./RELATORIO_HARDENING_FINAL.md).
 
 ---
 
@@ -12,7 +12,9 @@ Passos curtos para quando algo quebra: "precisa estar logado", TRPCError de SQL,
 - **Ações:**
   1. Abra o XAMPP Control Panel e verifique se o MySQL está **Running** (porta 3306).
   2. Se não estiver, clique em **Start** no MySQL.
-  3. Rode `npm run check:db` e confira se "Conexão estabelecida" aparece.
+  3. Rode (um comando por vez):
+     - `npm run check:db` e confira se "Conexão estabelecida" aparece.
+     - Opcional: `npm run test:db` para outro teste de conexão.
 
 ---
 
@@ -40,7 +42,13 @@ Passos curtos para quando algo quebra: "precisa estar logado", TRPCError de SQL,
 ## 4. Migrations em produção
 
 - **Quando:** Alterações de schema em produção.
-- **Ordem:** Backup → alterar `drizzle/schema.ts` → `npm run db:generate` → revisar SQL em `drizzle/migrations` → `npm run db:migrate` → conferir `/api/health`.
+- **Ordem (um passo por vez):**
+  1. Fazer backup do banco.
+  2. Alterar `drizzle/schema.ts`.
+  3. Rodar `npm run db:generate`.
+  4. Revisar SQL em `drizzle/migrations`.
+  5. Rodar `npm run db:migrate`.
+  6. Conferir `GET /api/health` (schemaMatch true).
 - **Detalhes:** Ver DEPLOY_PRODUCAO.md e BASE_DE_DADOS.md.
 
 ---

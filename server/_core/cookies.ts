@@ -32,9 +32,9 @@ export function getSessionCookieOptions(
   const isSecure = isSecureRequest(req);
 
   // SameSite=None exige Secure=true; em localhost sem HTTPS o cookie é rejeitado.
-  // Em ambiente local usamos Lax para o cookie ser aceito pelo navegador.
+  // Em localhost (produção ou dev) usamos sameSite=lax e secure=false para login funcionar.
   const sameSite = isLocal && !isSecure ? ("lax" as const) : ("none" as const);
-  const secure = isSecure;
+  const secure = isLocal ? false : isSecure;
 
   const options: Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> = {
     httpOnly: true,

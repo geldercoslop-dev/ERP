@@ -24,7 +24,7 @@ export default function ContasFixas() {
   });
 
   const { data: fixas, isLoading } = trpc.contasFixas.list.useQuery();
-  const { data: planos } = trpc.planoContas.list.useQuery({ tipo: 'SAIDA' });
+  const { data: planos } = trpc.planoContas.list.useQuery({ tipo: "DESPESA" });
   const createFixa = trpc.contasFixas.create.useMutation();
 
   const handleCreate = async () => {

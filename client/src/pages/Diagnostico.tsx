@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
+import { trpc } from "@/lib/trpcClient";
 
 interface ServerStatus {
   status: "checking" | "online" | "offline";
@@ -9,8 +10,22 @@ interface ServerStatus {
   error?: string;
 }
 
+interface ProblemaConsistencia {
+  tipoProblema: string;
+  entidade: string;
+  id?: string | number;
+  detalhe: string;
+  sugestao: string;
+  mensagem?: string;
+  entityId?: string | number;
+}
+
 export default function Diagnostico() {
   const { user, isLoading } = useAuth({ redirectOnUnauthenticated: false });
+  const { data: problemas, refetch: rodarVerificacao, isFetching: verificando } = trpc.diagnostico.run.useQuery(
+    undefined,
+    { enabled: false }
+  );
   const [serverStatus, setServerStatus] = useState<ServerStatus>({
     status: "checking",
     port: import.meta.env.VITE_PORT || "3003",
@@ -186,6 +201,41 @@ export default function Diagnostico() {
               <p>URL atual: {window.location.href}</p>
             </div>
           </div>
+        </div>
+
+        {/* Verificação de consistência (admin) */}
+        <div className="mt-8 bg-gray-800 rounded-lg p-5 shadow-lg">
+          <h2 className="text-xl font-semibold mb-4 text-amber-300">
+            Consistência do banco (Financeiro / Estoque / Pedidos)
+          </h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Verifica: pedidos sem itens, itens sem produto, pendências quebradas, totais inconsistentes, estoque negativo, contas a receber órfãs.
+          </p>
+          <button
+            onClick={() => rodarVerificacao()}
+            disabled={verificando}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-md font-medium disabled:opacity-50"
+          >
+            {verificando ? "Verificando..." : "Rodar verificação"}
+          </button>
+          {problemas !== undefined && (
+            <div className="mt-4">
+              {problemas.length === 0 ? (
+                <p className="text-green-400">Nenhum problema encontrado.</p>
+              ) : (
+                <ul className="space-y-3 text-sm">
+                  {(problemas as ProblemaConsistencia[]).map((p, i) => (
+                    <li key={i} className={`p-3 rounded border ${p.tipoProblema === "erro" ? "border-red-500/50 bg-red-900/20 text-red-200" : "border-amber-500/30 bg-amber-900/10 text-amber-200"}`}>
+                      <span className="font-medium">[{p.tipoProblema}] {p.entidade}</span>
+                      {p.id != null && <span className="text-gray-400 ml-1"> (id {p.id})</span>}
+                      <p className="mt-1 text-gray-300">{p.detalhe ?? p.mensagem}</p>
+                      {p.sugestao && <p className="mt-1 text-amber-200/90 text-xs">Sugestão: {p.sugestao}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Ações de diagnóstico */}

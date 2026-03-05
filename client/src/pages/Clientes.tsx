@@ -131,10 +131,11 @@ export default function Clientes() {
     setLocation("/clientes?modo=cadastro");
   }
 
-  // Normaliza resposta do backend (pode ser array ou { clientes: [] })
+  // Normaliza resposta do backend (paginado: { items } ou legado array/clientes)
   const listData = useMemo(() => {
     const d = qList.data;
     if (Array.isArray(d)) return d;
+    if (d && typeof d === "object" && Array.isArray((d as any).items)) return (d as any).items;
     if (d && typeof d === "object" && Array.isArray((d as any).clientes)) return (d as any).clientes;
     return [];
   }, [qList.data]);

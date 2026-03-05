@@ -12,23 +12,16 @@ const DEFAULT_CONFIG = {
   user: 'vendas',
   password: 'vendas123',
   database: 'vendas_app',
-  // Configurações de Pool
+  // Configurações de Pool (apenas opções suportadas pelo mysql2)
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  // Manter conexões vivas
   enableKeepAlive: true,
-  keepAliveInitialDelay: 30000, // 30 segundos
-  // Timeouts
-  connectTimeout: 10000, // 10 segundos
-  acquireTimeout: 10000, // 10 segundos
-  // Configurações de resiliência
-  maxIdle: 10, // máximo de conexões inativas
-  idleTimeout: 60000, // timeout para conexões inativas (60 segundos)
-  // Debug
-  debug: process.env.NODE_ENV === 'development',
-  // Tratamento de erros de conexão
-  handleDisconnects: true
+  keepAliveInitialDelay: 30000,
+  connectTimeout: 10000,
+  maxIdle: 10,
+  idleTimeout: 60000,
+  debug: false,
 };
 
 // Singleton do pool de conexões
@@ -86,14 +79,18 @@ export async function getConnectionPool(): Promise<mysql.Pool> {
     await testPool(_pool);
     console.log("[Database] Connection pool created and tested successfully");
     
-    // Configurar evento para lidar com erros de conexão
-    _pool.on('error', (err) => {
-      console.error('[Database] Unexpected pool error:', err);
-      
-      if (err.code === 'PROTOCOL_CONNECTION_LOST' || 
-          err.code === 'ECONNREFUSED' || 
-          err.code === 'ETIMEDOUT') {
-        console.log('[Database] Connection lost. Attempting to recreate pool...');
+    // Configurar evento para lidar com erros de conexão.
+    // Tipos do mysql2/promise não expõem todos os eventos (mas runtime é EventEmitter).
+    (_pool as any).on?.("error", (err: any) => {
+      console.error("[Database] Unexpected pool error:", err);
+
+      const code = err?.code as string | undefined;
+      if (
+        code === "PROTOCOL_CONNECTION_LOST" ||
+        code === "ECONNREFUSED" ||
+        code === "ETIMEDOUT"
+      ) {
+        console.log("[Database] Connection lost. Attempting to recreate pool...");
         _pool = null; // Força recriação na próxima chamada
       }
     });
@@ -101,7 +98,8 @@ export async function getConnectionPool(): Promise<mysql.Pool> {
     return _pool;
   } catch (error) {
     console.error("[Database] Failed to create connection pool:", error);
-    throw new Error(`Database connection pool failed: ${error.message}`);
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Database connection pool failed: ${msg}`);
   }
 }
 
@@ -109,7 +107,7 @@ export async function getConnectionPool(): Promise<mysql.Pool> {
  * Testa o pool de conexões com retry
  */
 async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Promise<void> {
-  let lastError;
+  let lastError: unknown;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -119,7 +117,11 @@ async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Pr
       return; // Sucesso, sair da função
     } catch (error) {
       lastError = error;
-      console.warn(`[Database] Connection test failed (attempt ${attempt}/${maxRetries}):`, error.message);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[Database] Connection test failed (attempt ${attempt}/${maxRetries}):`,
+        msg
+      );
       
       if (attempt < maxRetries) {
         console.log(`[Database] Retrying in ${retryDelay}ms...`);
@@ -131,7 +133,11 @@ async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Pr
   }
   
   // Se chegou aqui, todas as tentativas falharam
-  throw new Error(`Failed to connect to database after ${maxRetries} attempts: ${lastError?.message}`);
+  const lastMsg =
+    lastError instanceof Error ? lastError.message : String(lastError ?? "");
+  throw new Error(
+    `Failed to connect to database after ${maxRetries} attempts: ${lastMsg}`
+  );
 }
 
 /**
@@ -139,14 +145,18 @@ async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Pr
  */
 export async function getConnection(maxRetries = 3): Promise<mysql.PoolConnection> {
   const pool = await getConnectionPool();
-  let lastError;
+  let lastError: unknown;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await pool.getConnection();
     } catch (error) {
       lastError = error;
-      console.warn(`[Database] Failed to get connection (attempt ${attempt}/${maxRetries}):`, error.message);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[Database] Failed to get connection (attempt ${attempt}/${maxRetries}):`,
+        msg
+      );
       
       if (attempt < maxRetries) {
         const delay = 1000 * Math.pow(2, attempt - 1); // Backoff exponencial: 1s, 2s, 4s...
@@ -156,28 +166,36 @@ export async function getConnection(maxRetries = 3): Promise<mysql.PoolConnectio
     }
   }
   
-  throw new Error(`Failed to get database connection after ${maxRetries} attempts: ${lastError?.message}`);
+  const lastMsg =
+    lastError instanceof Error ? lastError.message : String(lastError ?? "");
+  throw new Error(
+    `Failed to get database connection after ${maxRetries} attempts: ${lastMsg}`
+  );
 }
 
 /**
  * Executa uma query com retry automático
  */
-export async function executeQuery<T>(
+export async function executeQuery(
   query: string, 
   params: any[] = [], 
   maxRetries = 3
-): Promise<[T[], mysql.FieldPacket[]]> {
+): Promise<[unknown, mysql.FieldPacket[]]> {
   let conn: mysql.PoolConnection | null = null;
-  let lastError;
+  let lastError: unknown;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       conn = await getConnection();
-      const result = await conn.query<T[]>(query, params);
+      const result = await conn.query(query, params);
       return result;
     } catch (error) {
       lastError = error;
-      console.warn(`[Database] Query failed (attempt ${attempt}/${maxRetries}):`, error.message);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[Database] Query failed (attempt ${attempt}/${maxRetries}):`,
+        msg
+      );
       
       if (attempt < maxRetries) {
         const delay = 1000 * Math.pow(2, attempt - 1); // Backoff exponencial
@@ -191,7 +209,9 @@ export async function executeQuery<T>(
     }
   }
   
-  throw new Error(`Query failed after ${maxRetries} attempts: ${lastError?.message}`);
+  const lastMsg =
+    lastError instanceof Error ? lastError.message : String(lastError ?? "");
+  throw new Error(`Query failed after ${maxRetries} attempts: ${lastMsg}`);
 }
 
 /**

@@ -10,29 +10,17 @@ export default function DebugAuth() {
   const [dbMessage, setDbMessage] = useState<string>('Verificando conexão...');
   const [cookies, setCookies] = useState<Record<string, string>>({});
   const [hasCookies, setHasCookies] = useState<boolean>(false);
-  const [jwtToken, setJwtToken] = useState<string | null>(null);
+  const sessionInfoQuery = trpc.auth.sessionInfo.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
 
   // Verificar cookies
   useEffect(() => {
     const { hasCookies: hasSessionCookies, cookies: sessionCookies } = checkSessionCookies();
     setHasCookies(hasSessionCookies);
     setCookies(sessionCookies);
-    
-    // Tentar extrair o JWT token se existir
-    const sessionToken = sessionCookies.session_token;
-    if (sessionToken) {
-      try {
-        // Formato típico: v:userId:token
-        const parts = sessionToken.split(':');
-        if (parts.length >= 3) {
-          setJwtToken(parts[2]);
-        } else {
-          setJwtToken(sessionToken);
-        }
-      } catch (error) {
-        setJwtToken(sessionToken);
-      }
-    }
   }, []);
 
   // Verificar status do banco de dados
@@ -52,14 +40,7 @@ export default function DebugAuth() {
     checkDbMutation.mutate();
   }, []);
 
-  // Função para formatar o token JWT para exibição
-  const formatJwt = (token: string | null) => {
-    if (!token) return 'Nenhum token encontrado';
-    if (token.length > 40) {
-      return `${token.substring(0, 20)}...${token.substring(token.length - 20)}`;
-    }
-    return token;
-  };
+  const serverSession = sessionInfoQuery.data?.session ?? null;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -177,11 +158,21 @@ export default function DebugAuth() {
           
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium mb-2">Token JWT</h3>
+              <h3 className="text-lg font-medium mb-2">Origem da sessão (server-side)</h3>
               <div className="bg-gray-900 p-3 rounded-lg overflow-x-auto">
-                <code className="text-xs text-amber-300 whitespace-pre-wrap break-all">
-                  {formatJwt(jwtToken)}
-                </code>
+                <pre className="text-xs text-amber-300 whitespace-pre-wrap">
+                  {JSON.stringify(
+                    {
+                      origin: serverSession?.origin ?? null,
+                      cookieName: serverSession?.cookieName ?? null,
+                      tokenPresent: serverSession?.tokenPresent ?? null,
+                      tokenKind: serverSession?.tokenKind ?? null,
+                      serverUser: sessionInfoQuery.data?.user ?? null,
+                    },
+                    null,
+                    2
+                  )}
+                </pre>
               </div>
             </div>
 

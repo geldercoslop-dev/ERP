@@ -30,7 +30,7 @@ export default defineConfig({
             project: process.env.SENTRY_PROJECT,
             authToken: process.env.SENTRY_AUTH_TOKEN,
             release: { name: sentryRelease },
-            sourcemaps: { deleteSourcemapsAfterUpload: true },
+            sourcemaps: {},
           }),
         ]
       : []),

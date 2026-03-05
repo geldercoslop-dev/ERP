@@ -57,49 +57,39 @@ export function useAuth(options?: UseAuthOptions) {
     },
   });
 
+  const stopImpersonationMutation = trpc.auth.stopImpersonation.useMutation({
+    onSuccess: async () => {
+      await utils.auth.me.invalidate();
+    },
+  });
+
+  const voltarAoAdmin = useCallback(async () => {
+    try {
+      await stopImpersonationMutation.mutateAsync();
+      toast.success("Voltou para admin");
+      if (typeof window !== "undefined") window.location.href = "/";
+    } catch (e) {
+      toast.error("Erro ao voltar ao admin");
+    }
+  }, [stopImpersonationMutation]);
+
   const logout = useCallback(async () => {
     try {
-      console.log("Iniciando processo de logout");
-      
-      // Limpar dados locais primeiro
-      console.log("Limpando dados locais");
+      sessionStorage.removeItem("grs-login-confirmed");
       localStorage.removeItem("manus-runtime-user-info");
       utils.auth.me.setData(undefined, null);
-      
-      // Limpar todos os cookies relacionados à sessão
-      console.log("Limpando cookies");
       document.cookie = "session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       document.cookie = "session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost";
       document.cookie = "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      
-      // Chamar a API de logout para limpar o cookie no servidor
       await logoutMutation.mutateAsync();
-      console.log("Logout API chamada com sucesso");
-      
     } catch (error: unknown) {
-      console.error("Erro ao chamar logout API:", error);
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
-        // Já está deslogado, continuar com o processo
-        console.log("Usuário já estava deslogado");
-      } else {
-        // Logar o erro mas continuar com o processo de logout
+      if (!(error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED")) {
         console.error("Erro no logout:", error);
       }
     } finally {
-      // Invalidar a query de me
       await utils.auth.me.invalidate();
-      
-      // Mostrar mensagem de logout
       toast.info("Sessão encerrada com sucesso");
-      
-      // Forçar um redirecionamento completo para garantir que o estado seja limpo
-      console.log("Redirecionando para login");
-      
-      // Usar redirecionamento completo com timestamp para evitar cache
       window.location.href = `/login?t=${Date.now()}`;
     }
   }, [logoutMutation, utils]);
@@ -118,12 +108,16 @@ export function useAuth(options?: UseAuthOptions) {
     }
 
     const user = userOrNull ?? DEFAULT_USER;
+    const isImpersonating = Boolean(backendUser?.isImpersonating);
+    const vendedorNome = backendUser?.vendedorNome ?? undefined;
 
     return {
       user,
       loading: meQuery.isLoading || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
       isAuthenticated: Boolean(userOrNull),
+      isImpersonating,
+      vendedorNome,
     };
   }, [
     localUser,
@@ -154,5 +148,8 @@ export function useAuth(options?: UseAuthOptions) {
     ...state,
     refresh: () => meQuery.refetch(),
     logout,
+    isImpersonating: state.isImpersonating,
+    vendedorNome: state.vendedorNome,
+    voltarAoAdmin,
   };
 }

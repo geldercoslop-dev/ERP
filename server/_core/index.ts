@@ -3,10 +3,14 @@
  * RISCOS DO SISTEMA (evitar): perda de dados por db:push em prod; banco fora do schema;
  * sessão não reconhecida; lista não atualizar após CRUD; deploy sem backup/migrations.
  * Ver /docs/RISCO_ATUAL.md e /docs/RECUPERACAO_SISTEMA.md.
+ *
+ * Rate limit: configurável por env RATE_LIMIT_WINDOW_MS e RATE_LIMIT_MAX (ex: 60000 e 120).
+ * CORS: em produção defina ALLOWED_ORIGINS (separado por vírgula), ex: https://app.seudominio.com
  */
 import "./loadEnv";
 import * as Sentry from "@sentry/node";
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -16,7 +20,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { gerarBackupZip } from "../backup";
-import * as fs from 'fs';
+import * as fs from "fs";
+import path from "path";
 
 // Tipos para o middleware de erro
 import { Request, Response, NextFunction } from "express";
@@ -47,38 +52,37 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  try {
+    const { ensureAdminUser } = await import("../db");
+    await ensureAdminUser();
+  } catch (e) {
+    console.error("[Boot] ensureAdminUser failed:", e);
+  }
+
   // CORS middleware
   app.use((req, res, next) => {
     if (!req.url?.startsWith("/api")) {
       return next();
     }
 
-    if (req.url.startsWith("/api/trpc")) {
-      console.log("=== TRPC REQUEST ===");
-      console.log({
-        method: req.method,
-        url: req.url,
-        cookie: req.headers.cookie,
-        xSession: req.headers["x-session-token"],
-        auth: req.headers.authorization,
-      });
-    }
-
     const origin = req.headers.origin;
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:5174',
-      'http://127.0.0.1:5174',
-      'http://localhost:5175',
-      'http://127.0.0.1:5175',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:3001',
-      'http://localhost:3003',
-      'http://127.0.0.1:3003',
-    ];
+    const envOrigins = process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean);
+    const allowedOrigins = envOrigins?.length
+      ? envOrigins
+      : [
+          "http://localhost:5173",
+          "http://127.0.0.1:5173",
+          "http://localhost:5174",
+          "http://127.0.0.1:5174",
+          "http://localhost:5175",
+          "http://127.0.0.1:5175",
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          "http://localhost:3001",
+          "http://127.0.0.1:3001",
+          "http://localhost:3003",
+          "http://127.0.0.1:3003",
+        ];
     
     if (!origin) {
       // Same-origin (browser não manda Origin): não aplicar headers CORS para não atrapalhar cookie/sessão.
@@ -107,6 +111,20 @@ async function startServer() {
     }
   });
   
+  // Rate limit na API (evita abuso; em produção ajuste por RATE_LIMIT_*)
+  const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000;
+  const rateLimitMax = Number(process.env.RATE_LIMIT_MAX) || 120;
+  app.use(
+    "/api",
+    rateLimit({
+      windowMs: rateLimitWindowMs,
+      max: rateLimitMax,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: "Muitas requisições. Tente novamente em instantes." },
+    })
+  );
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -172,12 +190,15 @@ async function startServer() {
     res.status(200).json({ ok: true, message: "Sentry não configurado (SENTRY_DSN ausente)." });
   });
 
-  // Rota de backup (download ZIP)
-  app.get('/api/backup/download', async (req, res) => {
+  // Rota de backup (download ZIP) — apenas admin (correção SECURITY_FULL_AUDIT)
+  const { requireAdmin } = await import("./requireAdmin");
+  app.get("/api/backup/download", (req, res, next) => {
+    requireAdmin(req, res, next).catch(next);
+  }, async (req, res) => {
     try {
       await gerarBackupZip(res);
     } catch (error) {
-      res.status(500).json({ error: 'Erro ao gerar backup' });
+      res.status(500).json({ error: "Erro ao gerar backup" });
     }
   });
   // tRPC API com tratamento de erros melhorado
@@ -228,30 +249,28 @@ async function startServer() {
     serveStatic(app);
   }
 
-  // Porta: respeitar PORT do .env (ex.: 3001) para bater com VITE_TRPC_URL no cliente
-  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
-  const preferredPort = Number.isFinite(envPort) ? envPort : 3000;
-  console.log(`Porta preferida: ${preferredPort}${envPort ? ' (from env PORT)' : ''}`);
-  
-  let port = preferredPort;
-  if (!(await isPortAvailable(preferredPort))) {
-    console.warn(`AVISO: A porta ${preferredPort} está em uso. Buscando porta alternativa...`);
-    try {
-      port = await findAvailablePort(preferredPort + 1);
-      console.log(`Usando porta alternativa: ${port}`);
-    } catch (error) {
-      console.error("Não foi possível encontrar uma porta disponível.");
-      process.exit(1);
+  // Porta fixa: PORT do .env ou 3003 (produção e dev)
+  const PORT = Number(process.env.PORT) || 3003;
+  let port = PORT;
+
+  if (process.env.NODE_ENV !== "production") {
+    if (!(await isPortAvailable(PORT))) {
+      console.warn(`AVISO: A porta ${PORT} está em uso. Buscando porta alternativa...`);
+      try {
+        port = await findAvailablePort(PORT + 1);
+        console.log(`Usando porta alternativa: ${port}`);
+      } catch (error) {
+        console.error("Não foi possível encontrar uma porta disponível.");
+        process.exit(1);
+      }
     }
-  } else {
-    console.log(`Porta ${preferredPort} está disponível.`);
+    try {
+      fs.writeFileSync(
+        path.join(process.cwd(), "server", "_core", "port.ts"),
+        `// Gerado automaticamente pelo servidor\nexport const PORT = ${port};\n`
+      );
+    } catch (_) {}
   }
-  
-  // Salvar a porta atual em um arquivo para que o cliente possa usá-la
-  fs.writeFileSync(
-    './server/_core/port.ts',
-    `// Este arquivo é gerado automaticamente pelo servidor para armazenar a porta atual\nexport const PORT = ${port};`
-  );
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

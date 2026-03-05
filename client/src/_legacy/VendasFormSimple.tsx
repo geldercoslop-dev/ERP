@@ -29,9 +29,9 @@ export default function VendasFormSimple({ produtosFallback, clientesFallback }:
   const { data: produtosData, isLoading: produtosLoading } = trpc.produtos.list.useQuery();
   const { data: clientesData, isLoading: clientesLoading } = trpc.clientes.list.useQuery();
   
-  // Usa dados reais ou fallback
-  const produtos = produtosFallback || produtosData?.produtos || [];
-  const clientes = clientesFallback || clientesData?.clientes || [];
+  // Usa dados reais ou fallback (resposta paginada: .items)
+  const produtos = produtosFallback || (produtosData as any)?.items || [];
+  const clientes = clientesFallback || (clientesData as any)?.items || [];
   
   // Mutation para criar pedido
   const createPedido = trpc.pedidos.create.useMutation({

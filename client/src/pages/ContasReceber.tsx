@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { isInProgress } from "@shared/idempotency";
 
 export default function ContasReceber() {
   const [, setLocation] = useLocation();
@@ -35,20 +36,33 @@ export default function ContasReceber() {
   
   const createConta = trpc.contasReceber.create.useMutation();
   const marcarRecebida = trpc.contasReceber.marcarRecebida.useMutation();
+  const createIdempotencyKeyRef = useRef<string | null>(null);
   const deleteConta = trpc.contasReceber.delete.useMutation();
   const gerarRelatorio = trpc.boletos.gerarRelatorio.useMutation();
 
   const handleCreate = async () => {
     try {
-      await createConta.mutateAsync({
+      if (!createIdempotencyKeyRef.current) {
+        createIdempotencyKeyRef.current = `conta-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      }
+      const valorNumber = Number(String(novaConta.valor ?? "").replace(/\./g, "").replace(",", "."));
+      const res = await createConta.mutateAsync({
         ...novaConta,
+        idempotencyKey: createIdempotencyKeyRef.current,
         pedidoNumero: novaConta.pedidoNumero ? Number(novaConta.pedidoNumero) : undefined,
-        dataVencimento: new Date(novaConta.dataVencimento)
+        valor: valorNumber,
+        dataVencimento: novaConta.dataVencimento,
       });
+      if (isInProgress(res)) {
+        toast({ title: "Processando", description: res.message ?? "Já está processando, aguarde…" });
+        return;
+      }
+      createIdempotencyKeyRef.current = null;
       toast({ title: "Sucesso", description: "Conta lançada!" });
       setShowNovo(false);
       utils.contasReceber.list.invalidate();
     } catch (e: any) {
+      createIdempotencyKeyRef.current = null;
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     }
   };
@@ -58,7 +72,7 @@ export default function ContasReceber() {
       await marcarRecebida.mutateAsync({
         id: contaSelecionada.id,
         formaPagamento: forma,
-        dataRecebimento: new Date()
+        dataRecebimento: new Date().toISOString(),
       });
       toast({ title: "Sucesso", description: "Baixa realizada com sucesso!" });
       setShowBaixa(false);

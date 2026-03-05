@@ -26,7 +26,8 @@ export default function Cargas() {
 
   // Queries
   const { data: cargas, isLoading: loadingCargas } = trpc.cargas.list.useQuery();
-  const { data: pedidosDisponiveis } = trpc.pedidos.list.useQuery({ status: "IMPRESSO" });
+  const { data: pedidosDisponiveisData } = trpc.pedidos.list.useQuery({ status: "IMPRESSO" });
+  const pedidosDisponiveis = (pedidosDisponiveisData as any)?.items ?? [];
   const criarCarga = trpc.cargas.create.useMutation();
 
   const formatMoney = (v: any) => {

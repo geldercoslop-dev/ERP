@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpcClient";
@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { isInProgress } from "@shared/idempotency";
 
 
 export default function MeusPedidos() {
@@ -27,7 +28,14 @@ export default function MeusPedidos() {
 
   // Filtros
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("TODOS");
+  const [buscaDebounced, setBuscaDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca), 400);
+    return () => clearTimeout(t);
+  }, [busca]);
+  const [filtroStatus, setFiltroStatus] = useState<
+    "TODOS" | "GERADO" | "IMPRESSO" | "EM_ROTA" | "ENTREGUE" | "CANCELADO"
+  >("TODOS");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
@@ -42,12 +50,13 @@ export default function MeusPedidos() {
   const [boletoVencimentos, setBoletoVencimentos] = useState<string[]>([]);
   const [vencimentosEditados, setVencimentosEditados] = useState(false);
 
-  const { data: pedidos, isLoading } = trpc.pedidos.list.useQuery({
+  const { data: pedidosRaw, isLoading } = trpc.pedidos.list.useQuery({
     status: filtroStatus,
-    busca: busca,
+    busca: buscaDebounced,
     dataInicio: dataInicio ? new Date(dataInicio) : undefined,
     dataFim: dataFim ? new Date(dataFim) : undefined,
-  });
+  }, { staleTime: 30_000 });
+  const pedidos = Array.isArray(pedidosRaw) ? pedidosRaw : (pedidosRaw as any)?.items ?? [];
 
   const updateStatusMutation = trpc.pedidos.updateStatus.useMutation({
     onSuccess: () => {
@@ -97,9 +106,16 @@ export default function MeusPedidos() {
     setBoletoVencimentos(buildVencimentos(boletoPrimeiroVenc, boletoParcelas));
   }, [boletoPrimeiroVenc, boletoParcelas, entradaForma, usarBoleto, vencimentosEditados]);
   const marcarEntregueMutation = trpc.pedidos.marcarEntregue.useMutation({
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
+      if (isInProgress(data)) {
+        toast({ title: "Processando", description: data.message ?? "Já está processando, aguarde…" });
+        return;
+      }
+      entregaIdempotencyKeyRef.current = null;
       utils.pedidos.list.invalidate();
-      if (data?.boletosZip?.base64) {
+      utils.contasReceber.list.invalidate();
+      utils.comissoes.list.invalidate();
+      if ("boletosZip" in data && data.boletosZip?.base64) {
         downloadBase64(data.boletosZip.base64, data.boletosZip.fileName);
         toast({ title: "Boletos gerados", description: "Entrega registrada. ZIP de boletos pronto para enviar ao cliente." });
       } else {
@@ -115,6 +131,7 @@ export default function MeusPedidos() {
       setBoletoVencimentos([]);
     }
   });
+  const entregaIdempotencyKeyRef = useRef<string | null>(null);
 
   const deleteMutation = trpc.pedidos.delete.useMutation({
     onSuccess: () => {
@@ -204,8 +221,12 @@ export default function MeusPedidos() {
       return;
     }
 
+    if (!entregaIdempotencyKeyRef.current) {
+      entregaIdempotencyKeyRef.current = `baixa-${pedidoEntregaId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    }
     marcarEntregueMutation.mutate({
       id: pedidoEntregaId,
+      idempotencyKey: entregaIdempotencyKeyRef.current,
       entradaForma,
       entradaValor: entradaForma === 'BOLETO' ? undefined : (usarBoleto ? entrada : total),
       boletoParcelas: (entradaForma === 'BOLETO' || usarBoleto) ? boletoParcelas : undefined,
@@ -275,7 +296,7 @@ export default function MeusPedidos() {
               />
             </div>
             
-            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+            <Select value={filtroStatus} onValueChange={(v) => setFiltroStatus(v as any)}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>

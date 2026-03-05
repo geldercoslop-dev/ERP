@@ -10,7 +10,8 @@ export default function Relatorios() {
 
   // Queries para os relatórios
   const { data: comissoes } = trpc.comissoes.list.useQuery();
-  const { data: pedidos } = trpc.pedidos.list.useQuery();
+  const { data: pedidosData } = trpc.pedidos.list.useQuery();
+  const pedidos = (pedidosData as any)?.items ?? [];
   const { data: vendedores } = trpc.vendedores.list.useQuery();
 
   const filteredData = useMemo(() => {
@@ -65,8 +66,12 @@ export default function Relatorios() {
       totalComissoes,
       qtdPedidos: filteredData.pedidos.length,
       comissoesPendentesCount: comissoesPendentes.length,
-      perfVendedores: Object.entries(perfVendedores).sort((a, b) => b[1].total - a[1].total),
-      formasPagto: Object.entries(formasPagto).sort((a, b) => b[1] - a[1])
+      perfVendedores: (Object.entries(perfVendedores) as Array<
+        [string, { nome: string; total: number; qtd: number }]
+      >).sort((a, b) => b[1].total - a[1].total),
+      formasPagto: (Object.entries(formasPagto) as Array<[string, number]>).sort(
+        (a, b) => b[1] - a[1]
+      ),
     };
   }, [filteredData, vendedores]);
 

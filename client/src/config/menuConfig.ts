@@ -57,7 +57,7 @@ export const menuConfig: MenuGroup[] = [
           { label: "Estoque", href: "/estoque" },
         ],
       },
-      { label: "Pendências de Compra", href: "/pendencias", iconName: "clipboard-list", roles: ["admin"] },
+      { label: "Pendências", href: "/pendencias", iconName: "alert-triangle", roles: ["admin", "vendedor"] },
       { label: "Cerco de Cargas", href: "/cargas", iconName: "truck", roles: ["admin", "vendedor"] },
       { label: "Nota de Entrada", href: "/nota-entrada", iconName: "receipt", roles: ["admin"] },
     ],
@@ -85,6 +85,7 @@ export const menuConfig: MenuGroup[] = [
     group: "RELATÓRIOS",
     items: [
       { label: "Relatórios", href: "/relatorios", iconName: "bar-chart-3", roles: ["admin"] },
+      { label: "Diagnóstico", href: "/diagnostico", iconName: "activity", roles: ["admin"] },
     ],
   },
   {

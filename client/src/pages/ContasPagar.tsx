@@ -34,11 +34,11 @@ export default function ContasPagar() {
   });
 
   // Form de Novo Plano de Contas
-  const [novoPlano, setNovoPlano] = useState({ nome: "", tipo: 'SAIDA' as 'SAIDA' | 'ENTRADA' });
+  const [novoPlano, setNovoPlano] = useState({ nome: "", tipo: "DESPESA" as "DESPESA" | "RECEITA" });
 
   // Queries e Mutations
   const { data: contas, isLoading } = trpc.contasPagar.list.useQuery({ status: statusFiltro, fornecedor: busca });
-  const { data: planos } = trpc.planoContas.list.useQuery({ tipo: 'SAIDA' });
+  const { data: planos } = trpc.planoContas.list.useQuery({ tipo: "DESPESA" });
   
   const createConta = trpc.contasPagar.create.useMutation();
   const pagarConta = trpc.contasPagar.pagar.useMutation();

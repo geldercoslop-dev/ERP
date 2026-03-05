@@ -59,7 +59,7 @@ export function AjusteEstoqueModal({
 
     ajusteMutation.mutate({
       produtoId,
-      quantidade: parseInt(quantidade),
+      quantidade: Number(quantidade),
       tipo,
     });
   };

@@ -24,6 +24,18 @@ const DEFAULT_USER: User = {
   role: "vendedor",
 };
 
+/** Forma esperada do retorno de auth.me (backend já envia isImpersonating, vendedorNome, vendedorId). */
+interface AuthMeResponse {
+  id?: number;
+  openId?: string;
+  name?: string;
+  email?: string | null;
+  role?: string;
+  isImpersonating?: boolean;
+  vendedorNome?: string | null;
+  vendedorId?: number | null;
+}
+
 
 function getTrpcBaseUrl(): string {
   // No navegador: sempre relativo para a mesma origem (cookie acompanha em login e auth.me).
@@ -48,10 +60,36 @@ function setForceLogout(v: boolean) {
   } catch {}
 }
 
+/** Chave sessionStorage: login só conta se passou pelo formulário nesta aba (evita auto-login por cookie). */
+const LOGIN_CONFIRMED_KEY = "grs-login-confirmed";
+
+function setLoginConfirmadoNestaSessao(value: boolean) {
+  try {
+    if (value) sessionStorage.setItem(LOGIN_CONFIRMED_KEY, "1");
+    else sessionStorage.removeItem(LOGIN_CONFIRMED_KEY);
+  } catch {}
+}
+
+function hasLoginConfirmadoNestaSessao(): boolean {
+  try {
+    return sessionStorage.getItem(LOGIN_CONFIRMED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Limpa o flag de login confirmado (usado no logout para garantir que ao reabrir exige login). */
+export function clearLoginConfirmadoNestaSessao() {
+  setLoginConfirmadoNestaSessao(false);
+}
+
 // Estado global simplificado
 let globalUser: User | null = null;
 let globalIsLoading = true; // true inicial: evita redirect antes do primeiro auth.me (evita loop)
 let globalIsAuthenticated = false;
+let globalIsImpersonating = false;
+let globalVendedorNome: string | null = null;
+let globalVendedorId: number | null = null;
 let listeners: Function[] = [];
 
 // NÃO restaurar "logado" do localStorage: a sessão real é o cookie no servidor.
@@ -99,7 +137,7 @@ function setUser(user: User | null) {
 async function trpcBatchCall(path: string, input: unknown) {
   const baseUrl = getTrpcBaseUrl();
   const token = getSessionToken();
-  const sessionHeader = token
+  const sessionHeaders: Record<string, string> = token
     ? { "X-Session-Token": token, Authorization: `Bearer ${token}` }
     : {};
   // auth.me é uma query: usar GET para evitar 405 Method Not Allowed no servidor
@@ -108,7 +146,7 @@ async function trpcBatchCall(path: string, input: unknown) {
     const res = await fetch(`${baseUrl}/auth.me?input=${inputStr}`, {
       method: "GET",
       credentials: "include",
-      headers: sessionHeader,
+      headers: sessionHeaders,
     });
     if (!res.ok) {
       if (res.status === 401) return null;
@@ -122,7 +160,7 @@ async function trpcBatchCall(path: string, input: unknown) {
   const batchBody = typeof input === "object" && input !== null ? { 0: input } : { 0: {} };
   const response = await fetch(`${baseUrl}/${path}?batch=1`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeader },
+    headers: { "Content-Type": "application/json", ...sessionHeaders },
     body: JSON.stringify(batchBody),
     credentials: "include",
   });
@@ -146,6 +184,7 @@ async function login(username: string, password: string) {
     });
     
     if (data?.ok) {
+      setLoginConfirmadoNestaSessao(true);
       const token = data.sessionToken;
       if (typeof token === "string" && token) {
         setSessionToken(token);
@@ -169,8 +208,7 @@ async function login(username: string, password: string) {
       globalUser = user;
       globalIsAuthenticated = true;
       globalIsLoading = false;
-    // login manual remove bloqueio
-    setForceLogout(false);
+      setForceLogout(false);
       
       // Salvar no localStorage
       localStorage.setItem('manus-auth-store', JSON.stringify({
@@ -221,8 +259,12 @@ async function logout() {
   globalUser = null;
   globalIsAuthenticated = false;
   globalIsLoading = false;
+  globalIsImpersonating = false;
+  globalVendedorNome = null;
+  globalVendedorId = null;
 
   try {
+    setLoginConfirmadoNestaSessao(false);
     setSessionToken(null);
     localStorage.removeItem("manus-runtime-user-info");
     localStorage.removeItem("manus-auth-store");
@@ -245,10 +287,11 @@ async function checkAuth() {
   notifyListeners();
   
   try {
-    // Usar o mesmo formato de batch que o tRPC para garantir que o cookie seja enviado e a rota aceita
     const userData = await trpcBatchCall("auth.me", null);
-    
-    if (userData) {
+    const confirmed = hasLoginConfirmadoNestaSessao();
+
+    if (userData && confirmed) {
+      const me = userData as AuthMeResponse;
       const normalizeRole = (raw: unknown): UserRole => {
         const s = String(raw ?? "").trim().toLowerCase();
         if (!s) return "vendedor";
@@ -258,51 +301,63 @@ async function checkAuth() {
       };
 
       const user = {
-        id: userData.id ?? -1,
-        openId: userData.openId ?? "",
-        name: userData.name ?? "Usuário",
-        email: userData.email ?? null,
-        role: normalizeRole(userData.role),
+        id: me.id ?? -1,
+        openId: me.openId ?? "",
+        name: me.name ?? "Usuário",
+        email: me.email ?? null,
+        role: normalizeRole(me.role),
       };
       
       globalUser = user;
       globalIsAuthenticated = true;
       globalIsLoading = false;
-      
-      // Salvar no localStorage
+      globalIsImpersonating = Boolean(me.isImpersonating);
+      globalVendedorNome = typeof me.vendedorNome === "string" ? me.vendedorNome : null;
+      globalVendedorId = typeof me.vendedorId === "number" ? me.vendedorId : null;
       localStorage.setItem('manus-auth-store', JSON.stringify({
-        state: {
-          user,
-          isAuthenticated: true
-        }
+        state: { user, isAuthenticated: true }
       }));
-      
       notifyListeners();
-      
       return true;
     } else {
-      // Usuário não autenticado
       globalUser = null;
       globalIsAuthenticated = false;
       globalIsLoading = false;
-      
+      globalIsImpersonating = false;
+      globalVendedorNome = null;
+      globalVendedorId = null;
+      if (!confirmed) setLoginConfirmadoNestaSessao(false);
       localStorage.removeItem('manus-auth-store');
-      
       notifyListeners();
-      
       return false;
     }
   } catch (error) {
-    // Em caso de erro, considerar não autenticado
     globalUser = null;
     globalIsAuthenticated = false;
     globalIsLoading = false;
-    
+    globalIsImpersonating = false;
+    globalVendedorNome = null;
+    globalVendedorId = null;
+    setLoginConfirmadoNestaSessao(false);
     localStorage.removeItem('manus-auth-store');
-    
     notifyListeners();
-    
     return false;
+  }
+}
+
+/**
+ * Para o modo impersonation: chama backend, atualiza estado e redireciona.
+ * Sem recursão; não confundir com estado isImpersonating (variável global).
+ */
+async function doStopImpersonation(): Promise<void> {
+  try {
+    await trpcBatchCall("auth.stopImpersonation", {});
+    toast.success("Voltou ao painel de administrador.");
+    await checkAuth();
+    window.location.href = "/";
+  } catch (e) {
+    console.warn("[authStore] doStopImpersonation falhou:", e);
+    toast.error(e instanceof Error ? e.message : "Erro ao voltar ao admin.");
   }
 }
 
@@ -312,12 +367,19 @@ export function useAuthStore() {
   const [isLoading, setIsLoading] = useState(globalIsLoading);
   const [isAuthenticated, setIsAuthenticated] = useState(globalIsAuthenticated);
   
+  const [isImpersonating, setIsImpersonating] = useState(globalIsImpersonating);
+  const [vendedorNome, setVendedorNome] = useState(globalVendedorNome);
+  const [vendedorId, setVendedorId] = useState(globalVendedorId);
+
   useEffect(() => {
     // Função para atualizar o estado local
     function handleChange() {
       setUserState(globalUser);
       setIsLoading(globalIsLoading);
       setIsAuthenticated(globalIsAuthenticated);
+      setIsImpersonating(globalIsImpersonating);
+      setVendedorNome(globalVendedorNome);
+      setVendedorId(globalVendedorId);
     }
     
     // Adicionar ouvinte
@@ -344,6 +406,10 @@ export function useAuthStore() {
   const checkAuthCallback = useCallback(async () => {
     return await checkAuth();
   }, []);
+
+  const voltarAoAdminCallback = useCallback(async () => {
+    return await doStopImpersonation();
+  }, []);
   
   // Nunca expor null/undefined: sempre retornar objeto com name/role para evitar "reading 'name' of undefined".
   const safeUser = user ?? DEFAULT_USER;
@@ -353,10 +419,14 @@ export function useAuthStore() {
     userOrNull: user,
     isLoading,
     isAuthenticated,
+    isImpersonating,
+    vendedorNome: vendedorNome ?? undefined,
+    vendedorId: vendedorId ?? undefined,
     setUser: setUserCallback,
     login: loginCallback,
     logout: logoutCallback,
     checkAuth: checkAuthCallback,
+    voltarAoAdmin: voltarAoAdminCallback,
   };
 }
 

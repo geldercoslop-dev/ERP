@@ -34,7 +34,8 @@ export default function CargaDetalhes() {
 
 
   const { data: carga, isLoading } = trpc.cargas.getById.useQuery({ id: cargaId });
-  const { data: pedidosDisponiveis } = trpc.pedidos.list.useQuery({ status: "IMPRESSO" });
+  const { data: pedidosDisponiveisData } = trpc.pedidos.list.useQuery({ status: "IMPRESSO" });
+  const pedidosDisponiveis = (pedidosDisponiveisData as any)?.items ?? [];
   const updatePedidos = trpc.cargas.updatePedidos.useMutation();
   const fecharCarga = trpc.cargas.fechar.useMutation();
   const gerarRomaneio = trpc.cargas.gerarRomaneioPDF.useMutation();
@@ -250,7 +251,7 @@ const handleFecharCarga = async () => {
               <Label className="font-bold">INCLUIR NA CARGA (somente IMPRESSO)</Label>
               <Input value={buscaAdd} onChange={e => setBuscaAdd(e.target.value)} placeholder="Buscar por nº pedido / cliente" />
               <div className="border rounded-lg divide-y max-h-[320px] overflow-y-auto">
-                {(pedidosDisponiveis || [])
+                {(pedidosDisponiveis ?? [])
                   .filter((p: any) => {
                     const t = buscaAdd.trim().toLowerCase();
                     if (!t) return true;

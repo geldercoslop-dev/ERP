@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, index } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, index, unique } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -133,11 +133,14 @@ export const gruposPrecificacao = mysqlTable("grupos_precificacao", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-// ===== CLIENTES =====
+// ===== CLIENTES (global; único por telefoneNorm+nomeNorm+sobrenomeNorm) =====
 export const clientes = mysqlTable("clientes", {
   id: int("id").autoincrement().primaryKey(),
   nome: varchar("nome", { length: 255 }).notNull(),
   telefone: varchar("telefone", { length: 20 }),
+  telefoneNorm: varchar("telefoneNorm", { length: 32 }).notNull(),
+  nomeNorm: varchar("nomeNorm", { length: 120 }).notNull(),
+  sobrenomeNorm: varchar("sobrenomeNorm", { length: 120 }).notNull(),
   telefoneRecado: varchar("telefoneRecado", { length: 20 }),
   rua: text("rua"),
   numero: varchar("numero", { length: 20 }),
@@ -153,7 +156,25 @@ export const clientes = mysqlTable("clientes", {
 }, (table) => ({
   nomeIdx: index("nome_idx").on(table.nome),
   telefoneIdx: index("telefone_idx").on(table.telefone),
+  clienteUnicoNorm: unique("clientes_telefone_nome_sobrenome_unique").on(table.telefoneNorm, table.nomeNorm, table.sobrenomeNorm),
 }));
+
+// Vínculo cliente ↔ vendedor (visibilidade / quem atende). 1 cliente pode ter vários vendedores (PRINCIPAL/SECUNDARIO).
+export const clienteVendedores = mysqlTable(
+  "cliente_vendedores",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    clienteId: int("clienteId").notNull().references(() => clientes.id, { onDelete: "cascade" }),
+    vendedorId: int("vendedorId").notNull().references(() => vendedores.id, { onDelete: "cascade" }),
+    tipo: mysqlEnum("tipo", ["PRINCIPAL", "SECUNDARIO"]).default("PRINCIPAL").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    clienteVendedorUnique: unique("cliente_vendedor_unique").on(table.clienteId, table.vendedorId),
+    clienteIdx: index("cliente_vendedores_cliente_idx").on(table.clienteId),
+    vendedorIdx: index("cliente_vendedores_vendedor_idx").on(table.vendedorId),
+  })
+);
 
 // ===== PEDIDOS =====
 export const pedidos = mysqlTable("pedidos", {
@@ -178,7 +199,7 @@ export const pedidos = mysqlTable("pedidos", {
   frete: decimal("frete", { precision: 10, scale: 2 }).default("0").notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).default("0").notNull(),
   // IMPORTANTE: o status "EM_ROTA" é usado pelo módulo de Cargas.
-  status: mysqlEnum("status", ["GERADO", "IMPRESSO", "EM_ROTA", "ENTREGUE", "CANCELADO"]).default("GERADO").notNull(),
+  status: mysqlEnum("status", ["GERADO", "IMPRESSO", "EM_ROTA", "ENTREGUE", "CANCELADO", "PENDENTE_ESTOQUE"]).default("GERADO").notNull(),
   formaPagamento: varchar("formaPagamento", { length: 100 }), // Pode conter múltiplas formas JSON
   dataEntrega: timestamp("dataEntrega"),
   observacoes: text("observacoes"),
@@ -276,7 +297,6 @@ export const comissoes = mysqlTable("comissoes", {
   status: mysqlEnum("status", ["PENDENTE", "PAGA"]).default("PENDENTE").notNull(),
   dataPagamento: timestamp("dataPagamento"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export const planoContas = mysqlTable("plano_contas", {
@@ -291,7 +311,7 @@ export const contasFixas = mysqlTable("contas_fixas", {
   descricao: varchar("descricao", { length: 255 }).notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   diaVencimento: int("diaVencimento").notNull(),
-  planoContaId: int("planoContaId").references(() => planoContas.id),
+  planoContasId: int("planoContasId").references(() => planoContas.id),
   ativo: boolean("ativo").default(true).notNull(),
 });
 
@@ -302,8 +322,8 @@ export const contasPagar = mysqlTable("contas_pagar", {
   dataVencimento: timestamp("dataVencimento").notNull(),
   status: mysqlEnum("status", ["PENDENTE", "PAGO"]).default("PENDENTE").notNull(),
   dataPagamento: timestamp("dataPagamento"),
-  planoContaId: int("planoContaId").references(() => planoContas.id),
-  fornecedorId: int("fornecedorId"),
+  planoContasId: int("planoContasId").references(() => planoContas.id),
+  fornecedor: varchar("fornecedor", { length: 255 }),
 });
 
 export const contasReceber = mysqlTable("contas_receber", {
@@ -366,3 +386,43 @@ export const schemaVersion = mysqlTable("schema_version", {
   version: int("version").notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+// Chaves de idempotência: evita duplicação por retry/clique duplo em commands críticos.
+// UNIQUE(commandName, key) garante concorrência: dois requests com mesma key do mesmo command => um só insere.
+export const idempotencyKeys = mysqlTable(
+  "idempotency_keys",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    key: varchar("key", { length: 64 }).notNull(),
+    commandName: varchar("commandName", { length: 64 }).notNull(),
+    resultJson: text("resultJson"), // NULL = em processamento
+    traceId: varchar("traceId", { length: 32 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    keyIdx: index("idempotency_key_idx").on(table.key),
+    createdAtIdx: index("idempotency_created_at_idx").on(table.createdAt),
+    idempotencyCmdKey: unique("idempotency_cmd_key").on(table.commandName, table.key),
+  })
+);
+
+// Auditoria mínima: create/update/delete em entidades críticas (sem senha nem dados sensíveis).
+export const auditLog = mysqlTable(
+  "audit_log",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    actorUserId: int("actorUserId"),
+    actorVendedorId: int("actorVendedorId"),
+    action: varchar("action", { length: 32 }).notNull(), // create | update | delete
+    entity: varchar("entity", { length: 64 }).notNull(), // vendedor | pedido | estoque | contas_receber | etc
+    entityId: varchar("entityId", { length: 64 }),
+    payloadJson: text("payloadJson"), // resumo (sem senha)
+    traceId: varchar("traceId", { length: 32 }),
+  },
+  (table) => ({
+    entityIdx: index("audit_entity_idx").on(table.entity),
+    entityIdIdx: index("audit_entity_id_idx").on(table.entityId),
+    createdAtIdx: index("audit_created_at_idx").on(table.createdAt),
+  })
+);

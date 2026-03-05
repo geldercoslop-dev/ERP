@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 
 const clienteSchema = z.object({
   id: z.number().optional(),
@@ -79,30 +80,31 @@ let clientes: Cliente[] = [
   }
 ];
 
-export async function getClientes(request: Request, reply: Response) {
+export async function getClientes(_request: Request) {
   try {
     return { clientes, total: clientes.length };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar clientes' });
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar clientes' });
   }
 }
 
-export async function getClienteById(request: Request, reply: Response) {
+export async function getClienteById(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const cliente = clientes.find(c => c.id === parseInt(id));
     
     if (!cliente) {
-      return reply.status(404).send({ error: 'Cliente não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
     }
     
     return cliente;
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar cliente' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar cliente' });
   }
 }
 
-export async function createCliente(request: Request, reply: Response) {
+export async function createCliente(request: Request) {
   try {
     const clienteData = clienteSchema.parse(request.body);
     const novoCliente: Cliente = {
@@ -113,69 +115,55 @@ export async function createCliente(request: Request, reply: Response) {
     
     clientes.push(novoCliente);
     
-    return reply.status(201).send({
-      message: 'Cliente criado com sucesso',
-      cliente: novoCliente
-    });
+    return { message: 'Cliente criado com sucesso', cliente: novoCliente };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return reply.status(400).send({
-        error: 'Dados inválidos',
-        details: error.issues
-      });
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
     }
-    reply.status(500).send({ error: 'Erro ao criar cliente' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao criar cliente' });
   }
 }
 
-export async function updateCliente(request: Request, reply: Response) {
+export async function updateCliente(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const clienteData = clienteSchema.parse(request.body);
     
     const index = clientes.findIndex(c => c.id === parseInt(id));
     if (index === -1) {
-      return reply.status(404).send({ error: 'Cliente não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
     }
     
     clientes[index] = { ...clienteData, id: parseInt(id) };
     
-    return reply.status(200).send({
-      message: 'Cliente atualizado com sucesso',
-      cliente: clientes[index]
-    });
+    return { message: 'Cliente atualizado com sucesso', cliente: clientes[index] };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return reply.status(400).send({
-        error: 'Dados inválidos',
-        details: error.issues
-      });
-    }
-    reply.status(500).send({ error: 'Erro ao atualizar cliente' });
+    if (error instanceof z.ZodError) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao atualizar cliente' });
   }
 }
 
-export async function deleteCliente(request: Request, reply: Response) {
+export async function deleteCliente(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const index = clientes.findIndex(c => c.id === parseInt(id));
     
     if (index === -1) {
-      return reply.status(404).send({ error: 'Cliente não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
     }
     
     const clienteRemovido = clientes.splice(index, 1)[0];
     
-    return reply.status(200).send({
-      message: 'Cliente removido com sucesso',
-      cliente: clienteRemovido
-    });
+    return { message: 'Cliente removido com sucesso', cliente: clienteRemovido };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao remover cliente' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao remover cliente' });
   }
 }
 
-export async function buscarClientes(request: Request, reply: Response) {
+export async function buscarClientes(request: Request) {
   try {
     const { query, tipo } = request.query as { query?: string, tipo?: string };
     
@@ -199,17 +187,18 @@ export async function buscarClientes(request: Request, reply: Response) {
     
     return { clientes: clientesFiltrados, total: clientesFiltrados.length };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar clientes' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar clientes' });
   }
 }
 
-export async function getHistoricoPedidos(request: Request, reply: Response) {
+export async function getHistoricoPedidos(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const cliente = clientes.find(c => c.id === parseInt(id));
     
     if (!cliente) {
-      return reply.status(404).send({ error: 'Cliente não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
     }
     
     // Mock de histórico de pedidos
@@ -237,17 +226,18 @@ export async function getHistoricoPedidos(request: Request, reply: Response) {
       valorTotal: historicoPedidos.reduce((sum, pedido) => sum + pedido.total, 0)
     };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao buscar histórico de pedidos' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar histórico de pedidos' });
   }
 }
 
-export async function verificarLimiteCredito(request: Request, reply: Response) {
+export async function verificarLimiteCredito(request: Request) {
   try {
     const { id } = request.params as { id: string };
     const cliente = clientes.find(c => c.id === parseInt(id));
     
     if (!cliente) {
-      return reply.status(404).send({ error: 'Cliente não encontrado' });
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
     }
     
     // Mock de pedidos em aberto
@@ -270,6 +260,7 @@ export async function verificarLimiteCredito(request: Request, reply: Response) 
         : null
     };
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao verificar limite de crédito' });
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao verificar limite de crédito' });
   }
 }

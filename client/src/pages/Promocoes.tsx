@@ -56,6 +56,7 @@ export default function Promocoes() {
   const produtos = (() => {
     const d = produtosQ.data as any;
     if (Array.isArray(d)) return d;
+    if (d?.items && Array.isArray(d.items)) return d.items;
     if (d?.produtos && Array.isArray(d.produtos)) return d.produtos;
     return [];
   })();

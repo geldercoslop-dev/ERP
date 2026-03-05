@@ -24,6 +24,7 @@ import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
 import { TRPCClientError } from "@trpc/client"; // Para tipagem de erros
 import { inDevelopment, asyncInDevelopment } from "@/utils/inDevelopment"; // Para funções em desenvolvimento
 import { useToast } from "@/hooks/use-toast"; // Importar o hook useToast
+import { isInProgress } from "@shared/idempotency";
 
 // Definir interface com tipagem mais precisa
 interface ItemVenda {
@@ -47,7 +48,10 @@ export default function NovaVenda() {
   const [location, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isImpersonating, vendedorId: authVendedorId } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const precisaEscolherVendedor = isAdmin && !isImpersonating;
+  const vendedoresQuery = trpc.vendedores.list.useQuery(undefined, { enabled: precisaEscolherVendedor });
 
   // Suporte a ?edit=ID: carregar pedido para preencher o formulário (visualização/edição)
   const editId = useMemo(() => {
@@ -79,6 +83,10 @@ export default function NovaVenda() {
   const [dialogSucesso, setDialogSucesso] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Admin sem impersonation: vendedor do pedido (obrigatório)
+  const [selectedVendedorId, setSelectedVendedorId] = useState<number | null>(null);
+  /** Vendedor efetivo do pedido: admin não impersonando = seleção do select; caso contrário = vendedor da sessão (auth). */
+  const vendedorEfetivoId: number | null = precisaEscolherVendedor ? selectedVendedorId : (authVendedorId ?? null);
   // Estados do Cliente
   const [buscaCliente, setBuscaCliente] = useState("");
   const [cliente, setCliente] = useState(initialCliente);
@@ -109,11 +117,22 @@ export default function NovaVenda() {
   const [linhaAvulso, setLinhaAvulso] = useState({ qtd: 1, desc: "", unit: "0,00" });
 
   // TRPC
-  const { data: clientes } = trpc.clientes.list.useQuery();
-  const { data: produtos } = trpc.produtos.list.useQuery();
+  const { data: clientesResp } = trpc.clientes.list.useQuery();
+  const termoBusca = buscaCliente.trim();
+  const { data: clientesGlobal } = trpc.clientes.buscaGlobal.useQuery(
+    { term: termoBusca, limit: 20 },
+    { enabled: termoBusca.length >= 2 }
+  );
+  const { data: produtosResp } = trpc.produtos.list.useQuery();
+  const clientes = (clientesResp as any)?.items ?? [];
+  const produtos = (produtosResp as any)?.items ?? [];
   const { data: cores } = trpc.cores.list.useQuery();
   const criarVenda = trpc.pedidos.createVenda.useMutation();
   const gerarPDFPedido = trpc.pedidos.gerarPDF.useMutation();
+  const vinculateCliente = trpc.clientes.vinculate.useMutation({
+    onSuccess: () => { utils.clientes.list.invalidate(); },
+  });
+  const idempotencyKeyRef = useRef<string | null>(null);
   const { data: pedidoEdit, isLoading: loadingEdit } = trpc.pedidos.getById.useQuery(
     { id: editId! },
     { enabled: !!editId && editId > 0 }
@@ -143,8 +162,8 @@ export default function NovaVenda() {
     const sub = Number(p.subtotal ?? 0);
     const desc = Number(p.desconto ?? 0);
     const fr = Number(p.frete ?? 0);
-    setDesconto(maskMoney(desc));
-    setFrete(maskMoney(fr));
+    setDesconto(maskMoney(String(desc)));
+    setFrete(maskMoney(String(fr)));
     setObservacoes(p.observacoes ?? "");
     let pagamentos: Array<'PIX'|'DINHEIRO'|'CARTAO'|'BOLETO'|'A_DEFINIR'> = [];
     try {
@@ -189,16 +208,17 @@ export default function NovaVenda() {
   const formatMoneyBRL = (n: number) =>
     n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
-  // Filtros de Clientes
+  // Busca: global (qualquer cliente) quando termo >= 2; senão lista filtrada dos "meus clientes"
   const clientesFiltrados = useMemo(() => {
     if (!clientes || buscaCliente.length < 2) return [];
     const termo = buscaCliente.toLowerCase().trim();
     const tokens = termo.split(/\s+/).filter(Boolean);
-    return clientes.filter(c => 
-      (tokens.length > 0 && tokens.every(t => c.nome.toLowerCase().includes(t))) ||
-      c.telefone?.includes(termo.replace(/\D/g, ""))
+    return clientes.filter((c: any) =>
+      (tokens.length > 0 && tokens.every((t: string) => (c.nome || "").toLowerCase().includes(t))) ||
+      (c.telefone || "").replace(/\D/g, "").includes(termo.replace(/\D/g, ""))
     ).slice(0, 5);
   }, [clientes, buscaCliente]);
+  const clientesParaBusca = termoBusca.length >= 2 ? (clientesGlobal ?? []) : clientesFiltrados;
 
   // Filtros de Produtos
   const produtosFiltrados = useMemo(() => {
@@ -210,8 +230,8 @@ export default function NovaVenda() {
     ).slice(0, 10);
   }, [produtos, buscaProduto]);
 
-  // Usar tipagem mais específica
-  const selecionarCliente = (c: TCliente) => {
+  /** Aplica cliente no estado e cabecário; única fonte de verdade para seleção. */
+  const applySelectedCliente = (c: TCliente) => {
     setCliente({
       id: c.id,
       nome: c.nome || "",
@@ -229,6 +249,31 @@ export default function NovaVenda() {
     });
     setBuscaCliente("");
   };
+
+  /** Só exige confirm quando o cliente pertence a outro vendedor (diferente do vendedor efetivo do pedido). */
+  const shouldConfirmClienteOwnership = (principal: { vendedorId: number; nome: string } | null, efetivoId: number | null): boolean => {
+    if (!principal || efetivoId == null) return false;
+    return principal.vendedorId !== efetivoId;
+  };
+
+  /** Seleção com busca global: aviso só se cliente pertence a OUTRO vendedor; vínculo em segundo plano; seleção SEMPRE aplicada após OK. */
+  const selecionarClienteNaVenda = async (c: TCliente) => {
+    const principal = await utils.clientes.getVendedorPrincipal.fetch({ clienteId: c.id });
+    const precisaConfirmar = shouldConfirmClienteOwnership(principal, vendedorEfetivoId);
+    if (precisaConfirmar && principal) {
+      const continuar = window.confirm(`Cliente pertence a ${principal.nome}. Continuar mesmo assim?`);
+      if (!continuar) return;
+    }
+    applySelectedCliente(c);
+    const tipo = principal ? "SECUNDARIO" as const : "PRINCIPAL" as const;
+    try {
+      await vinculateCliente.mutateAsync({ clienteId: c.id, tipo });
+    } catch {
+      // Vínculo opcional; falha não deve impedir a seleção já aplicada
+    }
+  };
+
+  const selecionarCliente = applySelectedCliente;
 
   const formatClienteCodigo = (id: number | null) => {
     if (!id) return "----";
@@ -429,10 +474,18 @@ const addItemFromLinhaRapida = (idxLinha: number) => {
       });
       return;
     }
-    // Pagamento (multi): enviado estruturado para o backend.
+    if (precisaEscolherVendedor && !selectedVendedorId) {
+      toast({ title: "Vendedor obrigatório", description: "Selecione o vendedor responsável pelo pedido.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = `venda-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    }
     try {
       const res = await criarVenda.mutateAsync({
+        idempotencyKey: idempotencyKeyRef.current,
+        vendedorId: precisaEscolherVendedor ? selectedVendedorId ?? undefined : undefined,
         clienteId: cliente.id ?? undefined,
         cliente: {
           nome: cliente.nome,
@@ -469,22 +522,32 @@ const addItemFromLinhaRapida = (idxLinha: number) => {
           isPremio: !!i.isPremio,
         })),
       });
-
-      setPedidoId(res.id);
-      if (res.clienteId) {
+      if (isInProgress(res)) {
+        toast({ title: "Processando", description: res.message ?? "Já está processando, aguarde…", variant: "default" });
+        return;
+      }
+      idempotencyKeyRef.current = null;
+      setPedidoId(res.pedidoId);
+      if (res.clienteId != null) {
         setCliente((prev) => ({ ...prev, id: res.clienteId }));
       }
       setDialogSucesso(true);
       toast(mensagemVendaGerada(cliente.nome));
-      if ((res as any)?.gerouPendencia) {
+      if ((res as { pendenteEstoque?: boolean }).pendenteEstoque) {
+        toast({ title: "Pedido pendente de estoque", description: "Pedido salvo como pendente de estoque." });
+      }
+      if (res.gerouPendencia) {
         toast(mensagemPendenciaGerada(cliente.nome));
       }
       utils.clientes.list.invalidate();
       utils.pedidos.list.invalidate();
       utils.pendencias.list.invalidate();
+      utils.produtos.list.invalidate();
     } catch (error: unknown) {
+      idempotencyKeyRef.current = null;
       const msg = error instanceof Error ? error.message : "Erro ao salvar o pedido. Tente novamente.";
       toast({ title: "Erro ao salvar", description: msg, variant: "destructive" });
+      // Não resetar selectedVendedorId nem formulário; usuário pode corrigir e tentar de novo.
     } finally {
       setLoading(false);
     }
@@ -494,6 +557,7 @@ const addItemFromLinhaRapida = (idxLinha: number) => {
     setPedidoId(null);
     setDialogSucesso(false);
     setLoading(false);
+    setSelectedVendedorId(null);
     setBuscaCliente("");
     setCliente(initialCliente);
     setItens([]);
@@ -530,24 +594,24 @@ const addItemFromLinhaRapida = (idxLinha: number) => {
               <div className="md:col-span-6 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600" />
                 <Input
-                  placeholder="Buscar cliente..."
+                  placeholder="Buscar cliente (nome ou telefone)..."
                   value={buscaCliente}
                   onChange={e => setBuscaCliente(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && clientesFiltrados.length > 0) {
+                    if (e.key === "Enter" && clientesParaBusca.length > 0) {
                       e.preventDefault();
-                      selecionarCliente(clientesFiltrados[0]);
+                      selecionarClienteNaVenda(clientesParaBusca[0] as TCliente);
                     }
                   }}
                   className="pl-9 h-10 rounded-md border-2 border-amber-400/80 bg-amber-50/95 text-slate-800"
                 />
-                {clientesFiltrados.length > 0 && (
+                {clientesParaBusca.length > 0 && (
                   <div className="absolute z-20 w-full mt-1 bg-white border-2 border-amber-200 rounded-lg shadow-xl overflow-hidden">
-                    {clientesFiltrados.map(c => (
+                    {clientesParaBusca.map((c: any) => (
                       <div
                         key={c.id}
                         className="p-2 hover:bg-amber-50 cursor-pointer flex justify-between items-center border-b last:border-0"
-                        onClick={() => selecionarCliente(c)}
+                        onClick={() => selecionarClienteNaVenda(c)}
                       >
                         <p className="font-bold text-sm uppercase">{c.nome}</p>
                         <Badge variant="outline" className="text-[10px]">SELECIONAR</Badge>
@@ -560,9 +624,31 @@ const addItemFromLinhaRapida = (idxLinha: number) => {
                 <span className="text-[10px] font-bold text-slate-600 truncate">CÓDIGO DO PEDIDO</span>
                 <span className="font-black text-sm tracking-widest text-slate-900 truncate">{formatClienteCodigo(cliente.id)}</span>
               </div>
-              <div className="md:col-span-3 flex items-center justify-between rounded-md border-2 border-slate-200 bg-slate-50 px-2 h-10 min-w-0">
-                <span className="text-[10px] font-bold text-slate-600 truncate">VENDEDOR</span>
-                <span className="text-xs font-black uppercase text-slate-900 truncate">{user && user.name ? user.name : "-"}</span>
+              <div className="md:col-span-3 min-w-0">
+                <span className="text-[10px] font-bold text-slate-600 block mb-1">VENDEDOR</span>
+                {precisaEscolherVendedor ? (
+                  <Select
+                    value={selectedVendedorId != null ? String(selectedVendedorId) : ""}
+                    onValueChange={(v) => {
+                      setSelectedVendedorId(v ? Number(v) : null);
+                    }}
+                  >
+                    <SelectTrigger className="h-10 border-2 border-slate-200 bg-slate-50 text-slate-900 min-w-[140px]">
+                      <SelectValue placeholder="Selecione o vendedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendedoresQuery.data?.map((v: { id: number; nome: string; cidade?: string | null }) => (
+                        <SelectItem key={v.id} value={String(v.id)}>
+                          {v.nome}{v.cidade ? ` (${v.cidade})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center justify-between rounded-md border-2 border-slate-200 bg-slate-50 px-2 h-10 min-w-0">
+                    <span className="text-xs font-black uppercase text-slate-900 truncate">{user?.name ?? "-"}</span>
+                  </div>
+                )}
               </div>
             </div>
 

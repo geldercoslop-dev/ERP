@@ -378,3 +378,14 @@ input, select, textarea{
 .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--grs-text-secondary);
 }
+
+/* Mobile-first: alvos de toque mín. 44px para links/ações clicáveis fora do Button */
+@media (max-width: 1023px) {
+  [data-touch-target] {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

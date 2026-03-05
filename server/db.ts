@@ -210,8 +210,8 @@ export async function getDb() {
   }
 }
 
-/** Ações de auditoria (inclui movimentação estoque: ENTRADA, SAIDA, AJUSTE, BAIXA). */
-export type AuditAction = "create" | "update" | "delete" | "ENTRADA" | "SAIDA" | "AJUSTE" | "BAIXA";
+/** Ações de auditoria (inclui movimentação estoque e impersonation). */
+export type AuditAction = "create" | "update" | "delete" | "ENTRADA" | "SAIDA" | "AJUSTE" | "BAIXA" | "IMPERSONATE_START" | "IMPERSONATE_STOP";
 
 /** Registra ação na audit_log (sem senha nem dados sensíveis). Se tx for passado, usa a transação. */
 export async function insertAuditLog(params: {

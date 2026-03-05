@@ -32,6 +32,9 @@ import {
   CreditCard,
   BarChart3,
   User,
+  AlertTriangle,
+  Activity,
+  UserRoundCog,
   type LucideIcon,
 } from "lucide-react";
 import leo from "@/assets/leo_transparent.png";
@@ -70,6 +73,7 @@ const MENU_ICONS: Record<string, LucideIcon> = {
   tag:               Percent,
   package:           Boxes,
   "clipboard-list":  ClipboardList,
+  "alert-triangle":  AlertTriangle,
   truck:             Truck,
   receipt:           Receipt,
   "dollar-sign":     Banknote,
@@ -78,6 +82,7 @@ const MENU_ICONS: Record<string, LucideIcon> = {
   "book-open":       BookMarked,
   "user-cog":        UserCog,
   "building-2":      Store,
+  activity:          Activity,
 };
 
 /** Cor de cada ícone — própria e elegante por item */
@@ -88,7 +93,8 @@ const MENU_ICON_COLORS: Record<string, string> = {
   users:             "#A78BFA",   // lilás — clientes
   tag:               "#FB923C",   // laranja — promoções
   package:           "#38BDF8",   // azul céu — produtos
-  "clipboard-list":  "#F472B6",   // rosa — pendências
+  "clipboard-list":  "#F472B6",   // rosa — listas
+  "alert-triangle":  "#F59E0B",   // âmbar — pendências de estoque
   truck:             "#4ADE80",   // verde — cargas/entregas
   receipt:           "#FCD34D",   // amarelo ouro — nota entrada
   "dollar-sign":     "#86EFAC",   // verde claro — comissões/financeiro
@@ -97,6 +103,7 @@ const MENU_ICON_COLORS: Record<string, string> = {
   "book-open":       "#FCA5A5",   // salmão — contas fixas/plano
   "user-cog":        "#94A3B8",   // cinza azulado — cadastros
   "building-2":      "#6EE7B7",   // verde esmeralda — fornecedores
+  activity:          "#A78BFA",   // lilás — diagnóstico
 };
 
 /** Cor do fundo do ícone — leve, baseada na cor do ícone */
@@ -108,6 +115,7 @@ const MENU_ICON_BG: Record<string, string> = {
   tag:               "rgba(251,146,60,0.12)",
   package:           "rgba(56,189,248,0.12)",
   "clipboard-list":  "rgba(244,114,182,0.12)",
+  "alert-triangle":  "rgba(245,158,11,0.12)",
   truck:             "rgba(74,222,128,0.12)",
   receipt:           "rgba(252,211,77,0.12)",
   "dollar-sign":     "rgba(134,239,172,0.12)",
@@ -116,6 +124,7 @@ const MENU_ICON_BG: Record<string, string> = {
   "book-open":       "rgba(252,165,165,0.12)",
   "user-cog":        "rgba(148,163,184,0.10)",
   "building-2":      "rgba(110,231,183,0.12)",
+  activity:          "rgba(167,139,250,0.12)",
 };
 
 /** Cores por seção (labels): Comercial azul, Operacional verde, Logística laranja, Financeiro roxo, etc. */
@@ -138,7 +147,7 @@ function useMenuCounters(isAuthenticated: boolean) {
 
   const pedidos = trpc.pedidos.list.useQuery(
     { status: "GERADO" },
-    { ...opts, select: (d: any) => (Array.isArray(d) ? d.length : 0) }
+    { ...opts, select: (d: any) => (Array.isArray(d) ? d.length : (d?.items?.length ?? 0)) }
   );
   const promocoes = trpc.promocoes.list.useQuery(
     undefined,
@@ -209,9 +218,23 @@ export default function AppShell({ children }: PropsWithChildren) {
   const fullLocation = typeof window !== "undefined" ? window.location.pathname + window.location.search : location;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openSubmenuHref, setOpenSubmenuHref] = useState<string | null>(null);
+  const [trocarVendedorModalOpen, setTrocarVendedorModalOpen] = useState(false);
+  const [trocarVendedorId, setTrocarVendedorId] = useState<number | null>(null);
 
   const redirectToLogin = true;
-  const { user, isAuthenticated, isLoading: loading, logout } = useAuth({ redirectOnUnauthenticated: redirectToLogin, redirectPath: "/login" });
+  const { user, isAuthenticated, isLoading: loading, logout, isImpersonating, vendedorNome, voltarAoAdmin } = useAuth({ redirectOnUnauthenticated: redirectToLogin, redirectPath: "/login" });
+
+  const isAdmin = user?.role === "admin";
+  const vendedoresQuery = trpc.vendedores.list.useQuery(undefined, { enabled: isAdmin && trocarVendedorModalOpen });
+  const impersonateMutation = trpc.auth.impersonateVendedor.useMutation({
+    onSuccess: () => {
+      toast.success("Entrou como vendedor. Use 'Voltar ao admin' no topo para retornar.");
+      setTrocarVendedorModalOpen(false);
+      setTrocarVendedorId(null);
+      window.location.href = "/";
+    },
+    onError: (e: { message?: string }) => toast.error(e?.message ?? "Erro ao entrar como vendedor"),
+  });
 
   // Contadores reais do backend — só carrega se autenticado
   const counters = useMenuCounters(isAuthenticated);
@@ -255,9 +278,26 @@ export default function AppShell({ children }: PropsWithChildren) {
 
     return (
       <div className="h-screen flex overflow-hidden" style={{ background: "linear-gradient(150deg, #111E30 0%, #0A1422 100%)" }}>
+        {/* Banner modo vendedor (impersonation) */}
+        {isImpersonating && (
+          <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-2 gap-3 shadow-lg" style={{ background: "linear-gradient(90deg, #1e3a5f 0%, #2d4a6f 100%)", borderBottom: "1px solid rgba(212,168,67,0.35)" }}>
+            <span className="text-sm font-medium truncate" style={{ color: SIDEBAR_STYLE.textPrimary }}>
+              Modo vendedor: <span style={{ color: SIDEBAR_STYLE.accent }}>{vendedorNome ?? "Vendedor"}</span>
+            </span>
+            <button
+              type="button"
+              onClick={voltarAoAdmin}
+              className="shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:opacity-90"
+              style={{ background: SIDEBAR_STYLE.accent, color: "#0A1422" }}
+            >
+              Voltar ao admin
+            </button>
+          </div>
+        )}
+
         {/* Sidebar fixo (desktop) */}
         <aside
-          className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-30"
+          className={`hidden lg:flex flex-col fixed left-0 bottom-0 z-30 ${isImpersonating ? "top-12" : "top-0"}`}
           style={{ width: SIDEBAR_STYLE.width, background: SIDEBAR_STYLE.bg, borderRight: SIDEBAR_STYLE.borderRight, fontFamily: SIDEBAR_STYLE.fontFamily }}
         >
           <div className="flex-1 min-h-0 flex flex-col">
@@ -266,7 +306,7 @@ export default function AppShell({ children }: PropsWithChildren) {
         </aside>
 
         {/* Mobile header */}
-        <div className="fixed top-0 left-0 right-0 flex items-center justify-between px-4 py-3 lg:hidden z-20 border-b border-white/5" style={{ background: SIDEBAR_STYLE.bg }}>
+        <div className={`fixed left-0 right-0 flex items-center justify-between px-4 py-3 lg:hidden z-20 border-b border-white/5 ${isImpersonating ? "top-12" : "top-0"}`} style={{ background: SIDEBAR_STYLE.bg }}>
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -280,8 +320,8 @@ export default function AppShell({ children }: PropsWithChildren) {
         </div>
 
         {/* Área principal */}
-        <main className="flex-1 flex flex-col min-w-0 lg:ml-[224px] h-screen">
-          <header className="shrink-0 px-6 py-4 pt-14 lg:pt-5 border-b border-white/5">
+        <main className={`flex-1 flex flex-col min-w-0 lg:ml-[224px] h-screen ${isImpersonating ? "pt-12" : ""}`}>
+          <header className={`shrink-0 px-6 py-4 border-b border-white/5 ${isImpersonating ? "pt-2" : "pt-14 lg:pt-5"}`}>
             <div className="mx-auto max-w-[1500px] flex flex-wrap items-center gap-6">
               <div className="min-w-0">
                 <span className="text-base font-semibold" style={{ color: SIDEBAR_STYLE.textPrimary }}>
@@ -291,6 +331,17 @@ export default function AppShell({ children }: PropsWithChildren) {
                   {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
                 </div>
               </div>
+              {isAdmin && !isImpersonating && (
+                <button
+                  type="button"
+                  onClick={() => setTrocarVendedorModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors shrink-0"
+                  style={{ background: "rgba(212,168,67,0.18)", color: SIDEBAR_STYLE.accent, border: "1px solid rgba(212,168,67,0.35)" }}
+                >
+                  <UserRoundCog className="h-4 w-4" />
+                  Trocar para vendedor
+                </button>
+              )}
               <div className="flex items-center gap-2 min-w-[240px] max-w-[320px]">
                 <GlobalSearch
                   onNavigate={(to) => setLocation(to)}
@@ -343,6 +394,60 @@ export default function AppShell({ children }: PropsWithChildren) {
             </div>
           </div>
         )}
+
+        {/* Modal Trocar para vendedor (só admin) */}
+        {trocarVendedorModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setTrocarVendedorModalOpen(false)}>
+            <div
+              className="rounded-xl shadow-xl w-full max-w-md p-5 flex flex-col gap-4"
+              style={{ background: SIDEBAR_STYLE.bg, border: "1px solid rgba(255,255,255,0.08)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-base font-semibold" style={{ color: SIDEBAR_STYLE.textPrimary }}>Trocar para vendedor</h3>
+              <p className="text-sm" style={{ color: SIDEBAR_STYLE.textSecondary }}>Escolha o vendedor para entrar no lugar dele. Use &quot;Voltar ao admin&quot; no topo para retornar.</p>
+              <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
+                {vendedoresQuery.isLoading && <span className="text-sm" style={{ color: SIDEBAR_STYLE.textMuted }}>Carregando...</span>}
+                {vendedoresQuery.data?.map((v: { id: number; nome: string; cidade?: string | null }) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setTrocarVendedorId(trocarVendedorId === v.id ? null : v.id)}
+                    className="text-left px-3 py-2 rounded-lg transition-colors"
+                    style={{
+                      background: trocarVendedorId === v.id ? "rgba(212,168,67,0.25)" : "rgba(255,255,255,0.05)",
+                      color: SIDEBAR_STYLE.textPrimary,
+                      border: trocarVendedorId === v.id ? "1px solid rgba(212,168,67,0.5)" : "1px solid transparent",
+                    }}
+                  >
+                    <span className="font-medium">{v.nome}</span>
+                    <span className="text-xs opacity-70 ml-1">(id: {v.id}{v.cidade ? ` · ${v.cidade}` : ""})</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setTrocarVendedorModalOpen(false); setTrocarVendedorId(null); }}
+                  className="px-3 py-2 rounded-lg text-sm"
+                  style={{ color: SIDEBAR_STYLE.textSecondary, background: "rgba(255,255,255,0.06)" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={trocarVendedorId == null || impersonateMutation.isPending}
+                  onClick={() => {
+                    if (trocarVendedorId != null) impersonateMutation.mutate({ vendedorId: trocarVendedorId });
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ background: SIDEBAR_STYLE.accent, color: "#0A1422" }}
+                >
+                  {impersonateMutation.isPending ? "Entrando…" : "Entrar como vendedor"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -355,7 +460,10 @@ export default function AppShell({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileOpen(false);
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        setTrocarVendedorModalOpen(false);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -540,6 +648,15 @@ export default function AppShell({ children }: PropsWithChildren) {
               {user?.role === "admin" ? "Administrador" : "Vendedor"}
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => { toast.info("Trocar usuário..."); logout(); }}
+            className="text-[10px] px-2 py-1 rounded border transition-colors hover:bg-amber-500/10 hover:border-amber-500/40"
+            style={{ borderColor: "rgba(255,255,255,0.08)", color: SIDEBAR_STYLE.textSecondary }}
+            title="Trocar usuário (volta ao login)"
+          >
+            Trocar
+          </button>
           <button
             type="button"
             onClick={() => { toast.info("Saindo do sistema..."); logout(); }}

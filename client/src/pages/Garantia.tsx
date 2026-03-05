@@ -10,7 +10,8 @@ export default function Garantia() {
   const [busca, setBusca] = useState("");
   const [pedidoSelecionadoId, setPedidoSelecionadoId] = useState<number | null>(null);
 
-  const { data: pedidos } = trpc.pedidos.list.useQuery();
+  const { data: pedidosData } = trpc.pedidos.list.useQuery();
+  const pedidos = (pedidosData as any)?.items ?? [];
   const { data: itensPedido } = trpc.pedidos.getItens.useQuery(
     { pedidoId: pedidoSelecionadoId || 0 },
     { enabled: !!pedidoSelecionadoId }
