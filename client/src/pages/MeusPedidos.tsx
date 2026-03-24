@@ -332,11 +332,11 @@ export default function MeusPedidos() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-muted/50 text-xs font-bold uppercase text-muted-foreground border-b border-border">
-                  <th className="px-4 py-3 w-20">Nº</th>
-                  <th className="px-4 py-3">Cliente / Vendedor</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Total</th>
-                  <th className="px-4 py-3 text-right">Ações</th>
+                  <th className="px-4 py-3 w-20 whitespace-nowrap">Nº</th>
+                  <th className="px-4 py-3 min-w-[200px]">Cliente / Vendedor</th>
+                  <th className="px-4 py-3 min-w-[120px]">Status</th>
+                  <th className="px-4 py-3 text-right min-w-[100px]">Total</th>
+                  <th className="px-4 py-3 text-right min-w-[100px]">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

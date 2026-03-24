@@ -7,10 +7,21 @@
  * Rate limit: configurável por env RATE_LIMIT_WINDOW_MS e RATE_LIMIT_MAX (ex: 60000 e 120).
  * CORS: em produção defina ALLOWED_ORIGINS (separado por vírgula), ex: https://app.seudominio.com
  */
+import dotenv from "dotenv";
+// Em desenvolvimento não carregar .env.production antes do loadEnv (evita segredos curtos/fixos persistirem)
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: ".env.production" });
+}
 import "./loadEnv";
+
+// Forçar stdin para detecção de SIGINT no Windows
+process.stdin.resume();
+
 import { initializeOpenTelemetry } from "../infra/tracing";
 import * as Sentry from "@sentry/node";
 import express from "express";
+import cors from "cors";
+import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { createServer } from "http";
 import net from "net";
@@ -28,7 +39,19 @@ import { secureConsoleMiddleware } from "../security/secure-logger";
 import { setupMonitoring, setupDatabaseMonitoring } from "./monitoring-setup";
 import { globalTimeoutMiddleware } from "../resilience/timeout-middleware";
 import { setupGracefulShutdown } from "../resilience/graceful-shutdown";
+import { getHealthWatchdog } from "../monitoring/health-watchdog";
+import { requestShutdown } from "../services/system/shutdown.service";
+import { getServerHealth } from "../services/system/health.service";
+import { getEnv } from "../config/env";
+import { validateShutdownAuthPayload } from "../services/system/payload-validation.service";
 import { createFailureSimulationRoutes } from "../resilience/failure-simulator";
+import { exitProcessInProductionUnlessDevelopment } from "./dev-process-exit";
+import { createLogger } from "../infra/structured-logger";
+import { requestIdMiddleware, getRequestId } from "../middleware/request-id.middleware";
+import { globalErrorHandler } from "../middleware/global-error-handler.middleware";
+import { validateProductionEnvOrExit } from "./env.validation";
+import { isRedisReady } from "../infra/redis";
+import { getDb } from "../db/index";
 
 // Exportar funções de padronização de resposta
 export { ensureArray, ensureObject, ensureCreatedResult, ensureUpdateResult, ensureDeleteResult } from "./service-response";
@@ -37,6 +60,60 @@ export { ensureArray, ensureObject, ensureCreatedResult, ensureUpdateResult, ens
 import { Request, Response, NextFunction } from "express";
 interface ErrorWithStatus extends Error {
   status?: number;
+}
+
+const securityLogger = createLogger("security-hardening");
+const MALICIOUS_PATTERNS = [
+  /(\b(union|select|insert|delete|drop|alter|exec)\b)/i,
+  /(--|\/\*|\*\/|;)/,
+  /(<script|javascript:|onerror\s*=|onload\s*=)/i,
+  /(\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e%5c)/i,
+];
+
+function getClientIp(req: Request): string {
+  return (
+    req.ip ||
+    req.socket.remoteAddress ||
+    req.connection.remoteAddress ||
+    "unknown"
+  );
+}
+
+function logSecurity(
+  event: string,
+  req: Request,
+  extra: Record<string, unknown> = {}
+): void {
+  securityLogger.warn(`[SECURITY] ${event}`, {
+    metadata: {
+      context: "SECURITY",
+      ip: getClientIp(req),
+      method: req.method,
+      path: req.originalUrl || req.url,
+      userAgent: req.get("user-agent") || "",
+      ...extra,
+    },
+  });
+}
+
+function sendStandardError(
+  req: Request,
+  res: Response,
+  status: number,
+  code: string,
+  message: string,
+  details?: Record<string, unknown>
+): Response {
+  return res.status(status).json({
+    error: {
+      code,
+      message,
+      details: {
+        requestId: getRequestId(req),
+        ...(details ?? {}),
+      },
+    },
+  });
 }
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -59,112 +136,393 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  console.log("[BOOT-STEP-1] Starting server initialization...");
-  
-  // Ativar logger seguro primeiro
+  validateProductionEnvOrExit();
+  console.log("[ENV] variáveis obrigatórias ok");
+  const env = getEnv();
   secureConsoleMiddleware();
-  
-  // Inicializar OpenTelemetry primeiro
-  console.log("[BOOT-STEP-2] Initializing OpenTelemetry...");
+  console.log("[BOOT] inicialização do servidor");
+
+  console.log("[BOOT] OpenTelemetry…");
   initializeOpenTelemetry();
-  console.log("[BOOT-STEP-3] OpenTelemetry initialized");
-  
-  // Inicializar sistema de cache
-  console.log("[BOOT-STEP-3a] Initializing cache system...");
-  initCacheSystem();
-  console.log("[BOOT-STEP-3b] Cache system initialized");
-  
-  const app = express();
-  const server = createServer(app);
-  console.log("[BOOT-STEP-4] Express app and HTTP server created");
-  
-  // Configurar sistema de monitoramento
-  console.log("[BOOT-STEP-4a] Setting up monitoring system...");
-  setupMonitoring(app);
-  console.log("[BOOT-STEP-4b] Monitoring system configured");
+  console.log("[BOOT] OpenTelemetry ok");
 
   try {
-    console.log("[BOOT-STEP-5] Ensuring admin user...");
-    const { ensureAdminUser } = await import("../db/index");
-    await ensureAdminUser(1);
-    console.log("[BOOT-STEP-6] Admin user ensured");
+    const { getConnectionPool } = await import("../config/database");
+    await getConnectionPool();
+    console.log("[DB] pool conectado");
   } catch (e) {
-    console.error("[Boot] ensureAdminUser failed:", e);
+    console.error("[DB] falha ao conectar:", e);
+    process.exit(1);
   }
 
-  // CORS middleware
-  console.log("[BOOT-STEP-6a] Setting up CORS middleware...");
-  app.use((req, res, next) => {
-    if (!req.url?.startsWith("/api")) {
-      return next();
+  try {
+    const { redisManager } = await import("../infra/redis");
+    const redisTest = await redisManager.testConnection();
+    if (!redisTest.success) {
+      console.error("[REDIS] falha:", redisTest.message);
+      process.exit(1);
     }
+    console.log("[REDIS] ok");
+  } catch (e) {
+    console.error("[REDIS] falha:", e);
+    process.exit(1);
+  }
 
-    const origin = req.headers.origin;
-    const envOrigins = process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean);
-    const allowedOrigins = envOrigins?.length
-      ? envOrigins
-      : [
-          "http://localhost:5173",
-          "http://127.0.0.1:5173",
-          "http://localhost:5174",
-          "http://127.0.0.1:5174",
-          "http://localhost:5175",
-          "http://127.0.0.1:5175",
-          "http://localhost:3000",
-          "http://127.0.0.1:3000",
-          "http://localhost:3001",
-          "http://127.0.0.1:3001",
-          "http://localhost:3003",
-          "http://127.0.0.1:3003",
-        ];
-    
-    if (!origin) {
-      // Same-origin (browser não manda Origin): não aplicar headers CORS para não atrapalhar cookie/sessão.
-      if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
-      } else {
-        next();
-      }
-      return;
-    }
+  console.log("[BOOT] sistema de cache…");
+  initCacheSystem();
+  console.log("[BOOT] cache ok");
 
-    if (allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-    } else {
-      res.header('Access-Control-Allow-Origin', 'null');
-    }
+  const app = express();
+  const server = createServer(app);
+  console.log("[BOOT] Express + HTTP criados");
 
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Token, Origin, X-Requested-With, Accept, Cookie');
-    
-    if (req.method === "OPTIONS") {
-      res.sendStatus(200);
-    } else {
-      next();
-    }
-  });
+  app.use(requestIdMiddleware);
   
-  // Rate limit na API (evita abuso; em produção ajuste por RATE_LIMIT_*)
-  const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000;
-  const rateLimitMax = Number(process.env.RATE_LIMIT_MAX) || 120;
+  console.log("[BOOT] monitoramento…");
+  setupMonitoring(app);
+  console.log("[BOOT] monitoramento ok");
+
+  try {
+    console.log("[BOOT] usuário admin…");
+    const { ensureAdminUser } = await import("../db/index");
+    await ensureAdminUser(1);
+    console.log("[BOOT] admin ok");
+  } catch (e) {
+    console.error("[ERROR] ensureAdminUser:", e);
+    if (process.env.NODE_ENV === "development") {
+      console.error("[ERROR] em desenvolvimento o servidor continua; corrija o banco.");
+    } else {
+      process.exit(1);
+    }
+  }
+
+  console.log("[BOOT] middlewares de segurança…");
   app.use(
-    "/api",
-    rateLimit({
-      windowMs: rateLimitWindowMs,
-      max: rateLimitMax,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: "Muitas requisições. Tente novamente em instantes." },
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+      contentSecurityPolicy: false,
     })
   );
 
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  const allowedOrigins = (
+    process.env.ALLOWED_ORIGINS ||
+    "http://localhost:5173,http://127.0.0.1:5173"
+  )
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  app.use(
+    cors({
+      origin: (origin, cb) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          cb(null, true);
+          return;
+        }
+        cb(new Error("CORS origin blocked"));
+      },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Session-Token",
+        "X-App-Secret",
+        "X-Shutdown-Secret",
+        "User-Agent",
+      ],
+    })
+  );
+
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ limit: "1mb", extended: true }));
+
+  // Security extra: métodos inesperados bloqueados na API
+  const allowedApiMethods = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]);
+  app.use("/api", (req, res, next) => {
+    if (!allowedApiMethods.has(req.method.toUpperCase())) {
+      logSecurity("método HTTP bloqueado", req, { method: req.method });
+      return sendStandardError(req, res, 405, "METHOD_NOT_ALLOWED", "Método não permitido");
+    }
+    next();
+  });
+
+  // Middleware de monitoramento global (registra métricas de performance e acesso)
+  app.use((req, res, next) => {
+    const startTime = Date.now();
+    
+    // Registrar conexão ativa
+    try {
+      const { metricsService } = require("../monitoring/metrics");
+      metricsService.recordConnection(1);
+    } catch {}
+
+    // Registrar conclusão da resposta
+    res.on("finish", () => {
+      try {
+        const duration = Date.now() - startTime;
+        const { metricsService } = require("../monitoring/metrics");
+        
+        // Registrar métrica
+        metricsService.recordRequest(duration);
+        metricsService.recordConnection(-1);
+
+        // Registrar erro se status >= 400
+        if (res.statusCode >= 400) {
+          metricsService.recordError();
+        }
+
+        // Log de acesso estruturado
+        try {
+          const { loggerStructured } = require("../monitoring/logger");
+          loggerStructured.access(req.method, req.path, res.statusCode, duration, {
+            ip: getClientIp(req),
+            userAgent: req.get("user-agent"),
+          });
+        } catch {}
+
+        // Verificar e registrar alertas
+        try {
+          const { metricsService: metricsService2 } = require("../monitoring/metrics");
+          const alerts = metricsService2.checkAlerts();
+          if (alerts.length > 0) {
+            const { loggerStructured: loggerStructured2 } = require("../monitoring/logger");
+            for (const alert of alerts) {
+              loggerStructured2.alert(alert.level, alert.message, { path: req.path });
+            }
+          }
+        } catch {}
+      } catch {}
+    });
+
+    next();
+  });
+
+  const appSecret = env.APP_SECRET;
+  const internalEndpointSecret =
+    process.env.HARD_TEST_SHUTDOWN_SECRET?.trim() || appSecret || "";
+  app.use((req, res, next) => {
+    if (!req.path.startsWith("/api")) return next();
+    if (req.path === "/api/health" || req.path === "/api/health/") return next();
+
+    const userAgent = req.get("user-agent")?.trim();
+    if (!userAgent) {
+      logSecurity("user-agent ausente", req);
+      return sendStandardError(req, res, 400, "MISSING_USER_AGENT", "user-agent obrigatório");
+    }
+
+    const secret = req.get("x-app-secret")?.trim();
+    if (!appSecret || !secret || secret !== appSecret) {
+      logSecurity("x-app-secret inválido", req, { hasSecret: Boolean(secret) });
+      return sendStandardError(req, res, 401, "UNAUTHORIZED", "unauthorized");
+    }
+
+    const inspectionTargets = [
+      req.originalUrl || req.url,
+      typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {}),
+      JSON.stringify(req.query ?? {}),
+    ].join(" ");
+
+    for (const pattern of MALICIOUS_PATTERNS) {
+      if (pattern.test(inspectionTargets)) {
+        logSecurity("payload malicioso bloqueado", req, {
+          pattern: String(pattern),
+        });
+        return sendStandardError(
+          req,
+          res,
+          400,
+          "SUSPICIOUS_PAYLOAD",
+          "suspicious payload blocked"
+        );
+      }
+    }
+    
+    next();
+  });
+  
+  app.use((req, res, next) => {
+    if (!req.path.startsWith("/api/__")) return next();
+    const localhostIps = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+    const ip = getClientIp(req);
+    const hasLocalhost = localhostIps.has(ip);
+    const internalSecret = req.get("x-shutdown-secret") || req.get("x-app-secret");
+    if (!hasLocalhost && (!internalEndpointSecret || internalSecret !== internalEndpointSecret)) {
+      logSecurity("acesso a endpoint interno bloqueado", req);
+      return sendStandardError(req, res, 403, "FORBIDDEN_INTERNAL", "forbidden");
+    }
+    next();
+  });
+
+  /** Automação: shutdown completo sem depender de SIGINT no subprocesso (Windows). */
+  if (process.env.HARD_TEST_HTTP_SHUTDOWN === "1") {
+    const shutdownSecret =
+      process.env.HARD_TEST_SHUTDOWN_SECRET?.trim() || "erp-hard-test-local-secret";
+    
+    // Rate limit específico para endpoint de shutdown
+    const shutdownRateLimit = rateLimit({
+      windowMs: 60 * 1000, // 1 minuto
+      max: 3, // máximo 3 requests por minuto
+      message: { error: "Too many shutdown requests" },
+      standardHeaders: true,
+      legacyHeaders: false,
+      skip: () => false, // nunca pular este rate limit
+    });
+    
+    app.get("/api/__hard-test/shutdown", shutdownRateLimit, (req, res) => {
+      // 1. Validar origem (apenas localhost ou rede interna)
+      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+      const allowedOrigins = ['::1', '::ffff:127.0.0.1', '127.0.0.1', 'localhost'];
+      
+      if (!allowedOrigins.includes(clientIP as string) && !clientIP?.startsWith('192.168.') && !clientIP?.startsWith('10.')) {
+        securityLogger.warn("[SECURITY] shutdown ip bloqueado", {
+          requestId: getRequestId(req),
+          path: req.originalUrl || req.url,
+          method: req.method,
+          metadata: {
+          ip: clientIP,
+          timestamp: new Date().toISOString(),
+          motivo: 'origem_nao_permitida'
+          },
+        });
+        sendStandardError(req, res, 403, "FORBIDDEN", "Forbidden");
+        return;
+      }
+      
+      // 2. Validar secret via header (mais seguro que query param)
+      const { secretHeader, secretQuery } = validateShutdownAuthPayload({
+        secretHeader: req.headers["x-shutdown-secret"],
+        secretQuery: req.query.secret,
+      });
+      const providedSecret = secretHeader || secretQuery;
+      
+      if (providedSecret !== shutdownSecret) {
+        // Log de auditoria - secret incorreto
+        securityLogger.warn("[SECURITY] shutdown secret inválido", {
+          requestId: getRequestId(req),
+          path: req.originalUrl || req.url,
+          method: req.method,
+          metadata: {
+          ip: clientIP,
+          timestamp: new Date().toISOString(),
+          motivo: 'secret_invalido',
+          header: !!secretHeader,
+          query: !!secretQuery
+          },
+        });
+        sendStandardError(req, res, 404, "NOT_FOUND", "Not Found");
+        return;
+      }
+      
+      // 3. Log de auditoria - shutdown autorizado
+      securityLogger.info("[SECURITY] shutdown autorizado", {
+        requestId: getRequestId(req),
+        path: req.originalUrl || req.url,
+        method: req.method,
+        metadata: {
+        ip: clientIP,
+        timestamp: new Date().toISOString(),
+        motivo: 'http_endpoint',
+        method: secretHeader ? 'header' : 'query'
+        },
+      });
+      
+      // Responde imediatamente com 202 Accepted
+      res.status(202).json({ ok: true, shuttingDown: true });
+      
+      // Garante que shutdown SEMPRE executa (mesmo se promise rejeitar)
+      setImmediate(async () => {
+        try {
+          // Usa nova função centralizada que GARANTE process.exit()
+          const { initiateGracefulShutdown } = await import("../services/system/shutdown.service");
+          await initiateGracefulShutdown("HTTP_ENDPOINT", 0);
+          // Nunca chega aqui - process.exit() mata o processo
+        } catch (err) {
+          securityLogger.error("[SECURITY] shutdown endpoint error", err as Error, {
+            requestId: getRequestId(req),
+            path: req.originalUrl || req.url,
+            method: req.method,
+            metadata: {
+      timestamp: new Date().toISOString(),
+            },
+          });
+          process.exit(1);
+        }
+      });
+    });
+    console.warn(
+      "[HARD_TEST] GET /api/__hard-test/shutdown habilitado com proteções (defina HARD_TEST_SHUTDOWN_SECRET forte em CI)"
+    );
+  }
+
+  // Rate limit global: 60 req/min por IP (health fica de fora)
+  const authRateLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => !/\/api\/trpc\/auth(\.|\/)|\/api\/auth(\/|$)/.test(req.originalUrl || req.url),
+    handler: (req, res) =>
+      sendStandardError(req, res, 429, "AUTH_RATE_LIMITED", "Muitas tentativas de autenticação."),
+  });
+  app.use("/api", authRateLimiter);
+
+  const adminRateLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => !/\/api\/admin(\/|$)|\/api\/trpc\/admin(\.|\/)/.test(req.originalUrl || req.url),
+    handler: (req, res) =>
+      sendStandardError(req, res, 429, "ADMIN_RATE_LIMITED", "Limite de requisições administrativas atingido."),
+  });
+  app.use("/api", adminRateLimiter);
+
+  const internalRateLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => !(req.originalUrl || req.url).startsWith("/api/__"),
+    handler: (req, res) =>
+      sendStandardError(req, res, 429, "INTERNAL_RATE_LIMITED", "Limite em endpoint interno atingido."),
+  });
+  app.use("/api", internalRateLimiter);
+
+  app.use(
+    "/api",
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: 60,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        error: {
+          code: "RATE_LIMITED",
+          message: "Muitas requisições. Tente novamente em instantes.",
+        },
+      },
+      handler: (req, res) => {
+        logSecurity("rate limit excedido", req);
+        sendStandardError(
+          req,
+          res,
+          429,
+          "RATE_LIMITED",
+          "Muitas requisições. Tente novamente em instantes."
+        );
+      },
+      skip: (req) => {
+        const base = (req.originalUrl ?? req.url ?? "").split("?")[0];
+        return base === "/api/health" || base === "/api/health/";
+      },
+    })
+  );
+
+  // Body parser aplicado no hardening global (1mb)
 
   // Timeout global para todas as requests
-  app.use(globalTimeoutMiddleware(15000)); // 15 segundos
+  app.use(globalTimeoutMiddleware(10000)); // 10 segundos
 
   // CSRF Protection para endpoints state-changing
   const { CSRFProtection } = await import("../security/csrf-protection");
@@ -174,62 +532,72 @@ async function startServer() {
   
   // Aplicar CSRF protection em todas as rotas /api exceto GET/HEAD/OPTIONS
   app.use("/api", CSRFProtection.csrfProtection());
-  
+
   // OAuth callback under /api/oauth/callback - DESABILITADO
   // registerOAuthRoutes(app);
   // Login/Logout: apenas tRPC (auth.login / auth.logout). Rotas /api/login e /api/logout removidas.
 
   // Rota de teste rápido para debug
-  app.get("/ping", (req, res) => {
-    console.log("[DEBUG] /ping chamado - server está respondendo");
-    res.json({ 
-      ok: true, 
-      message: "Server responde!",
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+    app.get("/ping", (req, res) => {
+      console.log("[SERVER] GET /ping");
+      res.json({ 
+        ok: true, 
+        message: "Server responde!",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      });
     });
+
+  // Health check avançado - implementado via tRPC em /api/trpc/health.*
+
+  app.get("/api/health", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    try {
+      const report = await getServerHealth();
+      res.status(200).json({
+        ...report,
+        requestId: res.locals.requestId,
+      });
+    } catch {
+      res.status(503).json({
+        error: {
+          code: "HEALTH_UNAVAILABLE",
+          message: "Health check indisponível",
+          details: {
+            requestId: res.locals.requestId,
+          },
+        },
+      });
+    }
   });
 
-  // Health check avançado
-  const healthCheckRouter = (await import("../routes/health-check")).default;
-  app.use("/health", healthCheckRouter);
-  
-  // Manter endpoint legado para compatibilidade
-  app.get("/api/health", async (_req, res) => {
-    const start = Date.now();
-    let dbStatus: "ok" | "error" = "error";
-    let dbTimeMs = 0;
-    let database = "";
-    let schemaVersionDb: number | null = null;
+  app.get("/health", async (_req, res) => {
+    const uptime = process.uptime();
+    const memory = process.memoryUsage();
+    let dbStatus: "ok" | "down" = "down";
+    let redisStatus: "ok" | "down" = "down";
+
     try {
-      const { getDb, getSchemaVersion } = await import("../db/index");
       const db = await getDb();
-      dbTimeMs = Date.now() - start;
-      if (db) {
-        dbStatus = "ok";
-        schemaVersionDb = await getSchemaVersion();
-      }
-      if (process.env.DATABASE_URL) {
-        try {
-          database = new URL(process.env.DATABASE_URL).pathname.replace(/^\//, "") || "vendas_app";
-        } catch {
-          database = process.env.DB_NAME || "vendas_app";
-        }
-      } else {
-        database = process.env.DB_NAME || "vendas_app";
-      }
-    } catch (e) {
-      dbTimeMs = Date.now() - start;
+      dbStatus = db ? "ok" : "down";
+    } catch {
+      dbStatus = "down";
     }
-    const { EXPECTED_SCHEMA_VERSION } = await import("./schemaVersion");
-    res.json({
-      status: dbStatus === "ok" ? "ok" : "degraded",
-      db: { status: dbStatus, timeMs: dbTimeMs, database },
-      schemaVersion: schemaVersionDb,
-      expectedSchemaVersion: EXPECTED_SCHEMA_VERSION,
-      schemaMatch: schemaVersionDb === EXPECTED_SCHEMA_VERSION,
-      uptimeSeconds: Math.floor(process.uptime()),
-      nodeEnv: process.env.NODE_ENV || "development",
+
+    try {
+      const redisReady = await isRedisReady();
+      redisStatus = redisReady ? "ok" : "down";
+    } catch {
+      redisStatus = "down";
+    }
+
+    const httpStatus = dbStatus === "ok" && redisStatus === "ok" ? 200 : 503;
+    res.status(httpStatus).json({
+      status: httpStatus === 200 ? "ok" : "degraded",
+      db: dbStatus,
+      redis: redisStatus,
+      uptime,
+      memory,
     });
   });
 
@@ -288,7 +656,7 @@ async function startServer() {
   if (process.env.NODE_ENV === "development") {
     const failureRoutes = createFailureSimulationRoutes();
     app.use("/api/test/failure", failureRoutes);
-    console.log("[DEBUG] Failure simulation endpoints enabled at /api/test/failure");
+    console.log("[BOOT] rotas /api/test/failure (dev)");
   }
   // tRPC API com tratamento de erros melhorado
   app.use(
@@ -300,13 +668,15 @@ async function startServer() {
       onError: ({ error, type, path, input, ctx, req }) => {
         const traceId = nanoid(10);
         const err = error as Error & { code?: string; errno?: number; sqlState?: string; sqlMessage?: string; sql?: string };
-        console.error(`[TRPC onError] traceId: ${traceId} path: ${path ?? "<no-path>"} message: ${error.message}`);
-        console.error('[TRPC onError] MySQL err.code:', err?.code ?? '(não informado)');
-        console.error('[TRPC onError] MySQL err.errno:', err?.errno ?? '(não informado)');
-        console.error('[TRPC onError] MySQL err.sqlState:', err?.sqlState ?? '(não informado)');
-        console.error('[TRPC onError] MySQL err.sqlMessage:', err?.sqlMessage ?? '(não informado)');
-        if (err?.sql) console.error('[TRPC onError] query (sql):', err.sql);
-        console.error('Request data:', { method: req.method, url: req.url, input });
+        console.error(`[ERROR] [TRPC] traceId=${traceId} path=${path ?? "<no-path>"} message=${error.message}`);
+        console.error("[ERROR] [TRPC] MySQL", {
+          code: err?.code,
+          errno: err?.errno,
+          sqlState: err?.sqlState,
+          sqlMessage: err?.sqlMessage,
+        });
+        if (err?.sql) console.error("[ERROR] [TRPC] sql:", err.sql);
+        console.error("[ERROR] [TRPC] request", { method: req.method, url: req.url, input });
         if (process.env.SENTRY_DSN) {
           Sentry.captureException(error, { extra: { traceId, type, path, input, code: err?.code, sqlMessage: err?.sqlMessage } });
         }
@@ -320,33 +690,21 @@ async function startServer() {
   }
 
   // Middleware de tratamento de erros global
-  app.use((err: ErrorWithStatus, req: Request, res: Response, next: NextFunction) => {
-    console.error('Erro global não tratado:', err);
-    if (process.env.SENTRY_DSN) {
-      Sentry.captureException(err);
-    }
-    res.status(err.status || 500).json({
-      error: 'Erro interno do servidor',
-      message: process.env.NODE_ENV === 'development' ? err.message : 'Ocorreu um erro no servidor'
-    });
-  });
+  app.use(globalErrorHandler);
 
-  // development mode uses Vite, production mode uses static files
-  console.log(`[BOOT-STEP-7] Setting up ${process.env.NODE_ENV === "development" ? "Vite" : "static files"}...`);
   if (process.env.NODE_ENV === "development") {
-    console.log("[BOOT-STEP-7a] Starting Vite setup...");
+    console.log("[SERVER] Vite (dev)…");
     await setupVite(app, server);
-    console.log("[BOOT-STEP-7b] Vite setup completed");
+    console.log("[SERVER] Vite ok");
   } else {
-    console.log("[BOOT-STEP-7a] Setting up static files...");
+    console.log("[SERVER] arquivos estáticos…");
     serveStatic(app);
-    console.log("[BOOT-STEP-7b] Static files setup completed");
+    console.log("[SERVER] estáticos ok");
   }
 
-  // Porta fixa: PORT do .env ou 3003 (produção e dev)
-  console.log("[BOOT-STEP-8] Checking port availability...");
-  const PORT = Number(process.env.PORT) || 3003;
-  console.log("[DEBUG] PORT configurada:", PORT);
+  console.log("[SERVER] porta…");
+  const PORT = env.PORT || 3000;
+  console.log("[SERVER] PORT=", PORT);
   let port = PORT;
 
   if (process.env.NODE_ENV !== "production") {
@@ -357,7 +715,7 @@ async function startServer() {
         console.log(`Usando porta alternativa: ${port}`);
       } catch (error) {
         console.error("Não foi possível encontrar uma porta disponível.");
-        process.exit(1);
+        exitProcessInProductionUnlessDevelopment(1);
       }
     }
     try {
@@ -368,21 +726,58 @@ async function startServer() {
     } catch (_) {}
   }
 
-  console.log("[BOOT-STEP-9] Ready to listen on port", port);
-  console.log(`[DEBUG] PORTA FINAL USADA: ${port}`);
-  server.listen(port, () => {
-    console.log(`[BOOT-COMPLETE] ✅ Server running on http://localhost:${port}/`);
-    // Exportar porta para uso externo
-    (global as any).SERVER_PORT = port;
+  console.log("[SERVER] listen em", port);
 
-    // Configurar graceful shutdown
-    const shutdownMiddleware = setupGracefulShutdown(server, { timeoutMs: 30000 });
-    shutdownMiddleware.forEach(middleware => app.use(middleware));
-    
-    logger.info('Graceful shutdown configured', {
-      metadata: { port, timeoutMs: 30000 }
-    });
+  const shutdownMiddleware = setupGracefulShutdown(server, { timeoutMs: 30000 });
+  shutdownMiddleware.forEach((middleware) => app.use(middleware));
+  console.log("[BOOT] graceful shutdown configurado");
+
+  if (process.env.ENABLE_HEALTH_WATCHDOG !== "0") {
+    const watchdog = getHealthWatchdog();
+    watchdog.start();
+    console.log("[BOOT] health watchdog ativo");
+  }
+
+  server.listen(port, () => {
+    console.log(`[SERVER] http://localhost:${port}/`);
+    (global as any).SERVER_PORT = port;
+  });
+
+}
+
+// Fallback Windows para SIGINT via readline sem process.emit/process.exit direto
+if (process.platform === "win32") {
+  import("readline")
+    .then((readline) => {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      rl.on("SIGINT", () => {
+        console.log("[SHUTDOWN] SIGINT via readline");
+        void requestShutdown({ reason: "SIGINT_READLINE", code: 0 });
+      });
+    })
+    .catch((err) => {
+      console.log("[SHUTDOWN] Falha ao carregar readline:", err);
   });
 }
 
-startServer().catch(console.error);
+process.on("uncaughtException", (error) => {
+  securityLogger.error("uncaught_exception", error instanceof Error ? error : new Error(String(error)), {
+    metadata: { scope: "process" },
+  });
+});
+
+process.on("unhandledRejection", (reason) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  securityLogger.error("unhandled_rejection", error, {
+    metadata: { scope: "process" },
+  });
+});
+
+startServer().catch((e) => {
+  console.error(e);
+  exitProcessInProductionUnlessDevelopment(1);
+});

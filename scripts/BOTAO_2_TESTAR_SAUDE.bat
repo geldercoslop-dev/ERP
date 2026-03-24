@@ -22,9 +22,9 @@ if errorlevel 1 (
 )
 echo.
 echo 3) Se o servidor estiver rodando, teste o health:
-echo    Abra no navegador: http://localhost:3003/api/health
-echo    Ou rode: curl -s http://localhost:3003/api/health
+echo    Abra no navegador: http://localhost:3000/api/health
+echo    Ou rode: curl -s http://localhost:3000/api/health
 echo.
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:3003/api/health' -UseBasicParsing -TimeoutSec 3; Write-Host 'Health OK:'; $r.Content } catch { Write-Host 'Servidor nao respondeu (inicie com BOTAO_1 ou npm run dev).' }"
+powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:3000/api/health' -UseBasicParsing -TimeoutSec 3; Write-Host 'Health OK:'; $r.Content } catch { Write-Host 'Servidor nao respondeu (inicie com BOTAO_1 ou npm run dev).' }"
 echo.
 pause

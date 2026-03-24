@@ -6,6 +6,12 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
+/** bcryptjs hash de `admin123` — necessário para auth.login admin (routers). */
+if (!process.env.ADMIN_PASSWORD_HASH) {
+  process.env.ADMIN_PASSWORD_HASH =
+    "$2a$10$4Ln7CuRufV/IB45NaH2gu.SjBKpq0taZGEHY2qpVNz63wFqxNss3a";
+}
+
 const defaultSession: TrpcContext["session"] = {
   origin: "none",
   tokenPresent: false,
@@ -15,6 +21,7 @@ const defaultSession: TrpcContext["session"] = {
 function createVendedorContext(): TrpcContext {
   const user: NonNullable<TrpcContext["user"]> = {
     id: 2,
+    tenantId: 1,
     openId: "vendedor-local",
     name: "Vendedor",
     email: "vendedor@local.com",
@@ -26,10 +33,15 @@ function createVendedorContext(): TrpcContext {
   };
   return {
     user,
+    tenantId: 1,
     vendedor: null,
     isImpersonating: false,
     session: defaultSession,
-    req: { headers: {} } as TrpcContext["req"],
+    req: {
+      headers: {},
+      hostname: "localhost",
+      protocol: "http",
+    } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
   };
 }
@@ -37,6 +49,7 @@ function createVendedorContext(): TrpcContext {
 function createAdminContext(): TrpcContext {
   const user: NonNullable<TrpcContext["user"]> = {
     id: 1,
+    tenantId: 1,
     openId: "admin-local",
     name: "Administrador",
     email: "admin@local.com",
@@ -48,10 +61,15 @@ function createAdminContext(): TrpcContext {
   };
   return {
     user,
+    tenantId: 1,
     vendedor: null,
     isImpersonating: false,
     session: defaultSession,
-    req: { headers: {} } as TrpcContext["req"],
+    req: {
+      headers: {},
+      hostname: "localhost",
+      protocol: "http",
+    } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
   };
 }
@@ -60,11 +78,16 @@ describe("Fluxo principal: Login", () => {
   it("auth.login com credenciais válidas retorna ok e role", async () => {
     const ctx: TrpcContext = {
       user: null,
+      tenantId: null,
       vendedor: null,
       isImpersonating: false,
       session: { origin: "none", tokenPresent: false, tokenKind: "unknown" },
-      req: {} as any,
-      res: {} as any,
+      req: {
+        headers: {},
+        hostname: "localhost",
+        protocol: "http",
+      } as any,
+      res: { cookie: () => {} } as any,
     };
     const caller = appRouter.createCaller(ctx);
 
@@ -79,11 +102,16 @@ describe("Fluxo principal: Login", () => {
   it("auth.login com credenciais inválidas lança UNAUTHORIZED", async () => {
     const ctx: TrpcContext = {
       user: null,
+      tenantId: null,
       vendedor: null,
       isImpersonating: false,
       session: { origin: "none", tokenPresent: false, tokenKind: "unknown" },
-      req: {} as any,
-      res: {} as any,
+      req: {
+        headers: {},
+        hostname: "localhost",
+        protocol: "http",
+      } as any,
+      res: { cookie: () => {} } as any,
     };
     const caller = appRouter.createCaller(ctx);
 

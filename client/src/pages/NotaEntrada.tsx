@@ -12,6 +12,14 @@ import { Badge } from "@/components/ui/badge";
 
 type Forma = "PIX" | "DINHEIRO" | "BOLETO" | "CHEQUE" | "CARTAO";
 
+/** Campos usados na tela; o retorno de `produtos.buscar` no cliente pode ser parcial na inferência. */
+type ProdutoBusca = {
+  id?: number;
+  descricao: string;
+  valorVenda: number;
+  marca?: string | null;
+};
+
 export default function NotaEntrada() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -40,7 +48,7 @@ export default function NotaEntrada() {
   const [itens, setItens] = useState<Array<{ produtoId: number; descricao: string; quantidade: number; custoUnit?: number }>>([]);
 
   const { data: produtosResp } = trpc.produtos.buscar.useQuery({ query: produtoBusca || undefined });
-  const produtos = produtosResp?.produtos ?? [];
+  const produtos = (produtosResp?.produtos ?? []) as unknown as ProdutoBusca[];
 
   const marcasSugestoes = useMemo(() => {
     const s = new Set<string>();
@@ -80,19 +88,21 @@ export default function NotaEntrada() {
   };
 
   const addItem = () => {
-    if (!produtoSelecionadoId) {
+    if (typeof produtoSelecionadoId !== "number") {
       toast({ title: "Selecione um produto", description: "Produto é obrigatório (sempre cadastrado)." });
       return;
     }
+    const selectedId = produtoSelecionadoId;
     if (!marca.trim()) {
       toast({ title: "Informe a marca", description: "A nota é sempre de uma marca." });
       return;
     }
-    const prod = produtos.find(p => p.id === produtoSelecionadoId);
-    if (!prod) {
+    const prod = produtos.find((p) => p.id === selectedId);
+    if (!prod || typeof prod.id !== "number") {
       toast({ title: "Produto inválido", description: "Rebusque o produto." });
       return;
     }
+    const prodId = prod.id;
     if (prod.marca && String(prod.marca).trim() !== marca.trim()) {
       toast({
         title: "Marca diferente",
@@ -101,15 +111,15 @@ export default function NotaEntrada() {
       return;
     }
     setItens(prev => {
-      const exists = prev.find(i => i.produtoId === produtoSelecionadoId);
+      const exists = prev.find((i) => i.produtoId === selectedId);
       if (exists) {
-        return prev.map(i => i.produtoId === produtoSelecionadoId
+        return prev.map((i) => i.produtoId === selectedId
           ? { ...i, quantidade: i.quantidade + qtd, custoUnit: custoUnit ? Number(custoUnit) : i.custoUnit }
           : i
         );
       }
       return [...prev, {
-        produtoId: produtoSelecionadoId,
+        produtoId: prodId,
         descricao: String(prod.descricao),
         quantidade: qtd,
         ...(custoUnit ? { custoUnit: Number(custoUnit) } : {}),

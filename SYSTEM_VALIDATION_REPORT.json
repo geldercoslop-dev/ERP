@@ -1,0 +1,102 @@
+{
+  "timestamp": "2026-03-23T08:32:17.759Z",
+  "validations": {
+    "Shutdown Service": {
+      "status": "✅ EXISTS",
+      "filePath": "server/services/system/shutdown.service.ts",
+      "size": 13890
+    },
+    "Profissional logging in shutdown": {
+      "status": "✅ FOUND",
+      "element": "logger.info(\"[SHUTDOWN]"
+    },
+    "CTRL+C blocking": {
+      "status": "✅ FOUND",
+      "element": "const blockSigintShutdown"
+    },
+    "Attempt limiting": {
+      "status": "❌ NOT FOUND",
+      "element": "Attempt limiting"
+    },
+    "Timeout protection": {
+      "status": "✅ FOUND",
+      "element": "Promise.race(["
+    },
+    "Graceful Shutdown Module": {
+      "status": "✅ EXISTS",
+      "filePath": "server/resilience/graceful-shutdown.ts",
+      "size": 2421
+    },
+    "Middleware for shutdown status": {
+      "status": "❌ NOT FOUND",
+      "element": "Middleware for shutd"
+    },
+    "Minimal Shutdown Test": {
+      "status": "✅ EXISTS",
+      "filePath": "test-shutdown-minimal.mjs",
+      "size": 4846
+    },
+    "SIGINT Block Test": {
+      "status": "✅ EXISTS",
+      "filePath": "test-block-sigint.mjs",
+      "size": 4587
+    },
+    "Scenario Tests": {
+      "status": "✅ EXISTS",
+      "filePath": "test-shutdown-scenarios.mjs",
+      "size": 10959
+    },
+    "Hardening Report": {
+      "status": "✅ EXISTS",
+      "filePath": "SHUTDOWN_HARDENING_REPORT.mjs",
+      "size": 10237
+    },
+    "SIGINT Documentation": {
+      "status": "✅ EXISTS",
+      "filePath": "BLOCK_SIGINT_DOCUMENTATION.mjs",
+      "size": 8205
+    },
+    "CTRL+C Block Report": {
+      "status": "✅ EXISTS",
+      "filePath": "CTRL_C_BLOCK_FINAL_REPORT.mjs",
+      "size": 3393
+    },
+    "Telemetry Report": {
+      "status": "✅ EXISTS",
+      "filePath": "TELEMETRY_LOGGING_REPORT.mjs",
+      "size": 8273
+    },
+    "SIGINT (CTRL+C) blocking": {
+      "status": "❌ NOT FOUND",
+      "element": "SIGINT (CTRL+C) bloc"
+    },
+    "SIGTERM support": {
+      "status": "❌ NOT FOUND",
+      "element": "SIGTERM support"
+    },
+    "Database graceful close": {
+      "status": "❌ NOT FOUND",
+      "element": "Database graceful cl"
+    },
+    "Redis graceful close": {
+      "status": "❌ NOT FOUND",
+      "element": "Redis graceful close"
+    },
+    "Cache graceful close": {
+      "status": "❌ NOT FOUND",
+      "element": "Cache graceful close"
+    },
+    "HTTP server graceful close": {
+      "status": "❌ NOT FOUND",
+      "element": "HTTP server graceful"
+    },
+    "Force exit timeout": {
+      "status": "❌ NOT FOUND",
+      "element": "Force exit timeout"
+    },
+    "Professional logging": {
+      "status": "❌ NOT FOUND",
+      "element": "Professional logging"
+    }
+  }
+}

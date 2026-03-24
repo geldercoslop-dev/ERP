@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import * as db from "./db";
+import * as db from "./db/index";
 import { eq, and, inArray } from "drizzle-orm";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
@@ -278,8 +278,8 @@ export async function gerarBoletoPDFBytes(boletoId: number): Promise<Uint8Array>
 
 
 // ===== ROMANEIO (CARGA) =====
-export async function gerarRomaneioPDF(cargaId: number): Promise<string> {
-  const carga = await db.getCargaById(cargaId);
+export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promise<string> {
+  const carga = await db.getCargaById(tenantId, cargaId);
   if (!carga) throw new Error('Carga não encontrada');
 
   const doc = new jsPDF();
@@ -412,6 +412,11 @@ export async function gerarRomaneioPDF(cargaId: number): Promise<string> {
   doc.line(x0 + 55, y, x0 + 160, y);
 
   return doc.output('datauristring');
+}
+
+/** Alias para telas de logística (mesmo PDF do romaneio de carga). */
+export async function gerarRelatorioViagemPDF(tenantId: number, cargaId: number): Promise<string> {
+  return gerarRomaneioPDF(tenantId, cargaId);
 }
 
 export async function gerarZipBoletos(params: { boletoIds: number[]; pedidoNumero: number; clienteNome: string; }): Promise<{ fileName: string; base64: string; }> {
@@ -634,17 +639,31 @@ export async function gerarPedidoPDF(pedidoId: number): Promise<string> {
 /**
  * GERAÇÃO DE PDF AGRUPADO (CARGA OU CLIENTE ESPECÍFICO)
  */
-export async function gerarBoletosCargaPDF(cargaId: number, pedidoNumero?: number) {
-  const carga = await db.getCargaById(cargaId);
+export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pedidoNumero?: number) {
+  const carga = await db.getCargaById(tenantId, cargaId);
   if (!carga) throw new Error("Carga não encontrada");
 
   const db_conn = await db.getDb();
   if (!db_conn) throw new Error("Database not available");
 
   // Filtra por todos os pedidos da carga ou apenas um específico
-  const pedidosFiltro = pedidoNumero 
-    ? [pedidoNumero] 
-    : carga.pedidos.map(p => p.numero);
+  const isCargaComPedidos = (
+    x: unknown
+  ): x is { pedidos: Array<{ numero: number }> } =>
+    typeof x === "object" &&
+    x !== null &&
+    "pedidos" in x &&
+    Array.isArray((x as { pedidos?: unknown }).pedidos) &&
+    ((x as { pedidos: unknown[] }).pedidos.length === 0 ||
+      typeof (x as { pedidos: Array<{ numero?: unknown }> }).pedidos[0]?.numero === "number");
+
+  const pedidosFiltro = pedidoNumero
+    ? [pedidoNumero]
+    : isCargaComPedidos(carga)
+      ? carga.pedidos.map((p) => p.numero)
+      : (() => {
+          throw new Error("Carga inválida: pedidos não disponíveis");
+        })();
 
   const boletos = await db_conn.select().from(db.contasReceber)
     .where(and(

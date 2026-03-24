@@ -39,6 +39,8 @@ export default function ContasPagar() {
   // Queries e Mutations
   const { data: contas, isLoading } = trpc.contasPagar.list.useQuery({ status: statusFiltro, fornecedor: busca });
   const { data: planos } = trpc.planoContas.list.useQuery({ tipo: "DESPESA" });
+  const listaContas = contas?.items ?? [];
+  const listaPlanos = planos?.items ?? [];
   
   const createConta = trpc.contasPagar.create.useMutation();
   const pagarConta = trpc.contasPagar.pagar.useMutation();
@@ -161,12 +163,12 @@ export default function ContasPagar() {
 
         {/* Lista */}
         <div className="grid gap-3">
-          {(isLoading ? [] : contas || []).length === 0 ? (
+          {(isLoading ? [] : listaContas).length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300 text-slate-400">
               Nenhuma conta encontrada para este filtro.
             </div>
           ) : (
-            (isLoading ? [] : contas || []).map(conta => (
+            (isLoading ? [] : listaContas).map((conta) => (
               <Card key={conta.id} className="hover:shadow-md transition-shadow border-slate-200">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex gap-4 items-center">
@@ -175,9 +177,9 @@ export default function ContasPagar() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">{conta.fornecedor.toUpperCase()}</span>
+                        <span className="font-bold text-slate-900">{(conta.fornecedor ?? "—").toUpperCase()}</span>
                         <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-500">
-                          {planos?.find(p => p.id === conta.planoContasId)?.nome || 'Sem Categoria'}
+                          {listaPlanos.find((p) => p.id === conta.planoContasId)?.nome || "Sem Categoria"}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-3 mt-1">
@@ -249,7 +251,11 @@ export default function ContasPagar() {
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {planos?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.nome}</SelectItem>)}
+                  {listaPlanos.map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

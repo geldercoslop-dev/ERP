@@ -1,5 +1,6 @@
 import { TRPCClientError } from "@trpc/client";
 import { toast } from "sonner";
+import { GRS_AUTH_UNAUTHORIZED_EVENT } from "@/lib/security/apiClient";
 
 /**
  * Handler centralizado para erros tRPC.
@@ -19,7 +20,9 @@ export function handleTrpcError(
     const message = error.message || fallbackMessage;
 
     if (code === "UNAUTHORIZED") {
-      toast.error("Sessão expirada. Faça login novamente.");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent(GRS_AUTH_UNAUTHORIZED_EVENT, { detail: { source: "trpc-handler" } }));
+      }
       return;
     }
     if (code === "FORBIDDEN") {

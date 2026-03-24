@@ -64,6 +64,13 @@
       "when": 1771130400000,
       "tag": "0008_clientes_norm_not_null_no_default",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1773692102147,
+      "tag": "0009_cold_mother_askani",
+      "breakpoints": true
     }
   ]
 }

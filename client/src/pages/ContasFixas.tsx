@@ -27,6 +27,9 @@ export default function ContasFixas() {
   const { data: planos } = trpc.planoContas.list.useQuery({ tipo: "DESPESA" });
   const createFixa = trpc.contasFixas.create.useMutation();
 
+  const listaFixas = fixas?.items ?? [];
+  const listaPlanos = planos?.items ?? [];
+
   const handleCreate = async () => {
     if (!novaFixa.nome) return;
     try {
@@ -68,17 +71,17 @@ export default function ContasFixas() {
         </div>
 
         <div className="grid gap-4">
-          {(isLoading ? [] : fixas || []).length === 0 ? (
+          {(isLoading ? [] : listaFixas).length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300 text-slate-400">
               Nenhuma conta fixa cadastrada.
             </div>
           ) : (
-            (isLoading ? [] : fixas || []).map(fixa => (
+            (isLoading ? [] : listaFixas).map((fixa) => (
               <Card key={fixa.id} className="border-slate-200">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-900">{fixa.nome.toUpperCase()}</p>
-                    <p className="text-sm text-slate-500">Vence todo dia {fixa.diaVencimento} | Valor Base: R$ {Number(fixa.valorPadrao).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                    <p className="font-bold text-slate-900">{fixa.descricao.toUpperCase()}</p>
+                    <p className="text-sm text-slate-500">Vence todo dia {fixa.diaVencimento} | Valor Base: R$ {Number(fixa.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
                   </div>
                   <Button size="icon" variant="ghost" className="text-slate-400 hover:text-red-600">
                     <Trash2 className="h-4 w-4" />
@@ -117,7 +120,11 @@ export default function ContasFixas() {
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {planos?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.nome}</SelectItem>)}
+                  {listaPlanos.map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

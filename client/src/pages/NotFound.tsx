@@ -12,13 +12,13 @@ export default function NotFound() {
   useEffect(() => {
     if (isLoading) return;
     if (isAuthenticated) {
-      setLocation("/");
+      setLocation("/dashboard");
     } else {
       setLocation("/login?force=true");
     }
   }, [isAuthenticated, isLoading, setLocation]);
 
-  const handleGoHome = () => setLocation("/");
+  const handleGoHome = () => setLocation("/dashboard");
   const handleGoLogin = () => setLocation("/login?force=true");
 
   return (

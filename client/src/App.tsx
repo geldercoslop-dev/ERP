@@ -1,58 +1,56 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Route, Switch, Redirect } from "wouter";
-import AppShell from "@/components/layout/AppShell";
 import { AuthInitializer } from "@/components/AuthInitializer";
 import { ErrorHandler } from "@/components/ErrorHandler";
 import { ConnectionDebugger } from "@/components/ConnectionDebugger";
-import { useAuthStore } from "@/store/authStore";
+import { SessionExpiredBridge } from "@/components/SessionExpiredBridge";
+import { PageRouteSkeleton } from "@/components/ui/PageRouteSkeleton";
+import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
+import { useRequireAdmin } from "@/hooks/useRouteAccess";
 
-import Login from "./pages/Login";
-import Home from "./pages/Home";
-import Estoque from "./pages/Estoque";
-import NovaVenda from "./pages/NovaVenda";
-import Clientes from "./pages/Clientes";
-import Entregas from "./pages/Entregas";
-import Comissao from "./pages/MinhasComissoes";
-import Boletos from "./pages/FinanceiroBoletos";
-import Relatorios from "./pages/Relatorios";
-import PlanoContas from "./pages/PlanoContas";
-import ContasFixas from "./pages/ContasFixas";
-import Produtos from "./pages/Produtos";
-import Vendedores from "./pages/Vendedores";
-import Fornecedores from "./pages/Fornecedores";
-import Cargas from "./pages/Cargas";
-import NotaEntrada from "./pages/NotaEntrada";
-import Promocoes from "./pages/Promocoes";
-import Vendas from "./pages/Vendas";
-import MeusPedidos from "./pages/MeusPedidos";
-import CargaDetalhes from "./pages/CargaDetalhes";
-import CargaBaixa from "./pages/CargaBaixa";
-import Pendencias from "./pages/Pendencias";
-import Financeiro from "./pages/Financeiro";
-import HistoricoCaixa from "./pages/HistoricoCaixa";
-import ContasReceber from "./pages/ContasReceber";
-import ContasPagar from "./pages/ContasPagar";
-import Cadastros from "./pages/Cadastros";
-import GruposPrecificacao from "./pages/GruposPrecificacao";
-import Cores from "./pages/Cores";
-import ConfiguracoesBanco from "./pages/ConfiguracoesBanco";
-import NotFound from "./pages/NotFound";
-import DebugAuth from "./pages/DebugAuth";
-import Diagnostico from "./pages/Diagnostico";
+import { lazy } from "react";
 
-function ProtectedShell({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+const Login = lazy(() => import("./pages/Login"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Estoque = lazy(() => import("./pages/Estoque"));
+const NovaVenda = lazy(() => import("./pages/NovaVenda"));
+const Clientes = lazy(() => import("./pages/Clientes"));
+const Entregas = lazy(() => import("./pages/Entregas"));
+const Comissao = lazy(() => import("./pages/MinhasComissoes"));
+const Boletos = lazy(() => import("./pages/FinanceiroBoletos"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const PlanoContas = lazy(() => import("./pages/PlanoContas"));
+const ContasFixas = lazy(() => import("./pages/ContasFixas"));
+const Produtos = lazy(() => import("./pages/Produtos"));
+const Vendedores = lazy(() => import("./pages/Vendedores"));
+const Fornecedores = lazy(() => import("./pages/Fornecedores"));
+const Cargas = lazy(() => import("./pages/Cargas"));
+const NotaEntrada = lazy(() => import("./pages/NotaEntrada"));
+const Promocoes = lazy(() => import("./pages/Promocoes"));
+const Vendas = lazy(() => import("./pages/Vendas"));
+const MeusPedidos = lazy(() => import("./pages/MeusPedidos"));
+const CargaDetalhes = lazy(() => import("./pages/CargaDetalhes"));
+const CargaBaixa = lazy(() => import("./pages/CargaBaixa"));
+const Pendencias = lazy(() => import("./pages/Pendencias"));
+const Financeiro = lazy(() => import("./pages/Financeiro"));
+const HistoricoCaixa = lazy(() => import("./pages/HistoricoCaixa"));
+const ContasReceber = lazy(() => import("./pages/ContasReceber"));
+const ContasPagar = lazy(() => import("./pages/ContasPagar"));
+const Cadastros = lazy(() => import("./pages/Cadastros"));
+const GruposPrecificacao = lazy(() => import("./pages/GruposPrecificacao"));
+const Cores = lazy(() => import("./pages/Cores"));
+const ConfiguracoesBanco = lazy(() => import("./pages/ConfiguracoesBanco"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const DebugAuth = lazy(() => import("./pages/DebugAuth"));
+const Diagnostico = lazy(() => import("./pages/Diagnostico"));
 
-  if (!isAuthenticated && !isLoading) {
-    return <Redirect to={`/login?force=true&t=${Date.now()}`} />;
-  }
-
-  return <AppShell>{children}</AppShell>;
+function LazyWrapper({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<PageRouteSkeleton />}>{children}</Suspense>;
 }
 
 function AdminOnly({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore();
-  if (user?.role !== "admin") return <Redirect to="/" />;
+  const adminAccess = useRequireAdmin();
+  if (!adminAccess.allowed) return adminAccess.fallback;
   return <>{children}</>;
 }
 
@@ -60,138 +58,291 @@ export default function App() {
   return (
     <>
       <ErrorHandler />
+      <SessionExpiredBridge />
 
-      {/* Inicializador de autenticação (NÃO roda no /login) */}
       <AuthInitializer />
 
       {import.meta.env.DEV && <ConnectionDebugger />}
 
       <Switch>
-        {/* ✅ ROTA PÚBLICA */}
-        <Route path="/login" component={Login} />
-
-        <Route path="/debug-auth" component={DebugAuth} />
-        {/* Diagnóstico: apenas admin (protegido) */}
-        <Route path="/diagnostico">
-          <ProtectedShell>
-            <AdminOnly><Diagnostico /></AdminOnly>
-          </ProtectedShell>
+        <Route path="/login">
+          <LazyWrapper>
+            <Login />
+          </LazyWrapper>
         </Route>
 
-        {/* ✅ Rotas protegidas */}
+        <Route path="/debug-auth">
+          {import.meta.env.DEV ? (
+            <LazyWrapper>
+              <DebugAuth />
+            </LazyWrapper>
+          ) : (
+            <Redirect to="/dashboard" />
+          )}
+        </Route>
+
+        <Route path="/diagnostico">
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <Diagnostico />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
+        </Route>
+
         <Route path="/vendas">
-          <ProtectedShell><Vendas /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Vendas />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/nova-venda">
-          <ProtectedShell><NovaVenda /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <NovaVenda />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/clientes">
-          <ProtectedShell><Clientes /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Clientes />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/produtos">
-          <ProtectedShell><Produtos /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Produtos />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/estoque">
-          <ProtectedShell><Estoque /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Estoque />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/entregas">
-          <ProtectedShell><Entregas /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Entregas />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/comissao">
-          <ProtectedShell><Comissao /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Comissao />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/boletos">
-          <ProtectedShell><Boletos /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Boletos />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/relatorios">
-          <ProtectedShell><AdminOnly><Relatorios /></AdminOnly></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <Relatorios />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/plano-contas">
-          <ProtectedShell><AdminOnly><PlanoContas /></AdminOnly></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <PlanoContas />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/contas-fixas">
-          <ProtectedShell><AdminOnly><ContasFixas /></AdminOnly></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <ContasFixas />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/vendedores">
-          <ProtectedShell><Vendedores /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Vendedores />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/fornecedores">
-          <ProtectedShell><Fornecedores /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Fornecedores />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/cargas/:id/baixa">
-          <ProtectedShell><CargaBaixa /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <CargaBaixa />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
         <Route path="/cargas/:id">
-          <ProtectedShell><CargaDetalhes /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <CargaDetalhes />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
         <Route path="/cargas">
-          <ProtectedShell><Cargas /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Cargas />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/meus-pedidos">
-          <ProtectedShell><MeusPedidos /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <MeusPedidos />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/pendencias">
-          <ProtectedShell><Pendencias /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Pendencias />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/nota-entrada">
-          <ProtectedShell><NotaEntrada /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <NotaEntrada />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
         <Route path="/promocoes">
-          <ProtectedShell><Promocoes /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Promocoes />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
 
-        {/* Financeiro (hub e subtelas) — admin */}
         <Route path="/financeiro/historico">
-          <ProtectedShell><AdminOnly><HistoricoCaixa /></AdminOnly></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <HistoricoCaixa />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
         <Route path="/financeiro">
-          <ProtectedShell><AdminOnly><Financeiro /></AdminOnly></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <Financeiro />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
         <Route path="/contas-receber">
-          <ProtectedShell><AdminOnly><ContasReceber /></AdminOnly></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <ContasReceber />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
         <Route path="/contas-pagar">
-          <ProtectedShell><AdminOnly><ContasPagar /></AdminOnly></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <ContasPagar />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
 
-        {/* Cadastros — admin e vendedor (menu já mostra para ambos; página pode restringir ações) */}
         <Route path="/cadastros">
-          <ProtectedShell><Cadastros /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Cadastros />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
         <Route path="/grupos-precificacao">
-          <ProtectedShell><GruposPrecificacao /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <GruposPrecificacao />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
         <Route path="/cores">
-          <ProtectedShell><Cores /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Cores />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
         <Route path="/configuracoes-banco">
-          <ProtectedShell><ConfiguracoesBanco /></ProtectedShell>
+          <ProtectedRoute>
+            <AdminOnly>
+              <LazyWrapper>
+                <ConfiguracoesBanco />
+              </LazyWrapper>
+            </AdminOnly>
+          </ProtectedRoute>
         </Route>
 
-        {/* Home no final (senão captura tudo) */}
+        <Route path="/dashboard">
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Dashboard />
+            </LazyWrapper>
+          </ProtectedRoute>
+        </Route>
+
         <Route path="/">
-          <ProtectedShell><Home /></ProtectedShell>
+          <ProtectedRoute>
+            <Redirect to="/dashboard" />
+          </ProtectedRoute>
         </Route>
 
         <Route>
-          <ProtectedShell><NotFound /></ProtectedShell>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <NotFound />
+            </LazyWrapper>
+          </ProtectedRoute>
         </Route>
       </Switch>
     </>

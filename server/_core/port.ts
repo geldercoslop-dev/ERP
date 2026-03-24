@@ -1,2 +1,2 @@
 // Gerado automaticamente pelo servidor
-export const PORT = 3003;
+export const PORT = 3001;

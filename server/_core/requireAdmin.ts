@@ -5,7 +5,7 @@
  */
 import { Request, Response, NextFunction } from "express";
 import cookie from "cookie";
-import * as db from "../db";
+import { jwtAuth } from "../security/jwt-auth";
 
 function getToken(req: Request): string | undefined {
   const rawCookie = req.headers.cookie;
@@ -33,19 +33,20 @@ export async function requireAdmin(
     res.status(401).json({ error: "Não autorizado", message: "Sessão necessária." });
     return;
   }
-  if (token === "admin-session") {
-    next();
-    return;
-  }
-  if (token.startsWith("v:")) {
-    const id = parseInt(token.slice(2), 10);
-    if (Number.isFinite(id)) {
-      const vendedor = await db.getVendedorById(id);
-      if (vendedor?.ativo && vendedor.admin) {
-        next();
-        return;
-      }
+  try {
+    const payload = jwtAuth.verifyAccessToken(token);
+    if (
+      payload.role === "admin" &&
+      Number.isInteger(payload.userId) &&
+      payload.userId > 0 &&
+      Number.isInteger(payload.tenantId) &&
+      payload.tenantId > 0
+    ) {
+      next();
+      return;
     }
+    res.status(403).json({ error: "Acesso negado", message: "Apenas administradores." });
+  } catch {
+    res.status(401).json({ error: "Não autorizado", message: "Token inválido ou expirado." });
   }
-  res.status(403).json({ error: "Acesso negado", message: "Apenas administradores." });
 }

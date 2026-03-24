@@ -3,7 +3,7 @@
  * Uso: tsx server/scripts/validate-idempotency-table.ts
  */
 import "../_core/loadEnv";
-import * as db from "../db";
+import * as db from "../db/index";
 
 async function main() {
   const conn = await db.getDb();
@@ -38,17 +38,17 @@ async function main() {
       console.error("\nFALHA: índice UNIQUE idempotency_cmd_key (commandName, key) não encontrado.");
       process.exit(1);
     }
-    const createdAtIndex = (idx || []).find((r: any) => r.INDEX_NAME === "idempotency_created_at_idx" && r.COLUMN_NAME === "createdAt");
+    const createdAtIndex = (idx || []).find((r: any) => r.INDEX_NAME === "idempotency_created_at_idx" && r.COLUMN_NAME === "created_at");
     if (!createdAtIndex) {
-      console.error("\nFALHA: índice idempotency_created_at_idx em createdAt não encontrado.");
+      console.error("\nFALHA: índice idempotency_created_at_idx em created_at não encontrado.");
       process.exit(1);
     }
-    const createdAtCol = (rows || []).find((r: any) => r.COLUMN_NAME === "createdAt");
+    const createdAtCol = (rows || []).find((r: any) => r.COLUMN_NAME === "created_at");
     if (!createdAtCol || (createdAtCol.COLUMN_DEFAULT !== "CURRENT_TIMESTAMP" && String(createdAtCol.COLUMN_DEFAULT || "").toLowerCase() !== "current_timestamp()")) {
-      console.error("\nFALHA: coluna createdAt sem DEFAULT CURRENT_TIMESTAMP (ou current_timestamp()).");
+      console.error("\nFALHA: coluna created_at sem DEFAULT CURRENT_TIMESTAMP (ou current_timestamp()).");
       process.exit(1);
     }
-    console.log("\nOK: tabela idempotency_keys existe com UNIQUE(commandName, key), índice em createdAt e createdAt DEFAULT CURRENT_TIMESTAMP.");
+    console.log("\nOK: tabela idempotency_keys existe com UNIQUE(commandName, key), índice em created_at e created_at DEFAULT CURRENT_TIMESTAMP.");
     process.exit(0);
   } catch (e: any) {
     console.error("Erro:", e?.message || e);

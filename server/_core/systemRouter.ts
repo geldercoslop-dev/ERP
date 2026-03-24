@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
-import * as db from "../db";
+import * as db from "../db/index";
 import { getConnectionPool } from "../config/database";
 
 export const systemRouter = router({
@@ -29,8 +29,8 @@ export const systemRouter = router({
       } as const;
     }),
     
-  // Endpoint para diagnóstico do banco de dados
-  checkDatabase: publicProcedure
+  // Endpoint para diagnóstico do banco de dados (PROTEGIDO)
+  checkDatabase: adminProcedure
     .mutation(async () => {
       try {
         // Verificar conexão com o pool
@@ -39,25 +39,13 @@ export const systemRouter = router({
           throw new Error("Não foi possível obter o pool de conexões");
         }
         
-        // Verificar tabelas
-        const conn = await pool.getConnection();
-        try {
-          // Listar tabelas
-          const [tablesResult] = await conn.query("SHOW TABLES");
-          const tables = Array.isArray(tablesResult) ? tablesResult.map((row: any) => Object.values(row)[0]) : [];
-          
-          // Verificar vendedores
-          const [vendedoresResult] = await conn.query("SELECT id, nome, admin FROM vendedores LIMIT 10");
-          const vendedores = Array.isArray(vendedoresResult) ? vendedoresResult : [];
-          
-          return {
-            connected: true,
-            tables,
-            vendedores,
-          };
-        } finally {
-          conn.release();
-        }
+        // Usar services em vez de queries diretas - teste simples
+        return {
+          connected: true,
+          tables: "protected", // Não expor estrutura real
+          vendedores: "protected", // Não expor dados
+          timestamp: new Date().toISOString()
+        };
       } catch (error) {
         console.error("Erro ao verificar banco de dados:", error);
         throw new Error(error instanceof Error ? error.message : "Erro desconhecido na conexão com o banco de dados");

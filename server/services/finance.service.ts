@@ -1,11 +1,41 @@
-import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
-import { getDb, getInsertId, contasReceber, contasPagar, caixaMensal, comissoes, pedidos, boletos, planoContas, contasFixas, insertAuditLog } from "../db/index";
+import { eq, and, desc, asc, sql, inArray, ne, getTableColumns } from "drizzle-orm";
+import { getDb, getInsertId, contasReceber, contasPagar, caixaMensal, comissoes, pedidos, boletos, clientes, planoContas, contasFixas, insertAuditLog } from "../db/index";
 import { nanoid } from "nanoid";
 import { auditLog } from "../_core/audit-log";
-import { ensureArray, ensureObject, ensureCreatedResult, ensureUpdateResult, ensureDeleteResult } from "../_core/service-response";
+import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response";
+import { 
+  financialIdempotencyCheck, 
+  executeWithIdempotency, 
+  generateIdempotencyKey,
+  markOperationProcessed
+} from "./financial-idempotency";
+import {
+  BoletoStatus,
+  BoletoStatusValues,
+  ComissaoStatus,
+  ContaPagarStatus,
+  ContaPagarStatusValues,
+  type ContaPagarStatusValue,
+  ContaReceberStatus,
+  ContaReceberStatusValues,
+  type ContaReceberStatusValue,
+  PedidoStatus,
+} from "../shared/domain-status";
+import { validateStatus } from "../shared/guards/domain-guard";
+import type { ServiceActor } from "../_core/service-actor";
+import { assertVendedorActor, financeScopeVendedorId } from "../_core/service-actor";
+
+/** Opções de baixa de pedido (transação interna + ator para isolamento). */
+export type BaixarPedidoDiretoOptions = {
+  tx?: unknown;
+  /** Obrigatório em fluxos autenticados; use ADMIN_ACTOR em operações internas/admin. */
+  actor?: ServiceActor;
+};
 
 // Tipos inferidos do schema (sem duplicar imports)
 export type Boleto = typeof boletos.$inferSelect;
+/** Listagem de boletos com nome do cliente (join com `clientes`). */
+export type BoletoComClienteNome = Boleto & { clienteNome: string };
 export type CaixaMensal = typeof caixaMensal.$inferSelect;
 export type PlanoConta = typeof planoContas.$inferSelect;
 export type ContaFixa = typeof contasFixas.$inferSelect;
@@ -28,11 +58,12 @@ export type BaixaPedidoInput = {
 
 export type CreateContaReceberInput = {
   clienteNome: string;
-  vendedorId: number;
+  /** Opcional quando admin cria conta sem vínculo imediato a vendedor */
+  vendedorId?: number | null;
   descricao: string;
   valor: number;
   dataVencimento: Date;
-  status: 'PENDENTE' | 'RECEBIDA' | 'VENCIDA';
+  status: ContaReceberStatusValue;
   observacoes?: string;
   pedidoNumero?: number;
 };
@@ -42,7 +73,7 @@ export type CreateContaPagarInput = {
   descricao: string;
   valor: number;
   dataVencimento: Date;
-  status: 'PENDENTE' | 'PAGO' | 'VENCIDA';
+  status: ContaPagarStatusValue;
   observacoes?: string;
   planoContasId?: number;
 };
@@ -61,16 +92,25 @@ function assertRequiredPayload<T>(value: T | null | undefined, message: string):
   return value;
 }
 
+type TxLike = Awaited<ReturnType<typeof getDb>>;
+
+function hasTransaction(v: unknown): v is { transaction: <T>(fn: (tx: TxLike) => Promise<T>) => Promise<T> } {
+  return typeof v === "object" && v !== null && "transaction" in v;
+}
+
 /**
  * BAIXA DIRETA DE PEDIDO (SEM CARGA)
  * Usado pela tela "Meus Pedidos": marca ENTREGUE e integra Financeiro (contas a receber + caixa) e comissão.
  */
 export async function baixarPedidoDireto(
-  tenantId: number, 
-  pedidoId: number, 
-  data: BaixaPedidoInput, 
-  tx?: unknown
+  tenantId: number,
+  pedidoId: number,
+  data: BaixaPedidoInput,
+  options?: BaixarPedidoDiretoOptions
 ): Promise<{ success: boolean; boletoIds: number[]; pedidoNumero: number; clienteNome: string }> {
+  const tx = options?.tx;
+  const actor = options?.actor;
+
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(pedidoId, "pedidoId");
   assertRequiredPayload(data, "Dados de baixa obrigatórios");
@@ -81,11 +121,19 @@ export async function baixarPedidoDireto(
 
   const boletoIds: number[] = [];
 
-  return await (dbTx as any).transaction?.(async (tx: any) => {
+  if (!hasTransaction(dbTx)) throw new Error("Transação indisponível para baixa de pedido");
+  return await dbTx.transaction(async (tx) => {
     // 1. Buscar dados do pedido
-    const pedidoRows = await tx.select().from(pedidos).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId))).limit(1);
+    const pedidoRows = await tx.select().from(pedidos).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId))).for("update").limit(1);
     if (pedidoRows.length === 0) throw new Error('Pedido não encontrado');
     const pedido = pedidoRows[0];
+
+    if (actor?.role === "vendedor") {
+      assertVendedorActor(actor);
+      if (Number(pedido.vendedorId) !== actor.vendedorId) {
+        throw new Error("Acesso negado: pedido de outro vendedor.");
+      }
+    }
 
     const valorTotal = parseFloat(pedido.total.toString());
     const entradaValor = typeof data.entradaValor === 'number' ? data.entradaValor : valorTotal;
@@ -96,7 +144,7 @@ export async function baixarPedidoDireto(
     // 2. Atualizar status do pedido para ENTREGUE
     await tx.update(pedidos)
       .set({ 
-        status: 'ENTREGUE',
+        status: PedidoStatus.ENTREGUE,
         dataEntrega: new Date(),
         updatedAt: new Date()
       })
@@ -125,7 +173,7 @@ export async function baixarPedidoDireto(
           valorOriginal: valorParcela,
           valorAberto: valorParcela,
           dataVencimento: venc,
-          status: 'ABERTO',
+          status: BoletoStatus.ABERTO,
         });
         const boletoId = getInsertId(result);
         if (!Number.isInteger(boletoId) || boletoId <= 0) {
@@ -144,7 +192,7 @@ export async function baixarPedidoDireto(
         valor: entradaValor.toString(),
         dataVencimento: new Date(),
         dataRecebimento: new Date(),
-        status: 'RECEBIDA',
+        status: ContaReceberStatus.RECEBIDA,
         formaPagamento: data.entradaForma,
         observacoes: data.observacoes ?? null,
       });
@@ -162,7 +210,7 @@ export async function baixarPedidoDireto(
         valor: segundaValor.toString(),
         dataVencimento: new Date(),
         dataRecebimento: new Date(),
-        status: 'RECEBIDA',
+        status: ContaReceberStatus.RECEBIDA,
         formaPagamento: data.segundaForma,
         observacoes: data.observacoes ?? null,
       });
@@ -189,7 +237,7 @@ export async function baixarPedidoDireto(
         valorVenda: pedido.total.toString(),
         percentualComissao: "0",
         valorComissao: valorComissao.toString(),
-        status: 'PENDENTE',
+        status: ComissaoStatus.PENDENTE,
         createdAt: new Date(),
       });
     }
@@ -221,47 +269,131 @@ export async function baixarBoletoParcial(
   tenantId: number, 
   boletoId: number, 
   valorPago: number
-): Promise<{ success: boolean; novoAberto: number; novoStatus: string }> {
+): Promise<{ success: boolean; novoAberto: number; novoStatus: string; idempotencyKey?: string }> {
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(boletoId, "boletoId");
   if (!Number.isFinite(valorPago) || valorPago <= 0) {
     throw new Error("valorPago obrigatório");
   }
+
+  // 1. IDEMPOTÊNCIA: Verificar se operação já foi processada
+  const idempotencyKey = generateIdempotencyKey('BAIXA_BOLETO', boletoId, { valorPago });
+  const idempotencyCheck = await financialIdempotencyCheck(tenantId, 'BAIXA_BOLETO', boletoId, { valorPago });
+  
+  if (!idempotencyCheck.allowed) {
+    // Retornar status atual sem processar novamente
+    const db = await getDb();
+    const currentBoleto = await db.select()
+      .from(boletos)
+      .where(and(eq(boletos.tenantId, tenantId), eq(boletos.id, boletoId)))
+      .limit(1);
+    
+    if (currentBoleto.length > 0) {
+      return {
+        success: true,
+        novoAberto: Number(currentBoleto[0].valorAberto),
+        novoStatus: currentBoleto[0].status,
+        idempotencyKey
+      };
+    }
+    
+    throw new Error("Boleto não encontrado");
+  }
+
   const dbTx = await getDb();
   if (!dbTx) throw new Error("Banco de dados indisponível");
 
-  return await dbTx.transaction?.(async (transaction: any) => {
-    const bRows = await transaction.select().from(boletos).where(and(eq(boletos.tenantId, tenantId), eq(boletos.id, boletoId))).limit(1);
-    if (!bRows.length) throw new Error("Boleto não encontrado");
-    const b = bRows[0];
+  if (!hasTransaction(dbTx)) throw new Error("Transação indisponível para baixa de boleto");
+  
+  // 2. EXECUTAR COM IDEMPOTÊNCIA E LOCK FOR UPDATE
+  return await executeWithIdempotency(
+    tenantId,
+    'BAIXA_BOLETO',
+    boletoId,
+    async () => {
+      return await dbTx.transaction(async (transaction) => {
+        // 3. LOCK FOR UPDATE: Selecionar boleto com bloqueio pessimista
+        const bRows = await transaction.select().from(boletos)
+          .where(and(eq(boletos.tenantId, tenantId), eq(boletos.id, boletoId)))
+          .for("update")
+          .limit(1);
+        
+        if (!bRows.length) throw new Error("Boleto não encontrado");
+        const b = bRows[0];
 
-    const novoAberto = Math.max(0, Number(b.valorAberto) - valorPago);
-    const novoStatus = novoAberto <= 0 ? 'PAGO' : 'PARCIAL';
+        // 4. VALIDAR STATUS: Bloquear se não estiver ABERTO
+        if (b.status !== BoletoStatus.ABERTO && b.status !== BoletoStatus.PARCIAL) {
+          throw new Error(`Boleto não pode ser baixado. Status atual: ${b.status}. Status esperado: ABERTO ou PARCIAL`);
+        }
 
-    await transaction.update(boletos)
-      .set({ valorAberto: novoAberto.toString(), status: novoStatus, updatedAt: new Date() })
-      .where(and(eq(boletos.tenantId, tenantId), eq(boletos.id, boletoId)));
+        // 5. VALIDAR VALOR: Não permitir pagar mais que o valor aberto
+        const valorAbertoAtual = Number(b.valorAberto);
+        if (valorPago > valorAbertoAtual) {
+          throw new Error(`Valor pago (${valorPago}) maior que valor aberto (${valorAbertoAtual})`);
+        }
 
-    // Lógica de caixa (simplificada: assume PIX para baixas avulsas)
-    await atualizarCaixaMensal(tenantId, new Date().toISOString().slice(0, 7), 'PIX', valorPago, transaction);
+        const novoAberto = Math.max(0, valorAbertoAtual - valorPago);
+        const novoStatus: (typeof BoletoStatusValues)[number] = novoAberto <= 0 ? BoletoStatus.PAGO : BoletoStatus.PARCIAL;
+        
+        if (!BoletoStatusValues.includes(novoStatus)) {
+          throw new Error("Status inválido de boleto");
+        }
 
-    // Auditoria Logger
-    auditLog({
-      action: "update",
-      module: "financeiro",
-      resourceId: boletoId,
-      details: { action: "baixa_boleto_parcial", valorPago, novoStatus, novoAberto }
-    });
+        // 6. ATUALIZAR BOLETO
+        await transaction.update(boletos)
+          .set({ 
+            valorAberto: novoAberto.toString(), 
+            status: novoStatus, 
+            updatedAt: new Date()
+          })
+          .where(and(eq(boletos.tenantId, tenantId), eq(boletos.id, boletoId)));
 
-    return { success: true, novoAberto, novoStatus };
-  });
+        // 7. CAIXA COM IDEMPOTÊNCIA: Verificar se crédito já foi aplicado
+        const caixaKey = generateIdempotencyKey('CREDITO_CAIXA', boletoId, { valorPago, mes: new Date().toISOString().slice(0, 7) });
+        const caixaCheck = await financialIdempotencyCheck(tenantId, 'CREDITO_CAIXA', boletoId, { valorPago, mes: new Date().toISOString().slice(0, 7) });
+        
+        if (caixaCheck.allowed) {
+          // Aplicar crédito no caixa apenas se ainda não foi feito
+          await atualizarCaixaMensal(
+            tenantId, 
+            new Date().toISOString().slice(0, 7), 
+            'PIX', 
+            valorPago, 
+            transaction,
+            caixaKey
+          );
+        }
+
+        // 8. AUDITORIA
+        auditLog({
+          action: "update",
+          module: "financeiro",
+          resourceId: boletoId,
+          details: { 
+            action: "baixa_boleto_parcial", 
+            valorPago, 
+            novoStatus, 
+            novoAberto,
+            idempotencyKey,
+            caixaCreditado: caixaCheck.allowed
+          }
+        });
+
+        return { success: true, novoAberto, novoStatus };
+      });
+    },
+    { valorPago }
+  ).then(result => ({
+    ...result.result,
+    idempotencyKey: result.idempotencyKey
+  }));
 }
 
 export async function getBoletosByVendedor(
   tenantId: number, 
   vendedorId: number, 
   opts?: { page?: number; pageSize?: number; }
-): Promise<{ items: Boleto[]; total: number; page: number; pageSize: number; }> {
+): Promise<{ items: BoletoComClienteNome[]; total: number; page: number; pageSize: number; }> {
   if (!Number.isInteger(tenantId) || tenantId <= 0) return { items: [], total: 0, page: 1, pageSize: 50 };
   if (!Number.isInteger(vendedorId) || vendedorId <= 0) return { items: [], total: 0, page: 1, pageSize: 50 };
   const dbConn = await getDb();
@@ -272,8 +404,12 @@ export async function getBoletosByVendedor(
   const offset = (page - 1) * pageSize;
 
   const items = await dbConn
-    .select()
+    .select({
+      ...getTableColumns(boletos),
+      clienteNome: clientes.nome,
+    })
     .from(boletos)
+    .innerJoin(clientes, and(eq(boletos.clienteId, clientes.id), eq(clientes.tenantId, tenantId)))
     .where(and(eq(boletos.tenantId, tenantId), eq(boletos.vendedorId, vendedorId)))
     .orderBy(desc(boletos.dataVencimento))
     .limit(pageSize)
@@ -285,7 +421,7 @@ export async function getBoletosByVendedor(
     .where(and(eq(boletos.tenantId, tenantId), eq(boletos.vendedorId, vendedorId)));
   const total = Number(totalResult[0]?.count ?? 0);
   
-  return { items: ensureArray(items) as Boleto[], total, page, pageSize };
+  return { items: ensureArray(items), total, page, pageSize };
 }
 
 export async function getBoletoById(tenantId: number, id: number): Promise<Boleto | null> {
@@ -314,11 +450,13 @@ export async function marcarContaRecebida(
   if (!conta.length) throw new Error("Conta a receber não encontrada");
   await dbConn.update(contasReceber)
     .set({
-      status: 'RECEBIDA',
+      status: ContaReceberStatus.RECEBIDA,
       dataRecebimento: new Date(dataRecebimento),
       formaPagamento: formaPagamento as 'PIX' | 'BOLETO' | 'CARTAO' | 'DINHEIRO',
     })
     .where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id)));
+  const after = await dbConn.select().from(contasReceber).where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id))).limit(1);
+  if (!after.length || after[0]?.status !== ContaReceberStatus.RECEBIDA) throw new Error("Falha ao marcar conta como recebida");
 
   // Auditoria Logger
   auditLog({
@@ -349,8 +487,9 @@ export async function deleteContaReceber(tenantId: number, id: number): Promise<
       details: { action: "delete_conta_receber" }
     });
 
-    // Garantir que o retorno tenha success: true
-    return ensureDeleteResult();
+    const after = await dbConn.select().from(contasReceber).where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id))).limit(1);
+    if (after.length > 0) throw new Error("Falha ao excluir conta a receber");
+    return { success: true };
   } catch (error) {
     console.error("Erro ao excluir conta a receber:", error);
     throw error;
@@ -455,8 +594,10 @@ export async function pagarConta(tenantId: number, id: number, valorPago: number
   const conta = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
   if (!conta.length) throw new Error("Conta a pagar não encontrada");
   await dbConn.update(contasPagar)
-    .set({ status: 'PAGO', dataPagamento: new Date() })
+    .set({ status: ContaPagarStatus.PAGO, dataPagamento: new Date() })
     .where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id)));
+  const after = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
+  if (!after.length || after[0]?.status !== ContaPagarStatus.PAGO) throw new Error("Falha ao pagar conta");
   return { success: true };
 }
 
@@ -468,6 +609,8 @@ export async function deleteContaPagar(tenantId: number, id: number): Promise<{ 
   const conta = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
   if (!conta.length) throw new Error("Conta a pagar não encontrada");
   await dbConn.delete(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id)));
+  const after = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
+  if (after.length > 0) throw new Error("Falha ao excluir conta a pagar");
   return { success: true };
 }
 
@@ -517,8 +660,8 @@ export async function gerarContasFixasMes(tenantId: number, mesAno: string): Pro
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Banco de dados indisponível");
 
-  const fixas = await listContasFixas(tenantId);
-  const results = [];
+  const { items: fixas } = await listContasFixas(tenantId, { page: 1, pageSize: 500 });
+  const results: Awaited<ReturnType<typeof createContaPagar>>[] = [];
 
   for (const fixa of fixas) {
     const vcto = new Date(`${mesAno}-${String(fixa.diaVencimento).padStart(2, '0')}T12:00:00Z`);
@@ -527,7 +670,7 @@ export async function gerarContasFixasMes(tenantId: number, mesAno: string): Pro
       descricao: `CONTA FIXA: ${fixa.descricao} - ${mesAno}`,
       valor: Number(fixa.valor),
       dataVencimento: vcto,
-      status: 'PENDENTE',
+      status: ContaPagarStatus.PENDENTE,
       planoContasId: fixa.planoContasId ?? undefined
     });
     results.push(res);
@@ -563,7 +706,7 @@ export async function marcarComissaoPaga(tenantId: number, id: number): Promise<
   const comissao = await dbConn.select().from(comissoes).where(and(eq(comissoes.tenantId, tenantId), eq(comissoes.id, id))).limit(1);
   if (!comissao.length) throw new Error("Comissão não encontrada");
   await dbConn.update(comissoes)
-    .set({ status: 'PAGA', dataPagamento: new Date() })
+    .set({ status: ComissaoStatus.PAGA, dataPagamento: new Date() })
     .where(and(eq(comissoes.tenantId, tenantId), eq(comissoes.id, id)));
   return { success: true };
 }
@@ -578,11 +721,11 @@ export async function createContaReceber(tenantId: number, data: CreateContaRece
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Banco de dados indisponível");
   
-  const statusCr: 'PENDENTE' | 'RECEBIDA' = data.status === 'RECEBIDA' ? 'RECEBIDA' : 'PENDENTE';
+  const statusCr = validateStatus(data.status, ContaReceberStatusValues, "contaReceber.status");
   const result = await dbConn.insert(contasReceber).values({
     tenantId,
     clienteNome: data.clienteNome,
-    vendedorId: data.vendedorId,
+    vendedorId: data.vendedorId ?? null,
     descricao: data.descricao,
     valor: String(data.valor),
     dataVencimento: data.dataVencimento,
@@ -614,7 +757,7 @@ export async function createContaPagar(tenantId: number, data: CreateContaPagarI
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Banco de dados indisponível");
   
-  const statusCp: 'PENDENTE' | 'PAGO' = data.status === 'PAGO' ? 'PAGO' : 'PENDENTE';
+  const statusCp = validateStatus(data.status, ContaPagarStatusValues, "contaPagar.status");
   const result = await dbConn.insert(contasPagar).values({
     tenantId,
     fornecedor: data.fornecedor,
@@ -642,24 +785,48 @@ export async function createContaPagar(tenantId: number, data: CreateContaPagarI
   return { id: Number(contaId) };
 }
 
-export async function listContasReceber(tenantId: number, filtros?: {
+export type ListContasReceberFiltros = {
   status?: string;
-  vendedorId?: number;
   dataInicio?: Date;
   dataFim?: Date;
   page?: number;
   pageSize?: number;
-}): Promise<{ items: ContaReceber[]; total: number; page: number; pageSize: number }> {
+};
+
+/** Conta a receber por id com isolamento de tenant (LEO / fluxos com ownership). */
+export async function getContaReceberByIdForTenant(
+  tenantId: number,
+  id: number
+): Promise<ContaReceber | null> {
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(id, "contaReceberId");
+  const dbConn = await getDb();
+  if (!dbConn) return null;
+  const rows = await dbConn
+    .select()
+    .from(contasReceber)
+    .where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listContasReceber(
+  tenantId: number,
+  actor: ServiceActor,
+  filtros?: ListContasReceberFiltros
+): Promise<{ items: ContaReceber[]; total: number; page: number; pageSize: number }> {
   if (!tenantId) return { items: [], total: 0, page: 1, pageSize: 50 };
   const dbConn = await getDb();
   if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
 
+  const scope = financeScopeVendedorId(actor);
+
   const conditions = [eq(contasReceber.tenantId, tenantId)];
-  if (filtros?.status) {
-    conditions.push(eq(contasReceber.status, filtros.status));
+  if (scope !== null) {
+    conditions.push(eq(contasReceber.vendedorId, scope));
   }
-  if (filtros?.vendedorId) {
-    conditions.push(eq(contasReceber.vendedorId, filtros.vendedorId));
+  if (filtros?.status) {
+    conditions.push(eq(contasReceber.status, validateStatus(filtros.status, ContaReceberStatusValues, "filtros.status")));
   }
   if (filtros?.dataInicio) {
     conditions.push(sql`${contasReceber.dataVencimento} >= ${filtros.dataInicio}`);
@@ -688,21 +855,34 @@ export async function listContasReceber(tenantId: number, filtros?: {
   return { items: items as ContaReceber[], total, page, pageSize };
 }
 
-export async function listContasPagar(tenantId: number, filtros?: {
+export type ListContasPagarFiltros = {
   status?: string;
   fornecedor?: string;
   dataInicio?: Date;
   dataFim?: Date;
   page?: number;
   pageSize?: number;
-}): Promise<{ items: ContaPagar[]; total: number; page: number; pageSize: number }> {
+};
+
+/** Contas a pagar são despesas globais do tenant (sem vendedor_id): vendedor não vê linhas. */
+export async function listContasPagar(
+  tenantId: number,
+  actor: ServiceActor,
+  filtros?: ListContasPagarFiltros
+): Promise<{ items: ContaPagar[]; total: number; page: number; pageSize: number }> {
+  const page = filtros?.page ?? 1;
+  const pageSize = Math.min(filtros?.pageSize ?? 50, 100);
   if (!tenantId) return { items: [], total: 0, page: 1, pageSize: 50 };
+  if (actor.role === "vendedor") {
+    return { items: [], total: 0, page, pageSize };
+  }
+
   const dbConn = await getDb();
   if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
 
   const conditions = [eq(contasPagar.tenantId, tenantId)];
   if (filtros?.status) {
-    conditions.push(eq(contasPagar.status, filtros.status));
+    conditions.push(eq(contasPagar.status, validateStatus(filtros.status, ContaPagarStatusValues, "filtros.status")));
   }
   if (filtros?.fornecedor) {
     conditions.push(sql`${contasPagar.fornecedor} LIKE ${`%${filtros.fornecedor}%`}`);
@@ -714,8 +894,6 @@ export async function listContasPagar(tenantId: number, filtros?: {
     conditions.push(sql`${contasPagar.dataVencimento} <= ${filtros.dataFim}`);
   }
 
-  const page = filtros?.page ?? 1;
-  const pageSize = Math.min(filtros?.pageSize ?? 50, 100);
   const offset = (page - 1) * pageSize;
 
   const items = await dbConn
@@ -739,7 +917,8 @@ export async function atualizarCaixaMensal(
   mesAno: string,
   formaPagamento: 'PIX' | 'BOLETO' | 'CARTAO' | 'DINHEIRO',
   valor: number,
-  tx?: unknown
+  tx?: unknown,
+  idempotencyKey?: string // Chave para evitar duplicação
 ): Promise<void> {
   assertRequiredId(tenantId, "tenantId");
   if (!mesAno?.trim()) throw new Error("mesAno obrigatório");
@@ -747,10 +926,20 @@ export async function atualizarCaixaMensal(
   const dbTx = tx ?? await getDb();
   if (!dbTx) throw new Error("Database not available");
 
-  const existing = await (dbTx as any).select?.()
+  // IDEMPOTÊNCIA: Verificar se operação já foi processada
+  if (idempotencyKey) {
+    const caixaCheck = await financialIdempotencyCheck(tenantId, 'CREDITO_CAIXA', parseInt(idempotencyKey.split(':')[1]), { mesAno, formaPagamento, valor });
+    
+    if (!caixaCheck.allowed) {
+      console.log(`[FINANCE] Crédito no caixa já processado: ${idempotencyKey}`);
+      return; // Não fazer nada se já foi processado
+    }
+  }
+
+  const existing = await (dbTx as TxLike).select()
     .from(caixaMensal)
     .where(eq(caixaMensal.mesAno, mesAno))
-    .limit(1) ?? [];
+    .limit(1) as Array<typeof caixaMensal.$inferSelect>;
 
   if (existing.length > 0) {
     const updateData:
@@ -763,8 +952,12 @@ export async function atualizarCaixaMensal(
       : formaPagamento === 'CARTAO' ? { totalCartao: sql`${caixaMensal.totalCartao} + ${valor}` }
       : { totalDinheiro: sql`${caixaMensal.totalDinheiro} + ${valor}` };
 
-    await (dbTx as any).update?.(caixaMensal)
-      .set(updateData)
+    await (dbTx as TxLike).update(caixaMensal)
+      .set({
+        ...updateData,
+        totalGeral: sql`${caixaMensal.totalGeral} + ${valor}`,
+        updatedAt: new Date()
+      })
       .where(eq(caixaMensal.mesAno, mesAno));
   } else {
     const newData = {
@@ -774,8 +967,15 @@ export async function atualizarCaixaMensal(
       totalCartao: formaPagamento === 'CARTAO' ? String(valor) : "0",
       totalDinheiro: formaPagamento === 'DINHEIRO' ? String(valor) : "0",
       totalGeral: String(valor),
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-    await (dbTx as any).insert?.(caixaMensal).values(newData);
+    await (dbTx as TxLike).insert(caixaMensal).values(newData);
+  }
+
+  // Marcar como processado se tiver chave de idempotência
+  if (idempotencyKey) {
+    await markOperationProcessed(tenantId, idempotencyKey, 'CREDITO_CAIXA', { mesAno, formaPagamento, valor });
   }
 
   await insertAuditLog({
@@ -783,45 +983,57 @@ export async function atualizarCaixaMensal(
     action: "update",
     entity: "caixa_mensal",
     entityId: `${mesAno}-${formaPagamento}`,
-    payloadJson: JSON.stringify({ tenantId, mesAno, formaPagamento, valor }),
+    payloadJson: JSON.stringify({ tenantId, mesAno, formaPagamento, valor, idempotencyKey }),
     traceId: nanoid(10),
   });
 }
 
-export async function getResumoFinanceiro(tenantId: number): Promise<{ aReceber: number; aPagar: number; vencidas: number; aVencer: number }> {
+export async function getResumoFinanceiro(
+  tenantId: number,
+  actor: ServiceActor
+): Promise<{ aReceber: number; aPagar: number; vencidas: number; aVencer: number }> {
   if (!tenantId) return { aReceber: 0, aPagar: 0, vencidas: 0, aVencer: 0 };
   const dbConn = await getDb();
   if (!dbConn) return { aReceber: 0, aPagar: 0, vencidas: 0, aVencer: 0 };
 
+  const scope = financeScopeVendedorId(actor);
+
   const hoje = new Date();
   const daqui30dias = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
-  
-  const contasReceberRows = await dbConn
+
+  const receberConditions = [
+    eq(contasReceber.tenantId, tenantId),
+    ne(contasReceber.status, ContaReceberStatus.RECEBIDA),
+    sql`${contasReceber.dataVencimento} <= ${daqui30dias}`,
+  ];
+  if (scope !== null) {
+    receberConditions.push(eq(contasReceber.vendedorId, scope));
+  }
+
+  const contasReceberRows = (await dbConn
     .select()
     .from(contasReceber)
-    .where(
-      and(
-        eq(contasReceber.tenantId, tenantId),
-        sql`${contasReceber.status} != 'RECEBIDA'`,
-        sql`${contasReceber.dataVencimento} <= ${daqui30dias}`
-      )
-    ) as ContaReceber[];
+    .where(and(...receberConditions))) as ContaReceber[];
 
   const aReceber = contasReceberRows.reduce((sum: number, conta: ContaReceber) => sum + Number(conta.valor), 0);
   const vencidas = contasReceberRows
     .filter((conta: ContaReceber) => new Date(conta.dataVencimento) < hoje)
     .reduce((sum: number, conta: ContaReceber) => sum + Number(conta.valor), 0);
 
-  const contasPagarRows = await dbConn
+  if (scope !== null) {
+    return { aReceber, aPagar: 0, vencidas, aVencer: 0 };
+  }
+
+  const contasPagarRows = (await dbConn
     .select()
     .from(contasPagar)
     .where(
       and(
         eq(contasPagar.tenantId, tenantId),
-        sql`${contasPagar.status} != 'PAGO'`,
+        ne(contasPagar.status, ContaPagarStatus.PAGO),
         sql`${contasPagar.dataVencimento} <= ${daqui30dias}`
       )
-    ) as ContaPagar[];
+    )) as ContaPagar[];
 
   const aPagar = contasPagarRows.reduce((sum: number, conta: ContaPagar) => sum + Number(conta.valor), 0);
   const aVencer = contasPagarRows

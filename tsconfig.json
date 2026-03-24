@@ -5,9 +5,15 @@
     "build",
     "dist",
     "**/*.test.ts",
-    "client/src/_legacy/**/*"
+    "client/src/_legacy/**/*",
+    "server/tests/**",
+    "server/types/service-safe-example.ts",
+    "server/security/attack-testing.ts",
+    "server/security/penetration-test.ts"
   ],
   "compilerOptions": {
+    "target": "ES2022",
+    "downlevelIteration": true,
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,

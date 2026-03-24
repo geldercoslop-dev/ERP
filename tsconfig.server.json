@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "ESNext",
+    "jsx": "preserve",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "skipLibCheck": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "incremental": false,
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo.server",
+    "types": ["./types/global"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"]
+    }
+  },
+  "include": [
+    "server/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "scripts",
+    "server/tests/**",
+    "server/types/service-safe-example.ts",
+    "server/security/attack-testing.ts",
+    "server/security/penetration-test.ts",
+    "**/*.test.ts",
+    "client/**/*",
+    "shared/**/*"
+  ]
+}

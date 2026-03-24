@@ -1,6 +1,7 @@
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { getDb, getInsertId, promocoes, promocoesItens, insertAuditLog } from "../db/index";
 import { nanoid } from "nanoid";
+import { z } from "zod";
 
 // Types
 export type CreatePromocaoInput = {
@@ -17,13 +18,32 @@ export type CreatePromocaoItemInput = {
   precoPromocional: number;
 };
 
+const CreatePromocaoSchema = z.object({
+  nome: z.string().min(2),
+  inicio: z.date(),
+  fim: z.date(),
+  ativo: z.boolean().optional(),
+}).strict();
+
+const UpdatePromocaoSchema = z.object({
+  nome: z.string().min(2).optional(),
+  inicio: z.date().optional(),
+  fim: z.date().optional(),
+  ativo: z.boolean().optional(),
+}).strict();
+
+const PromocaoItemSchema = z.object({
+  produtoId: z.number().int().positive(),
+  precoPromocional: z.number().nonnegative(),
+}).strict();
+
 /**
  * Lista todas as promoções com paginação
  */
 export async function listPromocoes(
   tenantId: number, 
   options?: { page?: number; pageSize?: number; ativo?: boolean; }
-): Promise<{ items: any[]; total: number; page: number; pageSize: number; }> {
+): Promise<{ items: Array<typeof promocoes.$inferSelect>; total: number; page: number; pageSize: number; }> {
   if (!tenantId) return { items: [], total: 0, page: 1, pageSize: 50 };
   const dbConn = await getDb();
   if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
@@ -65,7 +85,7 @@ export async function getPromocaoById(tenantId: number, id: number) {
   if (!dbConn) return null;
   
   const result = await dbConn.select().from(promocoes).where(and(eq(promocoes.tenantId, tenantId), eq(promocoes.id, id))).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  return result.length > 0 ? result[0] : null;
 }
 
 /**
@@ -73,15 +93,16 @@ export async function getPromocaoById(tenantId: number, id: number) {
  */
 export async function createPromocao(tenantId: number, data: CreatePromocaoInput) {
   if (!tenantId) throw new Error("tenantId is required");
+  const payload = CreatePromocaoSchema.parse(data);
   const dbConn = await getDb();
   if (!dbConn) throw new Error('Database not available');
   
   const res = await dbConn.insert(promocoes).values({
     tenantId,
-    nome: data.nome,
-    inicio: data.inicio,
-    fim: data.fim,
-    ativo: data.ativo ?? true,
+    nome: payload.nome,
+    inicio: payload.inicio,
+    fim: payload.fim,
+    ativo: payload.ativo ?? true,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -106,15 +127,20 @@ export async function createPromocao(tenantId: number, data: CreatePromocaoInput
  */
 export async function updatePromocao(tenantId: number, id: number, data: UpdatePromocaoInput) {
   if (!tenantId) throw new Error("tenantId is required");
+  const payload = UpdatePromocaoSchema.parse(data);
   const dbConn = await getDb();
   if (!dbConn) throw new Error('Database not available');
   
   const updateData = {
-    ...data,
+    ...payload,
     updatedAt: new Date()
   };
   
+  const existing = await getPromocaoById(tenantId, id);
+  if (!existing) throw new Error("Promoção não encontrada");
   await dbConn.update(promocoes).set(updateData).where(and(eq(promocoes.tenantId, tenantId), eq(promocoes.id, id)));
+  const updated = await getPromocaoById(tenantId, id);
+  if (!updated) throw new Error("Falha ao atualizar promoção");
 
   // Registrar auditoria
   await insertAuditLog({
@@ -135,8 +161,12 @@ export async function deletePromocao(tenantId: number, id: number) {
   const dbConn = await getDb();
   if (!dbConn) throw new Error('Database not available');
   
+  const existing = await getPromocaoById(tenantId, id);
+  if (!existing) throw new Error("Promoção não encontrada");
   // Hard delete (itens possuem cascade). Evita promo fantasma.
   await dbConn.delete(promocoes).where(and(eq(promocoes.tenantId, tenantId), eq(promocoes.id, id)));
+  const deleted = await getPromocaoById(tenantId, id);
+  if (deleted) throw new Error("Falha ao excluir promoção");
 
   // Registrar auditoria
   await insertAuditLog({
@@ -172,6 +202,7 @@ export async function getPromocaoItens(tenantId: number, promocaoId: number) {
  */
 export async function setPromocaoItens(tenantId: number, promocaoId: number, itens: CreatePromocaoItemInput[]) {
   if (!tenantId) throw new Error("tenantId is required");
+  const itensValidos = z.array(PromocaoItemSchema).parse(itens);
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
@@ -180,9 +211,9 @@ export async function setPromocaoItens(tenantId: number, promocaoId: number, ite
     await tx.delete(promocoesItens).where(and(eq(promocoesItens.tenantId, tenantId), eq(promocoesItens.promocaoId, promocaoId)));
 
     // Inserir novos itens
-    if (itens.length > 0) {
+    if (itensValidos.length > 0) {
       await tx.insert(promocoesItens).values(
-        itens.map(item => ({
+        itensValidos.map(item => ({
           tenantId,
           promocaoId,
           produtoId: item.produtoId,
@@ -198,7 +229,7 @@ export async function setPromocaoItens(tenantId: number, promocaoId: number, ite
       action: "update",
       entity: "promocao_itens",
       entityId: String(promocaoId),
-      payloadJson: JSON.stringify({ action: "set_itens", itens }),
+      payloadJson: JSON.stringify({ action: "set_itens", itens: itensValidos }),
       traceId: nanoid(10),
     });
 

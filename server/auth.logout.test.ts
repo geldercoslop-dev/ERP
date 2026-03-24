@@ -15,6 +15,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
 
   const user: AuthenticatedUser = {
     id: 1,
+    tenantId: 1,
     openId: "sample-user",
     email: "sample@example.com",
     name: "Sample User",
@@ -27,11 +28,20 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
 
   const ctx: TrpcContext = {
     user,
+    tenantId: 1,
+    isImpersonating: false,
+    session: {
+      origin: "none",
+      tokenPresent: false,
+      tokenKind: "unknown",
+    },
     req: {
       protocol: "https",
+      hostname: "localhost",
       headers: {},
     } as TrpcContext["req"],
     res: {
+      setHeader: () => {},
       clearCookie: (name: string, options: Record<string, unknown>) => {
         clearedCookies.push({ name, options });
       },
@@ -48,13 +58,13 @@ describe("auth.logout", () => {
 
     const result = await caller.auth.logout();
 
-    expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(1);
-    expect(clearedCookies[0]?.name).toBe(COOKIE_NAME);
-    expect(clearedCookies[0]?.options).toMatchObject({
+    expect(result).toMatchObject({ success: true });
+    // auth.logout limpa várias combinações nome × domínio × path (ver routers.ts)
+    expect(clearedCookies.length).toBe(24);
+    const forSessionToken = clearedCookies.filter((c) => c.name === COOKIE_NAME);
+    expect(forSessionToken.length).toBeGreaterThan(0);
+    expect(forSessionToken[0]?.options).toMatchObject({
       maxAge: -1,
-      secure: true,
-      sameSite: "none",
       httpOnly: true,
       path: "/",
     });

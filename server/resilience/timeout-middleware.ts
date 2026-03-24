@@ -1,0 +1,191 @@
+import { Request, Response, NextFunction } from 'express';
+import { createLogger } from '../infra/structured-logger';
+
+const logger = createLogger('timeout-middleware');
+
+/**
+ * Middleware de timeout global para requests
+ * Protege contra requests lentas que podem sobrecarregar o sistema
+ */
+export function globalTimeoutMiddleware(timeoutMs: number = 10000) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
+    
+    // Timeout timer
+    const timeout = setTimeout(() => {
+      logger.warn('Request timeout', {
+        metadata: {
+          url: req.url,
+          method: req.method,
+          timeout: timeoutMs,
+          duration: Date.now() - startTime,
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+        },
+      });
+      
+      // Fechar response se ainda não enviada
+      if (!res.headersSent) {
+        res.status(408).json({
+          error: 'Request Timeout',
+          message: `Request exceeded ${timeoutMs}ms timeout`,
+          timeout: timeoutMs,
+        });
+      }
+    }, timeoutMs);
+    
+    // Limpar timeout quando response terminar
+    res.on('finish', () => {
+      clearTimeout(timeout);
+      
+      // Log requests lentas (mas que completaram)
+      const duration = Date.now() - startTime;
+      if (duration > timeoutMs * 0.8) {
+        logger.warn('Slow request detected', {
+          metadata: {
+            url: req.url,
+            method: req.method,
+            duration,
+            timeout: timeoutMs,
+            ip: req.ip,
+          },
+        });
+      }
+    });
+    
+    // Limpar timeout em caso de erro
+    res.on('error', () => {
+      clearTimeout(timeout);
+    });
+    
+    next();
+  };
+}
+
+/**
+ * Timeout específico para operações de banco
+ */
+export function databaseTimeout(timeoutMs: number = 5000) {
+  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+    const originalMethod = descriptor.value;
+    
+    descriptor.value = async function (...args: any[]) {
+      const timeout = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Database operation timeout: ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+      
+      try {
+        const result = await Promise.race([
+          originalMethod.apply(this, args),
+          timeout,
+        ]);
+        return result;
+      } catch (error) {
+        logger.error('Database operation timeout', `Database operation ${propertyKey} timeout`, {
+          metadata: {
+            operation: propertyKey,
+            timeout: timeoutMs,
+            args: args.length,
+          },
+        });
+        throw error;
+      }
+    };
+    
+    return descriptor;
+  };
+}
+
+/**
+ * Timeout para APIs externas
+ */
+export function externalApiTimeout(timeoutMs: number = 8000) {
+  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+    const originalMethod = descriptor.value;
+    
+    descriptor.value = async function (...args: any[]) {
+      const timeout = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`External API timeout: ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+      
+      try {
+        const result = await Promise.race([
+          originalMethod.apply(this, args),
+          timeout,
+        ]);
+        return result;
+      } catch (error) {
+        logger.error('External API timeout', `External API ${propertyKey} timeout`, {
+          metadata: {
+            api: propertyKey,
+            timeout: timeoutMs,
+            args: args.length,
+          },
+        });
+        throw error;
+      }
+    };
+    
+    return descriptor;
+  };
+}
+
+/**
+ * Wrapper para operações com timeout manual
+ */
+export async function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  operationName: string = 'operation'
+): Promise<T> {
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`${operationName} timeout: ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  
+  try {
+    const result = await Promise.race([operation, timeout]);
+    return result;
+  } catch (error) {
+    logger.error('Operation timeout', `Operation ${operationName} timeout`, {
+      metadata: {
+        operation: operationName,
+        timeout: timeoutMs,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+    throw error;
+  }
+}
+
+/**
+ * Configurações de timeout por tipo de operação
+ */
+export const TIMEOUT_CONFIG = {
+  // Requests HTTP
+  HTTP_REQUEST: 10000, // 10s
+  API_REQUEST: 8000,   // 8s
+  
+  // Database
+  DB_QUERY: 5000,      // 5s
+  DB_TRANSACTION: 8000, // 8s
+  DB_CONNECTION: 3000, // 3s
+  
+  // External APIs
+  EXTERNAL_API: 8000,  // 8s
+  PAYMENT_API: 10000,  // 10s
+  EMAIL_API: 15000,    // 15s
+  
+  // File operations
+  FILE_UPLOAD: 30000,  // 30s
+  FILE_DOWNLOAD: 20000, // 20s
+  
+  // Cache operations
+  CACHE_GET: 1000,     // 1s
+  CACHE_SET: 2000,     // 2s
+} as const;

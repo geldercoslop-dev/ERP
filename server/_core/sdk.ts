@@ -5,7 +5,7 @@ import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { users } from "../../drizzle/schema";
-import * as db from "../db";
+import * as db from "../db/index";
 import { ENV } from "./env";
 import type {
   ExchangeTokenRequest,
@@ -25,6 +25,15 @@ export type SessionPayload = {
 };
 
 type DbUser = typeof users.$inferSelect;
+
+function getRequiredTenantId(): number {
+  const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
+  const tenantId = Number(raw);
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new Error("DEFAULT_TENANT_ID/TENANT_ID obrigatório para sincronização OAuth");
+  }
+  return tenantId;
+}
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
@@ -113,7 +122,7 @@ class SDKServer {
     )
       return "microsoft";
     if (set.has("REGISTERED_PLATFORM_GITHUB")) return "github";
-    const first = Array.from(set)[0];
+    const first = set.values().next().value || null;
     return first ? first.toLowerCase() : null;
   }
 
@@ -278,7 +287,9 @@ class SDKServer {
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        await db.upsertUser({
+        const tenantId = getRequiredTenantId();
+        await db.upsertUser(tenantId, {
+          tenantId,
           openId: userInfo.openId,
           name: userInfo.name || null,
           email: userInfo.email ?? null,
@@ -296,7 +307,8 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
+    await db.upsertUser(user.tenantId, {
+      tenantId: user.tenantId,
       openId: user.openId,
       lastSignedIn: signedInAt,
     });

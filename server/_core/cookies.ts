@@ -10,7 +10,7 @@ function isIpAddress(host: string) {
 function isSecureRequest(req: Request) {
   if (req.protocol === "https") return true;
 
-  const forwardedProto = req.headers["x-forwarded-proto"];
+  const forwardedProto = req.headers?.["x-forwarded-proto"];
   if (!forwardedProto) return false;
 
   const protoList = Array.isArray(forwardedProto)
@@ -28,12 +28,19 @@ function isLocalRequest(req: Request) {
 export function getSessionCookieOptions(
   req: Request
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
+  const nodeEnv = process.env.NODE_ENV;
   const isLocal = isLocalRequest(req);
   const isSecure = isSecureRequest(req);
 
   // SameSite=None exige Secure=true; em localhost sem HTTPS o cookie é rejeitado.
   // Em localhost (produção ou dev) usamos sameSite=lax e secure=false para login funcionar.
-  const sameSite = isLocal && !isSecure ? ("lax" as const) : ("none" as const);
+  // Produção: manter cookies em modo mais permissivo (lax) para HTTPS.
+  const sameSite =
+    nodeEnv === "production"
+      ? ("lax" as const)
+      : isLocal && !isSecure
+        ? ("lax" as const)
+        : ("none" as const);
   const secure = isLocal ? false : isSecure;
 
   const options: Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> = {

@@ -4,7 +4,7 @@
  * garante que vendedor só acessa recursos próprios (pedido, conta a receber, boleto, cliente).
  */
 import { TRPCError } from "@trpc/server";
-import * as db from "../db";
+import * as db from "../db/index";
 
 export type OwnershipContext = {
   user: { id: number; role: string } | null;

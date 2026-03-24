@@ -50,9 +50,16 @@ export function monitorQuery<T>(
     }
     
     return result;
-  }).catch(error => {
+  }).catch((error: unknown) => {
     const endTime = performance.now();
     const duration = endTime - startTime;
+    const err = error instanceof Error ? error : new Error(String(error));
+    const errSql = err as Error & {
+      code?: string;
+      errno?: number;
+      sqlState?: string;
+      sqlMessage?: string;
+    };
     
     // Registrar métrica para consulta com erro
     recordDatabase({
@@ -60,22 +67,22 @@ export function monitorQuery<T>(
       duration,
       timestamp: new Date(),
       success: false,
-      error: error.message,
+      error: err.message,
       tenantId
     });
     
     // Logar erro na consulta
-    logger.error(`Query error: ${error.message}`, {
-      error: error.message,
+    logger.error(`Query error: ${err.message}`, {
+      error: err.message,
       query: truncateQuery(query),
       duration,
       tenantId,
       metadata: {
-        stack: error.stack,
-        code: error.code,
-        errno: error.errno,
-        sqlState: error.sqlState,
-        sqlMessage: error.sqlMessage
+        stack: err.stack,
+        code: errSql.code,
+        errno: errSql.errno,
+        sqlState: errSql.sqlState,
+        sqlMessage: errSql.sqlMessage
       }
     });
     
@@ -92,33 +99,41 @@ function truncateQuery(query: string): string {
   return query.substring(0, maxLength) + '...';
 }
 
-/**
- * Wrapper para aplicar monitoramento em um objeto de conexão de banco de dados
- */
-export function wrapDatabaseConnection(connection: any): any {
-  const originalExecute = connection.execute;
-  const originalQuery = connection.query;
-  
-  // Substituir método execute
-  connection.execute = function(query: string, params?: any[]): Promise<any> {
-    return monitorQuery(
-      typeof query === 'string' ? query : String(query), 
-      () => originalExecute.apply(this, arguments),
-      params?.[0]?.tenantId || this.tenantId
-    );
+type DbConnectionLike = {
+  execute: (query: unknown, ...args: unknown[]) => Promise<unknown>;
+  query?: (query: unknown, ...args: unknown[]) => Promise<unknown>;
+  tenantId?: number;
+};
+
+function tenantIdFromFirstArg(rest: unknown[]): number | undefined {
+  const first = rest[0];
+  if (first !== null && typeof first === "object" && !Array.isArray(first) && "tenantId" in first) {
+    const t = (first as { tenantId?: unknown }).tenantId;
+    if (typeof t === "number" && Number.isFinite(t)) {
+      return t;
+    }
+  }
+  return undefined;
+}
+
+export function wrapDatabaseConnection<T extends DbConnectionLike>(connection: T): T {
+  const boundExecute = connection.execute.bind(connection);
+  const boundQuery = connection.query?.bind(connection);
+
+  connection.execute = function (this: T, query: unknown, ...rest: unknown[]): Promise<unknown> {
+    const q = typeof query === "string" ? query : String(query);
+    const tenant = tenantIdFromFirstArg(rest) ?? this.tenantId;
+    return monitorQuery(q, () => boundExecute(query, ...rest), tenant);
   };
-  
-  // Substituir método query
-  if (originalQuery) {
-    connection.query = function(query: string, params?: any[]): Promise<any> {
-      return monitorQuery(
-        typeof query === 'string' ? query : String(query), 
-        () => originalQuery.apply(this, arguments),
-        params?.[0]?.tenantId || this.tenantId
-      );
+
+  if (boundQuery) {
+    connection.query = function (this: T, query: unknown, ...rest: unknown[]): Promise<unknown> {
+      const q = typeof query === "string" ? query : String(query);
+      const tenant = tenantIdFromFirstArg(rest) ?? this.tenantId;
+      return monitorQuery(q, () => boundQuery(query, ...rest), tenant);
     };
   }
-  
+
   return connection;
 }
 

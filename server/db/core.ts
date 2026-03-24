@@ -40,6 +40,7 @@ import {
   clienteVendedores,
 } from "../../drizzle/schema";
 import { eq, and, asc, sql } from "drizzle-orm";
+import { assertServiceEntryIfEnabled } from "../_core/service-entry-guard";
 
 export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -51,6 +52,7 @@ export async function getPool(): Promise<mysql.Pool> {
 }
 
 export async function getDb(): Promise<Database> {
+  assertServiceEntryIfEnabled();
   if (!db) {
     pool = await getConnectionPool();
     
@@ -201,6 +203,34 @@ export async function getSchemaVersion(): Promise<number | null> {
   }
 }
 
+/** Garante linha (id=1) na schema_version com a versão esperada. */
+export async function ensureSchemaVersion(expectedVersion: number): Promise<void> {
+  try {
+    const database = await getDb();
+    const existing = await database
+      .select({ id: schemaVersion.id, version: schemaVersion.version })
+      .from(schemaVersion)
+      .where(eq(schemaVersion.id, 1))
+      .limit(1);
+    if (existing.length === 0) {
+      await database.insert(schemaVersion).values({ id: 1, version: expectedVersion } as any);
+      return;
+    }
+    const current = existing[0]?.version;
+    if (current == null) {
+      await database.update(schemaVersion).set({ version: expectedVersion } as any).where(eq(schemaVersion.id, 1));
+    }
+  } catch (e) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("❌ ERRO CAPTURADO EM DEV - NÃO ENCERRANDO");
+      console.error("[ensureSchemaVersion]", e);
+      console.log("🔥 SERVER STILL RUNNING AFTER ERROR");
+      return;
+    }
+    throw e;
+  }
+}
+
 /** Usuário por id. */
 export async function getUserById(id: number): Promise<User | null> {
   const database = await getDb();
@@ -322,6 +352,7 @@ export async function updateVendedorSenha(vendedorId: number, hashedPassword: st
 
 /** Compat: cria/retorna usuário por openId e opcionalmente nome. */
 export async function findOrCreateUserByOpenId(
+  tenantId: number,
   openId: string,
   name?: string | null
 ): Promise<User> {
@@ -329,7 +360,7 @@ export async function findOrCreateUserByOpenId(
   if (existing) return existing;
   const now = new Date();
   const created = await insertUser({
-    tenantId: 1,
+    tenantId,
     openId,
     name: name ?? null,
     email: null,
@@ -346,25 +377,35 @@ export async function findOrCreateUserByOpenId(
 
 /** Garante admin mínimo (user + vendedor admin). */
 export async function ensureAdminUser(tenantId: number): Promise<void> {
-  const adminUser = await findOrCreateUserByOpenId("admin", "Administrador");
-  // Promove role no users (se ainda não for)
-  await upsertUser(tenantId, { ...adminUser, tenantId, role: "admin", updatedAt: new Date() });
-  const existingVendedor = await getVendedorByUserId(adminUser.id);
-  if (existingVendedor) return;
-  const now = new Date();
-  await createVendedor({
-    tenantId,
-    userId: adminUser.id,
-    nome: "Administrador",
-    email: "admin@local.com",
-    senha: null,
-    cidade: null,
-    telefone: null,
-    admin: true,
-    ativo: true,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    const adminUser = await findOrCreateUserByOpenId(tenantId, "admin", "Administrador");
+    // Promove role no users (se ainda não for)
+    await upsertUser(tenantId, { ...adminUser, tenantId, role: "admin", updatedAt: new Date() });
+    const existingVendedor = await getVendedorByUserId(adminUser.id);
+    if (existingVendedor) return;
+    const now = new Date();
+    await createVendedor({
+      tenantId,
+      userId: adminUser.id,
+      nome: "Administrador",
+      email: "admin@local.com",
+      senha: null,
+      cidade: null,
+      telefone: null,
+      admin: true,
+      ativo: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } catch (e) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("❌ ERRO CAPTURADO EM DEV - NÃO ENCERRANDO");
+      console.error("[ensureAdminUser]", e);
+      console.log("🔥 SERVER STILL RUNNING AFTER ERROR");
+      return;
+    }
+    throw e;
+  }
 }
 
 /** Idempotência: reserva chave na transação. Retorna { reserved: true } ou { reserved: false, resultJson, traceId }. */
@@ -430,6 +471,7 @@ export async function clienteTemPedidoDoVendedor(clienteId: number, vendedorId: 
 }
 
 export async function insertLeoActionLog(params: {
+  tenantId?: number | null;
   usuario: string;
   acao: string;
   entidade: string;
@@ -437,8 +479,9 @@ export async function insertLeoActionLog(params: {
   resultado: string;
 }): Promise<void> {
   try {
+    if (params.tenantId == null) return;
     await insertAuditLog({
-      tenantId: 1,
+      tenantId: params.tenantId,
       action: "leo_action",
       entity: params.entidade,
       payloadJson: JSON.stringify({
@@ -482,8 +525,20 @@ export async function insertAuditLog(
 ): Promise<void> {
   try {
     const database = await getDb();
+    const resolvedTenantId = await (async (): Promise<number> => {
+      if (params.tenantId != null) return params.tenantId;
+      if (params.actorUserId != null) {
+        const u = await getUserById(params.actorUserId);
+        if (u?.tenantId != null) return u.tenantId;
+      }
+      if (params.actorVendedorId != null) {
+        const v = await getVendedorById(params.actorVendedorId);
+        if (v?.tenantId != null) return v.tenantId;
+      }
+      throw new Error("tenantId ausente para audit_log");
+    })();
     await database.insert(auditLog).values({
-      tenantId: params.tenantId ?? 1,
+      tenantId: resolvedTenantId,
       actorUserId: params.actorUserId ?? null,
       actorVendedorId: params.actorVendedorId ?? null,
       action: params.action,

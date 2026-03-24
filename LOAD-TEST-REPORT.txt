@@ -1,0 +1,89 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║           LOAD TEST REPORT - FASE A FASE v2                      ║
+║           Estabilidade do Servidor localhost:3001                  ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+Timestamp: 2026-03-23T18:43:37.842Z
+Server URL: http://localhost:3001
+Endpoints testados: /api/health, /api/auth/status, /api/items
+
+══════════════════════════════════════════════════════════════════════
+🔥 FASE: BAIXA CARGA (100 req/s)
+📊 Requisições/s alvo: 100 | Duração: 10s
+══════════════════════════════════════════════════════════════════════
+
+⏳ Executando requisições...
+
+✅ Resultados da Fase:
+   Total de requisições: 215
+   Sucesso: 0
+   Erros: 215
+   Taxa de sucesso: 0.00%
+   Latência Média: 35.20ms
+   Latência P50: 9ms
+   Latência P95: 122ms
+   Latência P99: 229ms
+   Estatuses: {"0":215}
+
+══════════════════════════════════════════════════════════════════════
+🔥 FASE: MÉDIA CARGA (500 req/s)
+📊 Requisições/s alvo: 500 | Duração: 10s
+══════════════════════════════════════════════════════════════════════
+
+⏳ Executando requisições...
+
+✅ Resultados da Fase:
+   Total de requisições: 1016
+   Sucesso: 0
+   Erros: 1016
+   Taxa de sucesso: 0.00%
+   Latência Média: 28.65ms
+   Latência P50: 14ms
+   Latência P95: 101ms
+   Latência P99: 221ms
+   Estatuses: {"0":1016}
+
+══════════════════════════════════════════════════════════════════════
+🔥 FASE: ALTA CARGA (1000 req/s)
+📊 Requisições/s alvo: 1000 | Duração: 10s
+══════════════════════════════════════════════════════════════════════
+
+⏳ Executando requisições...
+
+✅ Resultados da Fase:
+   Total de requisições: 1391
+   Sucesso: 0
+   Erros: 1391
+   Taxa de sucesso: 0.00%
+   Latência Média: 22.58ms
+   Latência P50: 13ms
+   Latência P95: 67ms
+   Latência P99: 139ms
+   Estatuses: {"0":1391}
+
+══════════════════════════════════════════════════════════════════════
+📈 RESUMO EXECUTIVO - BEFORE HARDENING
+══════════════════════════════════════════════════════════════════════
+
+1️⃣  FASE 1 (100 req/s):
+   Total: 215 | Sucesso: 0 | Erros: 215
+   Latência P95: 122.00ms
+   Taxa de Sucesso: 0.00%
+
+2️⃣  FASE 2 (500 req/s):
+   Total: 1016 | Sucesso: 0 | Erros: 1016
+   Latência P95: 101.00ms
+   Taxa de Sucesso: 0.00%
+
+3️⃣  FASE 3 (1000 req/s):
+   Total: 1391 | Sucesso: 0 | Erros: 1391
+   Latência P95: 67.00ms
+   Taxa de Sucesso: 0.00%
+
+📊 ANÁLISE PRÉ-HARDENING:
+⚠️  Total de erros: 2622
+⏱️  Latência P95 média: 96.67ms
+
+══════════════════════════════════════════════════════════════════════
+✅ Teste PRÉ-HARDENING concluído: 2026-03-23T18:44:13.261Z
+══════════════════════════════════════════════════════════════════════

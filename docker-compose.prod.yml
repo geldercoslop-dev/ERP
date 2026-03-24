@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  app:
+    image: node:22-alpine
+    container_name: vendas-app-prod
+    restart: always
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      APP_SECRET: ${APP_SECRET}
+      VITE_TRPC_URL: ${VITE_TRPC_URL}
+      SENTRY_DSN: ${SENTRY_DSN}
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+      start_period: 40s
+    networks:
+      - vendas-network
+    command: pnpm start:prod
+
+  mysql:
+    image: mysql:8.0
+    container_name: vendas-mysql-prod
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+      interval: 5s
+    networks:
+      - vendas-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: vendas-redis-prod
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 10
+      interval: 5s
+    command: redis-server --appendonly yes
+    networks:
+      - vendas-network
+
+volumes:
+  mysql_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+
+networks:
+  vendas-network:
+    driver: bridge

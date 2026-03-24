@@ -3,14 +3,9 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
-import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
-
-// Node ESM does NOT provide import.meta.dirname.
-// Compute dirname from import.meta.url for stable path resolving.
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { getProjectRoot } from "./project-root";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -37,12 +32,7 @@ export async function setupVite(app: Express, server: Server) {
     }
 
     try {
-      const clientTemplate = path.resolve(
-        __dirname,
-        "../..",
-        "client",
-        "index.html"
-      );
+      const clientTemplate = path.resolve(getProjectRoot(), "client", "index.html");
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
@@ -62,20 +52,38 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath =
-    process.env.NODE_ENV === "development"
-      ? path.resolve(__dirname, "../..", "dist", "public")
-      : path.resolve(__dirname, "public");
-  if (!fs.existsSync(distPath)) {
+  const distPath = path.resolve(getProjectRoot(), "dist", "public");
+  const indexHtml = path.join(distPath, "index.html");
+  const hasClient = fs.existsSync(distPath) && fs.existsSync(indexHtml);
+
+  if (!hasClient) {
     console.error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
+      `[STATIC] Build do frontend ausente ou incompleto. Esperado diretório com index.html em: ${distPath}`
     );
+    console.error("[STATIC] Rode: pnpm run build (client → dist/public). Rotas não-API responderão 503 até lá.");
+    app.use((req, res, next) => {
+      if (req.originalUrl?.split("?")[0]?.startsWith("/api")) {
+        next();
+        return;
+      }
+      res.status(503).type("application/json").json({
+        error: "client_not_built",
+        message: "Frontend não encontrado em dist/public. Execute o build do client.",
+        path: distPath,
+      });
+    });
+    return;
   }
 
   app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(indexHtml, (err) => {
+      if (err) {
+        console.error("[STATIC] Falha ao enviar index.html:", err instanceof Error ? err.message : String(err));
+        if (!res.headersSent) {
+          res.status(500).type("application/json").json({ error: "static_send_failed" });
+        }
+      }
+    });
   });
 }

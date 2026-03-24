@@ -8,30 +8,48 @@ import {
   deletePromocao,
   getPromocaoItens,
   setPromocaoItens,
-} from '../db';
+} from '../db/index';
 
-export async function listar(_req: Request) {
+function tenantFromRequest(req: Request): number {
+  const h = req.headers["x-tenant-id"];
+  const fromHeader = Number(Array.isArray(h) ? h[0] : h);
+  if (Number.isFinite(fromHeader) && fromHeader > 0) return fromHeader;
+  const q = req.query && typeof req.query.tenantId === "string" ? Number(req.query.tenantId) : NaN;
+  if (Number.isFinite(q) && q > 0) return q;
+  const env = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || "");
+  if (Number.isFinite(env) && env > 0) return env;
+  throw new TRPCError({
+    code: "BAD_REQUEST",
+    message: "tenantId obrigatório: header X-Tenant-Id, query ?tenantId= ou env DEFAULT_TENANT_ID",
+  });
+}
+
+export async function listar(req: Request) {
   try {
-    const promocoes = await listPromocoes();
+    const tenantId = tenantFromRequest(req);
+    const promocoes = await listPromocoes(tenantId);
     return { promocoes };
   } catch (e) {
+    if (e instanceof TRPCError) throw e;
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao listar promoções' });
   }
 }
 
 export async function detalhes(request: Request) {
   try {
+    const tenantId = tenantFromRequest(request);
     const { id } = request.params as { id: string };
-    const itens = await getPromocaoItens(Number(id));
+    const itens = await getPromocaoItens(tenantId, Number(id));
     return { itens };
   } catch (e) {
     if (e instanceof TRPCError) throw e;
-    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar itens da promoção' });
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao buscar itens da promoção" });
   }
 }
 
 export async function criar(request: Request) {
   try {
+    const tenantId = tenantFromRequest(request);
     const body = z.object({
       nome: z.string().min(2),
       inicio: z.coerce.date(),
@@ -46,18 +64,19 @@ export async function criar(request: Request) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Data fim não pode ser menor que início' });
     }
 
-    const created = await createPromocao({ nome: body.nome, inicio: body.inicio, fim: body.fim, ativo: body.ativo });
-    await setPromocaoItens(created.id, body.itens);
+    const created = await createPromocao(tenantId, { nome: body.nome, inicio: body.inicio, fim: body.fim, ativo: body.ativo });
+    await setPromocaoItens(tenantId, created.id, body.itens);
     return { id: created.id };
-  } catch (e: any) {
-    if (e instanceof z.ZodError) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
+  } catch (e: unknown) {
+    if (e instanceof z.ZodError) throw new TRPCError({ code: "BAD_REQUEST", message: "Dados inválidos" });
     if (e instanceof TRPCError) throw e;
-    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao criar promoção' });
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar promoção" });
   }
 }
 
 export async function atualizar(request: Request) {
   try {
+    const tenantId = tenantFromRequest(request);
     const { id } = request.params as { id: string };
     const body = z.object({
       nome: z.string().min(2).optional(),
@@ -73,31 +92,32 @@ export async function atualizar(request: Request) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Data fim não pode ser menor que início' });
     }
 
-    await updatePromocao(Number(id), {
+    await updatePromocao(tenantId, Number(id), {
       nome: body.nome,
       inicio: body.inicio,
       fim: body.fim,
       ativo: body.ativo,
-    } as any);
+    });
 
     if (body.itens) {
-      await setPromocaoItens(Number(id), body.itens);
+      await setPromocaoItens(tenantId, Number(id), body.itens);
     }
     return { ok: true };
-  } catch (e: any) {
-    if (e instanceof z.ZodError) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
+  } catch (e: unknown) {
+    if (e instanceof z.ZodError) throw new TRPCError({ code: "BAD_REQUEST", message: "Dados inválidos" });
     if (e instanceof TRPCError) throw e;
-    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao atualizar promoção' });
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao atualizar promoção" });
   }
 }
 
 export async function remover(request: Request) {
   try {
+    const tenantId = tenantFromRequest(request);
     const { id } = request.params as { id: string };
-    await deletePromocao(Number(id));
+    await deletePromocao(tenantId, Number(id));
     return { ok: true };
   } catch (e) {
     if (e instanceof TRPCError) throw e;
-    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao remover promoção' });
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao remover promoção" });
   }
 }

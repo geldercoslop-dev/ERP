@@ -1,26 +1,39 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, index, unique } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
+// Tipos de status para melhor tipagem
+export type PedidoStatus = "GERADO" | "IMPRESSO" | "EM_ROTA" | "ENTREGUE" | "CANCELADO" | "PENDENTE_ESTOQUE";
+export type CargaStatus = "ABERTA" | "EM_ROTA" | "ENTREGUE";
+export type ContaReceberStatus = "ABERTO" | "PARCIAL" | "PAGO" | "ATRASADO";
+export type ContaPagarStatus = "PENDENTE" | "PAGO";
+export type ComissaoStatus = "PENDENTE" | "PAGA";
+export type PendenciaStatus = "PENDENTE" | "COMPRADO" | "RESOLVIDO";
+
 /**
  * SCHEMA DO SISTEMA DE GESTÃO DE VENDAS
  */
 
 // ===== USUÁRIOS E VENDEDORES =====
 export const users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
+  openId: varchar("open_id", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
+  loginMethod: varchar("login_method", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-});
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  lastSignedIn: timestamp("last_signed_in").defaultNow().notNull(),
+}, (table) => ({
+  tenantIdIdx: index("tenant_id_idx").on(table.tenantId),
+  openIdIdx: index("open_id_idx").on(table.openId),
+}));
 
 export const vendedores = mysqlTable("vendedores", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").references(() => users.id),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
+  userId: int("user_id").references(() => users.id),
   nome: varchar("nome", { length: 255 }).notNull(),
   telefone: varchar("telefone", { length: 20 }),
   email: varchar("email", { length: 320 }),
@@ -28,54 +41,60 @@ export const vendedores = mysqlTable("vendedores", {
   cidade: varchar("cidade", { length: 255 }),
   admin: boolean("admin").default(false).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
+  tenantIdIdx: index("vendedores_tenant_id_idx").on(table.tenantId),
+  userIdIdx: index("vendedores_user_id_idx").on(table.userId),
   nomeIdx: index("nome_idx").on(table.nome),
   telefoneIdx: index("telefone_idx").on(table.telefone),
 }));
 
 // ===== PRODUTOS E CORES =====
 export const cores = mysqlTable("cores", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   nome: varchar("nome", { length: 100 }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const produtos = mysqlTable("produtos", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
   descricao: text("descricao").notNull(),
   marca: varchar("marca", { length: 255 }),
   fornecedor: varchar("fornecedor", { length: 255 }),
   categoria: varchar("categoria", { length: 100 }),
   custo: decimal("custo", { precision: 10, scale: 2 }).default("0").notNull(),
-  descontoFabrica: decimal("descontoFabrica", { precision: 5, scale: 2 }).default("0").notNull(),
+  descontoFabrica: decimal("desconto_fabrica", { precision: 5, scale: 2 }).default("0").notNull(),
   ipi: decimal("ipi", { precision: 5, scale: 2 }).default("0").notNull(),
   frete: decimal("frete", { precision: 10, scale: 2 }).default("0").notNull(),
   montagem: decimal("montagem", { precision: 10, scale: 2 }).default("0").notNull(),
   lucro: decimal("lucro", { precision: 10, scale: 2 }).default("0").notNull(),
   comissao: decimal("comissao", { precision: 5, scale: 2 }).default("0").notNull(),
-  jurosCartao: decimal("jurosCartao", { precision: 5, scale: 2 }).default("0").notNull(),
-  valorVenda: decimal("valorVenda", { precision: 10, scale: 2 }).default("0").notNull(),
-  prazoGarantia: int("prazoGarantia").default(90).notNull(),
-  grupoId: int("grupoId").references(() => gruposPrecificacao.id),
+  jurosCartao: decimal("juros_cartao", { precision: 5, scale: 2 }).default("0").notNull(),
+  valorVenda: decimal("valor_venda", { precision: 10, scale: 2 }).default("0").notNull(),
+  prazoGarantia: int("prazo_garantia").default(90).notNull(),
+  grupoId: int("grupo_id").references(() => gruposPrecificacao.id),
   estoque: int("estoque").default(0).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
+  tenantIdIdx: index("produtos_tenant_id_idx").on(table.tenantId),
+  descricaoIdx: index("produtos_descricao_idx").on(table.descricao),
   marcaIdx: index("marca_idx").on(table.marca),
+  ativoIdx: index("produtos_ativo_idx").on(table.ativo),
 }));
 
 export const produtoVariacoes = mysqlTable("produto_variacoes", {
-  id: int("id").autoincrement().primaryKey(),
-  produtoId: int("produtoId").notNull().references(() => produtos.id, { onDelete: "cascade" }),
-  corId: int("corId").references(() => cores.id),
+  id: int("id").primaryKey().autoincrement(),
+  produtoId: int("produto_id").notNull().references(() => produtos.id, { onDelete: "cascade" }),
+  corId: int("cor_id").references(() => cores.id),
   tamanho: varchar("tamanho", { length: 100 }), // Ex: 2.30m, 2.50m
-  temEspelho: boolean("temEspelho").default(false),
-  acrescimoCusto: decimal("acrescimoCusto", { precision: 10, scale: 2 }).default("0"),
+  temEspelho: boolean("tem_espelho").default(false),
+  acrescimoCusto: decimal("acrescimo_custo", { precision: 10, scale: 2 }).default("0"),
   estoque: int("estoque").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ===== PROMOÇÕES =====
@@ -84,13 +103,14 @@ export const produtoVariacoes = mysqlTable("produto_variacoes", {
 export const promocoes = mysqlTable(
   "promocoes",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
     nome: varchar("nome", { length: 255 }).notNull(),
     inicio: timestamp("inicio").notNull(),
     fim: timestamp("fim").notNull(),
     ativo: boolean("ativo").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
     ativoIdx: index("promocoes_ativo_idx").on(table.ativo),
@@ -102,15 +122,16 @@ export const promocoes = mysqlTable(
 export const promocoesItens = mysqlTable(
   "promocoes_itens",
   {
-    id: int("id").autoincrement().primaryKey(),
-    promocaoId: int("promocaoId")
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
+    promocaoId: int("promocao_id")
       .notNull()
       .references(() => promocoes.id, { onDelete: "cascade" }),
-    produtoId: int("produtoId")
+    produtoId: int("produto_id")
       .notNull()
       .references(() => produtos.id, { onDelete: "cascade" }),
-    precoPromocional: decimal("precoPromocional", { precision: 10, scale: 2 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    precoPromocional: decimal("preco_promocional", { precision: 10, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
     promocaoIdx: index("promocoes_itens_promocao_idx").on(table.promocaoId),
@@ -119,29 +140,30 @@ export const promocoesItens = mysqlTable(
 );
 
 export const gruposPrecificacao = mysqlTable("grupos_precificacao", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   nome: varchar("nome", { length: 255 }).notNull(),
-  descontoFabrica: decimal("descontoFabrica", { precision: 5, scale: 2 }).default("0").notNull(),
+  descontoFabrica: decimal("desconto_fabrica", { precision: 5, scale: 2 }).default("0").notNull(),
   ipi: decimal("ipi", { precision: 5, scale: 2 }).default("0").notNull(),
   frete: decimal("frete", { precision: 10, scale: 2 }).default("0").notNull(),
   montagem: decimal("montagem", { precision: 10, scale: 2 }).default("0").notNull(),
   lucro: decimal("lucro", { precision: 10, scale: 2 }).default("0").notNull(),
   comissao: decimal("comissao", { precision: 5, scale: 2 }).default("0").notNull(),
-  jurosCartao: decimal("jurosCartao", { precision: 5, scale: 2 }).default("0").notNull(),
-  prazoGarantia: int("prazoGarantia").default(90).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  jurosCartao: decimal("juros_cartao", { precision: 5, scale: 2 }).default("0").notNull(),
+  prazoGarantia: int("prazo_garantia").default(90).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 // ===== CLIENTES (global; único por telefoneNorm+nomeNorm+sobrenomeNorm) =====
 export const clientes = mysqlTable("clientes", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
   nome: varchar("nome", { length: 255 }).notNull(),
   telefone: varchar("telefone", { length: 20 }),
-  telefoneNorm: varchar("telefoneNorm", { length: 32 }).notNull(),
-  nomeNorm: varchar("nomeNorm", { length: 120 }).notNull(),
-  sobrenomeNorm: varchar("sobrenomeNorm", { length: 120 }).notNull(),
-  telefoneRecado: varchar("telefoneRecado", { length: 20 }),
+  telefoneNorm: varchar("telefone_norm", { length: 32 }).notNull(),
+  nomeNorm: varchar("nome_norm", { length: 120 }).notNull(),
+  sobrenomeNorm: varchar("sobrenome_norm", { length: 120 }).notNull(),
+  telefoneRecado: varchar("telefone_recado", { length: 20 }),
   rua: text("rua"),
   numero: varchar("numero", { length: 20 }),
   bairro: varchar("bairro", { length: 100 }),
@@ -151,11 +173,18 @@ export const clientes = mysqlTable("clientes", {
   condominio: text("condominio"),
   bloco: varchar("bloco", { length: 50 }),
   apartamento: varchar("apartamento", { length: 50 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   nomeIdx: index("nome_idx").on(table.nome),
   telefoneIdx: index("telefone_idx").on(table.telefone),
+  /** Lookup em createVenda (tenant + normas) — reduz range scan */
+  tenantLookupIdx: index("clientes_tenant_lookup_idx").on(
+    table.tenantId,
+    table.telefoneNorm,
+    table.nomeNorm,
+    table.sobrenomeNorm
+  ),
   clienteUnicoNorm: unique("clientes_telefone_nome_sobrenome_unique").on(table.telefoneNorm, table.nomeNorm, table.sobrenomeNorm),
 }));
 
@@ -163,11 +192,11 @@ export const clientes = mysqlTable("clientes", {
 export const clienteVendedores = mysqlTable(
   "cliente_vendedores",
   {
-    id: int("id").autoincrement().primaryKey(),
-    clienteId: int("clienteId").notNull().references(() => clientes.id, { onDelete: "cascade" }),
-    vendedorId: int("vendedorId").notNull().references(() => vendedores.id, { onDelete: "cascade" }),
+    id: int("id").primaryKey().autoincrement(),
+    clienteId: int("cliente_id").notNull().references(() => clientes.id, { onDelete: "cascade" }),
+    vendedorId: int("vendedor_id").notNull().references(() => vendedores.id, { onDelete: "cascade" }),
     tipo: mysqlEnum("tipo", ["PRINCIPAL", "SECUNDARIO"]).default("PRINCIPAL").notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
     clienteVendedorUnique: unique("cliente_vendedor_unique").on(table.clienteId, table.vendedorId),
@@ -178,80 +207,86 @@ export const clienteVendedores = mysqlTable(
 
 // ===== PEDIDOS =====
 export const pedidos = mysqlTable("pedidos", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
   numero: int("numero").notNull().unique(),
-  vendedorId: int("vendedorId").notNull().references(() => vendedores.id),
-  clienteId: int("clienteId").notNull().references(() => clientes.id),
-  clienteNome: varchar("clienteNome", { length: 255 }).notNull(),
-  clienteTelefone: varchar("clienteTelefone", { length: 20 }),
-  clienteTelefoneRecado: varchar("clienteTelefoneRecado", { length: 20 }),
-  clienteRua: text("clienteRua"),
-  clienteNumero: varchar("clienteNumero", { length: 20 }),
-  clienteBairro: varchar("clienteBairro", { length: 100 }),
-  clienteCidade: varchar("clienteCidade", { length: 100 }),
-  clienteUf: varchar("clienteUf", { length: 2 }),
-  clienteReferencia: text("clienteReferencia"),
-  clienteCondominio: text("clienteCondominio"),
-  clienteBloco: varchar("clienteBloco", { length: 50 }),
-  clienteApartamento: varchar("clienteApartamento", { length: 50 }),
+  vendedorId: int("vendedor_id").notNull().references(() => vendedores.id),
+  clienteId: int("cliente_id").notNull().references(() => clientes.id),
+  clienteNome: varchar("cliente_nome", { length: 255 }).notNull(),
+  clienteTelefone: varchar("cliente_telefone", { length: 20 }),
+  clienteTelefoneRecado: varchar("cliente_telefone_recado", { length: 20 }),
+  clienteRua: text("cliente_rua"),
+  clienteNumero: varchar("cliente_numero", { length: 20 }),
+  clienteBairro: varchar("cliente_bairro", { length: 100 }),
+  clienteCidade: varchar("cliente_cidade", { length: 100 }),
+  clienteUf: varchar("cliente_uf", { length: 2 }),
+  clienteReferencia: text("cliente_referencia"),
+  clienteCondominio: text("cliente_condominio"),
+  clienteBloco: varchar("cliente_bloco", { length: 50 }),
+  clienteApartamento: varchar("cliente_apartamento", { length: 50 }),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).default("0").notNull(),
   desconto: decimal("desconto", { precision: 10, scale: 2 }).default("0").notNull(),
   frete: decimal("frete", { precision: 10, scale: 2 }).default("0").notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).default("0").notNull(),
-  // IMPORTANTE: o status "EM_ROTA" é usado pelo módulo de Cargas.
-  status: mysqlEnum("status", ["GERADO", "IMPRESSO", "EM_ROTA", "ENTREGUE", "CANCELADO", "PENDENTE_ESTOQUE"]).default("GERADO").notNull(),
-  formaPagamento: varchar("formaPagamento", { length: 100 }), // Pode conter múltiplas formas JSON
-  dataEntrega: timestamp("dataEntrega"),
+  dataCriacao: timestamp("data_criacao").defaultNow().notNull(),
+  /** Ver `server/shared/domain-status.ts` → PedidoStatusValues (inclui EM_ROTA para logística). */
+  status: varchar("status", { length: 50 }).notNull(),
+  formaPagamento: varchar("forma_pagamento", { length: 100 }), // Pode conter múltiplas formas JSON
+  dataEntrega: timestamp("data_entrega"),
   observacoes: text("observacoes"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
+  tenantIdIdx: index("pedidos_tenant_id_idx").on(table.tenantId),
   vendedorIdx: index("vendedor_idx").on(table.vendedorId),
   clienteIdx: index("cliente_idx").on(table.clienteId),
   statusIdx: index("status_idx").on(table.status),
   numeroIdx: index("numero_idx").on(table.numero),
+  createdAtIdx: index("pedidos_created_at_idx").on(table.createdAt),
 }));
 
 export const itensPedido = mysqlTable("itens_pedido", {
-  id: int("id").autoincrement().primaryKey(),
-  pedidoId: int("pedidoId").notNull().references(() => pedidos.id, { onDelete: "cascade" }),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
+  pedidoId: int("pedido_id").notNull().references(() => pedidos.id, { onDelete: "cascade" }),
   tipo: mysqlEnum("tipo", ["LIVRE", "CATALOGO"]).default("LIVRE").notNull(),
-  produtoId: int("produtoId").references(() => produtos.id),
-  corId: int("corId").references(() => cores.id),
-  corNome: varchar("corNome", { length: 100 }),
+  produtoId: int("produto_id").references(() => produtos.id),
+  corId: int("cor_id").references(() => cores.id),
+  corNome: varchar("cor_nome", { length: 100 }),
   descricao: text("descricao").notNull(),
   marca: varchar("marca", { length: 255 }),
   quantidade: int("quantidade").default(1).notNull(),
-  valorUnitario: decimal("valorUnitario", { precision: 10, scale: 2 }).default("0").notNull(),
+  valorUnitario: decimal("valor_unitario", { precision: 10, scale: 2 }).default("0").notNull(),
   custo: decimal("custo", { precision: 10, scale: 2 }).default("0").notNull(),
-  prazoGarantia: int("prazoGarantia").default(90).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  prazoGarantia: int("prazo_garantia").default(90).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   pedidoIdx: index("pedido_idx").on(table.pedidoId),
 }));
 
 // ===== CARGAS E ENTREGAS =====
 export const cargas = mysqlTable("cargas", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
   numero: int("numero").notNull().unique(),
-  cidadeRota: varchar("cidadeRota", { length: 100 }),
-  dataEntrega: timestamp("dataEntrega"),
-  // "EM_ROTA" = caminhão saiu / carga liberada.
-  status: mysqlEnum("status", ["ABERTA","EM_ROTA","ENTREGUE"]).default("ABERTA").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  cidadeRota: varchar("cidade_rota", { length: 100 }),
+  dataEntrega: timestamp("data_entrega"),
+  /** Ver `server/shared/domain-status.ts` → CargaStatus / CargaStatusValues. */
+  status: varchar("status", { length: 50 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   statusIdx: index("status_idx").on(table.status),
   numeroIdx: index("numero_idx").on(table.numero),
 }));
 
 export const pedidosCarga = mysqlTable("pedidos_carga", {
-  id: int("id").autoincrement().primaryKey(),
-  cargaId: int("cargaId").notNull().references(() => cargas.id, { onDelete: "cascade" }),
-  pedidoId: int("pedidoId").notNull().references(() => pedidos.id),
+  id: int("id").primaryKey().autoincrement(),
+  cargaId: int("carga_id").notNull().references(() => cargas.id, { onDelete: "cascade" }),
+  pedidoId: int("pedido_id").notNull().references(() => pedidos.id),
   entregue: boolean("entregue").default(false).notNull(),
-  dataBaixa: timestamp("dataBaixa"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  dataBaixa: timestamp("data_baixa"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   cargaIdx: index("carga_idx").on(table.cargaId),
   pedidoIdx: index("pedido_idx").on(table.pedidoId),
@@ -259,19 +294,21 @@ export const pedidosCarga = mysqlTable("pedidos_carga", {
 
 // ===== FINANCEIRO E BOLETOS =====
 export const boletos = mysqlTable("boletos", {
-  id: int("id").autoincrement(), // Removido .primaryKey() para evitar conflito se já existir no banco
-  pedidoId: int("pedidoId").notNull().references(() => pedidos.id),
-  clienteId: int("clienteId").notNull().references(() => clientes.id),
-  vendedorId: int("vendedorId").notNull().references(() => vendedores.id),
-  numeroPedido: int("numeroPedido").notNull(),
-  valorOriginal: decimal("valorOriginal", { precision: 10, scale: 2 }).notNull(),
-  valorAberto: decimal("valorAberto", { precision: 10, scale: 2 }).notNull(),
-  dataVencimento: timestamp("dataVencimento").notNull(),
-  status: mysqlEnum("status", ["ABERTO", "PARCIAL", "PAGO", "ATRASADO"]).default("ABERTO").notNull(),
-  codigoBarras: varchar("codigoBarras", { length: 100 }),
-  pixCopiaECola: text("pixCopiaECola"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
+  pedidoId: int("pedido_id").notNull().references(() => pedidos.id),
+  clienteId: int("cliente_id").notNull().references(() => clientes.id),
+  vendedorId: int("vendedor_id").notNull().references(() => vendedores.id),
+  numeroPedido: int("numero_pedido").notNull(),
+  valorOriginal: decimal("valor_original", { precision: 10, scale: 2 }).notNull(),
+  valorAberto: decimal("valor_aberto", { precision: 10, scale: 2 }).notNull(),
+  dataVencimento: timestamp("data_vencimento").notNull(),
+  /** Ver `server/shared/finance-status.ts` → BoletoStatus (ABERTO | PAGO | PARCIAL | ATRASADO) */
+  status: varchar("status", { length: 50 }).notNull(),
+  codigoBarras: varchar("codigo_barras", { length: 100 }),
+  pixCopiaECola: text("pix_copia_e_cola"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   clienteIdx: index("cliente_idx").on(table.clienteId),
   statusIdx: index("status_idx").on(table.status),
@@ -279,112 +316,130 @@ export const boletos = mysqlTable("boletos", {
 }));
 
 export const pagamentosBoleto = mysqlTable("pagamentos_boleto", {
-  id: int("id").autoincrement().primaryKey(),
-  boletoId: int("boletoId").notNull().references(() => boletos.id),
-  valorPago: decimal("valorPago", { precision: 10, scale: 2 }).notNull(),
-  dataPagamento: timestamp("dataPagamento").defaultNow().notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  id: int("id").primaryKey().autoincrement(),
+  boletoId: int("boleto_id").notNull().references(() => boletos.id),
+  valorPago: decimal("valor_pago", { precision: 10, scale: 2 }).notNull(),
+  dataPagamento: timestamp("data_pagamento").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ===== FINANCEIRO GERAL =====
 export const comissoes = mysqlTable("comissoes", {
-  id: int("id").autoincrement().primaryKey(),
-  vendedorId: int("vendedorId").notNull().references(() => vendedores.id),
-  pedidoId: int("pedidoId").notNull().references(() => pedidos.id),
-  valorVenda: decimal("valorVenda", { precision: 10, scale: 2 }).default("0").notNull(),
-  percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).default("0").notNull(),
-  valorComissao: decimal("valorComissao", { precision: 10, scale: 2 }).default("0").notNull(),
-  status: mysqlEnum("status", ["PENDENTE", "PAGA"]).default("PENDENTE").notNull(),
-  dataPagamento: timestamp("dataPagamento"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
+  vendedorId: int("vendedor_id").notNull().references(() => vendedores.id),
+  pedidoId: int("pedido_id").notNull().references(() => pedidos.id),
+  valorVenda: decimal("valor_venda", { precision: 10, scale: 2 }).default("0").notNull(),
+  percentualComissao: decimal("percentual_comissao", { precision: 5, scale: 2 }).default("0").notNull(),
+  valorComissao: decimal("valor_comissao", { precision: 10, scale: 2 }).default("0").notNull(),
+  /** Ver `server/shared/finance-status.ts` → ComissaoStatus */
+  status: varchar("status", { length: 50 }).notNull(),
+  dataPagamento: timestamp("data_pagamento"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const planoContas = mysqlTable("plano_contas", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   nome: varchar("nome", { length: 255 }).notNull(),
   tipo: mysqlEnum("tipo", ["RECEITA", "DESPESA"]).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
 });
 
 export const contasFixas = mysqlTable("contas_fixas", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   descricao: varchar("descricao", { length: 255 }).notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
-  diaVencimento: int("diaVencimento").notNull(),
-  planoContasId: int("planoContasId").references(() => planoContas.id),
+  diaVencimento: int("dia_vencimento").notNull(),
+  planoContasId: int("plano_contas_id").references(() => planoContas.id),
   ativo: boolean("ativo").default(true).notNull(),
 });
 
 export const contasPagar = mysqlTable("contas_pagar", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
   descricao: varchar("descricao", { length: 255 }).notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
-  dataVencimento: timestamp("dataVencimento").notNull(),
-  status: mysqlEnum("status", ["PENDENTE", "PAGO"]).default("PENDENTE").notNull(),
-  dataPagamento: timestamp("dataPagamento"),
-  planoContasId: int("planoContasId").references(() => planoContas.id),
+  dataVencimento: timestamp("data_vencimento").notNull(),
+  /** Ver `server/shared/finance-status.ts` → ContaPagarStatus */
+  status: varchar("status", { length: 50 }).notNull(),
+  dataPagamento: timestamp("data_pagamento"),
+  planoContasId: int("plano_contas_id").references(() => planoContas.id),
   fornecedor: varchar("fornecedor", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 export const contasReceber = mysqlTable("contas_receber", {
-  id: int("id").autoincrement().primaryKey(),
-  pedidoNumero: int("pedidoNumero"),
-  clienteNome: varchar("clienteNome", { length: 255 }).notNull(),
-  vendedorId: int("vendedorId"),
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
+  pedidoNumero: int("pedido_numero"),
+  clienteNome: varchar("cliente_nome", { length: 255 }).notNull(),
+  vendedorId: int("vendedor_id"),
   descricao: varchar("descricao", { length: 255 }).notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
-  dataVencimento: timestamp("dataVencimento").notNull(),
-  status: mysqlEnum("status", ["PENDENTE", "RECEBIDA"]).default("PENDENTE").notNull(),
-  dataRecebimento: timestamp("dataRecebimento"),
-  formaPagamento: mysqlEnum("formaPagamento", ["PIX", "BOLETO", "CARTAO", "DINHEIRO"]),
+  dataVencimento: timestamp("data_vencimento").notNull(),
+  /** Ver `server/shared/finance-status.ts` (PENDENTE | RECEBIDA | VENCIDA) */
+  status: varchar("status", { length: 50 }).notNull(),
+  dataRecebimento: timestamp("data_recebimento"),
+  formaPagamento: mysqlEnum("forma_pagamento", ["PIX", "BOLETO", "CARTAO", "DINHEIRO"]),
   observacoes: text("observacoes"),
-});
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxReceberVencimento: index("idx_receber_vencimento").on(table.dataVencimento),
+}));
 
 export const caixaMensal = mysqlTable("caixa_mensal", {
-  id: int("id").autoincrement().primaryKey(),
-  mesAno: varchar("mesAno", { length: 7 }).notNull().unique(), // YYYY-MM
-  totalPix: decimal("totalPix", { precision: 12, scale: 2 }).default("0").notNull(),
-  totalBoleto: decimal("totalBoleto", { precision: 12, scale: 2 }).default("0").notNull(),
-  totalCartao: decimal("totalCartao", { precision: 12, scale: 2 }).default("0").notNull(),
-  totalDinheiro: decimal("totalDinheiro", { precision: 12, scale: 2 }).default("0").notNull(),
-  totalGeral: decimal("totalGeral", { precision: 12, scale: 2 }).default("0").notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  id: int("id").primaryKey().autoincrement(),
+  mesAno: varchar("mes_ano", { length: 7 }).notNull().unique(), // YYYY-MM
+  totalPix: decimal("total_pix", { precision: 12, scale: 2 }).default("0").notNull(),
+  totalBoleto: decimal("total_boleto", { precision: 12, scale: 2 }).default("0").notNull(),
+  totalCartao: decimal("total_cartao", { precision: 12, scale: 2 }).default("0").notNull(),
+  totalDinheiro: decimal("total_dinheiro", { precision: 12, scale: 2 }).default("0").notNull(),
+  totalGeral: decimal("total_geral", { precision: 12, scale: 2 }).default("0").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 export const pendencias = mysqlTable("pendencias", {
   id: int("id").autoincrement().primaryKey(),
-  pedidoId: int("pedidoId").notNull().references(() => pedidos.id),
-  vendedorId: int("vendedorId").notNull().references(() => vendedores.id),
-  produtoId: int("produtoId").notNull().references(() => produtos.id),
-  corId: int("corId").references(() => cores.id),
+  tenantId: int("tenant_id").notNull(),
+  pedidoId: int("pedido_id").notNull().references(() => pedidos.id),
+  vendedorId: int("vendedor_id").notNull().references(() => vendedores.id),
+  produtoId: int("produto_id").notNull().references(() => produtos.id),
+  corId: int("cor_id").references(() => cores.id),
   quantidade: int("quantidade").notNull(),
-  status: mysqlEnum("status", ["PENDENTE", "COMPRADO", "RESOLVIDO"]).default("PENDENTE").notNull(),
-  dataPedido: timestamp("dataPedido").defaultNow().notNull(),
-  dataResolvido: timestamp("dataResolvido"),
+  /** Ver `server/shared/domain-status.ts` → PendenciaStatusValues. */
+  status: varchar("status", { length: 50 }).notNull(),
+  dataPedido: timestamp("data_pedido").defaultNow().notNull(),
+  dataResolvido: timestamp("data_resolvido"),
 });
 
 export const counters = mysqlTable("counters", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   // IMPORTANTE: deve bater com as migrations (0001_busy_vargas.sql)
   // para a numeração global reaproveitável funcionar (seq + lista de livres).
+  tenantId: int("tenant_id").notNull(),
   name: varchar("name", { length: 50 }).notNull().unique(),
   seq: int("seq").notNull().default(0),
   free: text("free"),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  /** SELECT ... WHERE tenant_id = ? AND name = 'pedidos' FOR UPDATE */
+  countersTenantNameIdx: index("counters_tenant_name_idx").on(table.tenantId, table.name),
+}));
 
 export const configuracoes = mysqlTable("configuracoes", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   chave: varchar("chave", { length: 64 }).notNull().unique(),
   valor: text("valor").notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
-// Controle de versão do schema (usado por /api/health). id=1 único.
+// Controle de versão do schema (migrações / auditoria). id=1 único.
 export const schemaVersion = mysqlTable("schema_version", {
   id: int("id").primaryKey(), // sempre 1
   version: int("version").notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 // Chaves de idempotência: evita duplicação por retry/clique duplo em commands críticos.
@@ -392,12 +447,12 @@ export const schemaVersion = mysqlTable("schema_version", {
 export const idempotencyKeys = mysqlTable(
   "idempotency_keys",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     key: varchar("key", { length: 64 }).notNull(),
-    commandName: varchar("commandName", { length: 64 }).notNull(),
-    resultJson: text("resultJson"), // NULL = em processamento
-    traceId: varchar("traceId", { length: 32 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    commandName: varchar("command_name", { length: 64 }).notNull(),
+    resultJson: text("result_json"), // NULL = em processamento
+    traceId: varchar("trace_id", { length: 32 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
     keyIdx: index("idempotency_key_idx").on(table.key),
@@ -410,15 +465,16 @@ export const idempotencyKeys = mysqlTable(
 export const auditLog = mysqlTable(
   "audit_log",
   {
-    id: int("id").autoincrement().primaryKey(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    actorUserId: int("actorUserId"),
-    actorVendedorId: int("actorVendedorId"),
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    actorUserId: int("actor_user_id"),
+    actorVendedorId: int("actor_vendedor_id"),
     action: varchar("action", { length: 32 }).notNull(), // create | update | delete
     entity: varchar("entity", { length: 64 }).notNull(), // vendedor | pedido | estoque | contas_receber | etc
-    entityId: varchar("entityId", { length: 64 }),
-    payloadJson: text("payloadJson"), // resumo (sem senha)
-    traceId: varchar("traceId", { length: 32 }),
+    entityId: varchar("entity_id", { length: 64 }),
+    payloadJson: text("payload_json"), // resumo (sem senha)
+    traceId: varchar("trace_id", { length: 32 }),
   },
   (table) => ({
     entityIdx: index("audit_entity_idx").on(table.entity),
@@ -426,3 +482,19 @@ export const auditLog = mysqlTable(
     createdAtIdx: index("audit_created_at_idx").on(table.createdAt),
   })
 );
+
+// ===== IDEMPOTÊNCIA FINANCEIRA =====
+export const financialIdempotency = mysqlTable("financial_idempotency", {
+  id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
+  operationKey: varchar("operation_key", { length: 255 }).notNull(),
+  operationType: mysqlEnum("operation_type", ["BAIXA_BOLETO", "CREDITO_CAIXA"]).notNull(),
+  processedAt: timestamp("processed_at").defaultNow().notNull(),
+  metadata: text("metadata"), // JSON
+}, (table) => ({
+  tenantOperationIdx: unique("tenant_operation_idx").on(table.tenantId, table.operationKey, table.operationType),
+  operationKeyIdx: index("operation_key_idx").on(table.operationKey),
+  tenantIdIdx: index("tenant_id_idx").on(table.tenantId),
+}));
+
+export type FinancialIdempotency = typeof financialIdempotency.$inferSelect;

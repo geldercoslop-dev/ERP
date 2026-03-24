@@ -1,7 +1,9 @@
 // Versão simplificada do authStore.ts sem zustand
 // Para uso temporário até que o zustand seja instalado corretamente
 
-import { trpc, getSessionToken, setSessionToken } from '@/lib/trpcClient';
+import { setSessionToken } from '@/lib/security/sessionToken';
+import { authenticatedFetch } from '@/lib/security/apiClient';
+import { GRS_API_ORIGIN } from '@/lib/apiOrigin';
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -38,11 +40,11 @@ interface AuthMeResponse {
 
 
 function getTrpcBaseUrl(): string {
-  // No navegador: sempre relativo para a mesma origem (cookie acompanha em login e auth.me).
+  // No navegador: relativo — em dev o proxy do Vite encaminha /api → GRS_API_ORIGIN (3000).
   if (typeof window !== "undefined") return "/api/trpc";
   const raw = (import.meta as any)?.env?.VITE_TRPC_URL as string | undefined;
   const url = (raw ?? "").trim().replace(/\/+$/, "");
-  return url || "/api/trpc";
+  return url || `${GRS_API_ORIGIN}/api/trpc`;
 }
 
 function hasForceLogout(): boolean {
@@ -58,6 +60,25 @@ function setForceLogout(v: boolean) {
     if (v) sessionStorage.setItem("grs-force-logout", "1");
     else sessionStorage.removeItem("grs-force-logout");
   } catch {}
+}
+
+/** Chamado após 401 na API: evita estado “logado” na UI sem sessão válida. */
+export function invalidateSessionAfter401(): void {
+  setForceLogout(true);
+  try {
+    setSessionToken(null);
+    localStorage.removeItem("manus-runtime-user-info");
+    localStorage.removeItem("manus-auth-store");
+  } catch {
+    /* ignore */
+  }
+  globalUser = null;
+  globalIsAuthenticated = false;
+  globalIsLoading = false;
+  globalIsImpersonating = false;
+  globalVendedorNome = null;
+  globalVendedorId = null;
+  notifyListeners();
 }
 
 /** Chave sessionStorage: login só conta se passou pelo formulário nesta aba (evita auto-login por cookie). */
@@ -136,17 +157,11 @@ function setUser(user: User | null) {
 
 async function trpcBatchCall(path: string, input: unknown) {
   const baseUrl = getTrpcBaseUrl();
-  const token = getSessionToken();
-  const sessionHeaders: Record<string, string> = token
-    ? { "X-Session-Token": token, Authorization: `Bearer ${token}` }
-    : {};
   // auth.me é uma query: usar GET para evitar 405 Method Not Allowed no servidor
   if (path === "auth.me") {
     const inputStr = encodeURIComponent(JSON.stringify(input ?? {}));
-    const res = await fetch(`${baseUrl}/auth.me?input=${inputStr}`, {
+    const res = await authenticatedFetch(`${baseUrl}/auth.me?input=${inputStr}`, {
       method: "GET",
-      credentials: "include",
-      headers: sessionHeaders,
     });
     if (!res.ok) {
       if (res.status === 401) return null;
@@ -158,11 +173,10 @@ async function trpcBatchCall(path: string, input: unknown) {
   }
   // Mutations (login, logout): POST em batch
   const batchBody = typeof input === "object" && input !== null ? { 0: input } : { 0: {} };
-  const response = await fetch(`${baseUrl}/${path}?batch=1`, {
+  const response = await authenticatedFetch(`${baseUrl}/${path}?batch=1`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeaders },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(batchBody),
-    credentials: "include",
   });
 
   const result = await response.json();
@@ -188,7 +202,6 @@ async function login(username: string, password: string) {
       const token = data.sessionToken;
       if (typeof token === "string" && token) {
         setSessionToken(token);
-        localStorage.setItem("grs-session-token", token);
       }
       const normalizeRole = (raw: unknown): UserRole => {
         const s = String(raw ?? "").trim().toLowerCase();
@@ -354,7 +367,7 @@ async function doStopImpersonation(): Promise<void> {
     await trpcBatchCall("auth.stopImpersonation", {});
     toast.success("Voltou ao painel de administrador.");
     await checkAuth();
-    window.location.href = "/";
+    window.location.href = "/dashboard";
   } catch (e) {
     console.warn("[authStore] doStopImpersonation falhou:", e);
     toast.error(e instanceof Error ? e.message : "Erro ao voltar ao admin.");

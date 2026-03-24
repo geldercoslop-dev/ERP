@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
+import { sameOriginFetch } from '@/lib/security/apiClient';
 
 export function ConnectionDebugger() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   useEffect(() => {
-    const apiUrl = `${window.location.origin}/api/trpc/auth.me`;
+    const input = encodeURIComponent(JSON.stringify({}));
+    const apiUrl = `/api/trpc/auth.me?input=${input}`;
 
     const checkConnection = async () => {
       try {
-        const response = await fetch(apiUrl, {
+        const response = await sameOriginFetch(apiUrl, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         });
 
         if (response.ok) {

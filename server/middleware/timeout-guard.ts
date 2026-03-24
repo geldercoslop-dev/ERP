@@ -6,7 +6,6 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { createLogger } from '../infra/structured-logger';
-import { AbortController } from 'node-abort-controller';
 
 const logger = createLogger('timeout-guard');
 
@@ -23,7 +22,8 @@ export function timeoutGuardMiddleware() {
     const { signal } = abortController;
     
     // Adicionar signal ao request para uso nos serviços
-    (req as any).abortSignal = signal;
+    const requestWithAbort = req as Request & { abortSignal?: AbortSignal };
+    requestWithAbort.abortSignal = signal;
     
     // Configurar timeout
     const timeoutId = setTimeout(() => {
@@ -37,7 +37,7 @@ export function timeoutGuardMiddleware() {
       // Registrar log de timeout
       logger.error(`Operação abortada por timeout após ${elapsedTime}ms`, {
         requestId: req.requestId,
-        tenantId: req.tenantId,
+        tenantId: extractTenantId(req),
         method: req.method,
         path: req.path,
         duration: elapsedTime,
@@ -82,11 +82,7 @@ export function withTimeout<T>(
   return new Promise<T>((resolve, reject) => {
     // Criar timeout
     const timeoutId = setTimeout(() => {
-      const error = new Error(`Timeout: ${operationName} excedeu ${timeoutMs}ms`);
-      (error as any).isTimeout = true;
-      (error as any).operationName = operationName;
-      (error as any).timeoutMs = timeoutMs;
-      reject(error);
+      reject(new TimeoutError(operationName, timeoutMs));
     }, timeoutMs);
     
     // Executar função
@@ -106,8 +102,39 @@ export function withTimeout<T>(
 /**
  * Verifica se um erro é de timeout
  */
-export function isTimeoutError(error: any): boolean {
-  return error && error.isTimeout === true;
+export function isTimeoutError(error: unknown): boolean {
+  return error instanceof TimeoutError;
+}
+
+class TimeoutError extends Error {
+  readonly isTimeout = true;
+  readonly operationName: string;
+  readonly timeoutMs: number;
+
+  constructor(operationName: string, timeoutMs: number) {
+    super(`Timeout: ${operationName} excedeu ${timeoutMs}ms`);
+    this.name = "TimeoutError";
+    this.operationName = operationName;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+function extractTenantId(req: Request): number | undefined {
+  const queryTenantId = Number(req.query.tenantId);
+  if (Number.isFinite(queryTenantId) && queryTenantId > 0) {
+    return queryTenantId;
+  }
+
+  const bodyValue =
+    typeof req.body === "object" && req.body !== null && "tenantId" in req.body
+      ? (req.body as { tenantId?: unknown }).tenantId
+      : undefined;
+  const bodyTenantId = Number(bodyValue);
+  if (Number.isFinite(bodyTenantId) && bodyTenantId > 0) {
+    return bodyTenantId;
+  }
+
+  return undefined;
 }
 
 export default {

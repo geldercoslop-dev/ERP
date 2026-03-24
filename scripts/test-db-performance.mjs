@@ -43,7 +43,7 @@ async function runTests() {
   
   try {
     // Configurar tenant para testes
-    const tenantId = 1; // Ajuste conforme necessário
+    const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
     
     // Teste 1: Produtos com preço vigente (otimizado)
     console.log('\n--- Teste 1: Produtos com preço vigente (otimizado) ---');

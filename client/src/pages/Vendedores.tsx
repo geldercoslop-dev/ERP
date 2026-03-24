@@ -392,7 +392,7 @@ export default function Vendedores() {
                   {vendedoresQuery.error?.message ?? "Erro ao carregar a lista. Apenas administradores veem os vendedores."}
                 </p>
                 <p className="text-amber-700">
-                  Se você é admin: faça <strong>logout</strong> e <strong>login de novo</strong> na mesma URL (ex.: http://localhost:3003) para o cookie de sessão ser enviado corretamente.
+                  Se você é admin: faça <strong>logout</strong> e <strong>login de novo</strong> na mesma URL do sistema (frontend e API na mesma origem ou via proxy) para o cookie de sessão ser enviado corretamente.
                 </p>
               </div>
             )}

@@ -11,7 +11,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Configuração
-const API_URL = process.env.API_URL || 'http://localhost:3003';
+const API_URL = process.env.API_URL || 'http://localhost:3000';
 const NUM_REQUESTS = 50;
 const DELAY_BETWEEN_REQUESTS = 100; // ms
 

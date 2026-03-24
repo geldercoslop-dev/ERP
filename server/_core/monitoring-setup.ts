@@ -7,7 +7,6 @@
 import { Express, Request, Response, NextFunction } from 'express';
 import { nanoid } from 'nanoid';
 import { createLogger } from '../infra/structured-logger';
-import { requestLoggerMiddleware } from '../middleware/request-logger';
 import { timeoutGuardMiddleware } from '../middleware/timeout-guard';
 import { wrapDatabaseConnection } from '../middleware/slow-query-logger';
 import { errorAlerter } from '../monitoring/error-alerter';
@@ -28,9 +27,6 @@ export function setupMonitoring(app: Express): void {
     req.startTime = Date.now();
     next();
   });
-  
-  // Middleware para logging estruturado de requisições
-  app.use(requestLoggerMiddleware());
   
   // Middleware para prevenir travamentos
   app.use(timeoutGuardMiddleware());
@@ -101,16 +97,18 @@ function startMetricsCollection(): void {
     metrics.clearOldMetrics(60); // Limpar métricas com mais de 60 minutos
   }, 60 * 60 * 1000);
   
-  // Garantir que os intervalos sejam limpos quando o processo terminar
-  process.on('SIGINT', () => {
-    clearInterval(intervalId);
-    clearInterval(cleanupIntervalId);
-  });
-  
-  process.on('SIGTERM', () => {
-    clearInterval(intervalId);
-    clearInterval(cleanupIntervalId);
-  });
+  // Garantir que os intervalos sejam limpos quando o processo terminar (apenas em produção)
+  if (process.env.NODE_ENV === 'production') {
+    process.on('SIGINT', () => {
+      clearInterval(intervalId);
+      clearInterval(cleanupIntervalId);
+    });
+    
+    process.on('SIGTERM', () => {
+      clearInterval(intervalId);
+      clearInterval(cleanupIntervalId);
+    });
+  }
   
   logger.info('Coleta periódica de métricas iniciada com sucesso');
 }

@@ -1,8 +1,8 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { users } from "../../drizzle/schema";
 import cookie from "cookie";
-import * as db from "../db";
-import type { Vendedor } from "../db";
+import * as db from "../db/index";
+import type { Vendedor } from "../db/index";
 
 export type SessionOrigin = "cookie" | "header" | "bearer" | "none";
 
@@ -24,6 +24,8 @@ export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
   user: typeof users.$inferSelect | null;
+  /** Tenant atual (quando autenticado em ambiente multi-tenant). */
+  tenantId: number | null;
   /** Preenchido quando sessão é vendedor (token "v:..."). */
   vendedor: Vendedor | null;
   /** True quando admin está impersonando vendedor (cookie admin_session presente). */
@@ -32,9 +34,13 @@ export type TrpcContext = {
 };
 
 /** App espera role "admin" | "vendedor". Retornamos "vendedor" para não-admin (schema DB usa "user"). */
-function buildUserFromVendedor(v: { id: number; nome: string | null; email: string | null; admin: boolean }): typeof users.$inferSelect {
+function buildUserFromVendedor(
+  v: { id: number; nome: string | null; email: string | null; admin: boolean },
+  tenantId: number
+): typeof users.$inferSelect {
   return {
     id: v.id,
+    tenantId,
     openId: `vendedor-${v.id}`,
     name: v.nome ?? "Vendedor",
     email: v.email ?? null,
@@ -50,9 +56,11 @@ function buildUserFromVendedor(v: { id: number; nome: string | null; email: stri
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
+  console.log("🔥 CONTEXT EXECUTADO", opts.req.originalUrl ?? opts.req.url);
   let user: typeof users.$inferSelect | null = null;
   let vendedor: Vendedor | null = null;
   let isImpersonating = false;
+  let tenantId: number | null = null;
   const session: SessionInfo = {
     origin: "none",
     tokenPresent: false,
@@ -108,7 +116,10 @@ export async function createContext(
       const userId = parseInt(token.slice(2), 10);
       if (Number.isFinite(userId)) {
         const u = await db.getUserById(userId);
-        if (u) user = u;
+        if (u) {
+          user = u;
+          tenantId = (u as typeof users.$inferSelect).tenantId ?? null;
+        }
       }
     } else if (typeof token === "string" && token.startsWith("v:")) {
       session.tokenKind = "vendedor";
@@ -118,7 +129,9 @@ export async function createContext(
 
         if (v?.ativo) {
           vendedor = v;
-          user = buildUserFromVendedor(v);
+          // para vendedores, usamos sempre tenantId obrigatório (schema multi-tenant)
+          tenantId = v.tenantId ?? null;
+          user = buildUserFromVendedor(v, tenantId ?? 0);
           isImpersonating = Boolean(typeof adminSessionToken === "string" && adminSessionToken.length > 0);
         } else {
           const cookieNames = ["session_token", "session", "auth_token"];
@@ -133,37 +146,15 @@ export async function createContext(
       const u = await db.getUserByOpenId("admin");
       if (u) {
         user = u;
-      } else {
-        user = {
-          id: 1,
-          openId: "admin-local",
-          name: "Administrador",
-          email: "admin@local.com",
-          role: "admin",
-          loginMethod: "local",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastSignedIn: new Date(),
-        };
+        tenantId = (u as typeof users.$inferSelect).tenantId ?? null;
       }
     } else if (token === "vendedor-session") {
       session.tokenKind = "vendedor-session";
       // Legado: tentar resolver vendedor por userId 2 no DB para que ctx.user.id seja vendedor.id
       const vendedor = await db.getVendedorByUserId(2);
       if (vendedor?.ativo) {
-        user = buildUserFromVendedor(vendedor);
-      } else {
-        user = {
-          id: 2,
-          openId: "vendedor-local",
-          name: "Vendedor",
-          email: "vendedor@local.com",
-          role: "user",
-          loginMethod: "local",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastSignedIn: new Date(),
-        };
+        tenantId = vendedor.tenantId ?? null;
+        user = buildUserFromVendedor(vendedor, tenantId ?? 0);
       }
     }
   } catch (err: unknown) {
@@ -181,7 +172,9 @@ export async function createContext(
         opts.res.clearCookie(name, { path: "/" });
         opts.res.clearCookie(name, { path: "/", domain: "localhost" });
       });
-    } catch (_) {}
+    } catch (err) {
+      console.error("[createContext] clearCookie failed:", err);
+    }
   }
 
   if (!user && process.env.NODE_ENV !== "production") {
@@ -195,7 +188,7 @@ export async function createContext(
       hasSessionCookie: hasSession,
       hasSessionHeader,
       host,
-      dica: hasSessionHeader ? "Header X-Session-Token veio mas valor pode ser inválido." : "Faça login na mesma URL (ex.: http://localhost:3003). O token é salvo em sessionStorage e enviado no header X-Session-Token.",
+      dica: hasSessionHeader ? "Header X-Session-Token veio mas valor pode ser inválido." : "Faça login na mesma URL (ex.: http://localhost:3000). O token é salvo em sessionStorage e enviado no header X-Session-Token.",
     });
   }
 
@@ -203,6 +196,7 @@ export async function createContext(
     req: opts.req,
     res: opts.res,
     user,
+    tenantId,
     vendedor,
     isImpersonating,
     session,

@@ -1,0 +1,147 @@
+import { createLogger } from '../infra/structured-logger';
+import express from "express";
+
+const logger = createLogger('failure-simulator');
+
+/**
+ * Tipos de falha suportados
+ */
+export type FailureType = 'timeout' | 'network' | '500' | 'rate_limit' | 'circuit_open';
+
+/**
+ * Simulador de Falhas Externas para Testes de Resiliência
+ */
+export class ExternalFailureSimulator {
+  private failureEnabled = false;
+  private failureRate = 0.1;
+  private currentFailureType: FailureType = 'timeout';
+
+  constructor(options: { failureRate?: number; enabled?: boolean } = {}) {
+    this.failureRate = options.failureRate || 0.1;
+    this.failureEnabled = options.enabled !== false;
+  }
+
+  setFailureRate(rate: number): void {
+    this.failureRate = Math.max(0, Math.min(1, rate));
+    logger.info('Failure simulator rate updated', {
+      metadata: { failureRate: this.failureRate }
+    });
+  }
+
+  setFailureType(type: FailureType): void {
+    this.currentFailureType = type;
+    logger.info('Failure simulator type updated', {
+      metadata: { failureType: type }
+    });
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.failureEnabled = enabled;
+    logger.info('Failure simulator toggled', {
+      metadata: { enabled }
+    });
+  }
+
+  async execute<T>(
+    operation: () => Promise<T>,
+    operationName: string = 'external_operation'
+  ): Promise<T> {
+    if (!this.failureEnabled) {
+      return await operation();
+    }
+
+    if (Math.random() < this.failureRate) {
+      logger.warn('Simulating external failure', {
+        metadata: {
+          operation: operationName,
+          failureType: this.currentFailureType,
+          failureRate: this.failureRate
+        }
+      });
+
+      return this.simulateFailure(operationName);
+    }
+
+    return await operation();
+  }
+
+  private async simulateFailure(operationName: string): Promise<never> {
+    switch (this.currentFailureType) {
+      case 'timeout':
+        await new Promise(resolve => setTimeout(resolve, 100));
+        throw new Error(`External API timeout: ${operationName}`);
+
+      case 'network':
+        throw new Error(`Network error: ECONNRESET - ${operationName}`);
+
+      case '500':
+        const error = new Error(`Internal Server Error: ${operationName}`) as any;
+        error.status = 500;
+        throw error;
+
+      case 'rate_limit':
+        const rateError = new Error(`Rate limit exceeded: ${operationName}`) as any;
+        rateError.status = 429;
+        throw rateError;
+
+      case 'circuit_open':
+        throw new Error(`Circuit breaker is open: ${operationName}`);
+
+      default:
+        throw new Error(`Unknown failure type: ${operationName}`);
+    }
+  }
+
+  getStats(): {
+    enabled: boolean;
+    failureRate: number;
+    failureType: FailureType;
+  } {
+    return {
+      enabled: this.failureEnabled,
+      failureRate: this.failureRate,
+      failureType: this.currentFailureType
+    };
+  }
+}
+
+// Instância global para testes
+export const externalFailureSimulator = new ExternalFailureSimulator();
+
+/**
+ * Endpoints para controle dos simuladores (apenas em desenvolvimento)
+ */
+export function createFailureSimulationRoutes() {
+  const router = express.Router();
+
+  router.post('/configure', (req: any, res: any) => {
+    const { failureRate, failureType, enabled } = req.body;
+    
+    if (failureRate !== undefined) {
+      externalFailureSimulator.setFailureRate(failureRate);
+    }
+    
+    if (failureType) {
+      externalFailureSimulator.setFailureType(failureType);
+    }
+    
+    if (enabled !== undefined) {
+      externalFailureSimulator.setEnabled(enabled);
+    }
+
+    res.json({
+      success: true,
+      stats: externalFailureSimulator.getStats()
+    });
+  });
+
+  router.get('/stats', (req: any, res: any) => {
+    res.json({
+      external: externalFailureSimulator.getStats()
+    });
+  });
+
+  return router;
+}
+
+export default externalFailureSimulator;

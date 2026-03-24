@@ -14,7 +14,7 @@ echo Esperando o servidor subir...
 timeout /t 3 >nul
 
 echo Abrindo no navegador...
-start "" "http://localhost:3003"
+start "" "http://localhost:3000"
 
 echo.
 echo OK. (Deixe a janela "GRS DEV SERVER" aberta.)

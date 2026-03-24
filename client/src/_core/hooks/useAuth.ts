@@ -67,7 +67,7 @@ export function useAuth(options?: UseAuthOptions) {
     try {
       await stopImpersonationMutation.mutateAsync();
       toast.success("Voltou para admin");
-      if (typeof window !== "undefined") window.location.href = "/";
+      if (typeof window !== "undefined") window.location.href = "/dashboard";
     } catch (e) {
       toast.error("Erro ao voltar ao admin");
     }

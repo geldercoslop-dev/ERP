@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: vendas-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: vendas_app
+      MYSQL_USER: vendas
+      # Alinhar com DATABASE_URL local (.env.development): mysql://vendas:vendas123@localhost:3306/vendas_app
+      MYSQL_PASSWORD: vendas123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 5s
+    networks:
+      - vendas-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: vendas-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 10
+      interval: 5s
+    networks:
+      - vendas-network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  vendas-network:
+    driver: bridge

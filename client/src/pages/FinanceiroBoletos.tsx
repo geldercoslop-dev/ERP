@@ -10,6 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
+function asTrpcString(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number") return String(v);
+  if (v instanceof Date) return v.toISOString();
+  return String(v);
+}
+
+function asTrpcNumber(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export default function FinanceiroBoletos() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -157,23 +170,29 @@ export default function FinanceiroBoletos() {
                 <p className="text-muted-foreground">Nenhum boleto localizado com este valor ou identificador.</p>
               </div>
             ) : (
-              (isLoading ? [] : (boletosFiltrados || [])).map(boleto => (
-                <Card key={boleto.id} className="overflow-hidden border-l-4 border-l-primary shadow-sm hover:border-l-green-500 transition-all">
+              (isLoading ? [] : (boletosFiltrados || [])).map((boleto) => {
+                const status = asTrpcString(boleto.status);
+                const dataVenc = asTrpcString(boleto.dataVencimento);
+                const clienteNome = asTrpcString((boleto as { clienteNome?: unknown }).clienteNome);
+                const boletoId = asTrpcNumber(boleto.id);
+                const clienteId = asTrpcNumber((boleto as { clienteId?: unknown }).clienteId);
+                return (
+                <Card key={boletoId} className="overflow-hidden border-l-4 border-l-primary shadow-sm hover:border-l-green-500 transition-all">
                   <CardContent className="p-0">
                     <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="font-black text-primary border-primary/20">
-                            ID: {boleto.id.toString().padStart(5, '0')}
+                            ID: {boletoId.toString().padStart(5, '0')}
                           </Badge>
-                          <span className="font-bold text-lg">PEDIDO #{boleto.numeroPedido}</span>
-                          {getStatusBadge(boleto.status, boleto.dataVencimento.toString())}
+                          <span className="font-bold text-lg">PEDIDO #{asTrpcNumber(boleto.numeroPedido)}</span>
+                          {getStatusBadge(status, dataVenc)}
                         </div>
                         <p className="font-bold text-primary uppercase flex items-center gap-2">
-                          <User className="h-4 w-4" /> {boleto.clienteNome || "CLIENTE"}
+                          <User className="h-4 w-4" /> {clienteNome || "CLIENTE"}
                         </p>
                         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> VENC: {new Date(boleto.dataVencimento).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> VENC: {new Date(dataVenc || Date.now()).toLocaleDateString()}</span>
                         </div>
                       </div>
 
@@ -188,7 +207,7 @@ export default function FinanceiroBoletos() {
                             variant="outline" 
                             size="sm" 
                             className="gap-2 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
-                            onClick={() => handleDownloadPDF(boleto.id)}
+                            onClick={() => handleDownloadPDF(boletoId)}
                           >
                             <Printer className="h-3 w-3" /> BOLETO PDF
                           </Button>
@@ -196,12 +215,12 @@ export default function FinanceiroBoletos() {
                             variant="outline" 
                             size="sm" 
                             className="gap-2 text-xs border-purple-200 text-purple-700 hover:bg-purple-50"
-                            onClick={() => handleDownloadExtrato(boleto.clienteId)}
+                            onClick={() => handleDownloadExtrato(clienteId)}
                           >
                             <FileText className="h-3 w-3" /> EXTRATO
                           </Button>
                           
-                          {user?.role === 'admin' && boleto.status !== 'PAGO' && (
+                          {user?.role === 'admin' && status !== 'PAGO' && (
                             <Button 
                               size="sm" 
                               className="bg-green-600 hover:bg-green-700 gap-2 text-xs font-bold shadow-sm"
@@ -215,7 +234,8 @@ export default function FinanceiroBoletos() {
                     </div>
                   </CardContent>
                 </Card>
-              ))
+                );
+              })
             )}
           </div>
       </main>

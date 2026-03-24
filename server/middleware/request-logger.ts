@@ -9,7 +9,7 @@
  * - status de resposta
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 import { nanoid } from 'nanoid';
 import { createLogger } from '../infra/structured-logger';
 import { recordRequest } from '../infra/metrics';
@@ -33,7 +33,7 @@ export function requestLoggerMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Gerar ID único para a requisição
     const requestId = nanoid(10);
-    req.requestId = requestId;
+    req.requestId = req.requestId ?? requestId;
     
     // Registrar tempo de início
     req.startTime = Date.now();
@@ -43,10 +43,12 @@ export function requestLoggerMiddleware() {
       Number(req.query.tenantId) || 
       Number(req.body?.tenantId) || 
       undefined;
+    const traceId = req.traceId;
     
     // Log inicial da requisição
     logger.info(`${req.method} ${req.path} started`, {
       requestId,
+      traceId,
       tenantId,
       metadata: {
         method: req.method,
@@ -59,18 +61,18 @@ export function requestLoggerMiddleware() {
     });
     
     // Capturar resposta para logging
-    const originalEnd = res.end;
-    const originalJson = res.json;
-    let responseBody: any;
+    const originalEnd = res.end.bind(res);
+    const originalJson = res.json.bind(res);
+    let responseBody: unknown;
     
     // Interceptar res.json para capturar o corpo da resposta
-    res.json = function(body: any) {
+    res.json = function(body: unknown) {
       responseBody = body;
-      return originalJson.call(this, body);
+      return originalJson(body);
     };
     
     // Interceptar res.end para registrar o log final
-    res.end = function(chunk?: any, ...args: any[]) {
+    res.end = function(chunk?: unknown, ...args: unknown[]) {
       const endTime = Date.now();
       const responseTime = endTime - (req.startTime || endTime);
       
@@ -85,6 +87,7 @@ export function requestLoggerMiddleware() {
       
       logger[logLevel](logMessage, {
         requestId,
+        traceId,
         tenantId,
         duration: responseTime,
         metadata: {
@@ -104,7 +107,7 @@ export function requestLoggerMiddleware() {
         statusCode: res.statusCode,
         duration: responseTime,
         timestamp: new Date(),
-        userId: req.user?.id,
+        userId: getUserId(req),
         tenantId,
         ip: req.ip,
         userAgent: req.get('User-Agent'),
@@ -125,7 +128,11 @@ export function requestLoggerMiddleware() {
         });
       }
       
-      return originalEnd.call(this, chunk, ...args);
+      return originalEnd(
+        ...(chunk === undefined
+          ? (args as Parameters<Response["end"]>)
+          : ([chunk, ...args] as Parameters<Response["end"]>))
+      );
     };
     
     next();
@@ -135,8 +142,9 @@ export function requestLoggerMiddleware() {
 /**
  * Sanitiza o corpo da requisição para evitar logs de dados sensíveis
  */
-function sanitizeBody(body: any): any {
+function sanitizeBody(body: unknown): unknown {
   if (!body) return undefined;
+  if (!isRecord(body)) return body;
   
   const sanitized = { ...body };
   
@@ -154,7 +162,7 @@ function sanitizeBody(body: any): any {
 /**
  * Sanitiza a resposta para evitar logs muito grandes
  */
-function sanitizeResponse(response: any): any {
+function sanitizeResponse(response: unknown): unknown {
   if (!response) return undefined;
   
   // Se for um array grande, mostrar apenas o tamanho
@@ -163,7 +171,7 @@ function sanitizeResponse(response: any): any {
   }
   
   // Se for um objeto, verificar se tem propriedades específicas
-  if (typeof response === 'object') {
+  if (isRecord(response)) {
     // Se tiver muitas propriedades, mostrar apenas um resumo
     const keys = Object.keys(response);
     if (keys.length > 10) {
@@ -180,6 +188,15 @@ function sanitizeResponse(response: any): any {
   }
   
   return response;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getUserId(req: Request): number | undefined {
+  const candidate = (req as Request & { user?: { id?: unknown } }).user?.id;
+  return typeof candidate === "number" ? candidate : undefined;
 }
 
 export default requestLoggerMiddleware;

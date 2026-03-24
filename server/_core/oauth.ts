@@ -1,8 +1,17 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
-import * as db from "../db";
+import * as db from "../db/index";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
+
+function getRequiredTenantId(): number {
+  const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
+  const tenantId = Number(raw);
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new Error("DEFAULT_TENANT_ID/TENANT_ID obrigatório para OAuth");
+  }
+  return tenantId;
+}
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -28,7 +37,9 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      await db.upsertUser({
+      const tenantId = getRequiredTenantId();
+      await db.upsertUser(tenantId, {
+        tenantId,
         openId: userInfo.openId,
         name: userInfo.name || null,
         email: userInfo.email ?? null,

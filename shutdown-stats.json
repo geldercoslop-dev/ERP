@@ -1,0 +1,14 @@
+{
+  "shutdownTime": "2026-03-22T13:17:08.109Z",
+  "uptime": 374.861354,
+  "memoryUsage": {
+    "rss": 169951232,
+    "heapTotal": 92897280,
+    "heapUsed": 90130352,
+    "external": 4425209,
+    "arrayBuffers": 329442
+  },
+  "activeConnections": 0,
+  "nodeVersion": "v24.13.0",
+  "platform": "win32"
+}

@@ -12,6 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isInProgress } from "@shared/idempotency";
 
+function itemsOrArray<T>(data: { items: T[] } | T[] | null | undefined): T[] {
+  if (data == null) return [];
+  if (Array.isArray(data)) return data;
+  const items = (data as { items?: T[] }).items;
+  return Array.isArray(items) ? items : [];
+}
+
 export default function ContasReceber() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -33,7 +40,25 @@ export default function ContasReceber() {
 
   const { data: contas, isLoading } = trpc.contasReceber.list.useQuery({ status: statusFiltro });
   const { data: caixa } = trpc.caixaMensal.get.useQuery({});
-  
+  const listaContasBase = itemsOrArray(contas);
+  const mesRef = new Date().toISOString().slice(0, 7);
+  type CaixaLinha = {
+    mesAno: string;
+    totalPix?: number;
+    totalBoleto?: number;
+    totalCartao?: number;
+    totalDinheiro?: number;
+    totalGeral?: number;
+  };
+  const caixaLinhas = itemsOrArray(caixa as { items: CaixaLinha[] } | CaixaLinha[] | null | undefined);
+  const caixaRow = caixaLinhas.find((r) => r.mesAno === mesRef) ?? caixaLinhas[0];
+
+  const contasFiltradas = listaContasBase.filter(
+    (c) =>
+      c.clienteNome.toLowerCase().includes(busca.toLowerCase()) ||
+      c.pedidoNumero?.toString().includes(busca)
+  );
+
   const createConta = trpc.contasReceber.create.useMutation();
   const marcarRecebida = trpc.contasReceber.marcarRecebida.useMutation();
   const createIdempotencyKeyRef = useRef<string | null>(null);
@@ -127,11 +152,6 @@ export default function ContasReceber() {
     toast({ title: "Sucesso", description: "Arquivo CSV gerado!" });
   };
 
-  const contasFiltradas = contas?.filter(c => 
-    c.clienteNome.toLowerCase().includes(busca.toLowerCase()) || 
-    c.pedidoNumero?.toString().includes(busca)
-  );
-
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
@@ -163,11 +183,11 @@ export default function ContasReceber() {
         {/* Dashboard Rápido */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: 'PIX', val: caixa?.totalPix, color: 'text-teal-600' },
-            { label: 'Boleto', val: caixa?.totalBoleto, color: 'text-blue-600' },
-            { label: 'Cartão', val: caixa?.totalCartao, color: 'text-purple-600' },
-            { label: 'Dinheiro', val: caixa?.totalDinheiro, color: 'text-green-600' },
-            { label: 'Total Mês', val: caixa?.totalGeral, color: 'text-slate-900', bold: true }
+            { label: "PIX", val: caixaRow?.totalPix, color: "text-teal-600" },
+            { label: "Boleto", val: caixaRow?.totalBoleto, color: "text-blue-600" },
+            { label: "Cartão", val: caixaRow?.totalCartao, color: "text-purple-600" },
+            { label: "Dinheiro", val: caixaRow?.totalDinheiro, color: "text-green-600" },
+            { label: "Total Mês", val: caixaRow?.totalGeral, color: "text-slate-900", bold: true },
           ].map((item, i) => (
             <Card key={i} className="border-slate-200 shadow-sm">
               <CardContent className="p-3 text-center">

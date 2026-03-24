@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff } from "lucide-react";
+import { TRPCClientError } from "@trpc/client";
 import { useAuthStore } from "@/store/authStore";
 
 const REMEMBERED_USERNAME_KEY = "remembered_username";
@@ -70,13 +71,30 @@ function CartoonFilters() {
   );
 }
 
+type LoginFormProps = {
+  username: string;
+  setUsername: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  showPass: boolean;
+  setShowPass: React.Dispatch<React.SetStateAction<boolean>>;
+  error: string | null;
+  isLoading: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  isMobile: boolean;
+  rememberUser: boolean;
+  setRememberUser: (v: boolean) => void;
+  usernameInputRef: React.RefObject<HTMLInputElement | null>;
+  passwordInputRef: React.RefObject<HTMLInputElement | null>;
+};
+
 /* Formulário reutilizado nos dois layouts. Usa apenas a prop isLoading (nunca isLoggingIn). */
 function LoginForm({
   username, setUsername, password, setPassword,
   showPass, setShowPass, error, isLoading, onSubmit, isMobile,
   rememberUser, setRememberUser,
   usernameInputRef, passwordInputRef,
-}: any) {
+}: LoginFormProps) {
   const fs = isMobile
     ? { label: "14px", input: "15px", btn: "15px", title: "18px", version: "12px" }
     : { label: "clamp(9px,1.05cqw,13px)", input: "clamp(12px,1.4cqw,16px)", btn: "clamp(9px,1.08cqw,13px)", title: "clamp(13px,1.6cqw,19px)", version: "clamp(9px,1.02cqw,12px)" };
@@ -124,7 +142,7 @@ function LoginForm({
             className="wood-input w-full h-full px-3 pr-10"
             style={{ fontSize: fs.input, borderRadius: "4px" }}
           />
-          <button type="button" onClick={() => setShowPass((v: boolean) => !v)}
+          <button type="button" onClick={() => setShowPass((v) => !v)}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-[#7a5a2a] hover:text-[#3d2a0a]"
             style={{ zIndex: 2 }}>
             {showPass ? <EyeOff size={isMobile ? 16 : 13} /> : <Eye size={isMobile ? 16 : 13} />}
@@ -150,7 +168,7 @@ function LoginForm({
       {/* Botão: disabled SOMENTE durante envio (isLoading); submit lê valores do DOM (refs) */}
       <button type="submit" disabled={isLoading} className="wood-btn w-full font-bold tracking-widest uppercase"
         style={{ height: inputH, fontSize: fs.btn, borderRadius: "5px", backgroundColor: "#2e9e52" }}>
-        {isLoading ? "Entrando…" : "Entrar"}
+        {isLoading ? "Entrando..." : "Entrar"}
       </button>
 
       {error && (
@@ -202,7 +220,7 @@ export default function Login() {
   const force = url.searchParams.get("force") === "true";
 
   React.useEffect(() => {
-    if (isAuthenticated && !force) setLocation("/");
+    if (isAuthenticated && !force) setLocation("/dashboard");
   }, [isAuthenticated, force, setLocation]);
 
   async function onSubmit(e: React.FormEvent) {
@@ -227,12 +245,32 @@ export default function Login() {
           if (rememberUser) localStorage.setItem(REMEMBERED_USERNAME_KEY, u);
           else localStorage.removeItem(REMEMBERED_USERNAME_KEY);
         } catch {}
-        setLocation("/");
+        setLocation("/dashboard");
       } else {
         setError("Usuário ou senha inválidos.");
       }
-    } catch (err: any) {
-      setError(err?.message || "Erro ao entrar.");
+    } catch (err: unknown) {
+      if (err instanceof TRPCClientError) {
+        const code = err.data?.code as string | undefined;
+        const http = err.data?.httpStatus as number | undefined;
+        if (code === "UNAUTHORIZED" || http === 401) {
+          setError("Sessão inválida. Verifique usuário e senha.");
+          return;
+        }
+        if (http === 500 || code === "INTERNAL_SERVER_ERROR") {
+          setError("Erro interno");
+          return;
+        }
+      }
+      const raw = err instanceof Error ? err.message : String(err);
+      const lower = raw.toLowerCase();
+      if (lower.includes("failed to fetch") || lower.includes("network")) {
+        setError("Servidor offline");
+      } else if (raw.length > 120 || raw.includes("at ") || raw.includes(".tsx") || raw.includes(".ts:")) {
+        setError("Não foi possível entrar. Tente novamente.");
+      } else {
+        setError(raw || "Erro ao entrar.");
+      }
     } finally {
       setIsLoggingIn(false);
     }

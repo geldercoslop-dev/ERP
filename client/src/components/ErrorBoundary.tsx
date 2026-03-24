@@ -17,8 +17,8 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    const msg = String((error as any)?.message ?? "");
-    if ((error as any)?.name === "NotFoundError" && msg.includes("removeChild")) {
+    const msg = String(error.message ?? "");
+    if (error.name === "NotFoundError" && msg.includes("removeChild")) {
       return { hasError: false, error: null };
     }
     return { hasError: true, error };
@@ -58,7 +58,7 @@ class ErrorBoundary extends Component<Props, State> {
                 Recarregar Página
               </button>
               <button
-                onClick={() => window.location.href = "/"}
+                onClick={() => (window.location.href = "/dashboard")}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white"
               >
                 Voltar ao início

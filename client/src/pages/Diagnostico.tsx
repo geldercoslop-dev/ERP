@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpcClient";
+import { sameOriginFetch } from "@/lib/security/apiClient";
 
 interface ServerStatus {
   status: "checking" | "online" | "offline";
@@ -10,14 +11,12 @@ interface ServerStatus {
   error?: string;
 }
 
-interface ProblemaConsistencia {
-  tipoProblema: string;
-  entidade: string;
-  id?: string | number;
-  detalhe: string;
-  sugestao: string;
-  mensagem?: string;
-  entityId?: string | number;
+/** Alinhado a `server/services/system.service.ts` — ProblemaDiagnostico */
+interface ProblemaDiagnostico {
+  tipo: string;
+  idReferencia: string | number;
+  descricao: string;
+  nivel: "aviso" | "erro" | "critico";
 }
 
 export default function Diagnostico() {
@@ -28,7 +27,7 @@ export default function Diagnostico() {
   );
   const [serverStatus, setServerStatus] = useState<ServerStatus>({
     status: "checking",
-    port: import.meta.env.VITE_PORT || "3003",
+      port: import.meta.env.VITE_PORT || "3000",
     lastChecked: new Date(),
   });
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
@@ -46,14 +45,15 @@ export default function Diagnostico() {
 
     // Verificar status do servidor
     const checkServer = async () => {
-      const port = import.meta.env.VITE_PORT || "3003";
+      const port = import.meta.env.VITE_PORT || "3000";
       try {
-        const response = await fetch(`http://localhost:${port}/api/trpc/auth.me`, {
+        const input = encodeURIComponent(JSON.stringify({}));
+        const response = await sameOriginFetch(`/api/trpc/auth.me?input=${input}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
-          credentials: "include",
         });
 
         if (response.ok) {
@@ -91,7 +91,7 @@ export default function Diagnostico() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-amber-400">Diagnóstico do Sistema</h1>
-          <Link to="/" className="px-4 py-2 bg-amber-600/30 hover:bg-amber-600/50 rounded-md">
+          <Link to="/dashboard" className="px-4 py-2 bg-amber-600/30 hover:bg-amber-600/50 rounded-md">
             Voltar ao sistema
           </Link>
         </div>
@@ -224,12 +224,20 @@ export default function Diagnostico() {
                 <p className="text-green-400">Nenhum problema encontrado.</p>
               ) : (
                 <ul className="space-y-3 text-sm">
-                  {(problemas as ProblemaConsistencia[]).map((p, i) => (
-                    <li key={i} className={`p-3 rounded border ${p.tipoProblema === "erro" ? "border-red-500/50 bg-red-900/20 text-red-200" : "border-amber-500/30 bg-amber-900/10 text-amber-200"}`}>
-                      <span className="font-medium">[{p.tipoProblema}] {p.entidade}</span>
-                      {p.id != null && <span className="text-gray-400 ml-1"> (id {p.id})</span>}
-                      <p className="mt-1 text-gray-300">{p.detalhe ?? p.mensagem}</p>
-                      {p.sugestao && <p className="mt-1 text-amber-200/90 text-xs">Sugestão: {p.sugestao}</p>}
+                  {(problemas as ProblemaDiagnostico[]).map((p, i) => (
+                    <li
+                      key={i}
+                      className={`p-3 rounded border ${
+                        p.nivel === "erro" || p.nivel === "critico"
+                          ? "border-red-500/50 bg-red-900/20 text-red-200"
+                          : "border-amber-500/30 bg-amber-900/10 text-amber-200"
+                      }`}
+                    >
+                      <span className="font-medium">
+                        [{p.nivel}] {p.tipo}
+                      </span>
+                      <span className="text-gray-400 ml-1"> (ref {p.idReferencia})</span>
+                      <p className="mt-1 text-gray-300">{p.descricao}</p>
                     </li>
                   ))}
                 </ul>

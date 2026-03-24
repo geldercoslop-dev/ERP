@@ -18,7 +18,7 @@ echo Iniciando servidor (npm run dev)...
 echo.
 start "" cmd /k "npm run dev"
 timeout /t 5 /nobreak >nul
-echo Abrindo navegador em http://localhost:3003 ...
-start http://localhost:3003
+echo Abrindo navegador em http://localhost:3000 ...
+start http://localhost:3000
 echo.
 pause

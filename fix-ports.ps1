@@ -1,8 +1,8 @@
 # Script para verificar e corrigir problemas de porta
 Write-Host "Verificando e corrigindo problemas de porta..." -ForegroundColor Cyan
 
-# Verificar se há processos usando as portas 3000, 3001, 3002 e 3003
-$ports = @(3000, 3001, 3002, 3003)
+# Verificar se há processos usando as portas 3000, 3001 e 3002
+$ports = @(3000, 3001, 3002)
 $foundProcesses = $false
 
 foreach ($port in $ports) {
@@ -43,7 +43,7 @@ foreach ($port in $ports) {
 }
 
 if (-not $foundProcesses) {
-    Write-Host "Nenhum processo encontrado usando as portas 3000, 3001, 3002 ou 3003." -ForegroundColor Green
+    Write-Host "Nenhum processo encontrado usando as portas 3000, 3001 ou 3002." -ForegroundColor Green
 }
 
 # Verificar se o arquivo port.ts existe e está configurado corretamente
@@ -54,17 +54,17 @@ if (Test-Path $portFile) {
     Write-Host $portContent
     
     # Perguntar se deseja atualizar o arquivo
-    $confirm = Read-Host "Deseja atualizar o arquivo port.ts para usar a porta 3003? (S/N)"
+    $confirm = Read-Host "Deseja atualizar o arquivo port.ts para usar a porta 3000? (S/N)"
     if ($confirm -eq "S" -or $confirm -eq "s") {
-        $newContent = "// Este arquivo é gerado automaticamente pelo servidor para armazenar a porta atual`nexport const PORT = 3003;"
+        $newContent = "// Este arquivo é gerado automaticamente pelo servidor para armazenar a porta atual`nexport const PORT = 3000;"
         Set-Content -Path $portFile -Value $newContent
-        Write-Host "Arquivo port.ts atualizado para usar a porta 3003." -ForegroundColor Green
+        Write-Host "Arquivo port.ts atualizado para usar a porta 3000." -ForegroundColor Green
     }
 } else {
     Write-Host "O arquivo port.ts não existe. Criando..." -ForegroundColor Yellow
-    $newContent = "// Este arquivo é gerado automaticamente pelo servidor para armazenar a porta atual`nexport const PORT = 3003;"
+    $newContent = "// Este arquivo é gerado automaticamente pelo servidor para armazenar a porta atual`nexport const PORT = 3000;"
     New-Item -Path $portFile -ItemType File -Value $newContent -Force
-    Write-Host "Arquivo port.ts criado com a porta 3003." -ForegroundColor Green
+    Write-Host "Arquivo port.ts criado com a porta 3000." -ForegroundColor Green
 }
 
 # Verificar e criar/atualizar os arquivos .env
@@ -75,12 +75,12 @@ $clientEnvFile = ".\client\.env"
 if (Test-Path $rootEnvFile) {
     $confirm = Read-Host "O arquivo .env na raiz já existe. Deseja atualizá-lo? (S/N)"
     if ($confirm -eq "S" -or $confirm -eq "s") {
-        $rootEnvContent = "# Configurações de ambiente para o servidor`nNODE_ENV=development`nPORT=3003"
+        $rootEnvContent = "# Configurações de ambiente para o servidor`nNODE_ENV=development`nPORT=3000"
         Set-Content -Path $rootEnvFile -Value $rootEnvContent
         Write-Host "Arquivo .env na raiz atualizado." -ForegroundColor Green
     }
 } else {
-    $rootEnvContent = "# Configurações de ambiente para o servidor`nNODE_ENV=development`nPORT=3003"
+    $rootEnvContent = "# Configurações de ambiente para o servidor`nNODE_ENV=development`nPORT=3000"
     New-Item -Path $rootEnvFile -ItemType File -Value $rootEnvContent -Force
     Write-Host "Arquivo .env na raiz criado." -ForegroundColor Green
 }
@@ -89,12 +89,12 @@ if (Test-Path $rootEnvFile) {
 if (Test-Path $clientEnvFile) {
     $confirm = Read-Host "O arquivo .env no diretório client já existe. Deseja atualizá-lo? (S/N)"
     if ($confirm -eq "S" -or $confirm -eq "s") {
-        $clientEnvContent = "# Configurações de ambiente para o cliente`nVITE_PORT=3003`nVITE_TRPC_URL=http://localhost:3003/api/trpc"
+        $clientEnvContent = "# Configurações de ambiente para o cliente`nVITE_PORT=3000`nVITE_TRPC_URL=http://localhost:3000/api/trpc"
         Set-Content -Path $clientEnvFile -Value $clientEnvContent
         Write-Host "Arquivo .env no diretório client atualizado." -ForegroundColor Green
     }
 } else {
-    $clientEnvContent = "# Configurações de ambiente para o cliente`nVITE_PORT=3003`nVITE_TRPC_URL=http://localhost:3003/api/trpc"
+    $clientEnvContent = "# Configurações de ambiente para o cliente`nVITE_PORT=3000`nVITE_TRPC_URL=http://localhost:3000/api/trpc"
     New-Item -Path $clientEnvFile -ItemType File -Value $clientEnvContent -Force
     Write-Host "Arquivo .env no diretório client criado." -ForegroundColor Green
 }

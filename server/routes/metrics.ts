@@ -12,6 +12,23 @@ import { errorAlerter } from '../monitoring/error-alerter';
 const router = Router();
 const logger = createLogger('metrics');
 
+type EndpointStat = {
+  method: string;
+  path: string;
+  count: number;
+  totalTime: number;
+  errors: number;
+  statusCodes: Record<number, number>;
+};
+
+type QueryPatternStat = {
+  pattern: string;
+  count: number;
+  totalTime: number;
+  errors: number;
+  examples: Array<{ query: string; duration: number; timestamp: string }>;
+};
+
 /**
  * GET /api/metrics
  * Retorna métricas gerais do sistema
@@ -21,6 +38,7 @@ router.get('/', async (req: Request, res: Response) => {
     const requestStats = metrics.getRequestStats(5); // últimos 5 minutos
     const slowQueries = metrics.getSlowQueries(10); // top 10 consultas lentas
     const systemMetrics = metrics.getCurrentSystemMetrics();
+    const counters = metrics.getCounters();
     const errorStats = errorAlerter.getErrorStats();
     
     res.json({
@@ -52,12 +70,13 @@ router.get('/', async (req: Request, res: Response) => {
           count: e.count,
           recentCount: e.recentCount
         }))
-      }
+      },
+      counters
     });
     
     logger.info('Metrics accessed', {
       requestId: req.requestId,
-      userId: req.user?.id,
+      userId: getUserId(req),
       metadata: {
         ip: req.ip
       }
@@ -88,7 +107,7 @@ router.get('/requests', async (req: Request, res: Response) => {
     const requestMetrics = metrics.getRequestMetrics(minutes);
     
     // Agrupar por endpoint
-    const endpointStats = requestMetrics.reduce((acc, metric) => {
+    const endpointStats = requestMetrics.reduce<Record<string, EndpointStat>>((acc, metric) => {
       const key = `${metric.method}:${metric.path}`;
       if (!acc[key]) {
         acc[key] = {
@@ -111,7 +130,7 @@ router.get('/requests', async (req: Request, res: Response) => {
       acc[key].statusCodes[metric.statusCode] = (acc[key].statusCodes[metric.statusCode] || 0) + 1;
       
       return acc;
-    }, {} as Record<string, any>);
+    }, {});
     
     // Converter para array e calcular médias
     const endpoints = Object.values(endpointStats).map(endpoint => ({
@@ -152,7 +171,7 @@ router.get('/database', async (req: Request, res: Response) => {
     const slowQueries = metrics.getSlowQueries(50);
     
     // Agrupar por padrão de query
-    const queryPatterns = slowQueries.reduce((acc, query) => {
+    const queryPatterns = slowQueries.reduce<Record<string, QueryPatternStat>>((acc, query) => {
       // Simplificar query para agrupar similares
       const pattern = query.query
         .replace(/\b\d+\b/g, '?') // Substituir números por ?
@@ -186,7 +205,7 @@ router.get('/database', async (req: Request, res: Response) => {
       }
       
       return acc;
-    }, {} as Record<string, any>);
+    }, {});
     
     // Converter para array e calcular médias
     const patterns = Object.values(queryPatterns).map(pattern => ({
@@ -246,3 +265,8 @@ router.get('/errors', async (req: Request, res: Response) => {
 });
 
 export default router;
+
+function getUserId(req: Request): number | undefined {
+  const candidate = (req as Request & { user?: { id?: unknown } }).user?.id;
+  return typeof candidate === 'number' ? candidate : undefined;
+}

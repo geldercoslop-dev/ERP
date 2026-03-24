@@ -4,7 +4,7 @@
  * Uso: npm run test:core
  */
 import "../_core/loadEnv";
-import * as db from "../db";
+import * as db from "../db/index";
 import { executeCommand } from "../_core/command";
 import { isInProgress } from "@shared/idempotency";
 
@@ -19,14 +19,26 @@ async function main() {
     process.exit(1);
   }
 
+  const tenantPick = await conn.select({ tenantId: db.produtos.tenantId }).from(db.produtos).limit(1);
+  const testTenantId = Number(process.env.TEST_TENANT_ID) || Number(tenantPick[0]?.tenantId);
+  if (!testTenantId) {
+    console.error("[test:core] Defina TEST_TENANT_ID ou insira produtos com tenant_id.");
+    process.exit(1);
+  }
+
   // 2) Baixa estoque: impedir negativo
   try {
-    const produtosList = await conn.select({ id: db.produtos.id, estoque: db.produtos.estoque }).from(db.produtos).limit(1);
+    const produtosList = await conn
+      .select({ id: db.produtos.id, estoque: db.produtos.estoque, tenantId: db.produtos.tenantId })
+      .from(db.produtos)
+      .where(db.eq(db.produtos.tenantId, testTenantId))
+      .limit(1);
     if (produtosList.length > 0) {
       const pid = produtosList[0].id;
       const saldo = Number(produtosList[0].estoque ?? 0);
+      const tenantId = Number(produtosList[0].tenantId);
       try {
-        await db.ajusteRapidoEstoque(pid, saldo + 100, "saida");
+        await db.ajusteRapidoEstoque(tenantId, pid, saldo + 100, "saida");
         errors.push("Esperado erro ESTOQUE_NEGATIVO em ajusteRapidoEstoque ao tirar mais do que tem.");
       } catch (e: any) {
         if (e?.code !== "ESTOQUE_NEGATIVO" && !e?.message?.includes("Estoque insuficiente")) {
@@ -40,12 +52,17 @@ async function main() {
 
   // 3) updateEstoqueProduto com quantidade negativa além do saldo
   try {
-    const produtosList = await conn.select({ id: db.produtos.id, estoque: db.produtos.estoque }).from(db.produtos).limit(1);
+    const produtosList = await conn
+      .select({ id: db.produtos.id, estoque: db.produtos.estoque, tenantId: db.produtos.tenantId })
+      .from(db.produtos)
+      .where(db.eq(db.produtos.tenantId, testTenantId))
+      .limit(1);
     if (produtosList.length > 0) {
       const pid = produtosList[0].id;
       const saldo = Number(produtosList[0].estoque ?? 0);
+      const tenantId = Number(produtosList[0].tenantId);
       try {
-        await db.updateEstoqueProduto(pid, -(saldo + 50));
+        await db.updateEstoqueProduto(tenantId, pid, -(saldo + 50));
         errors.push("Esperado erro ESTOQUE_NEGATIVO em updateEstoqueProduto ao reduzir além do saldo.");
       } catch (e: any) {
         if (e?.code !== "ESTOQUE_NEGATIVO" && !e?.message?.includes("Estoque insuficiente")) {
@@ -57,30 +74,36 @@ async function main() {
     errors.push(`Teste updateEstoqueProduto negativo: ${e?.message}`);
   }
 
-  // 4) Diagnóstico de consistência (não deve lançar; retorna formato tipoProblema, entidade, detalhe, sugestao)
+  // 4) Diagnóstico de consistência (formato ProblemaDiagnostico: tipo, idReferencia, descricao, nivel)
   try {
-    const problemas = await db.runDiagnosticoConsistencia();
+    const problemas = await db.runDiagnosticoConsistencia(testTenantId);
     if (!Array.isArray(problemas)) {
       errors.push("runDiagnosticoConsistencia deve retornar array.");
     } else {
       const valid = problemas.every(
-        (p: any) =>
-          typeof p.tipoProblema === "string" &&
-          typeof p.entidade === "string" &&
-          typeof p.detalhe === "string" &&
-          typeof p.sugestao === "string"
+        (p: unknown) =>
+          typeof p === "object" &&
+          p !== null &&
+          typeof (p as { tipo?: unknown }).tipo === "string" &&
+          typeof (p as { descricao?: unknown }).descricao === "string" &&
+          typeof (p as { nivel?: unknown }).nivel === "string"
       );
       if (!valid && problemas.length > 0) {
-        errors.push("runDiagnosticoConsistencia: cada item deve ter tipoProblema, entidade, detalhe, sugestao.");
+        errors.push("runDiagnosticoConsistencia: cada item deve ter tipo, descricao, nivel.");
       }
     }
-  } catch (e: any) {
-    errors.push(`runDiagnosticoConsistencia: ${e?.message}`);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    errors.push(`runDiagnosticoConsistencia: ${msg}`);
   }
 
   // 5) Transação faz rollback: simular falha no meio e checar que nada foi gravado
   try {
-    const produtosList = await conn.select({ id: db.produtos.id, estoque: db.produtos.estoque }).from(db.produtos).limit(1);
+    const produtosList = await conn
+      .select({ id: db.produtos.id, estoque: db.produtos.estoque })
+      .from(db.produtos)
+      .where(db.eq(db.produtos.tenantId, testTenantId))
+      .limit(1);
     if (produtosList.length > 0) {
       const pid = produtosList[0].id;
       const estoqueAntes = Number(produtosList[0].estoque ?? 0);
@@ -94,7 +117,11 @@ async function main() {
           errors.push(`Transação esperava rollback_test, obteve: ${e?.message}`);
         }
       }
-      const [row] = await conn.select({ estoque: db.produtos.estoque }).from(db.produtos).where(db.eq(db.produtos.id, pid)).limit(1);
+      const [row] = await conn
+        .select({ estoque: db.produtos.estoque })
+        .from(db.produtos)
+        .where(db.and(db.eq(db.produtos.id, pid), db.eq(db.produtos.tenantId, testTenantId)))
+        .limit(1);
       const estoqueDepois = Number(row?.estoque ?? 0);
       if (estoqueDepois === 999999) {
         errors.push("Rollback falhou: estoque foi alterado mesmo com throw na transação.");
@@ -164,8 +191,11 @@ async function main() {
   try {
     const nome = `Cliente Teste ${Date.now()}`;
     const telefone = `11999${String(Math.floor(Math.random() * 100000)).padStart(5, "0")}`;
-    const r1 = await db.createCliente({ nome, telefone } as any);
-    const r2 = await db.createCliente({ nome: nome.toLowerCase(), telefone: `(${telefone.slice(0, 2)}) ${telefone.slice(2)}` } as any);
+    const r1 = await db.createCliente(testTenantId, { nome, telefone });
+    const r2 = await db.createCliente(testTenantId, {
+      nome: nome.toLowerCase(),
+      telefone: `(${telefone.slice(0, 2)}) ${telefone.slice(2)}`,
+    });
     if (r1.id !== r2.id) {
       errors.push(`Cliente único: esperado mesmo id para mesmo (telefoneNorm, nomeNorm, sobrenomeNorm), obteve ${r1.id} e ${r2.id}.`);
     }

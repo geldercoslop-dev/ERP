@@ -1,6 +1,6 @@
 import archiver from 'archiver';
 import { Response } from 'express';
-import * as db from './db';
+import * as db from './db/index';
 
 export async function gerarBackupZip(res: Response) {
   try {

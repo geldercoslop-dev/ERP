@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-03-23T08:32:59.360Z",
+  "tests": {
+    "Shutdown Service": {
+      "success": true,
+      "exists": true,
+      "size": 13903
+    },
+    "Graceful Shutdown Middleware": {
+      "success": true,
+      "exists": true,
+      "size": 2424
+    },
+    "Test: Shutdown Minimal": {
+      "success": true,
+      "exists": true,
+      "size": 4876
+    },
+    "Test: SIGINT Block": {
+      "success": true,
+      "exists": true,
+      "size": 4637
+    },
+    "Test: Scenarios": {
+      "success": true,
+      "exists": true,
+      "size": 11085
+    },
+    "Shutdown Minimal": {
+      "success": true,
+      "exitCode": 0,
+      "output": "================================================================================\n🔴 TESTE MÍNIMO: GRACEFUL SHUTDOWN (SEM DB)\n================================================================================\n\n[SERVER] [SERVER] listening on http://localhost:5555\n\n🔴 Emitindo process.emit(\"SIGINT\")...\n\n[SERVER] [SHUTDOWN] signal: SIGINT\n[SERVER] [SHUTDOWN] closing HTTP\n[SERVER] [SHUTDOWN] HTTP server closed\n[SERVER] [SHUTDOWN] closing DB\n[SERVER] [SHUTDOWN] DB closed\n[SERVER] [SHUTDOWN] closing Redi",
+      "error": ""
+    },
+    "SIGINT Blocking": {
+      "success": true,
+      "exitCode": 0,
+      "output": "================================================================================\n🔥 TESTE: BLOQUEIO DE CTRL+C (HARDENING EXTREMO)\n================================================================================\n\n[WARN]   [SHUTDOWN] CTRL+C BLOQUEADO — shutdown via SIGTERM ou HTTP apenas\n[SERVER] [SERVER] listening on http://localhost:6666\n\n🔴 TESTE 1: Emitindo SIGINT (CTRL+C)...\n\n[WARN]   [BLOCKED] CTRL+C desabilitado. Use shutdown oficial (SIGTERM ou HTTP endpoint).\n\n✅ TESTE 1 PASSOU: Servidor a",
+      "error": ""
+    },
+    "Scenarios": {
+      "success": true,
+      "exitCode": 0,
+      "output": "\n====================================================================================================\n🎯 TESTE COMPLETO — VALIDAÇÃO TOTAL DO SHUTDOWN\n====================================================================================================\n\n\n────────────────────────────────────────────────────────────────────────────────────────────────────\n🧪 EXECUTANDO TESTES\n────────────────────────────────────────────────────────────────────────────────────────────────────\n\nTESTE 1: CTRL+C bloquea",
+      "error": ""
+    }
+  },
+  "summary": {}
+}

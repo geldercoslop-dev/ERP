@@ -42,10 +42,37 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "./client"),
+  server: {
+    port: 5173,
+    strictPort: false,
+    proxy: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   build: {
     outDir: path.resolve(__dirname, "./dist/public"),
     emptyOutDir: true,
     sourcemap: true,
+    chunkSizeWarningLimit: 300,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes("node_modules")) {
+            if (id.includes("react-dom") || id.includes("react/")) return "react";
+            if (id.includes("@tanstack/react-query") || id.includes("@trpc")) return "trpc-query";
+            if (id.includes("lucide-react")) return "lucide";
+            if (id.includes("recharts")) return "recharts";
+            if (id.includes("sonner")) return "sonner";
+            if (id.includes("framer-motion")) return "framer-motion";
+          }
+          return undefined;
+        },
+      },
+    },
   },
   define: {
     "import.meta.env.VITE_SENTRY_RELEASE": JSON.stringify(sentryRelease),

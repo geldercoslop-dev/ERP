@@ -29,6 +29,7 @@ export default function PlanoContas() {
   const [tipo, setTipo] = useState<"DESPESA" | "RECEITA">("DESPESA");
   
   const { data: planos, refetch } = trpc.planoContas.list.useQuery({});
+  const listaPlanos = planos?.items ?? [];
   const criar = trpc.planoContas.create.useMutation();
   const atualizar = trpc.planoContas.update.useMutation();
   
@@ -78,8 +79,8 @@ export default function PlanoContas() {
     }
   };
   
-  const despesas = planos?.filter(p => p.tipo === 'DESPESA') || [];
-  const receitas = planos?.filter(p => p.tipo === 'RECEITA') || [];
+  const despesas = listaPlanos.filter((p) => p.tipo === "DESPESA");
+  const receitas = listaPlanos.filter((p) => p.tipo === "RECEITA");
   
   return (
     <div className="min-h-screen bg-muted/30">
@@ -123,9 +124,6 @@ export default function PlanoContas() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <h3 className="font-semibold">{plano.nome}</h3>
-                      {plano.categoria && (
-                        <p className="text-sm text-muted-foreground">{plano.categoria}</p>
-                      )}
                     </div>
                     <Button
                       onClick={() => abrirDialog(plano)}
@@ -160,9 +158,6 @@ export default function PlanoContas() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <h3 className="font-semibold">{plano.nome}</h3>
-                      {plano.categoria && (
-                        <p className="text-sm text-muted-foreground">{plano.categoria}</p>
-                      )}
                     </div>
                     <Button
                       onClick={() => abrirDialog(plano)}
@@ -179,7 +174,7 @@ export default function PlanoContas() {
         </div>
 
         {/* Exemplos */}
-        {(!planos || planos.length === 0) && (
+        {listaPlanos.length === 0 && (
           <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <h3 className="font-semibold mb-2">💡 Exemplos de Plano de Contas:</h3>
             <div className="text-sm space-y-1">

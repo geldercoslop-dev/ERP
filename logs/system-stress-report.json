@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-03-23T08:29:56.180Z",
+  "tests": {
+    "healthLoop": {
+      "status": "⚠️ PARTIAL",
+      "requests": 144,
+      "success": 0,
+      "failures": 144,
+      "avgLatencyMs": "N/A",
+      "maxLatencyMs": 0,
+      "errorTypes": [
+        ""
+      ]
+    },
+    "dbStress": {
+      "status": "⚠️ PARTIAL",
+      "totalQueries": 10,
+      "successful": 0,
+      "failed": 10,
+      "avgLatency": null
+    },
+    "redisStress": {
+      "status": "⚠️ PARTIAL",
+      "totalPings": 10,
+      "successful": 0,
+      "failed": 10
+    },
+    "forceFailure": {
+      "status": "❌ SYSTEM DOWN",
+      "error": "",
+      "systemAlive": false
+    },
+    "shutdown": {
+      "status": "❌ FAILED",
+      "signalSent": "SIGTERM",
+      "processExited": true
+    }
+  },
+  "summary": {
+    "totalTests": 5,
+    "passed": 0,
+    "partial": 3,
+    "failed": 1,
+    "status": "⚠️ SOME TESTS FAILED"
+  }
+}

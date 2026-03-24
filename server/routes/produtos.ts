@@ -8,7 +8,18 @@ import {
   getProdutoById as dbGetProdutoById,
   getAllProdutosComPrecoVigente,
   updateEstoqueProduto,
-} from '../db';
+} from '../db/index';
+
+function requireTenantFromRequest(req: Request): number {
+  const raw =
+    (req as any).tenantId ??
+    (typeof req.headers?.['x-tenant-id'] === 'string' ? Number(req.headers['x-tenant-id']) : undefined);
+  const tenantId = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Tenant ID obrigatório' });
+  }
+  return tenantId;
+}
 
 const preprocessEstoque = z.preprocess(
   (v) => (v === '' || v == null ? 0 : typeof v === 'string' ? Number(v) : v),
@@ -46,7 +57,8 @@ const updateSchema = createSchema.partial();
 
 export async function getProdutos(_req: Request) {
   try {
-    const produtos = await getAllProdutosComPrecoVigente(new Date());
+    const tenantId = requireTenantFromRequest(_req);
+    const produtos = await getAllProdutosComPrecoVigente(tenantId, new Date());
     return { produtos, total: produtos.length };
   } catch (e) {
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao buscar produtos' });
@@ -55,8 +67,9 @@ export async function getProdutos(_req: Request) {
 
 export async function getProdutoById(request: Request) {
   try {
+    const tenantId = requireTenantFromRequest(request);
     const { id } = request.params as { id: string };
-    const produto = await dbGetProdutoById(Number(id));
+    const produto = await dbGetProdutoById(tenantId, Number(id));
     if (!produto) throw new TRPCError({ code: 'NOT_FOUND', message: 'Produto não encontrado' });
     return produto;
   } catch (e) {
@@ -67,11 +80,12 @@ export async function getProdutoById(request: Request) {
 
 export async function createProduto(request: Request) {
   try {
+    const tenantId = requireTenantFromRequest(request);
     const data = createSchema.parse(request.body);
     const estoqueCores = (data.cores || []).reduce((s, c) => s + Number(c.estoque || 0), 0);
     const estoqueVar = (data.variacoes || []).reduce((s, v) => s + Number(v.estoque || 0), 0);
     const estoqueTotal = estoqueCores + estoqueVar;
-    const result = await dbCreateProduto({
+    const result = await dbCreateProduto(tenantId, {
       descricao: data.descricao,
       marca: data.marca ?? undefined,
       fornecedor: data.fornecedor ?? undefined,
@@ -104,6 +118,7 @@ export async function createProduto(request: Request) {
 
 export async function updateProduto(request: Request) {
   try {
+    const tenantId = requireTenantFromRequest(request);
     const { id } = request.params as { id: string };
     const data = updateSchema.parse(request.body);
     // Remove campos que não são colunas diretas (evita update quebrar)
@@ -111,7 +126,7 @@ export async function updateProduto(request: Request) {
     const patch: any = { ...rest };
     if (data.custo !== undefined) patch.custo = Number(data.custo).toFixed(2);
     if (data.valorVenda !== undefined) patch.valorVenda = Number(data.valorVenda).toFixed(2);
-    await dbUpdateProduto(Number(id), patch);
+    await dbUpdateProduto(tenantId, Number(id), patch);
     return { message: 'Produto atualizado' };
   } catch (e: any) {
     if (e instanceof z.ZodError) {
@@ -124,8 +139,9 @@ export async function updateProduto(request: Request) {
 
 export async function deleteProduto(request: Request) {
   try {
+    const tenantId = requireTenantFromRequest(request);
     const { id } = request.params as { id: string };
-    await dbDeleteProduto(Number(id));
+    await dbDeleteProduto(tenantId, Number(id));
     return { message: 'Produto removido' };
   } catch (e) {
     if (e instanceof TRPCError) throw e;
@@ -135,8 +151,9 @@ export async function deleteProduto(request: Request) {
 
 export async function buscarProdutos(request: Request) {
   try {
+    const tenantId = requireTenantFromRequest(request);
     const { query } = request.query as { query?: string };
-    const produtos = await getAllProdutosComPrecoVigente(new Date());
+    const produtos = await getAllProdutosComPrecoVigente(tenantId, new Date());
     if (!query) return { produtos, total: produtos.length };
     const termo = query.toLowerCase();
     const filtrados = produtos.filter((p: any) =>
@@ -153,6 +170,7 @@ export async function buscarProdutos(request: Request) {
 
 export async function atualizarEstoque(request: Request) {
   try {
+    const tenantId = requireTenantFromRequest(request);
     const { id } = request.params as { id: string };
     const body = z.object({
       quantidade: z.preprocess(
@@ -162,7 +180,7 @@ export async function atualizarEstoque(request: Request) {
       tipo: z.enum(['entrada', 'saida']),
     }).parse(request.body);
     const qtd = body.tipo === 'entrada' ? body.quantidade : -body.quantidade;
-    await updateEstoqueProduto(Number(id), qtd);
+    await updateEstoqueProduto(tenantId, Number(id), qtd);
     return { message: 'Estoque atualizado' };
   } catch (e: any) {
     if (e instanceof z.ZodError) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Dados inválidos' });
@@ -176,8 +194,9 @@ export async function atualizarEstoque(request: Request) {
 
 export async function verificarEstoqueBaixo(_req: Request) {
   try {
+    const tenantId = requireTenantFromRequest(_req);
     // Mantido por compatibilidade (pode evoluir depois).
-    const produtos = await getAllProdutosComPrecoVigente(new Date());
+    const produtos = await getAllProdutosComPrecoVigente(tenantId, new Date());
     const baixo = produtos.filter((p: any) => Number(p.estoque) <= 0);
     return { produtos: baixo, total: baixo.length };
   } catch (e) {

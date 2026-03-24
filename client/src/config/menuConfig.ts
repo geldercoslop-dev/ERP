@@ -14,7 +14,7 @@ export const menuConfig: MenuGroup[] = [
   {
     group: "PAINEL",
     items: [
-      { label: "Dashboard", href: "/", iconName: "home", roles: ["admin", "vendedor"] },
+      { label: "Dashboard", href: "/dashboard", iconName: "home", roles: ["admin", "vendedor"] },
     ],
   },
   {
@@ -86,6 +86,7 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { label: "Relatórios", href: "/relatorios", iconName: "bar-chart-3", roles: ["admin"] },
       { label: "Diagnóstico", href: "/diagnostico", iconName: "activity", roles: ["admin"] },
+      { label: "Saúde do Sistema", href: "/system-health", iconName: "activity", roles: ["admin"] },
     ],
   },
   {

@@ -251,17 +251,23 @@ export default function NovaVenda() {
   };
 
   /** Só exige confirm quando o cliente pertence a outro vendedor (diferente do vendedor efetivo do pedido). */
-  const shouldConfirmClienteOwnership = (principal: { vendedorId: number; nome: string } | null, efetivoId: number | null): boolean => {
+  const shouldConfirmClienteOwnership = (
+    principal: { vendedorId: number; vendedorNome: string } | null,
+    efetivoId: number | null
+  ): boolean => {
     if (!principal || efetivoId == null) return false;
     return principal.vendedorId !== efetivoId;
   };
 
   /** Seleção com busca global: aviso só se cliente pertence a OUTRO vendedor; vínculo em segundo plano; seleção SEMPRE aplicada após OK. */
   const selecionarClienteNaVenda = async (c: TCliente) => {
-    const principal = await utils.clientes.getVendedorPrincipal.fetch({ clienteId: c.id });
+    const principalRaw = await utils.clientes.getVendedorPrincipal.fetch({ clienteId: c.id });
+    const principal = principalRaw
+      ? { vendedorId: principalRaw.vendedorId, vendedorNome: principalRaw.vendedorNome }
+      : null;
     const precisaConfirmar = shouldConfirmClienteOwnership(principal, vendedorEfetivoId);
     if (precisaConfirmar && principal) {
-      const continuar = window.confirm(`Cliente pertence a ${principal.nome}. Continuar mesmo assim?`);
+      const continuar = window.confirm(`Cliente pertence a ${principal.vendedorNome}. Continuar mesmo assim?`);
       if (!continuar) return;
     }
     applySelectedCliente(c);

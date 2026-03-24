@@ -44,6 +44,8 @@ import { menuConfig } from "@/config/menuConfig";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpcClient";
+import { useApiHealth } from "@/contexts/ApiHealthContext";
+import { ApiStatusBanner } from "@/components/ApiStatusBanner";
 
 function classNames(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -223,6 +225,7 @@ export default function AppShell({ children }: PropsWithChildren) {
 
   const redirectToLogin = true;
   const { user, isAuthenticated, isLoading: loading, logout, isImpersonating, vendedorNome, voltarAoAdmin } = useAuth({ redirectOnUnauthenticated: redirectToLogin, redirectPath: "/login" });
+  const { status: apiHealth } = useApiHealth();
 
   const isAdmin = user?.role === "admin";
   const vendedoresQuery = trpc.vendedores.list.useQuery(undefined, { enabled: isAdmin && trocarVendedorModalOpen });
@@ -231,7 +234,7 @@ export default function AppShell({ children }: PropsWithChildren) {
       toast.success("Entrou como vendedor. Use 'Voltar ao admin' no topo para retornar.");
       setTrocarVendedorModalOpen(false);
       setTrocarVendedorId(null);
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     },
     onError: (e: { message?: string }) => toast.error(e?.message ?? "Erro ao entrar como vendedor"),
   });
@@ -306,7 +309,7 @@ export default function AppShell({ children }: PropsWithChildren) {
         </aside>
 
         {/* Mobile header */}
-        <div className={`fixed left-0 right-0 flex items-center justify-between px-4 py-3 lg:hidden z-20 border-b border-white/5 ${isImpersonating ? "top-12" : "top-0"}`} style={{ background: SIDEBAR_STYLE.bg }}>
+        <div className={`fixed left-0 right-0 flex items-center justify-between px-4 py-3 lg:hidden z-20 border-b border-white/5 ${isImpersonating ? "top-12" : "top-0"}`} style={{ background: SIDEBAR_STYLE.bg, height: "48px" }}>
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -320,8 +323,11 @@ export default function AppShell({ children }: PropsWithChildren) {
         </div>
 
         {/* Área principal */}
-        <main className={`flex-1 flex flex-col min-w-0 lg:ml-[224px] h-screen ${isImpersonating ? "pt-12" : ""}`}>
+        <main className={`flex-1 flex flex-col min-w-0 lg:ml-[224px] h-screen ${isImpersonating ? "pt-12" : "lg:pt-0"} lg:pt-0`} style={{ paddingTop: `${isImpersonating ? 'calc(48px + 48px)' : 'calc(48px)'}` }}>
           <header className={`shrink-0 px-6 py-4 border-b border-white/5 ${isImpersonating ? "pt-2" : "pt-14 lg:pt-5"}`}>
+            <div className="mx-auto max-w-[1500px] w-full mb-3 -mt-1">
+              <ApiStatusBanner />
+            </div>
             <div className="mx-auto max-w-[1500px] flex flex-wrap items-center gap-6">
               <div className="min-w-0">
                 <span className="text-base font-semibold" style={{ color: SIDEBAR_STYLE.textPrimary }}>
@@ -387,9 +393,9 @@ export default function AppShell({ children }: PropsWithChildren) {
 
         {/* Mobile drawer */}
         {mobileOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-            <div className="absolute left-0 top-0 bottom-0 w-[224px] flex flex-col" style={{ background: SIDEBAR_STYLE.bg, borderRight: SIDEBAR_STYLE.borderRight, fontFamily: SIDEBAR_STYLE.fontFamily }}>
+          <div className="fixed inset-0 z-50 lg:hidden animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-black/60 animate-in fade-in duration-200" onClick={() => setMobileOpen(false)} />
+            <div className="absolute left-0 top-0 bottom-0 w-[224px] flex flex-col animate-in slide-in-from-left duration-300" style={{ background: SIDEBAR_STYLE.bg, borderRight: SIDEBAR_STYLE.borderRight, fontFamily: SIDEBAR_STYLE.fontFamily }}>
               {SidebarContent}
             </div>
           </div>
@@ -526,8 +532,8 @@ export default function AppShell({ children }: PropsWithChildren) {
 
                 // Ativo SOMENTE quando a rota bate — nunca pelo clique no submenu
                 const active =
-                  item.href === "/"
-                    ? path === "/" || path === ""
+                  item.href === "/dashboard"
+                    ? path === "/dashboard" || path === "/" || path === ""
                     : path === item.href || (item.href !== "/" && path.startsWith(item.href + "/"));
                 const isChildActive = hasChildren && item.children!.some((c) => {
                   const chPath = c.href?.replace(/\?.*$/, "") ?? c.href;
@@ -576,7 +582,7 @@ export default function AppShell({ children }: PropsWithChildren) {
                           type="button"
                           onClick={() => {
                             setMobileOpen(false);
-                            if (item.href === "/" && location === "/") return;
+                            if (item.href === "/dashboard" && (location === "/dashboard" || location === "/")) return;
                             setLocation(item.href);
                           }}
                           className={classNames(
