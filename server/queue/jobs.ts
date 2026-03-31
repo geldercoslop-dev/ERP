@@ -5,8 +5,8 @@
  * OCR, screenshots, análises do LEO, relatórios, etc.
  */
 
-import { JobData, JobResult } from './queue';
-import { logInfo, logError, logWarn } from '../_core/logger';
+import { JobData, JobResult } from './queue.js';
+import { logInfo, logError, logWarn } from '../_core/logger.js';
 
 // Tipos específicos para payloads de jobs
 export interface OcrJobPayload {
@@ -80,9 +80,9 @@ export type QueueJobPayload =
   | CleanupJobPayload;
 
 // Importações dos módulos existentes (serão adaptados para uso assíncrono)
-// import { leoOcr } from '../leo/perception/leo-ocr';
-// import { leoScreen } from '../leo/perception/leo-screen';
-// import { leoEngine } from '../leo/engine/leo-engine';
+// import { leoOcr } from '../leo/perception/leo-ocr.js';
+// import { leoScreen } from '../leo/perception/leo-screen.js';
+// import { leoEngine } from '../leo/engine/leo-engine.js';
 
 /**
  * Processador de Jobs OCR

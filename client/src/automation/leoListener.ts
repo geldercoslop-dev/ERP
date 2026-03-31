@@ -1,4 +1,4 @@
-import { eventBus, ERP_EVENTS } from "@/utils/eventBus";
+import { eventBus, ERP_EVENTS } from "../utils/eventBus";
 import { leoDecisionEngine } from "./leoDecisionEngine";
 
 /**

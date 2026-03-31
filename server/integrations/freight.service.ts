@@ -4,7 +4,7 @@
  * https://melhorenvio.com.br/documentacao/api
  * Cache: 5 min para cotação (server/cache/api-cache.ts).
  */
-import { getOrSet } from "../cache/api-cache";
+import { getOrSet } from "../cache/api-cache.js";
 
 function getToken(): string | undefined {
   return process.env.MELHOR_ENVIO_TOKEN;

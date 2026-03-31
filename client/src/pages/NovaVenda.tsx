@@ -1,30 +1,30 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { onlyDigits, maskPhoneBr, maskMoney, parseMoney } from "@/lib/masks";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { onlyDigits, maskPhoneBr, maskMoney, parseMoney } from "../lib/masks";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Badge } from "../components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { trpc } from "@/lib/trpcClient"; // Usar o novo cliente tRPC
+} from "../components/ui/select";
+import { trpc } from "../lib/trpcClient"; // Usar o novo cliente tRPC
 import { useLocation } from "wouter";
 import { ArrowLeft, Plus, Trash2, Search, CheckCircle, Package, User, CreditCard, Info, Wallet, Banknote, FileText, HelpCircle, CircleDollarSign } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { toast } from "sonner"; // Usar toast do sonner
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/hooks/useAuth"; // Usar o novo hook de autenticação
-import { mensagemPendenciaGerada, mensagemVendaGerada } from "@/lib/pedidoMessages";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { Card, CardContent } from "../components/ui/card";
+import { Separator } from "../components/ui/separator";
+import { useAuth } from "../hooks/useAuth"; // Usar o novo hook de autenticação
+import { mensagemPendenciaGerada, mensagemVendaGerada } from "../lib/pedidoMessages";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 import { TRPCClientError } from "@trpc/client"; // Para tipagem de erros
-import { inDevelopment, asyncInDevelopment } from "@/utils/inDevelopment"; // Para funções em desenvolvimento
-import { useToast } from "@/hooks/use-toast"; // Importar o hook useToast
-import { isInProgress } from "@shared/idempotency";
+import { inDevelopment, asyncInDevelopment } from "../utils/inDevelopment"; // Para funções em desenvolvimento
+import { useToast } from "../hooks/use-toast"; // Importar o hook useToast
+import { isInProgress } from "../../../shared/idempotency";
 
 // Definir interface com tipagem mais precisa
 interface ItemVenda {

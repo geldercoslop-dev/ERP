@@ -1,11 +1,11 @@
 /**
  * Motor de insights do LEO: detecta automaticamente situações relevantes.
  */
-import * as db from "../leo-erp-data.facade";
+import * as db from "../leo-erp-data.facade.js";
 import { eq, and, sql, ne } from "drizzle-orm";
-import { ContaReceberStatus, PedidoStatus } from "../../shared/domain-status";
-import * as financeService from "../finance.service";
-import { ADMIN_ACTOR } from "../../_core/service-actor";
+import { ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
+import * as financeService from "../finance.service.js";
+import { ADMIN_ACTOR } from "../../_core/service-actor.js";
 
 export type Insight = {
   tipo: string;

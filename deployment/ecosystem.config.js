@@ -2,13 +2,17 @@
  * PM2 — produção (executar a partir do repositório).
  * Uso: pm2 start deployment/ecosystem.config.js
  */
-const path = require('path');
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-module.exports = {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const config = {
   apps: [
     {
       name: 'erp-server',
-      script: 'dist/server/_core/index.js',
+      script: 'dist/server/index.js',
       cwd: path.resolve(__dirname, '..'),
       instances: 1,
       exec_mode: 'fork',
@@ -28,3 +32,5 @@ module.exports = {
     },
   ],
 };
+
+export default config;

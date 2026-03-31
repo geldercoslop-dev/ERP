@@ -1,11 +1,11 @@
 /**
  * Motor financeiro do LEO: boletos, contas a pagar/receber, recebimentos por vendedor, inadimplência por cliente.
  */
-import * as db from "../leo-erp-data.facade";
-import * as financeService from "../finance.service";
-import { ADMIN_ACTOR } from "../../_core/service-actor";
-import * as usersService from "../users.service";
-import { BoletoStatus, ContaPagarStatus, ContaReceberStatus } from "../../shared/domain-status";
+import * as db from "../leo-erp-data.facade.js";
+import * as financeService from "../finance.service.js";
+import { ADMIN_ACTOR } from "../../_core/service-actor.js";
+import * as usersService from "../users.service.js";
+import { BoletoStatus, ContaPagarStatus, ContaReceberStatus } from "../../shared/domain-status.js";
 import { inArray } from "drizzle-orm";
 
 /** Tenant padrão para contexto LEO quando não há sessão. */

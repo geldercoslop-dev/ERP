@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../infra/structured-logger';
-import { insertAuditLog } from '../services/audit-service';
+import { createLogger } from '../infra/structured-logger.js';
+import { insertAuditLog } from '../services/audit-service.js';
 
 const logger = createLogger('security-audit');
 

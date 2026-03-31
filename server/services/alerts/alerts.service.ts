@@ -2,10 +2,10 @@
  * Motor de alertas operacionais.
  * Gera lista de alertas para pedido parado, carga atrasada, entrega pendente, financeiro pendente e estoque baixo.
  */
-import * as db from "../../db";
+import * as db from "../../db/index.js";
 import { inArray } from "drizzle-orm";
-import { CargaStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status";
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard";
+import { CargaStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard.js";
 
 export type AlertaOperacional = {
   tipo: string;

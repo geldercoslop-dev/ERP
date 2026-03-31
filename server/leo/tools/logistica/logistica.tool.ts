@@ -3,10 +3,10 @@ import {
   getPedidosParaCarga,
   listCargas,
   listHistoricoRotas,
-} from "../../../services/logistica.service";
-import { assertVendedorActor, serviceActorFromLeoExecutionContext } from "../../../_core/service-actor";
-import type { LeoToolDefinition } from "../types";
-import { createToolResponse } from "../tool-response";
+} from "../../../services/logistica.service.js";
+import { assertVendedorActor, serviceActorFromLeoExecutionContext } from "../../../_core/service-actor.js";
+import type { LeoToolDefinition } from "../types.js";
+import { createToolResponse } from "../tool-response.js";
 
 const verCargasInput = z.object({
   status: z.string().optional(),

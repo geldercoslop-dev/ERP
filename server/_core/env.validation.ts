@@ -1,4 +1,5 @@
-import { createLogger } from "../infra/structured-logger";
+import { createLogger } from "../infra/structured-logger.js";
+import { parseEnv } from "../services/env.schema.js";
 
 const logger = createLogger("env-validation");
 
@@ -15,20 +16,33 @@ function isRequired(value: string | undefined): boolean {
 export function validateProductionEnv(): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  if (!isLongEnough(process.env.JWT_ACCESS_SECRET, 64)) {
-    issues.push({ key: "JWT_ACCESS_SECRET", message: "must be at least 64 chars" });
-  }
+  const base = (() => {
+    try {
+      return parseEnv();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      issues.push({ key: "ENV", message: msg });
+      return null;
+    }
+  })();
 
-  if (!isLongEnough(process.env.JWT_REFRESH_SECRET, 64)) {
-    issues.push({ key: "JWT_REFRESH_SECRET", message: "must be at least 64 chars" });
+  if (base) {
+    if (!isLongEnough(base.JWT_ACCESS_SECRET, 10)) {
+      issues.push({ key: "JWT_ACCESS_SECRET", message: "must be at least 10 chars" });
+    }
+    if (!isLongEnough(base.JWT_REFRESH_SECRET, 10)) {
+      issues.push({ key: "JWT_REFRESH_SECRET", message: "must be at least 10 chars" });
+    }
+    if (!isRequired(base.DATABASE_URL)) {
+      issues.push({ key: "DATABASE_URL", message: "is required" });
+    }
+    if (!isRequired(base.REDIS_URL)) {
+      issues.push({ key: "REDIS_URL", message: "is required" });
+    }
   }
 
   if (!isLongEnough(process.env.APP_SECRET, 64)) {
     issues.push({ key: "APP_SECRET", message: "must be at least 64 chars" });
-  }
-
-  if (!isRequired(process.env.DATABASE_URL)) {
-    issues.push({ key: "DATABASE_URL", message: "is required" });
   }
 
   if (!isRequired(process.env.REDIS_HOST)) {

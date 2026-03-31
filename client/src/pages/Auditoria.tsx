@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { trpc } from "@/lib/trpcClient";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { trpc } from "../lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 import { ShieldCheck, Search } from "lucide-react";
 
 export default function Auditoria() {

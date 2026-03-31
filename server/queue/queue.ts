@@ -13,16 +13,16 @@ import { Queue, Job } from "bullmq";
  * Import direto de `QueueOptions` falha quando `compilerOptions.types` é restrito no tsconfig do servidor.
  */
 type BullMQQueueOptions = NonNullable<ConstructorParameters<typeof Queue>[1]>;
-import { getRedisClient } from '../infra/redis';
-import { logInfo, logError, logWarn } from '../_core/logger-rotation';
-import type { LeoTask, Payload } from '@shared/types';
+import { getRedisClient } from '../infra/redis.js';
+import { logInfo, logError, logWarn } from '../_core/logger-rotation.js';
+import type { LeoTask, Payload } from "../../shared/types/index.js";
 import {
   generateJobIdempotencyKey,
   wasJobExecuted,
-} from './idempotency';
-import { executeJobWithLimits } from './rate-limiter';
+} from './idempotency.js';
+import { executeJobWithLimits } from './rate-limiter.js';
 
-/** Payload genérico de jobs (alinhado a @shared/types Payload) */
+/** Payload genérico de jobs (alinhado a `shared/types` Payload) */
 export type QueuePayload = Payload;
 
 /** Payload genérico para jobs do sistema */

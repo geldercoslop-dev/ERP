@@ -8,12 +8,15 @@ import {
   getProdutoById as dbGetProdutoById,
   getAllProdutosComPrecoVigente,
   updateEstoqueProduto,
-} from '../db/index';
+} from '../db/index.js';
 
 function requireTenantFromRequest(req: Request): number {
-  const raw =
-    (req as any).tenantId ??
-    (typeof req.headers?.['x-tenant-id'] === 'string' ? Number(req.headers['x-tenant-id']) : undefined);
+  // SECURITY: tenantId must come from JWT only
+  const reqWithTenant = req as Request & {
+    tenantId?: unknown;
+    user?: { tenantId?: number | string };
+  };
+  const raw = reqWithTenant.tenantId ?? reqWithTenant.user?.tenantId;
   const tenantId = typeof raw === 'number' ? raw : Number(raw);
   if (!Number.isFinite(tenantId) || tenantId <= 0) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Tenant ID obrigatório' });

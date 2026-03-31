@@ -5,11 +5,11 @@
  * Previne estoque negativo e garante consistência dos dados
  */
 
-import { getDb } from '../db/index';
+import { getDb } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
-import { produtos } from '../../drizzle/schema';
-import type { DbTransaction } from "../shared/types/db-transaction";
-import { logger, logError, logInfo } from '../utils/logger';
+import { produtos } from '../../drizzle/schema.js';
+import type { DbTransaction } from "../shared/types/db-transaction.js";
+import { logger, logError, logInfo } from '../utils/logger.js';
 
 export interface StockOperation {
   produtoId: number;

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { validateEnv, getEnv } from './env';
-import { createLogger } from '../infra/structured-logger';
-import { exitProcessInProductionUnlessDevelopment } from '../_core/dev-process-exit';
+import { validateEnv, getEnv } from './env.js';
+import { createLogger } from '../infra/structured-logger.js';
+import { exitProcessInProductionUnlessDevelopment } from '../_core/dev-process-exit.js';
 
 const logger = createLogger('server-init');
 

@@ -1,7 +1,7 @@
-import * as db from "../db/index";
+import * as db from "../db/index.js";
 import { eq, and, sql } from "drizzle-orm";
-import { produtos } from "../../drizzle/schema";
-import { isRecord } from "../_core/type-guards";
+import { produtos } from "../../drizzle/schema.js";
+import { isRecord } from "../_core/type-guards.js";
 
 /** Primeiro conjunto de linhas retornado por `db.execute` (driver MySQL: [rows, fields]). */
 function mysqlFirstRowset(result: unknown): unknown[] {

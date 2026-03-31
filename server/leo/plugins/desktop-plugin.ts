@@ -5,11 +5,11 @@
  * Pode ser habilitado/desabilitado sem afetar o core
  */
 
-import { logInfo, logError } from "../../_core/logger";
-import type { DesktopAutomationConfig } from "../actions/desktop-automation-config";
-import { DEFAULT_DESKTOP_CONFIG } from "../actions/desktop-automation-config";
-import { LEO_DESKTOP_AUTOMATION } from '../../config/leo';
-import type { ActionResult } from "../types";
+import { logInfo, logError } from "../../_core/logger.js";
+import type { DesktopAutomationConfig } from "../actions/desktop-automation-config.js";
+import { DEFAULT_DESKTOP_CONFIG } from "../actions/desktop-automation-config.js";
+import { LEO_DESKTOP_AUTOMATION } from '../../config/leo.js';
+import type { ActionResult } from "../types.js";
 
 type DesktopActionResult = ActionResult & {
   action?: string;

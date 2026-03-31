@@ -4,8 +4,8 @@
  */
 import { Server } from "http";
 import type { NextFunction, Request, Response } from "express";
-import { RUNTIME } from "../config/runtime";
-import { createLogger } from "../infra/structured-logger";
+import { RUNTIME } from "../config/runtime.js";
+import { createLogger } from "../infra/structured-logger.js";
 import {
   attachShutdownHttpServer,
   getShutdownBootCompleteFlag,
@@ -14,8 +14,8 @@ import {
   markShutdownBootComplete,
   registerProcessShutdownHandlers,
   requestShutdown,
-} from "../services/system/shutdown.service";
-import type { ShutdownPayload } from "../services/system/shutdown.service";
+} from "../services/system/shutdown.service.js";
+import type { ShutdownPayload } from "../services/system/shutdown.service.js";
 
 const logger = createLogger("graceful-shutdown");
 

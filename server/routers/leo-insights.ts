@@ -5,7 +5,7 @@
  */
 
 import { Router, Request } from 'express';
-import { getLeoInsights } from '../services/leo-insights.service';
+import { getLeoInsights } from '../services/leo-insights.service.js';
 
 const router = Router();
 

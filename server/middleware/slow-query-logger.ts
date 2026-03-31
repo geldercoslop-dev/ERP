@@ -4,8 +4,8 @@
  * Intercepta consultas ao banco de dados e registra aquelas que demoram mais de 500ms
  */
 
-import { createLogger } from '../infra/structured-logger';
-import { recordDatabase } from '../infra/metrics';
+import { createLogger } from '../infra/structured-logger.js';
+import { recordDatabase } from '../infra/metrics.js';
 import { performance } from 'perf_hooks';
 
 const logger = createLogger('slow-query');

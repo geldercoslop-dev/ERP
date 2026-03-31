@@ -1,7 +1,7 @@
 // Script de inicialização segura do administrador
 // Substitui senha hardcoded por variável de ambiente com hash bcrypt
 
-import * as db from "../db/index";
+import * as db from "../db/index.js";
 import bcrypt from 'bcryptjs';
 
 /**
@@ -36,8 +36,7 @@ export async function ensureInitialAdmin(): Promise<void> {
     console.log('[ensureInitialAdmin] Criando usuário admin inicial...');
     
     const hashedPassword = await bcrypt.hash(adminPassword, 12);
-    
-    const now = new Date();
+
     const adminUser = await db.findOrCreateUserByOpenId(tenantId, "admin", "Administrador");
     await db.createVendedor({
       tenantId,
@@ -47,8 +46,8 @@ export async function ensureInitialAdmin(): Promise<void> {
       senha: hashedPassword,
       admin: true,
       ativo: true,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     console.log('[ensureInitialAdmin] Admin criado com sucesso');
     console.log('[ensureInitialAdmin] Use as credenciais: admin / [sua senha ADMIN_INITIAL_PASSWORD]');

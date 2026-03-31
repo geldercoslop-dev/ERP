@@ -4,23 +4,23 @@ import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 
 // --- Shared ---
-import { isInProgress } from "@shared/idempotency";
+import { isInProgress } from "../../shared/idempotency.js";
 
 // --- Core ---
-import { protectedProcedure, adminProcedure, router } from "../_core/trpc";
-import { assertOwnership } from "../_core/ownership";
-import { executeCommand, commandResult } from "../_core/command";
-import { requireTenant } from "../_core/tenant";
-import { financeiroTracingMiddleware } from "../infra/tracing-middleware";
+import { protectedProcedure, adminProcedure, router } from "../_core/trpc.js";
+import { assertOwnership } from "../_core/ownership.js";
+import { executeCommand, commandResult } from "../_core/command.js";
+import { requireTenant } from "../_core/tenant.js";
+import { financeiroTracingMiddleware } from "../infra/tracing-middleware.js";
 
 // --- DB e serviços ---
 import type { SQL } from "drizzle-orm";
-import * as financeService from "../services/finance.service";
-import * as usersService from "../services/users.service";
-import * as pdfService from "../services/reports/pdf.service";
-import * as db from "../db/index";
-import { auditEntityChange } from "../_core/domain-audit";
-import { resolveServiceActor, ADMIN_ACTOR } from "../_core/service-actor";
+import * as financeService from "../services/finance.service.js";
+import * as usersService from "../services/users.service.js";
+import * as pdfService from "../services/reports/pdf.service.js";
+import * as db from "../db/index.js";
+import { auditEntityChange } from "../_core/domain-audit.js";
+import { resolveServiceActor, ADMIN_ACTOR } from "../_core/service-actor.js";
 
 /** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
 async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: Record<string, unknown> | null; tenantId?: number | null }) {
@@ -150,7 +150,7 @@ export const boletosRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
       if (ctx.user.role !== "admin") {
-        const logisticaService = await import("../services/logistica.service");
+        const logisticaService = await import("../services/logistica.service.js");
         const carga = await logisticaService.getCargaById(tenantId, input.cargaId);
         if (!carga) throw new TRPCError({ code: "NOT_FOUND", message: "Carga não encontrada." });
         const cargaData = carga as Record<string, unknown>;
@@ -358,10 +358,15 @@ export const contasFixasRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
       return await financeService.createContaFixa(tenantId, {
+        tenantId,
+        nome: input.nome,
         descricao: input.nome,
         valor: input.valorPadrao,
         diaVencimento: input.diaVencimento,
         planoContasId: input.planoContasId ?? null,
+        fornecedorId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
     }),
   gerarMes: adminProcedure
@@ -401,6 +406,7 @@ export const planoContasRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
       return await financeService.createPlanoContas(tenantId, {
+        tenantId,
         ...input,
         ativo: true,
       });

@@ -2,7 +2,24 @@
  * Tipos usados pelo frontend — entidades re-exportadas de entities.ts;
  * apenas tipos específicos de UI/API aqui.
  */
-export type { users, vendedores, clientes, cores, produtos, itensPedido, pedidos, cargas, pedidosCarga, pendencias, promocoes, contasReceber, contasPagar, caixaMensal, planoContas, comissoes } from "./entities";
+export type {
+  users,
+  vendedores,
+  clientes,
+  cores,
+  produtos,
+  itensPedido,
+  pedidos,
+  cargas,
+  pedidosCarga,
+  contasReceber,
+  contasPagar,
+  planoContas,
+  comissoes,
+  Pendencia,
+  Promocao,
+  CaixaMensal,
+} from "./entities.js";
 
 export type UserRole = "admin" | "vendedor" | "user";
 

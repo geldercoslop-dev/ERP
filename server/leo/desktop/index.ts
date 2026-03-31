@@ -5,17 +5,17 @@
  */
 
 // Desktop Controllers
-export { DesktopController, desktopController } from './desktop-controller';
-export type { DesktopAction, DesktopResult } from './desktop-controller';
+export { DesktopController, desktopController } from './desktop-controller.js';
+export type { DesktopAction, DesktopResult } from './desktop-controller.js';
 
 // App Controller
-export { AppController } from './app-controller';
-export type { AppAction, AppResult } from './app-controller';
+export { AppController } from './app-controller.js';
+export type { AppAction, AppResult } from './app-controller.js';
 
 // Browser Controller
-export { BrowserController } from './browser-controller';
-export type { BrowserAction, BrowserResult } from './browser-controller';
+export { BrowserController } from './browser-controller.js';
+export type { BrowserAction, BrowserResult } from './browser-controller.js';
 
 // System Controller
-export { SystemController } from './system-controller';
-export type { SystemAction, SystemResult } from './system-controller';
+export { SystemController } from './system-controller.js';
+export type { SystemAction, SystemResult } from './system-controller.js';

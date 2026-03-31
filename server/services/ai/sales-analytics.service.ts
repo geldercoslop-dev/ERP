@@ -4,9 +4,9 @@
  * Motor de análise de vendas para gerar insights automáticos do negócio
  */
 
-import * as db from "../leo-erp-data.facade";
+import * as db from "../leo-erp-data.facade.js";
 import { eq, sql, and, desc, ne } from "drizzle-orm";
-import { PedidoStatus } from "../../shared/domain-status";
+import { PedidoStatus } from "../../shared/domain-status.js";
 
 export type VendaDiaria = {
   data: string;

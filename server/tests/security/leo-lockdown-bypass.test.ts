@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { stripSensitiveIdsFromRecord } from "../../_core/strip-sensitive-payload";
-import { leoErpService } from "../../services/leo-service";
-import { ADMIN_ACTOR } from "../../_core/service-actor";
+import { stripSensitiveIdsFromRecord } from "../../_core/strip-sensitive-payload.js";
+import { leoErpService } from "../../services/leo-service.js";
+import { ADMIN_ACTOR } from "../../_core/service-actor.js";
 
 describe("Lockdown — input externo não controla vendedor", () => {
   it("stripSensitiveIdsFromRecord remove vendedorId do objeto", () => {

@@ -5,8 +5,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createLogger } from '../infra/structured-logger';
-import { trackError } from '../monitoring/error-alerter';
+import { createLogger } from '../infra/structured-logger.js';
+import { trackError } from '../monitoring/error-alerter.js';
 
 const router = Router();
 const logger = createLogger('test-monitoring');

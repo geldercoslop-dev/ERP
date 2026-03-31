@@ -4,8 +4,8 @@ CREATE TABLE `plano_contas` (
 	`tipo` enum('DESPESA','RECEITA') NOT NULL,
 	`categoria` varchar(100),
 	`ativo` boolean NOT NULL DEFAULT true,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `plano_contas_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint

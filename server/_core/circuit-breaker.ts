@@ -1,4 +1,4 @@
-import { systemLogger } from "./logger";
+import { systemLogger } from "./logger.js";
 
 export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
 

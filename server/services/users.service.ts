@@ -1,11 +1,11 @@
 import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
-import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index";
-import type { NewUser as InsertUser, NewVendedor as InsertVendedor, Database } from "../db/index";
-import type { User, Vendedor } from "../db/index";
-import { users, vendedores } from "../../drizzle/schema";
+import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index.js";
+import type { NewUser as InsertUser, NewVendedor as InsertVendedor, Database } from "../db/index.js";
+import type { User, Vendedor } from "../db/index.js";
+import { users, vendedores } from "../../drizzle/schema.js";
 import { nanoid } from "nanoid";
-import { recordQueryTime } from "../_core/system-monitor";
-import { auditLog } from "../_core/audit-log";
+import { recordQueryTime } from "../_core/system-monitor.js";
+import { auditLog } from "../_core/audit-log.js";
 
 // Types
 export type CreateVendedorInput = InsertVendedor;
@@ -379,7 +379,7 @@ export async function removeVendedor(tenantId: number, id: number): Promise<{ su
   return { success: true, message: "Vendedor removido com sucesso" };
 }
 
-export { getVendedorByNome } from "../db/core";
+export { getVendedorByNome } from "../db/core.js";
 
 export async function getUserByDisplayName(displayName: string): Promise<User | null> {
   const dbConn = await getDb();

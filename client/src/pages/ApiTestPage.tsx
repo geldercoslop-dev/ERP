@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
-import { fetchWithHandling } from '@/lib/api/fetchWithHandling';
-import { ApiStateHandler, useApiState } from '@/components/ui/ApiStateHandler';
-import { logger } from '@/lib/logger/frontendLogger';
+import { fetchWithHandling, type ApiResponse } from '../lib/api/fetchWithHandling';
+import { ApiStateHandler, useApiState } from '../components/ui/ApiStateHandler';
+import { logger } from '../lib/logger/frontendLogger';
 import { AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { trpcCall } from '../lib/trpcClient';
+
+async function authMeTrpcProbe(): Promise<ApiResponse<{ authenticated: boolean }>> {
+  try {
+    const me = await trpcCall('auth.me', null);
+    return { ok: true, status: 200, data: { authenticated: me != null } };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Auth tRPC falhou';
+    return {
+      ok: false,
+      status: 401,
+      error: { status: 401, message, code: 'AUTH_PROBE' },
+    };
+  }
+}
 
 export default function ApiTestPage() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -13,11 +28,8 @@ export default function ApiTestPage() {
     []
   );
 
-  // Test auth endpoint
-  const authTest = useApiState(
-    () => fetchWithHandling('/api/trpc/auth.me', { method: 'GET' }),
-    []
-  );
+  // Test tRPC auth.me (batch)
+  const authTest = useApiState(() => authMeTrpcProbe(), []);
 
   // Test LEO endpoint
   const leoTest = useApiState(
@@ -64,24 +76,28 @@ export default function ApiTestPage() {
       });
     }
 
-    // Test 2: Auth endpoint
+    // Test 2: tRPC auth.me
     try {
       const start = Date.now();
-      const authResponse = await fetchWithHandling('/api/trpc/auth.me', { method: 'GET' });
+      const authResponse = await authMeTrpcProbe();
       const duration = Date.now() - start;
       
       tests.push({
-        name: 'Auth Check',
+        name: 'Auth Check (tRPC auth.me)',
         status: authResponse.ok ? 'success' : authResponse.status === 401 ? 'warning' : 'error',
-        message: authResponse.ok ? 'Auth working' : authResponse.status === 401 ? 'Not authenticated' : authResponse.error?.message || 'Failed',
+        message: authResponse.ok
+          ? `tRPC OK (sessão: ${authResponse.data?.authenticated ? 'sim' : 'não'})`
+          : authResponse.status === 401
+            ? 'tRPC / sessão indisponível'
+            : authResponse.error?.message || 'Failed',
         duration,
         response: authResponse
       });
       
       if (authResponse.ok) {
-        logger.apiSuccess('/api/trpc/auth.me', 'GET', authResponse.status, duration);
+        logger.apiSuccess('/api/trpc/auth.me', 'POST', authResponse.status, duration);
       } else {
-        logger.apiWarn('/api/trpc/auth.me', 'GET', authResponse.status, authResponse.error?.message || 'Auth check failed');
+        logger.apiWarn('/api/trpc/auth.me', 'POST', authResponse.status, authResponse.error?.message || 'Auth check failed');
       }
     } catch (error) {
       tests.push({

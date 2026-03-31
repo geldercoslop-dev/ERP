@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { systemLogger, apiLogger, logCriticalError } from './logger';
-import { recordResponseTime, recordError } from './system-monitor';
+import { systemLogger, apiLogger, logCriticalError } from './logger.js';
+import { recordResponseTime, recordError } from './system-monitor.js';
 
 /**
  * Middleware para adicionar request ID a todas as requisições

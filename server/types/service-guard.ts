@@ -16,7 +16,7 @@ import {
   logSafetyViolation,
   isArraySafe,
   hasId,
-} from './service-safety';
+} from './service-safety.js';
 
 interface ServiceGuardConfig {
   serviceName: string;

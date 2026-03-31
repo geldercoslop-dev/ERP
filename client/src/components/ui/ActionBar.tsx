@@ -1,8 +1,8 @@
 import React from "react";
 import { Plus, ShoppingCart, UserPlus, Truck, PackagePlus, Package } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./button";
 import { useLocation } from "wouter";
-import { useQuickActions } from "@/hooks/useQuickActions";
+import { useQuickActions } from "../../hooks/useQuickActions";
 
 /**
  * ActionBar: Barra de ações rápidas no topo do ERP.

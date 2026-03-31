@@ -5,9 +5,9 @@
  * Analisa o objetivo e cria um plano de ação detalhado
  */
 
-import { leoMemory } from '../memory/leo-memory';
-import { LeoTaskStatus, LeoTaskPriority } from '@shared/types';
-import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service';
+import { leoMemory } from '../memory/leo-memory.js';
+import { LeoTaskStatus, LeoTaskPriority } from "../../../shared/types/index.js";
+import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
 async function insertLeoActionLog(params: InsertLeoActionLogParams): Promise<void> {

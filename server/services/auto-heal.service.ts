@@ -1,5 +1,5 @@
-import { createLogger } from "../infra/structured-logger";
-import type { HealthIssue } from "./health-rules.engine";
+import { createLogger } from "../infra/structured-logger.js";
+import type { HealthIssue } from "./health-rules.engine.js";
 
 const logger = createLogger("auto-heal");
 

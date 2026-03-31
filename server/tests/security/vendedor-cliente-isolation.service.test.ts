@@ -3,9 +3,9 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq, and } from "drizzle-orm";
-import { getDb, getInsertId, clientes, clienteVendedores, vendedores } from "../../db/core";
-import * as clientesService from "../../services/clientes.service";
-import { ADMIN_ACTOR } from "../../_core/service-actor";
+import { getDb, getInsertId, clientes, clienteVendedores, vendedores } from "../../db/core.js";
+import * as clientesService from "../../services/clientes.service.js";
+import { ADMIN_ACTOR } from "../../_core/service-actor.js";
 
 describe("Isolamento vendedor A vs B (clientes.service)", () => {
   const TENANT = 9090;

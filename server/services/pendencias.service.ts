@@ -1,8 +1,8 @@
-import * as db from "../db/index";
+import * as db from "../db/index.js";
 import { eq, and, inArray, asc, sql } from "drizzle-orm";
-import { pendencias, pedidos, vendedores, produtos, cores } from "../../drizzle/schema";
-import { PendenciaStatus, PendenciaStatusValues, type PendenciaStatusValue } from "../shared/domain-status";
-import { validateStatus } from "../shared/guards/domain-guard";
+import { pendencias, pedidos, vendedores, produtos, cores } from "../../drizzle/schema.js";
+import { PendenciaStatus, PendenciaStatusValues, type PendenciaStatusValue } from "../shared/domain-status.js";
+import { validateStatus } from "../shared/guards/domain-guard.js";
 
 /**
  * Serviço de pendências do ERP.

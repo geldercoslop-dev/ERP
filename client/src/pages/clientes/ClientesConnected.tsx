@@ -2,16 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Search, UserPlus, Pencil, Trash2, Users } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { PageHeader } from "../../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../../components/layout/pageLayout";
 
-import { trpc } from "@/lib/trpcClient";
-import { maskPhoneBr, onlyDigits, maskCpf, maskCep } from "@/lib/masks";
+import { trpc } from "../../lib/trpcClient";
+import { maskPhoneBr, onlyDigits, maskCpf, maskCep } from "../../lib/masks";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 
 type ClienteForm = {
   id?: number;

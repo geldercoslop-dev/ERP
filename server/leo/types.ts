@@ -1,6 +1,6 @@
 /**
  * Ponto central de exportação de tipos LEO para o servidor
- * Reexporta todos os tipos de @shared/types
+ * Reexporta todos os tipos de `shared/types`
  */
 
 export {
@@ -41,4 +41,4 @@ export {
   GenericPayload,
   Payload,
   ActionResult
-} from "../../shared/types";
+} from "../../shared/types/index.js";

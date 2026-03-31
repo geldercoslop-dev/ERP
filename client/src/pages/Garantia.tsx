@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { useLocation } from "wouter";
 import { ArrowLeft, Search, CheckCircle, XCircle, Clock, Package, User, Hash, Calendar } from "lucide-react";
 import { useState, useMemo } from "react";
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 
 export default function Garantia() {
   const [, setLocation] = useLocation();

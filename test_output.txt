@@ -1,0 +1,41 @@
+﻿==================================
+TESTE 1 - AUTH (sem token)
+==================================
+Status HTTP: 401
+Esperado: 401
+âo
+TESTE
+1
+PASSOU
+} else {
+    Write-Output â?O
+TESTE
+1
+FALHOU
+}
+Write-Output "
+
+Write-Output ==================================
+Write-Output TESTE
+2
+-
+LOGIN
+Write-Output ==================================
+
+ = @{0=@{json=@{username=admin;password=admin123}}} | ConvertTo-Json -Compress
+
+ = curl.exe -s -X POST http://localhost:3000/api/trpc/auth.login?batch=1 -H Content-Type:
+application/json -H X-App-Secret:
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc -d 
+
+ =  | ConvertFrom-Json -ErrorAction SilentlyContinue
+ = .0.result.data.json.sessionToken
+
+if () {
+     = .0.result.data.json.role
+     = .0.result.data.json.name
+    Write-Output âo TESTE 2 PASSOU
+Usuario: 
+Role: 
+Token: 
+

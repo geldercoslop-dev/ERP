@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { requireTenant, enforceAuth, validateOwnership } from '../../_core/tenant';
+import { requireTenant, enforceAuth, validateOwnership } from '../../_core/tenant.js';
 import { TRPCError } from '@trpc/server';
 
 describe('Autenticação e Autorização por Tenant', () => {

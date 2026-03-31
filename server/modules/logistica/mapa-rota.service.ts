@@ -3,7 +3,7 @@
  * OpenStreetMap/Leaflet no client; aqui apenas retornamos os pontos e opcionalmente geometria.
  */
 
-import * as logisticaService from "../../services/logistica.service";
+import * as logisticaService from "../../services/logistica.service.js";
 
 export interface PontoMapa {
   pedidoCargaId: number;

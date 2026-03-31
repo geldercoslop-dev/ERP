@@ -4,7 +4,7 @@
  */
 
 import type { z } from "zod";
-import type { SecureRole } from "../../_core/secure-context";
+import type { SecureRole } from "../../_core/secure-context.js";
 
 export type LeoToolContext = {
   tenantId: number;

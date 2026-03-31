@@ -1,5 +1,5 @@
-import { logInfo, logError } from '../../_core/logger';
-import { ClientBehavior } from '../../_core/types';
+import { logInfo, logError } from '../../_core/logger.js';
+import { ClientBehavior } from '../../_core/types.js';
 
 export class LeoClientBehavior {
   private readonly name = 'ClientBehavior';

@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 
 /**
  * Página de vendas: sem cards; uso pelo menu lateral (submenus).

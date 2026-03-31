@@ -4,12 +4,12 @@
  * Este módulo inicializa e gerencia o cache in-memory do sistema
  */
 
-import { memoryCache, initCache } from "./memory-cache";
-import { getCacheStats } from "./safe-cache";
-import { redisManager } from "../infra/redis";
+import { memoryCache, initCache } from "./memory-cache.js";
+import { getCacheStats } from "./safe-cache.js";
+import { redisManager } from "../infra/redis.js";
 import express from "express";
-import { requireAdmin } from "./requireAdmin";
-import { logInfo, logWarning, logError } from "./service-logger";
+import { requireAdmin } from "./requireAdmin.js";
+import { logInfo, logWarning, logError } from "./service-logger.js";
 
 // Intervalo de limpeza do cache em segundos
 const CLEANUP_INTERVAL = 300; // 5 minutos

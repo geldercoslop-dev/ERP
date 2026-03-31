@@ -8,9 +8,9 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { menuConfig } from "@/config/menuConfig";
-import type { MenuItem, MenuItemChild } from "@/config/menuConfig";
+} from "./ui/command";
+import { menuConfig } from "../config/menuConfig";
+import type { MenuItem, MenuItemChild } from "../config/menuConfig";
 import {
   Home,
   Plus,

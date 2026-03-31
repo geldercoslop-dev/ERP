@@ -5,9 +5,9 @@
  * Monitora padrões de execução e bloqueia comportamentos anômalos
  */
 
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
-import { leoEvents } from '../memory/leo-events';
-import { leoTaskQueue } from '../tasks/leo-task-queue';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import { leoEvents } from '../memory/leo-events.js';
+import { leoTaskQueue } from '../tasks/leo-task-queue.js';
 
 export interface LoopDetectionConfig {
   maxFailuresPerTask: number;

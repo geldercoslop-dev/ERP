@@ -1,6 +1,6 @@
 import { TRPCClientError } from "@trpc/client";
 import { toast } from "sonner";
-import { GRS_AUTH_UNAUTHORIZED_EVENT } from "@/lib/security/apiClient";
+import { GRS_AUTH_UNAUTHORIZED_EVENT } from "./security/apiClient";
 
 /**
  * Handler centralizado para erros tRPC.

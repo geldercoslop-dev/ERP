@@ -1,8 +1,8 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import type { users } from "../../drizzle/schema";
 import cookie from "cookie";
-import * as db from "../db/index";
-import type { Vendedor } from "../db/index";
+import * as db from "../db/index.js";
+import type { Vendedor } from "../db/index.js";
+import type { UserWithTenant, VendedorWithTenant } from "../types/schema-extended.js";
 
 export type SessionOrigin = "cookie" | "header" | "bearer" | "none";
 
@@ -23,7 +23,7 @@ export type SessionInfo = {
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
-  user: typeof users.$inferSelect | null;
+  user: UserWithTenant | null;
   /** Tenant atual (quando autenticado em ambiente multi-tenant). */
   tenantId: number | null;
   /** Preenchido quando sessão é vendedor (token "v:..."). */
@@ -35,9 +35,9 @@ export type TrpcContext = {
 
 /** App espera role "admin" | "vendedor". Retornamos "vendedor" para não-admin (schema DB usa "user"). */
 function buildUserFromVendedor(
-  v: { id: number; nome: string | null; email: string | null; admin: boolean },
+  v: { id: number; nome: string | null; email: string | null; admin: number | boolean },
   tenantId: number
-): typeof users.$inferSelect {
+): UserWithTenant {
   return {
     id: v.id,
     tenantId,
@@ -45,7 +45,7 @@ function buildUserFromVendedor(
     name: v.nome ?? "Vendedor",
     email: v.email ?? null,
     // users.role no schema atual: "user" | "admin". Vendedor é tratado como "user".
-    role: (v.admin ? "admin" : "user") as "admin" | "user",
+    role: ((typeof v.admin === "number" ? v.admin > 0 : v.admin) ? "admin" : "user") as "admin" | "user",
     loginMethod: "local",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -57,7 +57,7 @@ export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
   console.log("🔥 CONTEXT EXECUTADO", opts.req.originalUrl ?? opts.req.url);
-  let user: typeof users.$inferSelect | null = null;
+  let user: UserWithTenant | null = null;
   let vendedor: Vendedor | null = null;
   let isImpersonating = false;
   let tenantId: number | null = null;
@@ -118,7 +118,7 @@ export async function createContext(
         const u = await db.getUserById(userId);
         if (u) {
           user = u;
-          tenantId = (u as typeof users.$inferSelect).tenantId ?? null;
+          tenantId = (u as UserWithTenant).tenantId ?? null;
         }
       }
     } else if (typeof token === "string" && token.startsWith("v:")) {
@@ -130,7 +130,7 @@ export async function createContext(
         if (v?.ativo) {
           vendedor = v;
           // para vendedores, usamos sempre tenantId obrigatório (schema multi-tenant)
-          tenantId = v.tenantId ?? null;
+          tenantId = (v as VendedorWithTenant).tenantId ?? null;
           user = buildUserFromVendedor(v, tenantId ?? 0);
           isImpersonating = Boolean(typeof adminSessionToken === "string" && adminSessionToken.length > 0);
         } else {
@@ -146,14 +146,14 @@ export async function createContext(
       const u = await db.getUserByOpenId("admin");
       if (u) {
         user = u;
-        tenantId = (u as typeof users.$inferSelect).tenantId ?? null;
+        tenantId = (u as UserWithTenant).tenantId ?? null;
       }
     } else if (token === "vendedor-session") {
       session.tokenKind = "vendedor-session";
       // Legado: tentar resolver vendedor por userId 2 no DB para que ctx.user.id seja vendedor.id
       const vendedor = await db.getVendedorByUserId(2);
       if (vendedor?.ativo) {
-        tenantId = vendedor.tenantId ?? null;
+        tenantId = (vendedor as VendedorWithTenant).tenantId ?? null;
         user = buildUserFromVendedor(vendedor, tenantId ?? 0);
       }
     }

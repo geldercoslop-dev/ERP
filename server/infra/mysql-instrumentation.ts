@@ -3,8 +3,8 @@
  * Wrapper para pool de conexões com spans de tracing
  */
 
-import { measureDatabaseOperation } from "../_core/opentelemetry";
-import { createLogger } from "./structured-logger";
+import { measureDatabaseOperation } from "../_core/opentelemetry.js";
+import { createLogger } from "./structured-logger.js";
 
 const logger = createLogger("mysql-instrumentation");
 

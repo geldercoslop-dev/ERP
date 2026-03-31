@@ -2,8 +2,8 @@
  * Motor de navegação do aplicativo para comandos de voz/texto.
  * Permite que LEO abra telas específicas baseado em comandos naturais.
  */
-import { getScreenByRoute, getAllScreens } from './app-discovery.service';
-import { logger, logError } from '../../_core/logger';
+import { getScreenByRoute, getAllScreens } from './app-discovery.service.js';
+import { logger, logError } from '../../_core/logger.js';
 import { nanoid } from 'nanoid';
 
 export type NavigationCommand = {

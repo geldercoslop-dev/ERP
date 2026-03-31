@@ -4,8 +4,8 @@
  * Factory para criar e gerenciar provedores de IA
  */
 
-import { GroqProvider, createGroqProvider, type GroqConfig } from './groq-provider';
-import { GeminiProvider, createGeminiProvider, type GeminiConfig } from './gemini-provider';
+import { GroqProvider, createGroqProvider, type GroqConfig } from './groq-provider.js';
+import { GeminiProvider, createGeminiProvider, type GeminiConfig } from './gemini-provider.js';
 
 export type AIProvider = GroqProvider | GeminiProvider;
 

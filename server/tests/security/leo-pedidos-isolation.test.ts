@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { agentPermissions } from "../../leo/security/agent-permissions";
-import { getPedidoByNumeroForActor, resolveVendedorIdForCreate } from "../../services/orders.service";
-import { ADMIN_ACTOR } from "../../_core/service-actor";
+import { agentPermissions } from "../../leo/security/agent-permissions.js";
+import { getPedidoByNumeroForActor, resolveVendedorIdForCreate } from "../../services/orders.service.js";
+import { ADMIN_ACTOR } from "../../_core/service-actor.js";
 
 const baseInput = {
   vendedorId: 99999,

@@ -5,9 +5,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { metrics } from '../infra/metrics';
-import { createLogger } from '../infra/structured-logger';
-import { errorAlerter } from '../monitoring/error-alerter';
+import { metrics } from '../infra/metrics.js';
+import { createLogger } from '../infra/structured-logger.js';
+import { errorAlerter } from '../monitoring/error-alerter.js';
 
 const router = Router();
 const logger = createLogger('metrics');

@@ -6,8 +6,8 @@ CREATE TABLE `contas_fixas` (
 	`valor` decimal(10,2) NOT NULL DEFAULT '0',
 	`diaVencimento` int NOT NULL,
 	`ativo` boolean NOT NULL DEFAULT true,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `contas_fixas_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -22,8 +22,8 @@ CREATE TABLE `contas_pagar` (
 	`dataPagamento` varchar(10),
 	`status` enum('PENDENTE','PAGA','VENCIDA') NOT NULL DEFAULT 'PENDENTE',
 	`observacoes` text,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `contas_pagar_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -39,8 +39,8 @@ CREATE TABLE `contas_receber` (
 	`status` enum('PENDENTE','RECEBIDA','VENCIDA') NOT NULL DEFAULT 'PENDENTE',
 	`formaPagamento` varchar(50),
 	`observacoes` text,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `contas_receber_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -52,8 +52,8 @@ CREATE TABLE `fornecedores` (
 	`tipo` varchar(100),
 	`observacoes` text,
 	`ativo` boolean NOT NULL DEFAULT true,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `fornecedores_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint

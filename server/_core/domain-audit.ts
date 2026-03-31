@@ -1,5 +1,5 @@
-import type { AuditAction } from "../db/core";
-import * as db from "../db/index";
+import type { AuditAction } from "../db/core.js";
+import * as db from "../db/index.js";
 
 type RouterCtxUser = { id: number; role: string } | null | undefined;
 

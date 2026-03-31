@@ -1,20 +1,20 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { 
   ArrowLeft, Search, Printer, Trash2, Edit,
   Package, AlertCircle, CheckCircle2, Ban
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
-import { isInProgress } from "@shared/idempotency";
+import { useToast } from "../hooks/use-toast";
+import { Badge } from "../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { useAuth } from "../hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
+import { isInProgress } from "../../../shared/idempotency";
 
 
 export default function MeusPedidos() {

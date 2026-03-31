@@ -1,6 +1,6 @@
-import { logInfo, logError } from '../../_core/logger';
-import { LeoMode, LeoContext } from '../../_core/types';
-import { LeoPermissionError } from '../../_core/errors';
+import { logInfo, logError } from '../../_core/logger.js';
+import { LeoMode, LeoContext } from '../../_core/types.js';
+import { LeoPermissionError } from '../../_core/errors.js';
 
 export type LeoModeType = 'SAFE' | 'ASSIST' | 'OPERATOR' | 'AUTONOMOUS';
 

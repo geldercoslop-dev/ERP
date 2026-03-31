@@ -55,11 +55,13 @@ JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
 APP_SECRET=${APP_SECRET}
 SESSION_SECRET=${SESSION_SECRET}
 
-# Banco local (ajuste usuário/senha/host conforme sua instalação)
-DATABASE_URL=mysql://vendas:vendas123@localhost:3306/vendas_app
+# Alinhado ao docker-compose: host = nome do serviço vendas-mysql (não "mysql").
+# Se o MySQL corre só no host (sem compose), troque o host por localhost.
+DATABASE_URL=mysql://vendas:vendas123@vendas-mysql:3306/erp
 
-# Redis (obrigatório para validação de boot)
-REDIS_HOST=localhost
+# Redis (obrigatório para validação de boot) — serviço vendas-redis no compose
+REDIS_URL=redis://vendas-redis:6379
+REDIS_HOST=vendas-redis
 REDIS_PORT=6379
 
 # Cliente Vite (opcional)

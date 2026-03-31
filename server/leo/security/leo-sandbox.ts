@@ -9,7 +9,7 @@ import { existsSync, statSync } from 'fs';
 import { resolve, normalize } from 'path';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
-import { logInfo, logError, logWarn } from '../../_core/logger';
+import { logInfo, logError, logWarn } from '../../_core/logger.js';
 
 export interface SandboxRule {
   id: string;

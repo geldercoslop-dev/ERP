@@ -1,12 +1,12 @@
 import React, { Suspense } from "react";
 import { Route, Switch, Redirect } from "wouter";
-import { AuthInitializer } from "@/components/AuthInitializer";
-import { ErrorHandler } from "@/components/ErrorHandler";
-import { ConnectionDebugger } from "@/components/ConnectionDebugger";
-import { SessionExpiredBridge } from "@/components/SessionExpiredBridge";
-import { PageRouteSkeleton } from "@/components/ui/PageRouteSkeleton";
-import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
-import { useRequireAdmin } from "@/hooks/useRouteAccess";
+import { AuthInitializer } from "./components/AuthInitializer";
+import { ErrorHandler } from "./components/ErrorHandler";
+import { ConnectionDebugger } from "./components/ConnectionDebugger";
+import { SessionExpiredBridge } from "./components/SessionExpiredBridge";
+import { PageRouteSkeleton } from "./components/ui/PageRouteSkeleton";
+import { ProtectedRoute } from "./components/routing/ProtectedRoute";
+import { useRequireAdmin } from "./hooks/useRouteAccess";
 
 import { lazy } from "react";
 

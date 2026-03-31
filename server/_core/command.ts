@@ -3,10 +3,10 @@
  * Reserva a chave na mesma transação do handler; evita duplicidade mesmo com concorrência.
  */
 import { nanoid } from "nanoid";
-import * as db from "../db/index";
-import type { Database } from "../db/index";
-import type { InProgressResponse } from "@shared/idempotency";
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard";
+import * as db from "../db/index.js";
+import type { Database } from "../db/index.js";
+import type { InProgressResponse } from "../../shared/idempotency.js";
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard.js";
 
 export type { InProgressResponse };
 

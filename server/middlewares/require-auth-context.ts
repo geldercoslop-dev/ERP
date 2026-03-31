@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import { authenticateToken } from "./jwt-auth-middleware";
-import type { JWTPayload } from "../security/jwt-auth";
+import { authenticateToken } from "./jwt-auth-middleware.js";
+import type { JWTPayload } from "../security/jwt-auth.js";
 
 const VALID_ROLES = new Set<JWTPayload["role"]>(["admin", "operator", "user"]);
 

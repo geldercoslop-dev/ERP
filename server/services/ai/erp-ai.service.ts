@@ -2,18 +2,18 @@
  * LEO — Copiloto inteligente do ERP.
  * Fluxo: pergunta → normalização → identificação da intenção → tools/services → resposta.
  */
-import { interpretar, type Interpretacao, type LeoIntent } from "./llm-interpreter";
-import { ActionExecutor, type ActionParams } from "./action-executor";
-import { planTasks, executePlan, type PlanContext } from "./task-planner";
-import { createExecutionGuard } from "./leo-execution-guard";
-import { leoMemory } from "./leo-memory";
-import { SystemObserver } from "./system-observer";
-import { logger } from "../../utils/logger";
-import * as actionEngine from "./action-engine";
-import { buildLeoSessionKey, leoSessionGate } from "../../leo/runtime/leo-session-gate";
-import type { ServiceActor } from "../../_core/service-actor";
-import { leoRoleFromActor } from "../../_core/service-actor";
-import type { ActionExecutorContext } from "./action-executor";
+import { interpretar, type Interpretacao, type LeoIntent } from "./llm-interpreter.js";
+import { ActionExecutor, type ActionParams } from "./action-executor.js";
+import { planTasks, executePlan, type PlanContext } from "./task-planner.js";
+import { createExecutionGuard } from "./leo-execution-guard.js";
+import { leoMemory } from "./leo-memory.js";
+import { SystemObserver } from "./system-observer.js";
+import { logger } from "../../utils/logger.js";
+import * as actionEngine from "./action-engine.js";
+import { buildLeoSessionKey, leoSessionGate } from "../../leo/runtime/leo-session-gate.js";
+import type { ServiceActor } from "../../_core/service-actor.js";
+import { leoRoleFromActor } from "../../_core/service-actor.js";
+import type { ActionExecutorContext } from "./action-executor.js";
 
 /** Resposta padronizada do LEO: formato único para API e integração. */
 export type RespostaLeo = {

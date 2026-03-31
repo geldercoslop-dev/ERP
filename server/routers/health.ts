@@ -1,6 +1,7 @@
 import { createClient } from "redis";
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { publicProcedure, router } from "../_core/trpc.js";
+import { getDb } from "../db/index.js";
 
 type RedisCli = ReturnType<typeof createClient>;
 
@@ -14,6 +15,20 @@ export const healthRouter = router({
         memory: process.memoryUsage(),
         timestamp: new Date().toISOString(),
       };
+
+      // Database health check
+      let dbStatus: "connected" | "disconnected" | "error" = "disconnected";
+      let dbError: string | null = null;
+      
+      try {
+        const db = await getDb();
+        await db.execute("SELECT 1 as health_check");
+        dbStatus = "connected";
+      } catch (error: unknown) {
+        dbError = error instanceof Error ? error.message : String(error);
+        dbStatus = "error";
+        console.error("[Health] Database check failed:", { error: dbError, timestamp: new Date().toISOString() });
+      }
 
       let redis: RedisCli | null = null;
       let redisStatus: "connected" | "disconnected" | "error" = "disconnected";
@@ -49,8 +64,12 @@ export const healthRouter = router({
       const responseTime = Date.now() - startTime;
 
       return {
-        status: "healthy" as const,
+        status: dbStatus === "connected" && redisStatus === "connected" ? "healthy" as const : "unhealthy" as const,
         backend,
+        database: {
+          status: dbStatus,
+          error: dbError,
+        },
         redis: {
           status: redisStatus,
           error: redisError,

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { trpc } from "@/lib/trpcClient";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
+import { trpc } from "../lib/trpcClient";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Label } from "../components/ui/label";
 import { CheckCircle2, Search, Filter } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { isInProgress } from "@shared/idempotency";
+import { useToast } from "../hooks/use-toast";
+import { isInProgress } from "../../../shared/idempotency";
 
 type TabStatus = "TODOS" | "GERADO" | "CONFERIDO";
 

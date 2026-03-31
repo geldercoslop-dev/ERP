@@ -4,9 +4,9 @@
  * Este módulo fornece endpoints para monitorar o estado do sistema.
  */
 import express from 'express';
-import { getMonitorStatus, clearCriticalAlerts } from './service-monitor';
-import { getErrorStats, resetErrorStats } from './service-logger';
-import { requireAdmin } from './requireAdmin';
+import { getMonitorStatus, clearCriticalAlerts } from './service-monitor.js';
+import { getErrorStats, resetErrorStats } from './service-logger.js';
+import { requireAdmin } from './requireAdmin.js';
 
 /**
  * Cria o router de monitoramento

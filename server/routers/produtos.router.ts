@@ -4,17 +4,17 @@ import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 
 // --- Core ---
-import { protectedProcedure, adminProcedure, router } from "../_core/trpc";
-import { requireTenant } from "../_core/tenant";
-import { withServiceGuard } from "../types/service-guard";
+import { protectedProcedure, adminProcedure, router } from "../_core/trpc.js";
+import { requireTenant } from "../_core/tenant.js";
+import { withServiceGuard } from "../types/service-guard.js";
 
 // --- DB e serviços ---
-import * as inventoryService from "../services/inventory.service";
-import * as promocoesService from "../services/promocoes.service";
-import * as db from "../db/index";
-import { validatePaginationParams, createPaginationMetadata } from "../utils/pagination";
-import { cacheKeys, withCache } from "../cache/simple-memory-cache";
-import { invalidateInventoryCachesForTenant } from "../_core/cache-invalidation";
+import * as inventoryService from "../services/inventory.service.js";
+import * as promocoesService from "../services/promocoes.service.js";
+import * as db from "../db/index.js";
+import { validatePaginationParams, createPaginationMetadata } from "../utils/pagination.js";
+import { cacheKeys, withCache } from "../cache/simple-memory-cache.js";
+import { invalidateInventoryCachesForTenant } from "../_core/cache-invalidation.js";
 
 /** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
 async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: Record<string, unknown> | null; tenantId?: number | null }) {
@@ -22,7 +22,7 @@ async function getVendedorFromContext(ctx: { user: { id: number; role: string } 
   if (!ctx.user || ctx.user.role === "admin") return null;
   const tenantId = ctx.tenantId;
   if (!tenantId) return null;
-  const usersService = await import("../services/users.service");
+  const usersService = await import("../services/users.service.js");
   return (await usersService.getVendedorById(ctx.user.id, tenantId)) ?? null;
 }
 
@@ -228,9 +228,9 @@ export const gruposPrecificacaoRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
       const { idempotencyKey, ...data } = input;
-      const executeCommand = await import("../_core/command").then(m => m.executeCommand);
-      const commandResult = await import("../_core/command").then(m => m.commandResult);
-      const isInProgress = await import("@shared/idempotency").then(m => m.isInProgress);
+      const executeCommand = await import("../_core/command.js").then(m => m.executeCommand);
+      const commandResult = await import("../_core/command.js").then(m => m.commandResult);
+      const isInProgress = await import("../../shared/idempotency.js").then(m => m.isInProgress);
       
       const result = await executeCommand(
         { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },

@@ -1,7 +1,7 @@
-import { gerarInsights } from "../../services/ai/insight-engine";
-import { enviarMensagemTelegram } from "../../integrations/telegram.service";
-import * as ordersService from "../../services/orders.service";
-import * as inventoryService from "../../services/inventory.service";
+import { gerarInsights } from "../../services/ai/insight-engine.js";
+import { enviarMensagemTelegram } from "../../integrations/telegram.service.js";
+import * as ordersService from "../../services/orders.service.js";
+import * as inventoryService from "../../services/inventory.service.js";
 
 const PEDIDO_GRANDE_MIN = Number(process.env.LEO_PEDIDO_GRANDE_MIN) || 3000;
 const FRETE_ATRASADO_DIAS = 7;

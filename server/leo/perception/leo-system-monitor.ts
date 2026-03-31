@@ -9,9 +9,9 @@
  * - logs
  */
 
-import { pingDatabase } from '../../services/database-health.service';
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
-import { leoEvents } from '../memory/leo-events';
+import { pingDatabase } from '../../services/database-health.service.js';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import { leoEvents } from '../memory/leo-events.js';
 import { performance } from 'perf_hooks';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -444,7 +444,7 @@ export class LeoSystemMonitor {
   private async reduceLoopFrequency(): Promise<void> {
     try {
       // Pausar novas tasks por 30 segundos
-      const { leoSupervisor } = await import('../engine/leo-supervisor');
+      const { leoSupervisor } = await import('../engine/leo-supervisor.js');
       await leoSupervisor.pauseExecution('Recursos do sistema elevados - reduzindo frequência', 0.5); // 30 segundos
 
       // Notificar sobre a redução de frequência

@@ -4,18 +4,18 @@
  * Endpoints administrativos para controle do operador autônomo
  */
 
-import { router, publicProcedure } from '../_core/trpc';
+import { router, publicProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
-import { leoLoop } from '../leo/engine/leo-loop';
-import { leoTaskQueue } from '../leo/tasks/leo-task-queue';
-import { leoMemory } from '../leo/memory/leo-memory';
-import { leoOperatorMode } from '../leo/operator/leo-operator-controller';
-import { leoErpObserver } from '../leo/perception/leo-erp-observer';
-import { leoSystemMonitor } from '../leo/perception/leo-system-monitor';
-import { leoEvents } from '../leo/memory/leo-events';
-import { leoAutomation } from '../leo/actions/leo-automation';
-import type { LeoTask, LeoEvent, User } from '@shared/types';
-import { LeoTaskStatus } from '@shared/types';
+import { leoLoop } from '../leo/engine/leo-loop.js';
+import { leoTaskQueue } from '../leo/tasks/leo-task-queue.js';
+import { leoMemory } from '../leo/memory/leo-memory.js';
+import { leoOperatorMode } from '../leo/operator/leo-operator-controller.js';
+import { leoErpObserver } from '../leo/perception/leo-erp-observer.js';
+import { leoSystemMonitor } from '../leo/perception/leo-system-monitor.js';
+import { leoEvents } from '../leo/memory/leo-events.js';
+import { leoAutomation } from '../leo/actions/leo-automation.js';
+import type { LeoTask, LeoEvent, User } from "../../shared/types/index.js";
+import { LeoTaskStatus } from "../../shared/types/index.js";
 
 /**
  * Router administrativo do Leo

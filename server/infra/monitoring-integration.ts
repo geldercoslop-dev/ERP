@@ -6,11 +6,11 @@
  */
 
 import express from 'express';
-import { metricsMiddleware, databaseMetricsMiddleware } from './metrics-middleware';
+import { metricsMiddleware, databaseMetricsMiddleware } from './metrics-middleware.js';
 import { Request, Response } from 'express';
-import { systemLogger } from '../_core/logger';
-import { createLogger } from './structured-logger';
-import { metrics, recordSystemMetrics } from './metrics';
+import { systemLogger } from '../_core/logger.js';
+import { createLogger } from './structured-logger.js';
+import { metrics, recordSystemMetrics } from './metrics.js';
 
 const logger = createLogger('monitoring-integration');
 
@@ -34,7 +34,7 @@ export function setupMonitoring(app: express.Application): void {
   // 3. Health check único (usando o sistema centralizado)
   app.get('/health', async (req: Request, res: Response) => {
     try {
-      const { getSystemHealthComplete } = await import('../services/system-health.service');
+      const { getSystemHealthComplete } = await import('../services/system-health.service.js');
       const health = await getSystemHealthComplete();
       res.status(health.status === 'ok' ? 200 : 503).json(health);
     } catch (error) {

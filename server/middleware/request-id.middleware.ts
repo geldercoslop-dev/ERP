@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { NextFunction, Request, Response } from "express";
-import { createLogger } from "../infra/structured-logger";
+import { createLogger } from "../infra/structured-logger.js";
 
 const logger = createLogger("request-id");
 

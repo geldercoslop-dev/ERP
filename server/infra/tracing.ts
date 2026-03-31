@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { createLogger } from './structured-logger';
+import { createLogger } from './structured-logger.js';
 import { trace as otelTrace, Span, SpanStatusCode, SpanKind, context, Context } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { MySQL2Instrumentation } from '@opentelemetry/instrumentation-mysql2';

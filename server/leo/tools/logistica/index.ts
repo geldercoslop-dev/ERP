@@ -1,1 +1,1 @@
-export { verCargasTool, verPedidosEntregaTool, verHistoricoRotaTool } from "./logistica.tool";
+export { verCargasTool, verPedidosEntregaTool, verHistoricoRotaTool } from "./logistica.tool.js";

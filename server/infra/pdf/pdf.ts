@@ -4,7 +4,7 @@
  * Roteiro: delega para o serviço de relatórios.
  */
 import { jsPDF } from "jspdf";
-import * as reportsPdf from "../../services/reports/pdf.service";
+import * as reportsPdf from "../../services/reports/pdf.service.js";
 
 export interface ItemPedidoCompra {
   fornecedor: string | null;

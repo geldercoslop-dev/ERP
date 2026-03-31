@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mysql-test:
+    image: mysql:8.0
+    container_name: erp-mysql-test
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: erp_test
+      MYSQL_USER: erp
+      MYSQL_PASSWORD: erp123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+      - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
+    networks:
+      - erp-test-network
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: erp-redis-test
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_test_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+      interval: 5s
+      start_period: 10s
+    networks:
+      - erp-test-network
+
+volumes:
+  mysql_test_data:
+  redis_test_data:
+
+networks:
+  erp-test-network:
+    driver: bridge

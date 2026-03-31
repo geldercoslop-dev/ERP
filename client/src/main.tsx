@@ -1,14 +1,14 @@
 import "./sentry";
 import "./wdyr";
-import { trpc, trpcClientConfig } from "@/lib/trpcClient";
+import { trpc, trpcClientConfig } from "./lib/trpcClient";
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import GlobalErrorBoundary from "./components/system/GlobalErrorBoundary";
 import "./index.css";
 import { Toaster } from "sonner";
-import { handleGlobalTrpcOrQueryError } from "@/lib/api/globalTrpcErrorHandler";
-import { ApiHealthProvider } from "@/contexts/ApiHealthContext";
+import { handleGlobalTrpcOrQueryError } from "./lib/api/globalTrpcErrorHandler";
+import { ApiHealthProvider } from "./contexts/ApiHealthContext";
 
 // ÚNICA instância: QueryClient e tRPC client criados uma vez, fora do render. Não criar client dentro de componentes.
 const queryClient = new QueryClient({

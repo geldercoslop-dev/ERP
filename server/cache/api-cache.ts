@@ -153,7 +153,7 @@ export async function getOrSet<T>(
   if (integrationLabel) {
     try {
       // Módulo metrics não encontrado - ignorar por enquanto
-      // const { recordApiCall } = await import("../_core/metrics");
+      // const { recordApiCall } = await import("../_core/metrics.js");
       // recordApiCall(integrationLabel);
     } catch {
       // ignore

@@ -1,7 +1,7 @@
-import { logger, systemLogger } from "./logger";
-import { getAllCircuitsStatus } from "./circuit-breaker";
-import { runBackup } from "../infra/backup/backupDb";
-import { runCleanup } from "../../scripts/cleanup-system";
+import { logger, systemLogger } from "./logger.js";
+import { getAllCircuitsStatus } from "./circuit-breaker.js";
+import { runBackup } from "../infra/backup/backupDb.js";
+import { runCleanup } from "../../scripts/cleanup-system.js";
 import path from "path";
 import fs from "fs";
 

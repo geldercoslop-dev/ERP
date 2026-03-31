@@ -3,7 +3,7 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 
 type LeoVoiceInputProps = {
   onTranscript?: (text: string) => void;

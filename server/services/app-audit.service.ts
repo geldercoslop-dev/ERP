@@ -1,4 +1,4 @@
-import { insertAuditLog } from "../db/core";
+import { insertAuditLog } from "../db/core.js";
 
 /**
  * Auditoria para ações sintéticas / LEO (payload em JSON).

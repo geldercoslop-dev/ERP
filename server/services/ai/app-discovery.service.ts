@@ -5,8 +5,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { nanoid } from 'nanoid';
-import * as db from '../leo-erp-data.facade';
-import { logInfo, logError } from '../../_core/logger';
+import * as db from '../leo-erp-data.facade.js';
+import { logInfo, logError } from '../../_core/logger.js';
 import { eq, and } from 'drizzle-orm';
 
 // Tipo principal de resultado do discovery

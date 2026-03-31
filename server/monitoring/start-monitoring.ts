@@ -2,8 +2,8 @@
  * Inicialização do Monitoramento Avançado
  */
 
-import { AdvancedMonitoring } from './advanced-monitoring';
-import { logInfo } from '../_core/logger';
+import { AdvancedMonitoring } from './advanced-monitoring.js';
+import { logInfo } from '../_core/logger.js';
 
 async function startMonitoring(): Promise<any> {
   logInfo('Iniciando sistema de monitoramento avançado');

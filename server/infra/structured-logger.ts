@@ -1,7 +1,8 @@
-import { ErrorContext } from './logger-core';
+import { ErrorContext } from './logger-core.js';
 import pino from "pino";
-import { getObservabilityContext } from "./observability-context";
-import { getCurrentTraceId } from "../_core/opentelemetry";
+import { getObservabilityContext } from "./observability-context.js";
+import { getCurrentTraceId } from "../_core/opentelemetry.js";
+import { StructuredErrorLogger } from './error-tracking.js';
 
 export interface LogContext {
   timestamp?: string;
@@ -150,8 +151,7 @@ export class StructuredLogger {
     this.pinoLogger.error(entry);
 
     if (error) {
-      // Lazy load StructuredErrorLogger to avoid circular dependency
-      const { StructuredErrorLogger } = require('./error-tracking');
+      // Use StructuredErrorLogger imported at the top
       const meta = context.metadata as Record<string, string> | undefined;
       StructuredErrorLogger.error(error, {
         route: meta?.route as string | undefined,

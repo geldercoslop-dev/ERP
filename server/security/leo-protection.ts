@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../infra/structured-logger';
-import { createLeoRateLimit } from './rate-limiting';
+import { createLogger } from '../infra/structured-logger.js';
+import { createLeoRateLimit } from './rate-limiting.js';
 
 const logger = createLogger('leo-protection');
 

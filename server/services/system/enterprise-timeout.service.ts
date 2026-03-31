@@ -6,15 +6,21 @@ export async function withExternalRequestTimeout<T>(
   timeoutMs = 10_000,
   operationName = "EXTERNAL_REQUEST"
 ): Promise<T> {
-  return Promise.race([
-    operation,
-    new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`${operationName}_TIMEOUT_${timeoutMs}ms`)),
-        timeoutMs
-      )
-    ),
-  ]);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error(`${operationName}_TIMEOUT_${timeoutMs}ms`)),
+      timeoutMs
+    );
+  });
+
+  try {
+    return await Promise.race([operation, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
 }
 
 export async function withCriticalDbTimeout<T>(
@@ -22,13 +28,19 @@ export async function withCriticalDbTimeout<T>(
   timeoutMs = 5_000,
   operationName = "CRITICAL_DB_QUERY"
 ): Promise<T> {
-  return Promise.race([
-    operation,
-    new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`${operationName}_TIMEOUT_${timeoutMs}ms`)),
-        timeoutMs
-      )
-    ),
-  ]);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error(`${operationName}_TIMEOUT_${timeoutMs}ms`)),
+      timeoutMs
+    );
+  });
+
+  try {
+    return await Promise.race([operation, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
 }

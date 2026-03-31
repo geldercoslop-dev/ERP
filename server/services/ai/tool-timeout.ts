@@ -3,7 +3,8 @@
  * Evita que uma tool trave indefinidamente.
  */
 
-const DEFAULT_MS = 3000;
+const DEFAULT_MS = 15000;
+const DEFAULT_RETRIES = 2;
 
 const TIMEOUT_MESSAGE = "Operação demorou mais que o esperado.";
 
@@ -28,4 +29,43 @@ export function executeWithTimeout<T>(
         reject(err);
       });
   });
+}
+
+export type FailSafeOptions = {
+  timeoutMs?: number;
+  retries?: number;
+  toolName?: string;
+};
+
+/**
+ * Executa operação com timeout + retry automático + fallback de erro.
+ * Nunca deixa a cadeia travar indefinidamente.
+ */
+export async function executeWithFailSafe<T>(
+  operation: () => Promise<T>,
+  options: FailSafeOptions = {}
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? DEFAULT_MS;
+  const retries = options.retries ?? DEFAULT_RETRIES;
+  const toolLabel = options.toolName ?? "tool";
+
+  let lastError: unknown;
+  const attempts = retries + 1;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await executeWithTimeout(operation(), timeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        console.warn(
+          `[LEO_FAIL_SAFE] retry ${attempt}/${retries} para ${toolLabel}:`,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    }
+  }
+
+  const details = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(`Fallback de execução acionado para ${toolLabel}: ${details}`);
 }

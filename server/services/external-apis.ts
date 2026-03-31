@@ -9,13 +9,11 @@
  */
 
 import { 
-  createFreteCircuitBreaker,
-  createCepCircuitBreaker,
-  createClimaCircuitBreaker,
-  createRastreamentoCircuitBreaker,
-  withCircuitBreaker
-} from '../infra/circuit-breaker';
-import { logInfo, logError, logWarn } from '../_core/logger';
+  CircuitBreaker,
+  CircuitBreakerManager,
+  executeWithCircuitBreaker
+} from '../infra/circuit-breaker.js';
+import { logInfo, logError, logWarn } from '../_core/logger.js';
 
 // Interfaces para APIs externas
 export interface FreteRequest {
@@ -76,15 +74,17 @@ export interface RastreamentoResponse {
  * Serviço de Frete com Circuit Breaker
  */
 export class FreteService {
-  private static circuitBreaker = createFreteCircuitBreaker(
-    // Fallback: valores estimados baseados em distância
-    async () => ({
+  private static circuitBreaker = new CircuitBreaker('frete', {
+    timeout: 5000,
+    errorThreshold: 5,
+    resetTimeout: 30000,
+    fallback: async () => ({
       valor: 0,
       prazo: 7,
       transportadora: 'Correios',
       modalidade: 'Padrão',
     } as FreteResponse)
-  );
+  });
 
   static async calcularFrete(request: FreteRequest): Promise<FreteResponse> {
     logInfo('Calculando frete', { origem: request.origem, destino: request.destino, peso: request.peso });
@@ -102,7 +102,7 @@ export class FreteService {
   }
 
   static getCircuitBreakerState() {
-    return this.circuitBreaker.stats;
+    return this.circuitBreaker.getStats();
   }
 }
 
@@ -110,9 +110,11 @@ export class FreteService {
  * Serviço de CEP com Circuit Breaker
  */
 export class CepService {
-  private static circuitBreaker = createCepCircuitBreaker(
-    // Fallback: retorna dados genéricos
-    async () => ({
+  private static circuitBreaker = new CircuitBreaker('cep', {
+    timeout: 5000,
+    errorThreshold: 5,
+    resetTimeout: 30000,
+    fallback: async () => ({
       cep: '00000000',
       logradouro: 'Logradouro não encontrado',
       bairro: 'Bairro não encontrado',
@@ -120,7 +122,7 @@ export class CepService {
       estado: 'UF',
       ibge: '0000000',
     } as CepResponse)
-  );
+  });
 
   static async consultarCep(cep: string): Promise<CepResponse | undefined> {
     logInfo('Consultando CEP', { cep });
@@ -153,7 +155,7 @@ export class CepService {
   }
 
   static getCircuitBreakerState() {
-    return this.circuitBreaker.stats;
+    return this.circuitBreaker.getStats();
   }
 }
 
@@ -161,15 +163,17 @@ export class CepService {
  * Serviço de Clima com Circuit Breaker
  */
 export class ClimaService {
-  private static circuitBreaker = createClimaCircuitBreaker(
-    // Fallback: retorna dados padrão
-    async () => ({
+  private static circuitBreaker = new CircuitBreaker('clima', {
+    timeout: 5000,
+    errorThreshold: 5,
+    resetTimeout: 30000,
+    fallback: async () => ({
       temperatura: 25,
       umidade: 60,
       descricao: 'Dados não disponíveis',
       previsao: 'Sem previsão',
     } as ClimaResponse)
-  );
+  });
 
   static async obterClima(request: ClimaRequest): Promise<ClimaResponse> {
     logInfo('Obtendo clima', { 
@@ -202,7 +206,7 @@ export class ClimaService {
   }
 
   static getCircuitBreakerState() {
-    return this.circuitBreaker.stats;
+    return this.circuitBreaker.getStats();
   }
 }
 
@@ -210,15 +214,17 @@ export class ClimaService {
  * Serviço de Rastreamento com Circuit Breaker
  */
 export class RastreamentoService {
-  private static circuitBreaker = createRastreamentoCircuitBreaker(
-    // Fallback: retorna status desconhecido
-    async () => ({
+  private static circuitBreaker = new CircuitBreaker('rastreamento', {
+    timeout: 5000,
+    errorThreshold: 5,
+    resetTimeout: 30000,
+    fallback: async () => ({
       status: 'Desconhecido',
       localizacao: 'Não disponível',
       data: new Date().toISOString(),
       historico: [],
     } as RastreamentoResponse)
-  );
+  });
 
   static async rastrearEncomenda(request: RastreamentoRequest): Promise<RastreamentoResponse> {
     logInfo('Rastreando encomenda', { codigo: request.codigo });
@@ -252,7 +258,7 @@ export class RastreamentoService {
   }
 
   static getCircuitBreakerState() {
-    return this.circuitBreaker.stats;
+    return this.circuitBreaker.getStats();
   }
 }
 

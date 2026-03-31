@@ -4,8 +4,8 @@
  * Seleciona automaticamente entre Groq e Gemini baseado no conteúdo
  */
 
-import type { AIProvider } from '../providers';
-import { createGroqProvider, createGeminiProvider } from '../providers';
+import type { AIProvider } from '../providers/index.js';
+import { createGroqProvider, createGeminiProvider } from '../providers/index.js';
 
 export interface ModelRequest {
   prompt: string;

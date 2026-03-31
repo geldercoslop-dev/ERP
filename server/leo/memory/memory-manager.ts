@@ -5,7 +5,7 @@
  * Implementa limites, TTL e limpeza automática
  */
 
-import { logInfo, logError, logWarn } from '../../_core/logger';
+import { logInfo, logError, logWarn } from '../../_core/logger.js';
 
 export interface MemoryStats {
   totalItems: number;

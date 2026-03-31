@@ -2,11 +2,11 @@
  * Insights de negócio do LEO: produto mais vendido, queda de vendas, cliente que parou de comprar,
  * produto sem giro, tempo médio de entrega.
  */
-import * as db from "../leo-erp-data.facade";
+import * as db from "../leo-erp-data.facade.js";
 import { eq, and, sql, ne } from "drizzle-orm";
-import { PedidoStatus } from "../../shared/domain-status";
-import { gerarInsights } from "./insight-engine";
-import * as ordersService from "../orders.service";
+import { PedidoStatus } from "../../shared/domain-status.js";
+import { gerarInsights } from "./insight-engine.js";
+import * as ordersService from "../orders.service.js";
 
 const DIAS_SEM_GIRO = 60;
 const DIAS_CLIENTE_PARADO = 90;

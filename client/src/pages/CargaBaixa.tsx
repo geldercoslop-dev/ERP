@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { trpc } from "@/lib/trpcClient";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { trpc } from "../lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Card, CardContent } from "../components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { useToast } from "../hooks/use-toast";
 import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
-import { mensagemStatusPedido } from "@/lib/pedidoMessages";
+import { mensagemStatusPedido } from "../lib/pedidoMessages";
 
 // Tela separada para BAIXA (não mistura com detalhes/edição da carga).
 export default function CargaBaixa() {

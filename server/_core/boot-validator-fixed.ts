@@ -1,7 +1,8 @@
-import { getDb } from '../db/index';
-import { getConnectionPool, getPoolStats, requireDatabaseUrl } from '../config/database';
-import { systemLogger } from './logger';
+import { getDb } from '../db/index.js';
+import { getConnectionPool, getPoolStats, requireDatabaseUrl } from '../config/database.js';
+import { systemLogger } from './logger.js';
 import * as mysql from 'mysql2/promise';
+import { parseEnv } from '../services/env.schema.js';
 
 export interface BootValidationResult {
   success: boolean;
@@ -239,8 +240,7 @@ export class BootValidatorFixed {
   private async validateSecurity(): Promise<void> {
     const startTime = Date.now();
 
-    const jwtAccessSecret = process.env.JWT_ACCESS_SECRET;
-    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+    const { JWT_ACCESS_SECRET: jwtAccessSecret, JWT_REFRESH_SECRET: jwtRefreshSecret } = parseEnv();
 
     if (jwtAccessSecret && jwtRefreshSecret && jwtAccessSecret === jwtRefreshSecret) {
       this.errors.push('JWT access and refresh secrets must be different');
@@ -262,7 +262,7 @@ export class BootValidatorFixed {
   private async validateExternalServices(): Promise<void> {
     const startTime = Date.now();
 
-    const redisUrl = process.env.REDIS_URL;
+    const { REDIS_URL: redisUrl } = parseEnv();
     if (redisUrl) {
       this.warnings.push('Redis URL configured but validation not implemented');
     }

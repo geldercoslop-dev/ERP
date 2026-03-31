@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, WifiOff, ServerCrash } from 'lucide-react';
-import { ApiResponse, ApiError } from '@/lib/api/fetchWithHandling';
-import { SkeletonLoader } from '@/components/LoadingStates';
+import { ApiResponse, ApiError } from '../../lib/api/fetchWithHandling';
+import { SkeletonLoader } from '../LoadingStates';
 
 interface ApiStateHandlerProps<T> {
   apiResponse: ApiResponse<T> | null;

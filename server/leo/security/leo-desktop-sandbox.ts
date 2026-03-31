@@ -11,7 +11,7 @@ import { existsSync, statSync } from 'fs';
 import { join, resolve, normalize } from 'path';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
-import type { Payload } from '@shared/types';
+import type { Payload } from "../../../shared/types/index.js";
 
 const execAsync = promisify(exec);
 

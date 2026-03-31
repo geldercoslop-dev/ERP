@@ -3,7 +3,7 @@
  * https://brasilapi.com.br/
  * Cache: 5 min (server/cache/api-cache.ts).
  */
-import { getOrSet } from "../cache/api-cache";
+import { getOrSet } from "../cache/api-cache.js";
 
 const BASE = "https://brasilapi.com.br/api";
 

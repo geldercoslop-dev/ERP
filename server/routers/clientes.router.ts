@@ -3,15 +3,15 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 
 // --- Core ---
-import { protectedProcedure, adminProcedure, router } from "../_core/trpc";
-import { assertOwnership } from "../_core/ownership";
-import { requireTenant } from "../_core/tenant";
-import { resolveServiceActor } from "../_core/service-actor";
+import { protectedProcedure, adminProcedure, router } from "../_core/trpc.js";
+import { assertOwnership } from "../_core/ownership.js";
+import { requireTenant } from "../_core/tenant.js";
+import { resolveServiceActor } from "../_core/service-actor.js";
 
 // --- DB e serviços ---
-import * as clientesService from "../services/clientes.service";
-import { validatePaginationParams, createPaginationMetadata } from "../utils/pagination";
-import { memoryCache, cacheKeys, withCache } from "../cache/simple-memory-cache";
+import * as clientesService from "../services/clientes.service.js";
+import { validatePaginationParams, createPaginationMetadata } from "../utils/pagination.js";
+import { memoryCache, cacheKeys, withCache } from "../cache/simple-memory-cache.js";
 
 /** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
 async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: Record<string, unknown> | null; tenantId?: number | null }) {
@@ -19,7 +19,7 @@ async function getVendedorFromContext(ctx: { user: { id: number; role: string } 
   if (!ctx.user || ctx.user.role === "admin") return null;
   const tenantId = ctx.tenantId;
   if (!tenantId) return null;
-  const usersService = await import("../services/users.service");
+  const usersService = await import("../services/users.service.js");
   return (await usersService.getVendedorById(ctx.user.id, tenantId)) ?? null;
 }
 
@@ -101,7 +101,11 @@ export const clientesRouter = router({
       const vendedorId = ctx.user.role === "admin"
         ? input.vendedorIdPrincipal
         : (await getVendedorFromContext(ctx))?.id as number;
-      return await clientesService.createCliente(tenantId, { ...input, vendedorIdPrincipal: vendedorId });
+      return await clientesService.createCliente(tenantId, { 
+        ...input, 
+        userId: ctx.user.id,
+        vendedorIdPrincipal: vendedorId 
+      });
     }),
 
   buscaGlobal: protectedProcedure
@@ -125,7 +129,7 @@ export const clientesRouter = router({
     .query(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
       await assertOwnership(ctx, "cliente", input.clienteId);
-      const db = await import("../db");
+      const db = await import("../db/index.js");
       const db_conn = await db.getDb();
       if (!db_conn) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco indisponível." });
       const limit = input.limit ?? 20;
@@ -178,15 +182,16 @@ export const clientesRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
-      await assertOwnership(ctx, "cliente", input.id);
+      const actor = await resolveServiceActor(ctx);
       const { id, ...data } = input;
-      return await clientesService.updateCliente(tenantId, id, data);
+      return await clientesService.updateCliente(tenantId, actor, id, data);
     }),
   
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
-      return await clientesService.deleteCliente(tenantId, input.id);
+      const actor = await resolveServiceActor(ctx);
+      return await clientesService.deleteCliente(tenantId, actor, input.id);
     }),
 });

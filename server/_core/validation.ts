@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { authLogger } from './logger';
+import { authLogger } from './logger.js';
 
 // Schema para validação de login
 export const loginSchema = z.object({

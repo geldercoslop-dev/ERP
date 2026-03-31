@@ -1,1 +1,1 @@
-export { estoqueTool, buscarProdutoTool } from "./estoque.tool";
+export { estoqueTool, buscarProdutoTool } from "./estoque.tool.js";

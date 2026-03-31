@@ -4,9 +4,9 @@
  * Motor de análise financeira para gerar insights automáticos sobre faturamento e fluxo de caixa
  */
 
-import * as db from "../leo-erp-data.facade";
+import * as db from "../leo-erp-data.facade.js";
 import { eq, sql, and, desc, ne } from "drizzle-orm";
-import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status";
+import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
 
 export type FaturamentoDiario = {
   data: string;

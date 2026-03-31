@@ -1,9 +1,9 @@
 import cookie from 'cookie';
 import { Request, Response, NextFunction } from 'express';
-import * as db from '../db/index';
-import type { User, Vendedor } from '../db/core';
-import { jwtAuth, JWTPayload } from '../security/jwt-auth';
-import { systemLogger } from '../_core/logger';
+import * as db from '../db/index.js';
+import type { User, Vendedor } from '../db/core.js';
+import { jwtAuth, JWTPayload } from '../security/jwt-auth.js';
+import { systemLogger } from '../_core/logger.js';
 
 /** Mesma ordem de resolução que createContext (cookie → X-Session-Token → Bearer). */
 function resolveSessionLikeToken(req: Request): string | undefined {
@@ -362,24 +362,44 @@ export function requireTenantAccess(req: Request, res: Response, next: NextFunct
     return;
   }
 
-  // Obter tenantId dos parâmetros ou do usuário
-  const requestTenantId = req.params.tenantId || req.query.tenantId || req.body.tenantId;
   const userTenantId = req.user.tenantId;
 
-  if (requestTenantId && String(requestTenantId) !== String(userTenantId)) {
+  // SECURITY: tenantId must come from JWT only
+  const hasTenantOverride =
+    typeof req.params.tenantId !== 'undefined' ||
+    typeof req.query.tenantId !== 'undefined' ||
+    (typeof req.body === 'object' && req.body !== null && 'tenantId' in req.body);
+
+  if (hasTenantOverride) {
     systemLogger.warn({
       method: req.method,
       url: req.url,
       userId: req.user.userId,
       userTenantId,
-      requestTenantId,
       traceId: req.traceId
-    }, 'Authorization failed - tenant mismatch');
+    }, 'Authorization failed - tenant override attempt');
+
+    res.status(403).json({
+      error: 'Forbidden',
+      message: 'Tenant override is not allowed',
+      code: 'TENANT_OVERRIDE_FORBIDDEN'
+    });
+    return;
+  }
+
+  if (!Number.isFinite(userTenantId) || userTenantId <= 0) {
+    systemLogger.warn({
+      method: req.method,
+      url: req.url,
+      userId: req.user.userId,
+      userTenantId,
+      traceId: req.traceId
+    }, 'Authorization failed - invalid user tenant');
 
     res.status(403).json({
       error: 'Forbidden',
       message: 'Tenant access denied',
-      code: 'TENANT_MISMATCH'
+      code: 'TENANT_INVALID'
     });
     return;
   }

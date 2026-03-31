@@ -1,5 +1,5 @@
-import { logInfo, logError } from '../../_core/logger';
-import { SalesPattern } from '../../_core/types';
+import { logInfo, logError } from '../../_core/logger.js';
+import { SalesPattern } from '../../_core/types.js';
 
 export class LeoPatternDetection {
   private readonly name = 'PatternDetection';

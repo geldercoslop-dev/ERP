@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Activity, AlertCircle, HardDrive, Clock, Zap, Server, Database, Cpu, DatabaseZap } from 'lucide-react';
-import { HealthCard } from '@/components/HealthCard';
-import { StatusBadge } from '@/components/StatusBadge';
-import { MetricBox } from '@/components/MetricBox';
-import { analyzeHealth, HealthAnalysis, getHealthTrend, formatHealthScore } from '@/utils/health-analyzer';
-import { useSystemHealth } from '@/hooks/useSystemHealth';
-import type { SystemHealthPayload } from '@/types/system-health';
+import { HealthCard } from '../components/HealthCard';
+import { StatusBadge } from '../components/StatusBadge';
+import { MetricBox } from '../components/MetricBox';
+import { analyzeHealth, HealthAnalysis, getHealthTrend, formatHealthScore } from '../utils/health-analyzer';
+import { useSystemHealth } from '../hooks/useSystemHealth';
+import type { SystemHealthPayload } from '../types/system-health';
 
 export default function SystemHealth() {
   const {

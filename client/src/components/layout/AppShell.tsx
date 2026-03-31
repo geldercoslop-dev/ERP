@@ -37,15 +37,15 @@ import {
   UserRoundCog,
   type LucideIcon,
 } from "lucide-react";
-import leo from "@/assets/leo_transparent.png";
-import { useAuth } from "@/hooks/useAuth";
-import { APP_VERSION } from "@/const";
-import { menuConfig } from "@/config/menuConfig";
-import { GlobalSearch } from "@/components/GlobalSearch";
+import leo from "../../assets/leo_transparent.png";
+import { useAuth } from "../../hooks/useAuth";
+import { APP_VERSION } from "../../const";
+import { menuConfig } from "../../config/menuConfig";
+import { GlobalSearch } from "../GlobalSearch";
 import { toast } from "sonner";
-import { trpc } from "@/lib/trpcClient";
-import { useApiHealth } from "@/contexts/ApiHealthContext";
-import { ApiStatusBanner } from "@/components/ApiStatusBanner";
+import { trpc } from "../../lib/trpcClient";
+import { useApiHealth } from "../../contexts/ApiHealthContext";
+import { ApiStatusBanner } from "../ApiStatusBanner";
 
 function classNames(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");

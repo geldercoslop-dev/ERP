@@ -1,15 +1,15 @@
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { Truck, MapPin, Calendar } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { Card, CardContent } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
+import { useToast } from "../hooks/use-toast";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 
 /**
  * Tela Gerar Carga (Logística): criar carga, informar cidade, data de entrega.

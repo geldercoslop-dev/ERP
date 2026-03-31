@@ -1,6 +1,6 @@
-import { authenticatedFetch } from "@/lib/security/apiClient";
-import { stripForbiddenIdentityKeys } from "@/lib/security/sanitizePayload";
-import { logger } from "@/lib/logger/frontendLogger";
+import { authenticatedFetch } from "../security/apiClient";
+import { stripForbiddenIdentityKeys } from "../security/sanitizePayload";
+import { logger } from "../logger/frontendLogger";
 
 type Primitive = string | number | boolean | null;
 type JsonValue = Primitive | JsonValue[] | { [key: string]: JsonValue };

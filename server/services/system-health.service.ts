@@ -1,7 +1,8 @@
-import { getDb } from '../db/index';
-import { systemLogger } from '../_core/logger';
-import { redisManager } from '../infra/redis';
-import { getErrorMessage } from '../utils/safe-error';
+import { getDb } from '../db/index.js';
+import { systemLogger } from '../_core/logger.js';
+import { redisManager } from '../infra/redis.js';
+import { getErrorMessage } from '../utils/safe-error.js';
+import { parseEnv } from './env.schema.js';
 
 const REDIS_HEALTH_TIMEOUT_MS = 2000;
 
@@ -240,7 +241,14 @@ export function buildSystemHealthFailureResponse(error: unknown): SystemHealthRe
  */
 function checkEnvironment() {
   const envChecks = {
-    DATABASE_URL: !!process.env.DATABASE_URL,
+    DATABASE_URL: (() => {
+      try {
+        void parseEnv();
+        return true;
+      } catch {
+        return false;
+      }
+    })(),
     DB_HOST: !!process.env.DB_HOST,
     DB_NAME: !!process.env.DB_NAME,
     PORT: !!process.env.PORT

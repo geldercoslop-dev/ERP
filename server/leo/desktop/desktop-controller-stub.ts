@@ -5,7 +5,7 @@
  * Substitui as funcionalidades do desktop-controller.ts
  */
 
-import type { Payload } from '../../../shared/types';
+import type { Payload } from '../../../shared/types/index.js';
 
 export interface DesktopAction {
   type: string;

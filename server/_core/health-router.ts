@@ -1,6 +1,6 @@
-import { adminProcedure, publicProcedure, router } from './trpc';
-import { systemLogger } from './logger';
-import { checkDatabasePoolHealth, getPoolStats } from '../config/database';
+import { adminProcedure, publicProcedure, router } from './trpc.js';
+import { systemLogger } from './logger.js';
+import { checkDatabasePoolHealth, getPoolStats } from '../config/database.js';
 import { z } from 'zod';
 
 /**

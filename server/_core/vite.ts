@@ -4,8 +4,8 @@ import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import viteConfig from "../../vite.config";
-import { getProjectRoot } from "./project-root";
+import viteConfig from "../../vite.config.js";
+import { getProjectRoot } from "./project-root.js";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -34,7 +34,7 @@ export async function setupVite(app: Express, server: Server) {
     try {
       const clientTemplate = path.resolve(getProjectRoot(), "client", "index.html");
 
-      // always reload the index.html file from disk incase it changes
+      // always reloads index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -53,30 +53,36 @@ export async function setupVite(app: Express, server: Server) {
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(getProjectRoot(), "dist", "public");
+  const assetsPath = path.join(distPath, "assets");
   const indexHtml = path.join(distPath, "index.html");
   const hasClient = fs.existsSync(distPath) && fs.existsSync(indexHtml);
+  const hasAssets = fs.existsSync(assetsPath);
+
+  console.log("Serving static from:", distPath);
+  console.log("Static assets path:", assetsPath, "exists:", hasAssets);
 
   if (!hasClient) {
     console.error(
       `[STATIC] Build do frontend ausente ou incompleto. Esperado diretório com index.html em: ${distPath}`
     );
     console.error("[STATIC] Rode: pnpm run build (client → dist/public). Rotas não-API responderão 503 até lá.");
-    app.use((req, res, next) => {
-      if (req.originalUrl?.split("?")[0]?.startsWith("/api")) {
-        next();
-        return;
-      }
-      res.status(503).type("application/json").json({
-        error: "client_not_built",
-        message: "Frontend não encontrado em dist/public. Execute o build do client.",
-        path: distPath,
+    app.use(express.static(distPath));
+    
+    app.get("*", (req, res) => {
+      res.sendFile(indexHtml, (err) => {
+        if (err) {
+          console.error("[STATIC] Falha ao enviar index.html:", err instanceof Error ? err.message : String(err));
+          if (!res.headersSent) {
+            res.status(500).type("application/json").json({ error: "static_send_failed" });
+          }
+        }
       });
     });
     return;
   }
 
   app.use(express.static(distPath));
-  app.use("*", (_req, res) => {
+  app.get("*", (req, res) => {
     res.sendFile(indexHtml, (err) => {
       if (err) {
         console.error("[STATIC] Falha ao enviar index.html:", err instanceof Error ? err.message : String(err));

@@ -4,7 +4,7 @@
  * Monitora erros e emite alertas quando detecta padrões repetidos
  */
 
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('error-alerter');
 

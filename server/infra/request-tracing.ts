@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { tracer, withTracing, TraceSpan } from './tracing';
-import { createLogger } from './structured-logger';
+import { tracer, withTracing, TraceSpan } from './tracing.js';
+import { createLogger } from './structured-logger.js';
 
 const logger = createLogger('request-tracing');
 

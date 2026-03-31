@@ -1,7 +1,7 @@
 /**
  * Tipos de produto — entidade Produto e Cor vêm de entities.ts
  */
-import type { produtos } from "./entities";
+import type { produtos } from "./entities.js";
 
 type ProdutoType = typeof produtos.$inferSelect;
 

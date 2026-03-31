@@ -4,17 +4,17 @@
  * Quando ativo, Leo pode operar o ERP e o computador completamente
  */
 
-import { leoEngine } from '../engine/leo-engine';
-import { leoComputerControl } from '../actions/leo-computer-control';
-import { leoDesktopControl } from '../actions/leo-desktop-control';
-import { leoScreen } from '../perception/leo-screen';
-import leoOcr from '../perception/leo-ocr';
-import { leoAutomation } from '../actions/leo-automation';
-import { leoSystemMonitor } from '../perception/leo-system-monitor';
-import { leoEvents } from '../memory/leo-events';
-import { leoErpService } from '../../services/leo-service';
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
-import type { Payload } from '@shared/types';
+import { leoEngine } from '../engine/leo-engine.js';
+import { leoComputerControl } from '../actions/leo-computer-control.js';
+import { leoDesktopControl } from '../actions/leo-desktop-control.js';
+import { leoScreen } from '../perception/leo-screen.js';
+import leoOcr from '../perception/leo-ocr.js';
+import { leoAutomation } from '../actions/leo-automation.js';
+import { leoSystemMonitor } from '../perception/leo-system-monitor.js';
+import { leoEvents } from '../memory/leo-events.js';
+import { leoErpService } from '../../services/leo-service.js';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import type { Payload } from "../../../shared/types/index.js";
 
 export const LEO_OPERATOR_MODE = 'LEO_OPERATOR_MODE';
 

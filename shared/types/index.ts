@@ -1,14 +1,14 @@
 /**
  * Tipos compartilhados — única definição por entidade.
- * Backend: import { Cliente } from "@shared/types"
- * Frontend: import { Cliente } from "@/shared/types"
+ * Backend: import { Cliente } from "./index.ts"
+ * Frontend: import { Cliente } from "../../client/src/shared/types"
  */
 
 // Entidades do banco (fonte: Drizzle schema)
-export * from "./entities";
+export * from "./entities.js";
 
 // User / auth (CreateUserData, AuthResponse, etc.)
-export type { User, CreateUserData, UpdateUserData } from "./user";
+export type { User, CreateUserData, UpdateUserData } from "./user.js";
 
 // Product (CreateProductData, ProductFilter, Product alias de Produto) — `export type` exigido no runtime ESM
 export type {
@@ -18,10 +18,38 @@ export type {
   UpdateProductData,
   ProductFilter,
   StockOperation,
-} from "./product";
+} from "./product.js";
 
 // Order (CreatePedidoData, PedidoFilter, etc.)
-export * from "./order";
+export * from "./order.js";
+
+// ===== PAYLOADS BASE (PREPARAÇÃO FUTURA) =====
+
+// Cliente payloads (tipagem para operações)
+export type {
+  ClientePayload,
+  ClienteUpdatePayload,
+  ClienteResponse,
+  ClienteFilters,
+  ClienteAccessControl,
+} from "./payloads-clientes.js";
+
+// Pedido payloads (tipagem para operações)
+export type {
+  PedidoItemPayload,
+  PedidoPayload,
+  PedidoUpdatePayload,
+  PedidoResponse,
+  PedidoFilters,
+  PedidoSummary,
+} from "./payloads-pedidos.js";
+
+// Financeiro payloads (preparação para expansão)
+export type {
+  BoletoPayload,
+  ComissaoPayload,
+  ContaReceberPayload,
+} from "./payloads-financeiro.js";
 
 // Stock
 export type {
@@ -31,19 +59,19 @@ export type {
   StockOperationRequest,
   StockResult,
   StockFilter,
-} from "./stock";
+} from "./stock.js";
 
 // Financial (CreateContaPagarData, FinancialSummary, etc.)
-export * from "./financial";
+export * from "./financial.js";
 
 // LEO
-export * from "./leo";
+export * from "./leo.js";
 
 // Utils
-export * from "./utils";
+export * from "./utils.js";
 
 // Frontend / API comuns (UserRole, ApiResponse, etc.; entidades já vêm de entities)
-export type { UserRole, ApiResponse, ApiListResponse, ClientAppRouter } from "./frontend";
+export type { UserRole, ApiResponse, ApiListResponse, ClientAppRouter } from "./frontend.js";
 
 // Tipos de resposta e paginação
 export interface PaginatedResponse<T> {

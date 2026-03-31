@@ -10,9 +10,9 @@ import {
   TaskQueue,
   TaskFilter,
   QueueStats,
-} from '../types/index';
-import { LeoTaskStatus } from '../../../shared/types';
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
+} from '../types/index.js';
+import { LeoTaskStatus } from '../../../shared/types/index.js';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 
 /**
  * Fila de Tarefas LEO - Implementação concreta

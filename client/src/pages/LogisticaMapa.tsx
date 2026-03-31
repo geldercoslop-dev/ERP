@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import { skipToken } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { Button } from "../components/ui/button";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 import { Truck, MapPin } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 
 type RawMapaChunk = Record<string, unknown>;
 

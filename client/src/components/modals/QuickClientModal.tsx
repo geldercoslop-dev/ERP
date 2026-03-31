@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpcClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { trpc } from "../../lib/trpcClient";
 import { toast } from "sonner";
 import { UserPlus, Loader2 } from "lucide-react";
-import { onlyDigits } from "@/lib/masks";
+import { onlyDigits } from "../../lib/masks";
 
 interface QuickClientModalProps {
   isOpen: boolean;

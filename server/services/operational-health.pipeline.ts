@@ -1,9 +1,9 @@
-import { createLogger } from "../infra/structured-logger";
-import { sendAlert } from "./alert.service";
-import { sendWhatsApp, sendEmail } from "./notification.service";
-import { evaluateHealth, type HealthEvaluationInput, type HealthIssue } from "./health-rules.engine";
-import { executeAction } from "./auto-heal.service";
-import { decideAction } from "./leo-operator.service";
+import { createLogger } from "../infra/structured-logger.js";
+import { sendAlert } from "./alert.service.js";
+import { sendWhatsApp, sendEmail } from "./notification.service.js";
+import { evaluateHealth, type HealthEvaluationInput, type HealthIssue } from "./health-rules.engine.js";
+import { executeAction } from "./auto-heal.service.js";
+import { decideAction } from "./leo-operator.service.js";
 
 const logger = createLogger("operational-health");
 const DEBOUNCE_MS = 60_000;

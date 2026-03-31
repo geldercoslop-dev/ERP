@@ -66,7 +66,7 @@ function log(traceId: string, level: "info" | "warn" | "error", message: string,
 }
 
 async function main(): Promise<void> {
-  await import("../_core/loadEnv");
+  await import("../_core/loadEnv.js");
   const traceId = nanoid(10);
   const fileArg = process.argv[2];
   if (!fileArg || !fileArg.trim()) {

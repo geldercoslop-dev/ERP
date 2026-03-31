@@ -1,6 +1,6 @@
-import { tracer } from '../infra/tracing';
+import { tracer } from '../infra/tracing.js';
 import { trace as otelTrace, SpanKind, SpanStatusCode, context, trace } from '@opentelemetry/api';
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('tracing-middleware');
 

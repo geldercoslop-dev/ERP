@@ -3,9 +3,10 @@
  * Não confia em tenantId/role vindos do cliente — reconstrói a partir do banco.
  */
 
-import { getUserById, getVendedorById, getVendedorByUserId } from "../db/core";
-import type { SecureRole, SecureToolContext } from "./secure-context";
-import { securityLogger } from "./logger";
+import { getUserById, getVendedorById, getVendedorByUserId } from "../db/core.js";
+import type { SecureRole, SecureToolContext } from "./secure-context.js";
+import { securityLogger } from "./logger.js";
+import type { UserWithTenant, VendedorWithTenant } from "../types/schema-extended.js";
 
 const SECURITY_PREFIX = "SECURITY:";
 
@@ -73,11 +74,12 @@ export async function validateTenantOwnership(
 
   const user = await getUserById(userId);
   if (user) {
-    if (user.tenantId !== claimedTenantId) {
+    const userTenantId = (user as UserWithTenant).tenantId;
+    if (userTenantId == null || userTenantId !== claimedTenantId) {
       logInvalidAttempt("tenantId não pertence ao usuário (users)", {
         userId,
         claimedTenantId,
-        dbTenantId: user.tenantId,
+        dbTenantId: userTenantId,
       });
       throw new Error(`${SECURITY_PREFIX} tenantId não pertence ao usuário autenticado`);
     }
@@ -85,7 +87,8 @@ export async function validateTenantOwnership(
     if (user.role === "admin") {
       if (options?.claimedVendedorId != null) {
         const v = await getVendedorById(options.claimedVendedorId);
-        if (!v || v.tenantId !== user.tenantId) {
+        const vTenantId = v ? (v as VendedorWithTenant).tenantId : undefined;
+        if (!v || vTenantId == null || vTenantId !== userTenantId) {
           logInvalidAttempt("vendedorId inconsistente para admin", {
             userId,
             claimedVendedorId: options.claimedVendedorId,
@@ -94,7 +97,7 @@ export async function validateTenantOwnership(
         }
       }
       return {
-        tenantId: user.tenantId,
+        tenantId: userTenantId,
         userId: user.id,
         role: "admin",
         userRole: "admin",
@@ -102,7 +105,8 @@ export async function validateTenantOwnership(
     }
 
     const vByUser = await getVendedorByUserId(user.id);
-    if (vByUser && vByUser.tenantId === user.tenantId) {
+    const vByUserTenantId = vByUser ? (vByUser as VendedorWithTenant).tenantId : undefined;
+    if (vByUser && vByUserTenantId != null && vByUserTenantId === userTenantId) {
       if (options?.claimedVendedorId != null && options.claimedVendedorId !== vByUser.id) {
         logInvalidAttempt("vendedorId não coincide com o vínculo do usuário", {
           userId,
@@ -112,7 +116,7 @@ export async function validateTenantOwnership(
         throw new Error(`${SECURITY_PREFIX} vendedorId não pertence ao usuário`);
       }
       return {
-        tenantId: user.tenantId,
+        tenantId: userTenantId,
         userId: user.id,
         role: "vendedor",
         userRole: "vendedor",
@@ -121,7 +125,7 @@ export async function validateTenantOwnership(
     }
 
     return {
-      tenantId: user.tenantId,
+      tenantId: userTenantId,
       userId: user.id,
       role: "system",
       userRole: "user",
@@ -129,7 +133,8 @@ export async function validateTenantOwnership(
   }
 
   const vById = await getVendedorById(userId);
-  if (vById && vById.tenantId === claimedTenantId) {
+  const vByIdTenantId = vById ? (vById as VendedorWithTenant).tenantId : undefined;
+  if (vById && vByIdTenantId != null && vByIdTenantId === claimedTenantId) {
     if (options?.claimedVendedorId != null && options.claimedVendedorId !== vById.id) {
       logInvalidAttempt("vendedorId não coincide (sessão por id de vendedor)", {
         userId,
@@ -140,7 +145,7 @@ export async function validateTenantOwnership(
     }
     const uid = vById.userId != null && vById.userId > 0 ? vById.userId : vById.id;
     return {
-      tenantId: vById.tenantId,
+      tenantId: vByIdTenantId,
       userId: uid,
       role: vById.admin ? "admin" : "vendedor",
       userRole: vById.admin ? "admin" : "vendedor",

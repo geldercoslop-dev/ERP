@@ -6,10 +6,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { rotationLogger } from '../../_core/logger-rotation';
-import type { LeoTask, Payload } from '../types';
-import { LeoTaskType, LeoTaskPriority, LeoTaskStatus } from '../types';
-import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service';
+import { rotationLogger } from '../../_core/logger-rotation.js';
+import type { LeoTask, Payload } from '../types.js';
+import { LeoTaskType, LeoTaskPriority, LeoTaskStatus } from '../types.js';
+import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 
 export type { LeoTask };
 
@@ -18,7 +18,7 @@ async function insertLeoActionLog(params: InsertLeoActionLogParams): Promise<voi
   await insertLeoLegacyActionLog(params);
 }
 
-// Tipo completo usado internamente (alinhado a @shared/types)
+// Tipo completo usado internamente (alinhado a `shared/types`)
 export type LeoTaskFull = {
   id: string;
   type: LeoTask['type'];

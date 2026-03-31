@@ -10,9 +10,9 @@
  * Uso: npm run test:consistency
  */
 
-import '../_core/loadEnv';
-import { setupTestData, cleanupTestData } from './setup-test-data';
-import { DatabaseConsistencyTester } from './database-consistency.test';
+import '../_core/loadEnv.js';
+import { setupTestData, cleanupTestData } from './setup-test-data.js';
+import { DatabaseConsistencyTester } from './database-consistency.test.js';
 import pino from 'pino';
 import * as fs from 'fs';
 import * as path from 'path';

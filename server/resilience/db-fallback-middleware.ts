@@ -5,7 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('db-fallback');
 
@@ -263,7 +263,7 @@ export class DatabaseFallbackHandler {
  */
 export async function isDatabaseAvailable(): Promise<boolean> {
   try {
-    const { getConnectionPool } = await import('../config/database');
+    const { getConnectionPool } = await import('../config/database.js');
     const pool = await getConnectionPool();
     if (!pool) {
       return false;

@@ -7,7 +7,15 @@
  * Executa: system-diagnostic.ts e imprime relatório completo
  */
 
-import { runSystemDiagnostic } from './system-diagnostic';
+import { runSystemDiagnostic } from './system-diagnostic.js';
+
+// HARDENING: safe improvement - tipo Payload padrão para substituir any
+type Payload = Record<string, unknown>;
+
+// Usar DiagnosticResult do system-diagnostic.ts
+type DiagnosticReport = import('./system-diagnostic.js').DiagnosticResult;
+
+export class SystemDiagnostic {}
 
 interface DiagnosticOptions {
   verbose?: boolean;
@@ -110,7 +118,7 @@ class DiagnosticCLI {
   /**
    * Imprime relatório formatado do diagnóstico
    */
-  private printDiagnosticReport(diagnostic: any, verbose: boolean = false): void {
+  private printDiagnosticReport(diagnostic: DiagnosticReport, verbose: boolean = false): void {
     console.log('='.repeat(60));
     console.log('📊 RELATÓRIO DE DIAGNÓSTICO DO SISTEMA ERP');
     console.log('='.repeat(60));
@@ -119,34 +127,27 @@ class DiagnosticCLI {
 
     // Saúde do Sistema
     console.log('🖥️  SAÚDE DO SISTEMA:');
-    console.log(`   Status: ${this.getStatusEmoji((diagnostic.systemHealth as any).status)} ${(diagnostic.systemHealth as any).status.toUpperCase()}`);
-    console.log(`   Uptime: ${Math.floor((diagnostic.systemHealth as any).uptime / 60)}min ${Math.floor((diagnostic.systemHealth as any).uptime % 60)}s`);
-    console.log(`   Memória: ${Math.round(((diagnostic.systemHealth as any).memoryUsage.heapUsed / (diagnostic.systemHealth as any).memoryUsage.heapTotal) * 100)}% usado`);
+    console.log(`   Status: ${this.getStatusEmoji(diagnostic.systemHealth.status)} ${diagnostic.systemHealth.status.toUpperCase()}`);
+    console.log(`   Uptime: ${Math.floor(diagnostic.systemHealth.uptime / 60)}min ${Math.floor(diagnostic.systemHealth.uptime % 60)}s`);
+    console.log(`   Memória: ${Math.round((diagnostic.systemHealth.memoryUsage.heapUsed / diagnostic.systemHealth.memoryUsage.heapTotal) * 100)}% usado`);
     
     if (verbose) {
-      console.log(`   Heap: ${((diagnostic.systemHealth as any).memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB / ${((diagnostic.systemHealth as any).memoryUsage.heapTotal / 1024 / 1024).toFixed(2)}MB`);
+      console.log(`   Heap: ${(diagnostic.systemHealth.memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB / ${(diagnostic.systemHealth.memoryUsage.heapTotal / 1024 / 1024).toFixed(2)}MB`);
     }
     console.log('');
 
     // Saúde do Banco
     console.log('🗄️  SAÚDE DO BANCO:');
-    console.log(`   Status: ${this.getStatusEmoji((diagnostic.databaseHealth as any).status)} ${(diagnostic.databaseHealth as any).status.toUpperCase()}`);
+    console.log(`   Status: ${this.getStatusEmoji(diagnostic.databaseHealth.status)} ${diagnostic.databaseHealth.status.toUpperCase()}`);
     
-    if ((diagnostic.databaseHealth as any).connectionTime) {
-      console.log(`   Tempo Conexão: ${(diagnostic.databaseHealth as any).connectionTime}ms`);
-    }
-    
-    if ((diagnostic.databaseHealth as any).avgQueryTime) {
-      console.log(`   Tempo Query: ${(diagnostic.databaseHealth as any).avgQueryTime}ms`);
-    }
-    
-    if ((diagnostic.databaseHealth as any).slowQueries.length > 0) {
-      console.log(`   Queries Lentas: ${(diagnostic.databaseHealth as any).slowQueries.length}`);
+    if (diagnostic.databaseHealth.slowQueries.length > 0) {
+      console.log(`   Queries Lentas: ${diagnostic.databaseHealth.slowQueries.length}`);
       
       if (verbose) {
         console.log('   Queries lentas recentes:');
-        ((diagnostic.databaseHealth as any).slowQueries as any[]).slice(0, 3).forEach((query: any, index: number) => {
-          console.log(`     ${index + 1}. ${query.duration}ms - ${query.query.substring(0, 100)}...`);
+        diagnostic.databaseHealth.slowQueries.slice(0, 3).forEach((query: unknown, index: number) => {
+          const q = query as { duration: number; query: string };
+          console.log(`     ${index + 1}. ${q.duration}ms - ${q.query.substring(0, 100)}...`);
         });
       }
     }
@@ -154,16 +155,17 @@ class DiagnosticCLI {
 
     // Saúde das Rotas
     console.log('🛣️  SAÚDE DAS ROTAS:');
-    console.log(`   Taxa Erro: ${(diagnostic.routeHealth as any).errorRate.toFixed(2)}%`);
-    console.log(`   Tempo Resposta: ${(diagnostic.routeHealth as any).avgResponseTime}ms`);
+    console.log(`   Taxa Erro: ${diagnostic.routeHealth.errorRate.toFixed(2)}%`);
+    console.log(`   Tempo Resposta: ${diagnostic.routeHealth.avgResponseTime}ms`);
     
-    if ((diagnostic.routeHealth as any).errors.length > 0) {
-      console.log(`   Erros Recentes: ${(diagnostic.routeHealth as any).errors.length}`);
+    if (diagnostic.routeHealth.errors.length > 0) {
+      console.log(`   Erros Recentes: ${diagnostic.routeHealth.errors.length}`);
       
       if (verbose) {
         console.log('   Erros recentes:');
-        ((diagnostic.routeHealth as any).errors as any[]).slice(0, 3).forEach((error: any, index: number) => {
-          console.log(`     ${index + 1}. ${error.route} - ${error.error}`);
+        diagnostic.routeHealth.errors.slice(0, 3).forEach((error: unknown, index: number) => {
+          const e = error as { route: string; error: string };
+          console.log(`     ${index + 1}. ${e.route} - ${e.error}`);
         });
       }
     }
@@ -171,33 +173,31 @@ class DiagnosticCLI {
 
     // Saúde das Filas
     console.log('📋 SAÚDE DAS FILAS:');
-    console.log(`   Status: ${this.getStatusEmoji((diagnostic.queueHealth as any).status)} ${(diagnostic.queueHealth as any).status.toUpperCase()}`);
-    console.log(`   Jobs Pendentes: ${(diagnostic.queueHealth as any).pendingJobs}`);
-    console.log(`   Jobs Processando: ${(diagnostic.queueHealth as any).processingJobs}`);
-    console.log(`   Jobs Falhados: ${(diagnostic.queueHealth as any).failedJobs}`);
+    console.log(`   Status: ${this.getStatusEmoji(diagnostic.queueHealth.status)} ${diagnostic.queueHealth.status.toUpperCase()}`);
+    console.log(`   Jobs Pendentes: ${diagnostic.queueHealth.pendingJobs}`);
+    console.log(`   Jobs Processando: ${diagnostic.queueHealth.processingJobs}`);
+    console.log(`   Jobs Falhados: ${diagnostic.queueHealth.failedJobs}`);
     console.log('');
 
     // Saúde dos Serviços
     console.log('🔧 SAÚDE DOS SERVIÇOS:');
-    const services = Object.entries((diagnostic.serviceHealth as any) || {});
-    const healthyServices = services.filter(([_, health]: [string, any]) => health.status === 'healthy').length;
-    const totalServices = services.length;
+    const serviceEntries = Object.entries(diagnostic.serviceHealth) as [string, { status: string; errorCount: number; lastError?: string }][];
+    const healthyServices = serviceEntries.filter(([, health]) => health.status === 'healthy').length;
+    const totalServices = serviceEntries.length;
     
     console.log(`   Serviços Saudáveis: ${healthyServices}/${totalServices}`);
     
     if (verbose) {
-      services.forEach(([name, health]: [string, any]) => {
-        const status = health.status === 'healthy' ? '✅' : '❌';
-        console.log(`   ${status} ${name}: ${health.status.toUpperCase()}`);
+      serviceEntries.forEach(([serviceName, health]) => {
+        console.log(`   ${serviceName}: ${this.getStatusEmoji(health.status)} ${health.status.toUpperCase()}`);
         if (health.errorCount > 0) {
-          console.log(`      Erros: ${health.errorCount}`);
+          console.log(`     Erros: ${health.errorCount}`);
+          if (health.lastError) {
+            console.log(`     Último erro: ${health.lastError.substring(0, 100)}...`);
+          }
         }
       });
     }
-    console.log('');
-
-    // Recomendações
-    console.log('💡 RECOMENDAÇÕES:');
     this.printRecommendations(diagnostic);
     
     console.log('='.repeat(60));
@@ -206,40 +206,39 @@ class DiagnosticCLI {
   /**
    * Imprime recomendações baseadas no diagnóstico
    */
-  private printRecommendations(diagnostic: any): void {
+  private printRecommendations(diagnostic: DiagnosticReport): void {
     const recommendations: string[] = [];
 
     // Sistema
-    if ((diagnostic.systemHealth as any).status === 'critical') {
+    if (diagnostic.systemHealth.status === 'critical') {
       recommendations.push('🔥 Reiniciar o servidor (uso crítico de memória)');
-    } else if ((diagnostic.systemHealth as any).status === 'warning') {
+    } else if (diagnostic.systemHealth.status === 'warning') {
       recommendations.push('⚠️ Monitorar uso de memória (acima de 75%)');
     }
 
     // Banco
-    if ((diagnostic.databaseHealth as any).status === 'disconnected') {
-      recommendations.push('🚨 Verificar conexão com banco de dados IMEDIATAMENTE');
-    } else if ((diagnostic.databaseHealth as any).status === 'slow') {
-      recommendations.push('🐌 Analisar e otimizar queries lentas');
-      recommendations.push('📊 Verificar índices das tabelas');
+    if (diagnostic.databaseHealth.status === 'disconnected') {
+      recommendations.push('� Verificar conexão com banco de dados');
+    } else if (diagnostic.databaseHealth.status === 'slow') {
+      recommendations.push('🐌 Otimizar queries lentas ou adicionar índices');
     }
 
     // Rotas
-    if ((diagnostic.routeHealth as any).errorRate > 5) {
-      recommendations.push('🛣️ Investigar alta taxa de erros nas rotas');
+    if (diagnostic.routeHealth.errorRate > 5) {
+      recommendations.push('� Investigar alta taxa de erro nas rotas');
     }
 
     // Filas
-    if ((diagnostic.queueHealth as any).status === 'stalled') {
-      recommendations.push('📋 Verificar processamento das filas');
+    if (diagnostic.queueHealth.status === 'stalled') {
+      recommendations.push('⏸️ Verificar processamento de filas');
     }
 
     // Serviços
-    const errorServices = Object.entries((diagnostic.serviceHealth as any) || {})
-      .filter(([_, health]: [string, any]) => health.status === 'error');
+    const errorServices = Object.entries(diagnostic.serviceHealth || {}) as [string, { status: string; errorCount: number; lastError?: string }][];
+    const filteredErrorServices = errorServices.filter(([, health]) => health.status === 'error');
     
-    if (errorServices.length > 0) {
-      recommendations.push(`🔧 Verificar serviços com erros: ${errorServices.map(([name]) => name).join(', ')}`);
+    if (filteredErrorServices.length > 0) {
+      recommendations.push(`🔧 Verificar serviços com erros: ${filteredErrorServices.map(([name]) => name).join(', ')}`);
     }
 
     if (recommendations.length === 0) {
@@ -254,10 +253,10 @@ class DiagnosticCLI {
   /**
    * Verifica se há problemas críticos
    */
-  private hasCriticalIssues(diagnostic: any): boolean {
-    return (diagnostic.systemHealth as any).status === 'critical' ||
-           (diagnostic.databaseHealth as any).status === 'disconnected' ||
-           (diagnostic.queueHealth as any).status === 'stalled';
+  private hasCriticalIssues(diagnostic: DiagnosticReport): boolean {
+    return diagnostic.systemHealth.status === 'critical' ||
+           diagnostic.databaseHealth.status === 'disconnected' ||
+           diagnostic.queueHealth.status === 'stalled';
   }
 
   /**

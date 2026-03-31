@@ -5,8 +5,8 @@
  * LEO nunca acessa DB direto.
  */
 
-import { getDb, insertAuditLog } from '../db/index';
-import { logger, systemLogger } from '../_core/logger';
+import { getDb, insertAuditLog } from '../db/index.js';
+import { logger, systemLogger } from '../_core/logger.js';
 
 function getDiagnosticTenantId(): number | null {
   const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
@@ -14,7 +14,7 @@ function getDiagnosticTenantId(): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-interface DiagnosticResult {
+export interface DiagnosticResult {
   timestamp: Date;
   systemHealth: {
     status: 'healthy' | 'warning' | 'critical';

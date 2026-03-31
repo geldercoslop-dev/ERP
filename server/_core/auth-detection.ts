@@ -4,8 +4,8 @@
  */
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
-import { authLogger } from './logger';
-import { recordQueryTime } from "../_core/system-monitor";
+import { authLogger } from './logger.js';
+import { recordQueryTime } from "../_core/system-monitor.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -27,6 +27,29 @@ interface DatabaseConfig {
 
 let authConfig: AuthConfig | null = null;
 let detectionCompleted = false;
+
+function requireEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`[Auth Detection] variável obrigatória ausente: ${name}`);
+  }
+  return value;
+}
+
+function getRequiredDbConfig(): DatabaseConfig {
+  const host = requireEnv("DB_HOST");
+  const portRaw = requireEnv("DB_PORT");
+  const user = requireEnv("DB_USER");
+  const password = requireEnv("DB_PASSWORD");
+  const database = requireEnv("DB_NAME");
+  const port = Number.parseInt(portRaw, 10);
+
+  if (!Number.isFinite(port) || port <= 0) {
+    throw new Error("[Auth Detection] DB_PORT inválida");
+  }
+
+  return { host, port, user, password, database };
+}
 
 /**
  * Conecta ao banco com retry automático
@@ -250,13 +273,7 @@ export async function detectAuthConfig(): Promise<AuthConfig> {
   console.log("🔍 Iniciando detecção inteligente de autenticação...");
   
   // Configuração do banco
-  const dbConfig: DatabaseConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306', 10),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'vendas_app'
-  };
+  const dbConfig = getRequiredDbConfig();
   
   console.log(`[Auth Detection] Configuração: ${dbConfig.user}@${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`);
   
@@ -416,13 +433,7 @@ export async function getAuthConfig(): Promise<AuthConfig> {
  */
 export async function authenticateUser(username: string, password: string): Promise<any> {
   const config = await getAuthConfig();
-  const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306', 10),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'vendas_app'
-  };
+  const dbConfig = getRequiredDbConfig();
   
   const connection = await mysql.createConnection(dbConfig);
   

@@ -40,12 +40,4 @@ export default defineConfig({
       'build/',
     ],
   },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './'),
-      '@server': path.resolve(__dirname, './server'),
-      '@shared': path.resolve(__dirname, './shared'),
-      '@tests': path.resolve(__dirname, './tests'),
-    },
-  },
 });

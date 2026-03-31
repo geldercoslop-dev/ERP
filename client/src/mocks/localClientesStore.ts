@@ -1,5 +1,5 @@
-import type { ClienteLocal } from "@/types/appDomain";
-import { newLocalId } from "@/mocks/id";
+import type { ClienteLocal } from "../types/appDomain";
+import { newLocalId } from "./id";
 
 const STORAGE_KEY = "grs-mock-clientes-v1";
 

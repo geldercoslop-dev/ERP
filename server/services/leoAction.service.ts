@@ -1,7 +1,7 @@
-import { createLogger } from "../infra/structured-logger";
-import * as ordersService from "./orders.service";
-import * as financeService from "./finance.service";
-import { assertVendedorActor } from "../_core/service-actor";
+import { createLogger } from "../infra/structured-logger.js";
+import * as ordersService from "./orders.service.js";
+import * as financeService from "./finance.service.js";
+import { assertVendedorActor } from "../_core/service-actor.js";
 
 export type LeoAction = "CREATE_ORDER" | "PROCESS_PAYMENT" | "REGISTER_SALE";
 

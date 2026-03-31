@@ -11,10 +11,11 @@
 
 import { Request, Response, NextFunction } from "express";
 import { nanoid } from 'nanoid';
-import { createLogger } from '../infra/structured-logger';
-import { recordRequest } from '../infra/metrics';
+import { createLogger } from '../infra/structured-logger.js';
+import { recordRequest } from '../infra/metrics.js';
 
 const logger = createLogger('request-logger');
+type UserWithTenant = { tenantId?: number | string };
 
 // Tipos para estender o objeto Request
 declare global {
@@ -38,11 +39,8 @@ export function requestLoggerMiddleware() {
     // Registrar tempo de início
     req.startTime = Date.now();
     
-    // Extrair tenantId dos parâmetros ou do corpo
-    const tenantId = 
-      Number(req.query.tenantId) || 
-      Number(req.body?.tenantId) || 
-      undefined;
+    // SECURITY: tenantId must come from JWT only
+    const tenantId = extractTenantId(req);
     const traceId = req.traceId;
     
     // Log inicial da requisição
@@ -197,6 +195,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function getUserId(req: Request): number | undefined {
   const candidate = (req as Request & { user?: { id?: unknown } }).user?.id;
   return typeof candidate === "number" ? candidate : undefined;
+}
+
+function extractTenantId(req: Request): number | undefined {
+  const reqWithTenant = req as Request & { tenantId?: unknown; user?: unknown };
+
+  const requestTenantId = Number(reqWithTenant.tenantId);
+  if (Number.isFinite(requestTenantId) && requestTenantId > 0) {
+    return requestTenantId;
+  }
+
+  const user = reqWithTenant.user;
+  if (typeof user === 'object' && user !== null) {
+    const userTenantId = Number((user as UserWithTenant).tenantId);
+    if (Number.isFinite(userTenantId) && userTenantId > 0) {
+      return userTenantId;
+    }
+  }
+
+  return undefined;
 }
 
 export default requestLoggerMiddleware;

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { sameOriginFetch } from "@/lib/security/apiClient";
+import { sameOriginFetch } from "../lib/security/apiClient";
 import {
   parseSystemHealthPayload,
   type SystemHealthPayload,
-} from "@/types/system-health";
+} from "../types/system-health";
 
 const HEALTH_URL = "/api/system/health";
 

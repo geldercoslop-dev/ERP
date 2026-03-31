@@ -1,32 +1,40 @@
 import cookie from "cookie";
-import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
-import { healthRouter } from "./routers/health";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "../shared/const.js";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { systemRouter } from "./_core/systemRouter.js";
+import { healthRouter } from "./routers/health.js";
+import { publicProcedure, protectedProcedure, requireRole, router } from "./_core/trpc.js";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { SQL } from "drizzle-orm";
-import * as db from "./db/index";
-import * as pdf from "./pdf";
-import { roundToTwo, sumWithPrecision, subtractWithPrecision, multiplyWithPrecision } from "./utils/financialUtils";
+import * as db from "./db/index.js";
+import * as pdf from "./pdf.js";
+import { roundToTwo, sumWithPrecision, subtractWithPrecision, multiplyWithPrecision } from "./utils/financialUtils.js";
 import { nanoid } from "nanoid";
-import { assertOwnership } from "./_core/ownership";
-import { executeCommand, commandResult } from "./_core/command";
-import { isInProgress } from "@shared/idempotency";
-import { checkRequestIdMemory, registerSuccessfulCreation, logDuplicationAttempt, generateConcurrencyReport } from "./concurrency/pedido-control";
-import { requireTenant } from "./_core/tenant";
-import { checkRateLimit, clearRateLimitForKey } from "./services/rateLimitService";
-import { logAuth } from "./services/auditService";
-import { leoRouter } from "./routers/leo";
-import { resolveServiceActor } from "./_core/service-actor";
-import { auditEntityChange } from "./_core/domain-audit";
-import * as cachedClientes from "./services/cached-clientes.service";
-import { logger } from "./_core/logger";
-import { getPoolStatsSnapshot } from "./config/database";
-import { isDuplicateKeyError } from "./services/orders.service";
-import * as logisticaService from "./services/logistica.service";
-import { buscarRegistros } from "./services/audit-service";
+import { assertOwnership, resolveOwnerUserId } from "./_core/ownership.js";
+import { executeCommand, commandResult } from "./_core/command.js";
+import { isInProgress } from "../shared/idempotency.js";
+import { checkRequestIdMemory, registerSuccessfulCreation, logDuplicationAttempt, generateConcurrencyReport } from "./concurrency/pedido-control.js";
+import { requireTenant } from "./_core/tenant.js";
+import { checkRateLimit, clearRateLimitForKey } from "./services/rateLimitService.js";
+import { logAuth } from "./services/auditService.js";
+import { leoRouter } from "./routers/leo.js";
+import { resolveServiceActor } from "./_core/service-actor.js";
+import { auditEntityChange } from "./_core/domain-audit.js";
+import * as cachedClientes from "./services/cached-clientes.service.js";
+import { logger } from "./_core/logger.js";
+import { getPoolStatsSnapshot } from "./config/database.js";
+import {
+  isDuplicateKeyError,
+  createPedidoSafe,
+  listPedidosTrpcPage,
+  getPedidoWithItensForActor,
+  getPedidoByIdForActor,
+  getItensPedido,
+  PedidoAccessError,
+} from "./services/orders.service.js";
+import * as logisticaService from "./services/logistica.service.js";
+import { buscarRegistros } from "./services/audit-service.js";
 
 /**
  * Gerenciador de bcrypt robusto com fallback seguro e cache
@@ -128,11 +136,20 @@ async function getVendedorFromContext(ctx: { user: { id: number; role: string } 
   if (!ctx.user || ctx.user.role === "admin") return null;
   return (await db.getVendedorById(ctx.user.id)) ?? null;
 }
-import { notificarAdmin, notificarVendedor } from "./notifications";
-import * as produtosRoutes from "./routes/produtos";
-import * as clientesRoutes from "./routes/clientes";
-import * as pedidosRoutes from "./routes/pedidos";
-import * as promocoesRoutes from "./routes/promocoes";
+
+function mapPedidoAccessError(e: unknown): never {
+  if (e instanceof PedidoAccessError) {
+    throw new TRPCError({
+      code: e.code === "NOT_FOUND" ? "NOT_FOUND" : "FORBIDDEN",
+      message: e.message,
+    });
+  }
+  throw e;
+}
+import { notificarAdmin, notificarVendedor } from "./notifications.js";
+import * as produtosRoutes from "./routes/produtos.js";
+import * as clientesRoutes from "./routes/clientes.js";
+import * as promocoesRoutes from "./routes/promocoes.js";
 
 // Procedure apenas para admin
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -146,6 +163,41 @@ export const appRouter = router({
   system: systemRouter,
   health: healthRouter,
   leo: leoRouter,
+  api: router({
+    clients: router({
+      create: publicProcedure.mutation(() => ({ success: true, message: 'Clients API - Use /api/clients' })),
+      list: publicProcedure.query(() => ({ success: true, message: 'Clients API - Use /api/clients' })),
+      getById: publicProcedure.query(() => ({ success: true, message: 'Clients API - Use /api/clients' })),
+      update: publicProcedure.mutation(() => ({ success: true, message: 'Clients API - Use /api/clients' })),
+      delete: publicProcedure.mutation(() => ({ success: true, message: 'Clients API - Use /api/clients' }))
+    }),
+    orders: router({
+      create: publicProcedure
+        .input(z.object({ clientId: z.number().int().positive().optional() }).optional())
+        .mutation(({ input }) => ({
+          success: true,
+          message: 'Orders API - Use /api/orders',
+          ...(input?.clientId != null ? { clientId: input.clientId } : {}),
+        })),
+      list: publicProcedure
+        .input(z.object({ clientId: z.number().int().positive().optional() }).optional())
+        .query(({ input }) => ({
+          success: true,
+          message: 'Orders API - Use /api/orders',
+          ...(input?.clientId != null ? { clientId: input.clientId } : {}),
+        })),
+      getById: publicProcedure.query(() => ({ success: true, message: 'Orders API - Use /api/orders' })),
+      update: publicProcedure.mutation(() => ({ success: true, message: 'Orders API - Use /api/orders' })),
+      delete: publicProcedure.mutation(() => ({ success: true, message: 'Orders API - Use /api/orders' }))
+    }),
+    payments: router({
+      create: publicProcedure.mutation(() => ({ success: true, message: 'Payments API - Use /api/payments' })),
+      list: publicProcedure.query(() => ({ success: true, message: 'Payments API - Use /api/payments' })),
+      getById: publicProcedure.query(() => ({ success: true, message: 'Payments API - Use /api/payments' })),
+      update: publicProcedure.mutation(() => ({ success: true, message: 'Payments API - Use /api/payments' })),
+      delete: publicProcedure.mutation(() => ({ success: true, message: 'Payments API - Use /api/payments' }))
+    })
+  }),
   
   auth: router({
     me: publicProcedure.query(({ ctx }) => {
@@ -199,7 +251,7 @@ export const appRouter = router({
           });
 
         try {
-          checkRateLimit(rateLimitKey);
+          await checkRateLimit(rateLimitKey);
         } catch (error) {
           audit(false);
           const message = error instanceof Error ? error.message : "Too many attempts";
@@ -910,6 +962,7 @@ export const appRouter = router({
   // ===== CLIENTES =====
   clientes: router({
     list: protectedProcedure
+      .use(requireRole("admin", "operador"))
       .input(z.object({
         page: z.number().min(1).optional(),
         pageSize: z.number().min(1).max(100).optional(),
@@ -943,6 +996,7 @@ export const appRouter = router({
       }),
     
     create: protectedProcedure
+      .use(requireRole("admin", "operador"))
       .input(z.object({
         nome: z.string().min(1, "Informe o nome"),
         telefone: z.string().min(1, "Informe o telefone"),
@@ -962,7 +1016,11 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        const vendedorId = ctx.user.role === "admin"
+        const user = ctx.user;
+        if (!user) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão necessária." });
+        }
+        const vendedorId = user.role === "admin"
           ? input.vendedorIdPrincipal
           : (await getVendedorFromContext(ctx))?.id;
         const created = await db.createCliente(tenantId, input, vendedorId);
@@ -1019,8 +1077,9 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
         await assertOwnership(ctx, "cliente", input.id);
+        const actor = await resolveServiceActor(ctx);
         const { id, ...data } = input;
-        const out = await db.updateCliente(tenantId, id, data);
+        const out = await db.updateCliente(tenantId, actor, id, data);
         await auditEntityChange(ctx, tenantId, "update", "cliente", id, {
           nome: input.nome,
           telefone: input.telefone,
@@ -1033,7 +1092,8 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        const out = await db.deleteClienteById(tenantId, input.id);
+        const actor = await resolveServiceActor(ctx);
+        const out = await db.deleteClienteById(tenantId, actor, input.id);
         await auditEntityChange(ctx, tenantId, "delete", "cliente", input.id, {});
         return out;
       }),
@@ -1047,183 +1107,157 @@ export const appRouter = router({
       .input(z.object({
         status: z.enum(['TODOS','GERADO','CONFERIDO','IMPRESSO','EM_ROTA','ENTREGUE','CANCELADO','PENDENTE_ESTOQUE']).optional(),
         busca: z.string().optional(),
+        clienteId: z.number().min(1).optional(),
+        clientId: z.number().min(1).optional(),
         dataInicio: z.date().optional(),
         dataFim: z.date().optional(),
         page: z.number().min(1).optional(),
         pageSize: z.number().min(1).max(100).optional(),
       }).optional())
       .query(async ({ input, ctx }) => {
-        const db_conn = await db.getDb();
-        if (!db_conn) return [];
         const tenantId = await requireTenant(ctx);
-
-        // vendedor (quando não-admin)
-        const vendedor = ctx.user.role === 'admin' ? null : await getVendedorFromContext(ctx);
-
-        const filters: SQL[] = [db.eq(db.pedidos.tenantId, tenantId)];
-        if (ctx.user.role !== 'admin') {
-          if (!vendedor) return [];
-          filters.push(db.eq(db.pedidos.vendedorId, vendedor.id));
-        }
-
-        if (input?.status && input.status !== 'TODOS') {
-          filters.push(db.eq(db.pedidos.status, input.status));
-        }
-
-        if (input?.busca?.trim()) {
-          const term = `%${input.busca.trim()}%`;
-          const buscaOr = db.or(
-            db.sql`LOWER(${db.pedidos.clienteNome}) LIKE LOWER(${term})`,
-            db.sql`${db.pedidos.numero} LIKE ${term}`
-          );
-          if (buscaOr) filters.push(buscaOr);
-        }
-
-        if (input?.dataInicio) {
-          filters.push(db.sql`${db.pedidos.createdAt} >= ${input.dataInicio}`);
-        }
-        if (input?.dataFim) {
-          const end = new Date(input.dataFim);
-          end.setHours(23, 59, 59, 999);
-          filters.push(db.sql`${db.pedidos.createdAt} <= ${end}`);
-        }
-
-        const whereSql: SQL | undefined =
-          filters.length === 0
-            ? undefined
-            : filters.length === 1
-              ? (filters[0] ?? undefined)
-              : db.and(...filters);
-
-        const sel = {
-          id: db.pedidos.id,
-          numero: db.pedidos.numero,
-          clienteNome: db.pedidos.clienteNome,
-          clienteCidade: db.pedidos.clienteCidade,
-          clienteUf: db.pedidos.clienteUf,
-          vendedorId: db.pedidos.vendedorId,
-          vendedorNome: db.vendedores.nome,
-          total: db.pedidos.total,
-          status: db.pedidos.status,
-          formaPagamento: db.pedidos.formaPagamento,
-          createdAt: db.pedidos.createdAt,
-          dataEntrega: db.pedidos.dataEntrega,
-        };
-        const fromBase = db_conn.select(sel).from(db.pedidos).innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id));
-        const from =
-          whereSql === undefined
-            ? fromBase
-            : fromBase.where(whereSql);
-        const fromOrdered = from.orderBy(db.desc(db.pedidos.createdAt));
-
-        const MAX_PAGE_SIZE = 100;
-        const page = input?.page ?? 1;
-        const pageSize = Math.min(input?.pageSize ?? 50, MAX_PAGE_SIZE);
-        const countBase = db_conn
-          .select({ count: db.sql<number>`count(*)` })
-          .from(db.pedidos)
-          .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id));
-        const countQuery = whereSql === undefined ? countBase : countBase.where(whereSql);
-        const countResult = await countQuery;
-        const total = Number((countResult[0] as { count?: unknown } | undefined)?.count ?? 0);
-        const items = await fromOrdered.limit(pageSize).offset((page - 1) * pageSize);
-        return { items, total, page, pageSize, hasMore: (page - 1) * pageSize + items.length < total };
+        const actor = await resolveServiceActor(ctx);
+        return await listPedidosTrpcPage(tenantId, actor, input);
       }),
     
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
-        await assertOwnership(ctx, "pedido", input.id);
-        const db_conn = await db.getDb();
-        if (!db_conn) return null;
-        const pedido = await db.getPedidoById(input.id);
-        if (!pedido) return null;
-        const itens = await db.getItensByPedido(pedido.id);
-        return { ...pedido, itens };
+        const tenantId = await requireTenant(ctx);
+        const actor = await resolveServiceActor(ctx);
+        const row = await getPedidoWithItensForActor(tenantId, actor, input.id);
+        if (!row) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        }
+        return { ...row.pedido, itens: row.itens };
       }),
 
     getItens: protectedProcedure
       .input(z.object({ pedidoId: z.number() }))
       .query(async ({ input, ctx }) => {
-        await assertOwnership(ctx, "pedido", input.pedidoId);
-        const pedido = await db.getPedidoById(input.pedidoId);
-        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-        return await db.getItensByPedido(pedido.id);
+        const tenantId = await requireTenant(ctx);
+        const actor = await resolveServiceActor(ctx);
+        const pedido = await getPedidoByIdForActor(tenantId, actor, input.pedidoId);
+        if (!pedido) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        }
+        return await getItensPedido(tenantId, pedido.id);
       }),
 
     create: protectedProcedure
       .input(z.object({
-        cliente_id: z.number().min(1),
-        data_pedido: z.string().min(1),
-        status: z.enum(['PENDENTE', 'CONFIRMADO', 'EM_PRODUCAO', 'PRONTO', 'ENTREGUE', 'CANCELADO']),
-        forma_pagamento: z.enum(['PIX', 'BOLETO', 'CARTAO', 'DINHEIRO', 'MISTO']),
-        valor_total: z.number().min(0),
-        valor_desconto: z.number().min(0).optional(),
-        valor_acrescimo: z.number().min(0).optional(),
+        clienteId: z.number().int().positive(),
+        desconto: z.number().min(0).optional().default(0),
+        frete: z.number().min(0).optional().default(0),
+        formaPagamento: z.string().optional(),
         observacoes: z.string().optional(),
+        vendedorIdAlvo: z.number().int().positive().optional(),
         itens: z.array(z.object({
-          produto_id: z.number().min(1),
-          quantidade: z.number().min(1),
-          preco_unitario: z.number().min(0),
-          subtotal: z.number().min(0)
-        }))
+          tipo: z.enum(["CATALOGO", "LIVRE"]),
+          produtoId: z.number().int().positive().optional(),
+          descricao: z.string().min(1),
+          quantidade: z.number().int().positive(),
+          valorUnitario: z.number().min(0),
+          custo: z.number().min(0).optional().default(0),
+          marca: z.string().optional(),
+          corId: z.number().optional().nullable(),
+          corNome: z.string().optional().nullable(),
+          prazoGarantia: z.number().optional(),
+          isPremio: z.boolean().optional(),
+        })).min(1),
       }))
       .mutation(async ({ input, ctx }) => {
-        return await pedidosRoutes.createPedido({ body: input } as any);
+        const tenantId = await requireTenant(ctx);
+        const actor = await resolveServiceActor(ctx);
+        const trustedVendedorId =
+          ctx.user.role === "admin" ? input.vendedorIdAlvo ?? ctx.vendedor?.id : undefined;
+        if (ctx.user.role === "admin" && (trustedVendedorId == null || trustedVendedorId <= 0)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Admin: informe vendedorIdAlvo ou use impersonação de vendedor.",
+          });
+        }
+
+        const subtotal = input.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
+        const total = subtotal - input.desconto + input.frete;
+
+        const safeInput: Parameters<typeof createPedidoSafe>[1] = {
+          vendedorId: 0,
+          clienteId: input.clienteId,
+          subtotal: String(subtotal),
+          desconto: String(input.desconto),
+          frete: String(input.frete),
+          total: String(total),
+          formaPagamento: input.formaPagamento ?? null,
+          observacoes: input.observacoes ?? null,
+          itens: input.itens.map((i) => ({
+            tipo: i.tipo,
+            produtoId: i.produtoId,
+            descricao: i.descricao,
+            quantidade: i.quantidade,
+            valorUnitario: i.valorUnitario,
+            custo: i.custo,
+            marca: i.marca ?? null,
+            corId: i.corId ?? null,
+            corNome: i.corNome ?? null,
+            prazoGarantia: i.prazoGarantia ?? 90,
+            isPremio: i.isPremio,
+          })),
+        };
+
+        try {
+          return await createPedidoSafe(tenantId, safeInput, actor, trustedVendedorId);
+        } catch (e) {
+          if (e instanceof PedidoAccessError) {
+            throw new TRPCError({
+              code: e.code === "NOT_FOUND" ? "NOT_FOUND" : "FORBIDDEN",
+              message: e.message,
+            });
+          }
+          if (e instanceof Error && e.message.includes("vendedor do pedido (admin)")) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
+          }
+          throw e;
+        }
       }),
 
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
-        cliente_id: z.number().min(1),
-        data_pedido: z.string().min(1),
-        status: z.enum(['PENDENTE', 'CONFIRMADO', 'EM_PRODUCAO', 'PRONTO', 'ENTREGUE', 'CANCELADO']),
-        forma_pagamento: z.enum(['PIX', 'BOLETO', 'CARTAO', 'DINHEIRO', 'MISTO']),
-        valor_total: z.number().min(0),
-        valor_desconto: z.number().min(0).optional(),
-        valor_acrescimo: z.number().min(0).optional(),
-        observacoes: z.string().optional(),
-        itens: z.array(z.object({
-          produto_id: z.number().min(1),
-          quantidade: z.number().min(1),
-          preco_unitario: z.number().min(0),
-          subtotal: z.number().min(0)
-        }))
+        observacoes: z.string().optional().nullable(),
+        formaPagamento: z.string().optional().nullable(),
+        status: z.enum(["GERADO", "CONFERIDO", "IMPRESSO", "EM_ROTA", "ENTREGUE", "CANCELADO", "PENDENTE_ESTOQUE"]).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(input.id);
-        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-        const { id, ...data } = input;
+        const actor = await resolveServiceActor(ctx);
+        const { id, ...patch } = input;
+        const data: Record<string, unknown> = {};
+        if (patch.observacoes !== undefined) data.observacoes = patch.observacoes;
+        if (patch.formaPagamento !== undefined) data.formaPagamento = patch.formaPagamento;
+        if (patch.status !== undefined) data.status = patch.status;
         try {
-          return await db.updatePedido(tenantId, id, data, (input as any).itens);
-        } catch (error) {
-          if (error instanceof Error && error.message.includes("modificado por outro usuário")) {
-            throw new TRPCError({ 
-              code: 'CONFLICT',
-              message: error.message
-            });
-          }
-          throw new TRPCError({ 
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error instanceof Error ? error.message : 'Erro ao atualizar pedido'
-          });
+          return await db.updatePedido(tenantId, actor, id, data);
+        } catch (e) {
+          mapPedidoAccessError(e);
+          throw e;
         }
       }),
 
-    // Excluir pedido (admin pode qualquer; vendedor apenas o próprio e nunca se estiver ENTREGUE)
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(input.id);
-        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-        if ((pedido.status as any) === "ENTREGUE") {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Pedido ENTREGUE não pode ser excluído." });
+        const actor = await resolveServiceActor(ctx);
+        try {
+          return await db.deletePedido(tenantId, actor, input.id);
+        } catch (e) {
+          if (e instanceof Error && e.message.includes("ENTREGUE")) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
+          }
+          mapPedidoAccessError(e);
+          throw e;
         }
-        return await db.deletePedido(tenantId, input.id);
       }),
 
     buscar: protectedProcedure
@@ -1232,11 +1266,24 @@ export const appRouter = router({
         const db_conn = await db.getDb();
         if (!db_conn) return { pedidos: [], total: 0 };
         const tenantId = await requireTenant(ctx);
-        const vendedor = ctx.user.role === "admin" ? null : await getVendedorFromContext(ctx);
         const filters: SQL[] = [db.eq(db.pedidos.tenantId, tenantId)];
         if (ctx.user.role !== "admin") {
-          if (!vendedor) return { pedidos: [], total: 0 };
-          filters.push(db.eq(db.pedidos.vendedorId, vendedor.id));
+          let ownerUid: number;
+          try {
+            ownerUid = await resolveOwnerUserId(ctx);
+          } catch {
+            return { pedidos: [], total: 0 };
+          }
+          // Validar via clienteVendedores
+          const db_conn = await db.getDb();
+          if (!db_conn) return { pedidos: [], total: 0 };
+          
+          const clienteVendedorSubquery = db_conn.select({ clienteId: db.clienteVendedores.clienteId })
+            .from(db.clienteVendedores)
+            .where(db.and(
+              db.eq(db.clienteVendedores.vendedorId, ownerUid)
+            ));
+          filters.push(db.inArray(db.pedidos.clienteId, clienteVendedorSubquery));
         }
         if (input.query?.trim()) {
           const term = `%${input.query.trim()}%`;
@@ -1268,6 +1315,7 @@ export const appRouter = router({
             dataEntrega: db.pedidos.dataEntrega,
           })
           .from(db.pedidos)
+          .innerJoin(db.clientes, db.eq(db.pedidos.clienteId, db.clientes.id))
           .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id));
         const rows = await (whereSql === undefined ? base : base.where(whereSql)).orderBy(
           db.desc(db.pedidos.createdAt)
@@ -1278,11 +1326,17 @@ export const appRouter = router({
     /** Pedidos aptos a formar carga (status GERADO no serviço de logística). */
     listParaCarga: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      const vendedorId =
-        ctx.user.role === "admin" ? undefined : (await getVendedorFromContext(ctx))?.id;
+      let filtrosCarga: { clienteOwnerUserId?: number } | { vendedorId?: number } = {};
+      if (ctx.user.role !== "admin") {
+        try {
+          filtrosCarga = { clienteOwnerUserId: await resolveOwnerUserId(ctx) };
+        } catch {
+          return { success: true as const, data: [], items: [], total: 0 };
+        }
+      }
       const page = await logisticaService.getPedidosParaCarga(
         tenantId,
-        vendedorId != null ? { vendedorId } : {},
+        filtrosCarga,
         { page: 1, pageSize: 200 }
       );
       return {
@@ -1311,11 +1365,24 @@ export const appRouter = router({
         const db_conn = await db.getDb();
         if (!db_conn) return { items: [] as const, total: 0, page: 1, pageSize: 80, hasMore: false };
         const tenantId = await requireTenant(ctx);
-        const vendedor = ctx.user.role === "admin" ? null : await getVendedorFromContext(ctx);
         const filters: SQL[] = [db.eq(db.pedidos.tenantId, tenantId)];
         if (ctx.user.role !== "admin") {
-          if (!vendedor) return { items: [], total: 0, page: 1, pageSize: 80, hasMore: false };
-          filters.push(db.eq(db.pedidos.vendedorId, vendedor.id));
+          let ownerUid: number;
+          try {
+            ownerUid = await resolveOwnerUserId(ctx);
+          } catch {
+            return { items: [], total: 0, page: 1, pageSize: 80, hasMore: false };
+          }
+          // Validar via clienteVendedores
+          const db_conn = await db.getDb();
+          if (!db_conn) return { pedidos: [], total: 0 };
+          
+          const clienteVendedorSubquery = db_conn.select({ clienteId: db.clienteVendedores.clienteId })
+            .from(db.clienteVendedores)
+            .where(db.and(
+              db.eq(db.clienteVendedores.vendedorId, ownerUid)
+            ));
+          filters.push(db.inArray(db.clientes.id, clienteVendedorSubquery));
         }
         const tab = input?.status ?? "TODOS";
         if (tab === "GERADO") {
@@ -1362,6 +1429,7 @@ export const appRouter = router({
         const listBase = db_conn
           .select(sel)
           .from(db.pedidos)
+          .innerJoin(db.clientes, db.eq(db.pedidos.clienteId, db.clientes.id))
           .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id));
         const listFiltered = whereSql === undefined ? listBase : listBase.where(whereSql);
         const rows = await listFiltered
@@ -2021,7 +2089,7 @@ export const appRouter = router({
       .input(z.object({ cargaId: z.number() }))
       .query(async ({ ctx, input }) => {
         const tenantId = await requireTenant(ctx);
-        const { obterPontosMapaCarga } = await import("./modules/logistica/mapa-rota.service");
+        const { obterPontosMapaCarga } = await import("./modules/logistica/mapa-rota.service.js");
         const payload = await obterPontosMapaCarga(tenantId, input.cargaId);
         if (!payload) return { cidade: "", dataEntrega: "", pontos: [] as const };
         return payload;
@@ -2328,7 +2396,7 @@ pendencias: router({
                 const vendedor = await getVendedorFromContext(ctx);
                 vendedorId = vendedor?.id;
               }
-              const tenantIdConta = await (await import("./_core/tenant")).requireTenant(ctx);
+              const tenantIdConta = await (await import("./_core/tenant.js")).requireTenant(ctx);
               await db.createContaReceber(tenantIdConta, {
                 pedidoNumero: input.pedidoNumero,
                 clienteNome: input.clienteNome,
@@ -2655,12 +2723,12 @@ pendencias: router({
   // ===== DASHBOARD INTELIGENTE =====
   dashboard: router({
     insights: protectedProcedure.query(async (opts) => {
-      const { requireTenant } = await import("./_core/tenant");
+      const { requireTenant } = await import("./_core/tenant.js");
       const tenantId = await requireTenant(opts.ctx);
-      const { getDashboardCache, setDashboardCache } = await import("./tools/dashboard-cache");
+      const { getDashboardCache, setDashboardCache } = await import("./tools/dashboard-cache.js");
       const cached = getDashboardCache(tenantId);
-      if (cached) return cached as Awaited<ReturnType<typeof import("./services/dashboard-insights.service").getDashboardInsights>>;
-      const { getDashboardInsights } = await import("./services/dashboard-insights.service");
+      if (cached) return cached as Awaited<ReturnType<typeof import("./services/dashboard-insights.service.js").getDashboardInsights>>;
+      const { getDashboardInsights } = await import("./services/dashboard-insights.service.js");
       const data = await getDashboardInsights(tenantId);
       setDashboardCache(tenantId, data as Record<string, unknown>);
       await db.insertAuditLog({

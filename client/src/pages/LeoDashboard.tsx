@@ -1,5 +1,5 @@
-import { useAuthStore } from "@/store/authStore";
-import { LeoDashboard as LeoDashboardCore } from "@/components/ai/LeoDashboard";
+import { useAuthStore } from "../store/authStore";
+import { LeoDashboard as LeoDashboardCore } from "../components/ai/LeoDashboard";
 
 /**
  * Painel de inteligência do LEO: insights, alertas, previsões, indicadores, status de entregas.

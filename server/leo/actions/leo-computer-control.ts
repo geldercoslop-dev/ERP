@@ -7,13 +7,13 @@
 
 import { spawn, exec, ChildProcess } from 'child_process';
 import { promisify } from 'util';
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 import { resolve, join } from 'path';
 import { existsSync } from 'fs';
-import { leoDesktopSandbox, type DesktopAction } from '../security/leo-desktop-sandbox';
-import type { ActionResult } from '../types';
-import { LEO_DESKTOP_AUTOMATION } from '../../config/leo';
-import { leoComputerControl as computerStub } from './leo-computer-control-stub';
+import { leoDesktopSandbox, type DesktopAction } from '../security/leo-desktop-sandbox.js';
+import type { ActionResult } from '../types.js';
+import { LEO_DESKTOP_AUTOMATION } from '../../config/leo.js';
+import { leoComputerControl as computerStub } from './leo-computer-control-stub.js';
 
 const execAsync = promisify(exec);
 

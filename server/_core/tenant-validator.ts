@@ -3,8 +3,8 @@
  * Garante que toda operação de banco exija tenantId
  */
 
-import type { ServiceActor } from './service-actor';
-import { assertServiceEntryIfEnabled } from './service-entry-guard';
+import type { ServiceActor } from './service-actor.js';
+import { assertServiceEntryIfEnabled } from './service-entry-guard.js';
 
 export interface TenantValidation {
   tenantId: number;

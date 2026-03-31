@@ -4,8 +4,8 @@
  */
 
 import { LeoEvent, LeoDecision, LeoAction, ILeoMemory, ILeoErpObserver, 
-LeoEventType, LeoEventPriority, type Payload } from '../../../shared/types';
-import { logInfo, logError } from '../../_core/logger-rotation';
+LeoEventType, LeoEventPriority, type Payload } from '../../../shared/types/index.js';
+import { logInfo, logError } from '../../_core/logger-rotation.js';
 
 export class LeoEngine {
   private static instance: LeoEngine;

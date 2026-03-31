@@ -2,12 +2,12 @@
  * LEO Events - Stub Implementation
  * 
  * Implementação mínima para ERP Core + LEO Básico
- * Tipos centralizados em @shared/types.
+ * Tipos centralizados em `shared/types`.
  */
 
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
-import type { LeoEvent } from '../../../shared/types';
-import { LeoEventType, LeoEventPriority, LeoEventStatus } from '../../../shared/types';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import type { LeoEvent } from '../../../shared/types/index.js';
+import { LeoEventType, LeoEventPriority, LeoEventStatus } from '../../../shared/types/index.js';
 
 export type { LeoEvent };
 

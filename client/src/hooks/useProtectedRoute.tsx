@@ -10,8 +10,8 @@
 
 import React, { useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { frontendLogger } from '@/monitoring/frontend-logger';
-import { useAuthStore } from '@/store/authStore';
+import { frontendLogger } from '../monitoring/frontend-logger';
+import { useAuthStore } from '../store/authStore';
 
 interface ProtectionOptions {
   requireAuth?: boolean;

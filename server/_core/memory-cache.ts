@@ -11,6 +11,7 @@
 interface CacheItem<T> {
   value: T;
   expiresAt: number;
+  lastAccessed: number; // HARDENING: safe improvement - suporte a LRU
 }
 
 /**
@@ -24,7 +25,7 @@ export interface CacheOptions {
 }
 
 /**
- * Cache in-memory usando Map
+ * Cache in-memory usando Map com LRU
  */
 const MIN_TTL_SEC = Math.max(5, Number(process.env.CACHE_MIN_TTL_SEC) || 5);
 const MAX_TTL_SEC = Math.min(600, Number(process.env.CACHE_MAX_TTL_SEC) || 300);
@@ -50,14 +51,16 @@ class MemoryCache {
       return undefined;
     }
     
-    // Se o item expirou
-    if (Date.now() > item.expiresAt) {
+    // Verifica se o item expirou
+    const now = Date.now();
+    if (now > item.expiresAt) {
       this.cache.delete(key);
       this.missCount++;
       return undefined;
     }
     
-    // Cache hit
+    // HARDENING: safe improvement - atualiza lastAccessed para LRU
+    item.lastAccessed = now;
     this.hitCount++;
     return item.value as T;
   }
@@ -71,23 +74,35 @@ class MemoryCache {
   set<T>(key: string, value: T, ttl: number = this.defaultTtl): void {
     const sec = Math.min(MAX_TTL_SEC, Math.max(MIN_TTL_SEC, ttl || this.defaultTtl));
     const expiresAt = Date.now() + sec * 1000;
+    const now = Date.now();
+    
     if (this.cache.size >= MAX_ENTRIES) {
       this.evictForSpace();
     }
-    this.cache.set(key, { value, expiresAt });
+    
+    // HARDENING: safe improvement - inclui lastAccessed para LRU
+    this.cache.set(key, { value, expiresAt, lastAccessed: now });
   }
 
-  /** Remove expirados e, se necessário, as entradas mais antigas (evita crescimento infinito). */
+  /** Remove expirados e, se necessário, as entradas menos usadas recentemente (LRU). */
   private evictForSpace(): void {
     const now = Date.now();
-    const entries: { key: string; expiresAt: number }[] = [];
+    const entries: { key: string; expiresAt: number; lastAccessed: number }[] = [];
+    
+    // Primeiro remove expirados
     for (const [key, item] of this.cache.entries()) {
-      if (now > item.expiresAt) this.cache.delete(key);
-      else entries.push({ key, expiresAt: item.expiresAt });
+      if (now > item.expiresAt) {
+        this.cache.delete(key);
+      } else {
+        entries.push({ key, expiresAt: item.expiresAt, lastAccessed: item.lastAccessed });
+      }
     }
+    
+    // Se ainda precisa remover espaço, usa LRU (least recently used)
     const over = this.cache.size - MAX_ENTRIES + Math.floor(MAX_ENTRIES * 0.05);
     if (over > 0) {
-      entries.sort((a, b) => a.expiresAt - b.expiresAt);
+      // HARDENING: safe improvement - ordena por lastAccessed (LRU) em vez de expiração
+      entries.sort((a, b) => a.lastAccessed - b.lastAccessed);
       for (let i = 0; i < over && i < entries.length; i++) {
         this.cache.delete(entries[i].key);
       }

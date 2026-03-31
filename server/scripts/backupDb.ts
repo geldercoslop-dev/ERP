@@ -2,8 +2,8 @@
  * Script de backup do banco de dados
  */
 
-import { getDb } from '../db/index';
-import { logInfo, logError } from '../_core/logger';
+import { getDb } from '../db/index.js';
+import { logInfo, logError } from '../_core/logger.js';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 

@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { trpc } from "@/lib/trpcClient";
+} from "../components/ui/select";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { ArrowLeft, Plus, Edit, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "../components/ui/dialog";
 
 export default function PlanoContas() {
   const [, setLocation] = useLocation();

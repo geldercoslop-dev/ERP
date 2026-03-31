@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as crypto from 'crypto';
-import { constantTimeCompare } from './timing-safe';
+import { constantTimeCompare } from './timing-safe.js';
 
 /**
  * CSRF Protection Middleware

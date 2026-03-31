@@ -7,7 +7,7 @@
 
 ## 1. Alterações realizadas
 
-### 1.1 Centralização de tipos (`@shared/types` + `server/leo/types.ts`)
+### 1.1 Centralização de tipos (`shared/types` + `server/leo/types.ts`)
 
 - **`shared/types/leo.ts`**
   - Criado tipo global `Payload = Record<string, unknown>` e uso em:
@@ -21,12 +21,12 @@
     - `getLastContext(): Payload | null`
 
 - **`server/leo/types.ts`** (novo)
-  - Reexporta apenas tipos de dados de `@shared/types`:
+  - Reexporta apenas tipos de dados de `shared/types`:
     - `LeoTask`, `LeoEvent`, `LeoAction`, `LeoDecision`, `LeoContext`, `Payload`, `GenericPayload`
 
 - **`server/leo/types/index.ts`**
-  - Importa tipos de dados de `../types` (que reexporta `@shared/types`).
-  - Contexto de **execução** renomeado para `LeoExecutionContext` (db, memory, permissions, events, task, traceId, startTime) para não colidir com `LeoContext` de `@shared/types`.
+  - Importa tipos de dados de `../types` (que reexporta `shared/types`).
+  - Contexto de **execução** renomeado para `LeoExecutionContext` (db, memory, permissions, events, task, traceId, startTime) para não colidir com `LeoContext` de `shared/types`.
   - `LeoActionHandler.execute(context)` e `LeoPermissions.canExecute(..., context)` passam a usar `LeoExecutionContext`.
   - `TaskResult`, `LeoMemory`, `TaskQueue`, `QueueStats`, etc. mantidos como interfaces de sistema.
 
@@ -34,7 +34,7 @@
 
 - **Payload** usado de forma consistente em:
   - `LeoTask.payload`, `LeoAction.parameters`, `LeoDecision.context`
-  - `QueueJob.payload` e `QueueJobData.payload` em `server/queue/queue.ts` (importando `Payload` de `@shared/types`)
+- `QueueJob.payload` e `QueueJobData.payload` em `server/queue/queue.ts` (importando `Payload` de `shared/types`)
   - `server/leo/tasks/leo-task-queue.ts`: `LeoTaskFull.payload` tipado como `Payload`
   - Observer: `lastContext`, retorno de `collectErpContext` e `generateEventsFromContext(context: Payload)`
 
@@ -46,7 +46,7 @@
 ### 1.4 Proteção a opcionais e acesso a `unknown`
 
 - **`server/leo/utils/leo-context.ts`**
-  - Interface de contexto de runtime renomeada para `LeoRuntimeContext` (evitar sombrear `LeoContext` de `@shared/types`).
+  - Interface de contexto de runtime renomeada para `LeoRuntimeContext` (evitar sombrear `LeoContext` de `shared/types`).
   - Helpers `buscarUsuario`, `buscarErpMetrics`, `buscarAlertas` tipados com `Database` do `server/db`.
 - **`server/leo/perception/leo-erp-observer.ts`**
   - Uso de variáveis intermediárias tipadas para acessar `context.produtos`, `context.pedidos`, `context.clientes`, `context.sistema` a partir de `Payload`, com optional chaining onde aplicável.
@@ -62,14 +62,14 @@
 - **`server/leo/engine/leo-engine.ts`**
   - Uso de `LeoEventType` e `LeoEventPriority` em `makeDecision`; `context` da decisão tipado como `Payload`.
 - **`server/leo/core/task-queue.ts`**
-  - Uso de `LeoTaskStatus` (enum de `@shared/types`) em vez de strings `'pending'`, `'running'`, `'done'`, `'error'`.
+- Uso de `LeoTaskStatus` (enum de `shared/types`) em vez de strings `'pending'`, `'running'`, `'done'`, `'error'`.
   - Filtros e atribuições de status passam a usar o enum.
 
 ### 1.6 Fila (`server/queue`)
 
 - **`server/queue/queue.ts`**
-  - `QueuePayload` e `QueueJob.payload` / `QueueJobData.payload` tipados como `Payload` (de `@shared/types`).
-  - Import de `LeoTask` e `Payload` de `@shared/types` (em vez de `../leo/tasks/leo-task-queue` para o tipo da fila global).
+- `QueuePayload` e `QueueJob.payload` / `QueueJobData.payload` tipados como `Payload` (de `shared/types`).
+- Import de `LeoTask` e `Payload` de `shared/types` (em vez de `../leo/tasks/leo-task-queue` para o tipo da fila global).
 - **`server/queue/jobs.ts`**
   - Cast de `data.payload` para payloads específicos via `as unknown as OcrJobPayload` (e equivalentes) para evitar incompatibilidade direta com `Payload`.
   - Retornos de todos os processadores padronizados com `executionTime` e `processedAt` em cada ramo.
@@ -80,12 +80,12 @@
 
 | Tipo            | Origem        | Uso principal                                      |
 |-----------------|---------------|----------------------------------------------------|
-| `LeoTask`       | `@shared/types` | Fila de tarefas, engine, task-queue               |
-| `LeoEvent`      | `@shared/types` | Eventos, observer, memory                         |
-| `LeoAction`     | `@shared/types` | Ações, engine, logs                               |
-| `LeoDecision`   | `@shared/types` | Decisões no engine, memória                       |
-| `LeoContext`    | `@shared/types` | Contexto canônico (timestamp, system, erp, …)     |
-| `Payload`       | `@shared/types` | Payloads dinâmicos (task, action, queue, observer) |
+| `LeoTask`       | `shared/types` | Fila de tarefas, engine, task-queue               |
+| `LeoEvent`      | `shared/types` | Eventos, observer, memory                         |
+| `LeoAction`     | `shared/types` | Ações, engine, logs                               |
+| `LeoDecision`   | `shared/types` | Decisões no engine, memória                       |
+| `LeoContext`    | `shared/types` | Contexto canônico (timestamp, system, erp, …)     |
+| `Payload`       | `shared/types` | Payloads dinâmicos (task, action, queue, observer) |
 | `LeoRuntimeContext` | `server/leo/utils/leo-context` | Contexto construído para ações (usuario, erp, alertas, servidor) |
 | `LeoExecutionContext` | `server/leo/types/index` | Contexto de execução (db, memory, task, traceId, …) |
 | `QueueJob`      | `server/queue/queue` | `id`, `type`, `payload: Payload`, `createdAt`   |

@@ -14,20 +14,10 @@
 
 ---
 
-## 2. Tsconfig paths (raiz)
+## 2. Imports e resolução de módulos
 
-Em `tsconfig.json`:
-
-```json
-"baseUrl": ".",
-"paths": {
-  "@/*": ["./client/src/*"],
-  "@shared/*": ["./shared/*"],
-  "@server/*": ["./server/*"],
-  "@types/*": ["./types/*"],
-  "@leo/*": ["./server/leo/*"]
-}
-```
+- O backend roda em **ESM** e deve usar **imports relativos com extensão `.js`** no código emitido.
+- O build do servidor deve evitar `baseUrl`/`paths` para não depender de alias em runtime.
 
 Não há path para `server/core`; o backend usa a pasta **`server/_core`**. Vários arquivos importam `../../core/logger` ou `../core/...`, o que gera **módulo não encontrado** porque o diretório correto é `_core`.
 

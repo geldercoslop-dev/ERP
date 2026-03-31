@@ -5,10 +5,10 @@
  * Suporta expressões cron e agendamento inteligente
  */
 
-import { leoTaskQueue } from '../tasks/leo-task-queue';
-import { LeoTaskType, LeoTaskPriority, LeoTaskStatus } from '../types';
-import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service';
-import { leoEvents } from '../memory/leo-events';
+import { leoTaskQueue } from '../tasks/leo-task-queue.js';
+import { LeoTaskType, LeoTaskPriority, LeoTaskStatus } from '../types.js';
+import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
+import { leoEvents } from '../memory/leo-events.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
 async function insertLeoActionLog(params: InsertLeoActionLogParams): Promise<void> {

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { trpc } from "@/lib/trpcClient";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import { trpc } from "../lib/trpcClient";
+import { useToast } from "../hooks/use-toast";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
 interface AjusteEstoqueModalProps {

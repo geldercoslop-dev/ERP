@@ -1,7 +1,7 @@
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import { useMemo } from "react";
-import { normalizeListResponse, getListTotal } from "@/utils/data-normalizer";
-import type { Produto, GrupoPrecificacao, Cor } from "@/shared/types";
+import { normalizeListResponse, getListTotal } from "../utils/data-normalizer";
+import type { Produto, GrupoPrecificacao, Cor } from "../shared/types";
 
 /** Opções padrão para estoque: atualização moderada */
 const PRODUTOS_QUERY_OPTIONS = {

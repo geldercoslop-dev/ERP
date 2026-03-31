@@ -4,7 +4,7 @@
  * Este módulo aplica proteção a todos os serviços existentes
  * para garantir que nenhum serviço retorne valores inválidos.
  */
-import { protectService } from './service-protection';
+import { protectService } from './service-protection.js';
 
 /**
  * Aplica proteção a um serviço específico

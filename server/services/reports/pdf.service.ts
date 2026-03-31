@@ -3,17 +3,19 @@
  * Todos os métodos exigem tenantId para isolamento multi-tenant.
  */
 import { jsPDF } from "jspdf";
-import * as db from "../../db";
-import { pedidos, itensPedido, produtos, clientes, contasReceber } from "../../../drizzle/schema";
+import * as db from "../../db/index.js";
+import { getDb, clienteVendedores } from "../../db/index.js";
+import { pedidos, itensPedido, produtos, clientes, contasReceber } from "../../../drizzle/schema.js";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
-import * as logisticaService from "../logistica.service";
-import * as financeService from "../finance.service";
-import * as ordersService from "../orders.service";
-import * as inventoryService from "../inventory.service";
+import * as logisticaService from "../logistica.service.js";
+import * as financeService from "../finance.service.js";
+import * as ordersService from "../orders.service.js";
+import * as inventoryService from "../inventory.service.js";
 import { eq, and, inArray, asc, desc, sql } from "drizzle-orm";
 import type { InferSelectModel } from "drizzle-orm";
-import { ContaReceberStatus } from "../../shared/domain-status";
+import { ContaReceberStatus } from "../../shared/domain-status.js";
+import type { ServiceActor } from "../../_core/service-actor.js";
 
 /** Payload dinâmico de carga (retorno de getCargaById). */
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -714,7 +716,8 @@ export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pe
  */
 export async function gerarRelatorioLeoPDF(
   tenantId: number,
-  tipo: 'estoque' | 'vendas' | 'clientes'
+  tipo: 'estoque' | 'vendas' | 'clientes',
+  actor?: ServiceActor
 ): Promise<{ dataUri: string; nomeArquivo: string }> {
   if (!tenantId || tenantId <= 0) {
     throw new Error("tenantId é obrigatório para relatório LEO");
@@ -732,7 +735,30 @@ export async function gerarRelatorioLeoPDF(
       const db_conn = await db.getDb();
       if (!db_conn) throw new Error("Database not available");
       
-      const clientesList = await db_conn.select().from(clientes).where(eq(clientes.tenantId, tenantId)).limit(1000);
+      // ✅ HARDENING: Filtrar por ownership (userId ou admin)
+      let clientesList;
+      if (actor?.role === 'vendedor' && actor?.userId) {
+        // Vendedor: apenas seus clientes via clienteVendedores
+        const clienteVendedorIds = await db_conn.select({ clienteId: clienteVendedores.clienteId })
+          .from(clienteVendedores)
+          .where(and(
+            eq(clienteVendedores.vendedorId, actor.vendedorId || 0)
+          ));
+        
+        const clienteIds = clienteVendedorIds.map(cv => cv.clienteId);
+        
+        clientesList = await db_conn.select().from(clientes)
+          .where(and(
+            eq(clientes.tenantId, tenantId),
+            inArray(clientes.id, clienteIds)
+          ))
+          .limit(1000);
+      } else {
+        // Admin: todos os clientes do tenant
+        clientesList = await db_conn.select().from(clientes)
+          .where(eq(clientes.tenantId, tenantId))
+          .limit(1000);
+      }
       const doc = new jsPDF();
       const hoje = new Date().toLocaleDateString("pt-BR");
       

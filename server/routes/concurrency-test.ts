@@ -4,11 +4,11 @@
  */
 
 import express from 'express';
-import { processStockOperation } from '../services/safe-stock';
-import { createPedidoSafe } from '../services/orders.service';
-import { runStockTransaction } from '../services/db-transaction';
-import { getDb } from '../db/index';
-import { produtos } from '../../drizzle/schema';
+import { processStockOperation } from '../services/safe-stock.js';
+import { createPedidoSafe } from '../services/orders.service.js';
+import { runStockTransaction } from '../services/db-transaction.js';
+import { getDb } from '../db/index.js';
+import { produtos } from '../../drizzle/schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = express.Router();

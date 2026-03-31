@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { ArrowLeft, DollarSign, Check, Clock, History, Landmark, CreditCard, Receipt } from "lucide-react";
 import { toast } from "sonner";

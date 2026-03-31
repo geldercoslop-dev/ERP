@@ -5,7 +5,7 @@
  */
 import "dotenv/config";
 import bcrypt from "bcryptjs";
-import * as db from "../db/index";
+import * as db from "../db/index.js";
 
 const ADMIN_NOME = "admin";
 const ADMIN_SENHA_PLAINA = "admin123";

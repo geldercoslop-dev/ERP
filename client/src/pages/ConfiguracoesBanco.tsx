@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { ArrowLeft, Save, Landmark, QrCode, Info } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { useToast } from "../hooks/use-toast";
 
 export default function ConfiguracoesBanco() {
   const [, setLocation] = useLocation();

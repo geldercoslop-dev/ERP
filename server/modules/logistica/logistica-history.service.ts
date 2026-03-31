@@ -1,7 +1,7 @@
 /**
  * Serviço de histórico de rotas: gravação e consulta para relatórios e aprendizado do LEO.
  */
-import * as logisticaService from "../../services/logistica.service";
+import * as logisticaService from "../../services/logistica.service.js";
 
 export async function registrarEntregaNoHistorico(tenantId: number, registro: {
   cargaId: number;

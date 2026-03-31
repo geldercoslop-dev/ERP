@@ -5,12 +5,12 @@
  * para reduzir a latência e evitar sobrecarga no banco de dados.
  */
 
-import { withSafeCacheList } from "../_core/safe-cache";
-import { invalidateInventoryCachesForTenant } from "../_core/cache-invalidation";
-import * as inventoryService from "./inventory.service";
-import type { CreateProdutoInput, UpdateProdutoInput } from "./inventory.service";
-import type { GetProdutosComPrecoVigentePagedOpts } from "./inventory.service";
-import { logInfo } from "../_core/service-logger";
+import { withSafeCacheList } from "../_core/safe-cache.js";
+import { invalidateInventoryCachesForTenant } from "../_core/cache-invalidation.js";
+import * as inventoryService from "./inventory.service.js";
+import type { CreateProdutoInput, UpdateProdutoInput } from "./inventory.service.js";
+import type { GetProdutosComPrecoVigentePagedOpts } from "./inventory.service.js";
+import { logInfo } from "../_core/service-logger.js";
 
 // Nome do serviço para logs e invalidação
 const SERVICE_NAME = 'inventory';

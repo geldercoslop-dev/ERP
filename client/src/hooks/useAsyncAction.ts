@@ -8,10 +8,10 @@
  * - Type-safe
  */
 
-import { useCallback, useRef, useState } from 'react';
-import { frontendLogger } from '@/monitoring/frontend-logger';
-import { generateRequestId } from '@/utils/request-id';
-import type { AppError } from '@/types/error';
+import { useCallback, useRef, useState } from "react";
+import { frontendLogger } from "../monitoring/frontend-logger";
+import { generateRequestId } from "../utils/request-id";
+import { AppError, ErrorCode } from "../types/error";
 
 interface UseAsyncActionOptions {
   onSuccess?: (data: unknown) => void;
@@ -43,12 +43,8 @@ export function useAsyncAction<T, A extends any[]>(
   const retryCountRef = useRef(0);
 
   const handleError = useCallback((err: unknown) => {
-    const appError = err instanceof Error 
-      ? new (require('@/types/error').AppError)(
-          err.message,
-          require('@/types/error').ErrorCode.UNKNOWN_ERROR
-        )
-      : err as AppError;
+    const appError =
+      err instanceof Error ? new AppError(err.message, ErrorCode.UNKNOWN_ERROR) : (err as AppError);
 
     setError(appError);
 

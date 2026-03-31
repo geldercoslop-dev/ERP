@@ -1,10 +1,10 @@
 /**
  * Motor de previsões do LEO: previsão de vendas e de ruptura de estoque (últimos 30 dias).
  */
-import * as db from "../leo-erp-data.facade";
-import * as ordersService from "../orders.service";
+import * as db from "../leo-erp-data.facade.js";
+import * as ordersService from "../orders.service.js";
 import { eq, sql, and, desc, ne } from "drizzle-orm";
-import { PedidoStatus } from "../../shared/domain-status";
+import { PedidoStatus } from "../../shared/domain-status.js";
 
 const DIAS_HISTORICO = 30;
 

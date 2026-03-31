@@ -1,4 +1,4 @@
-import * as configuracoesService from "../../services/configuracoes.service";
+import * as configuracoesService from "../../services/configuracoes.service.js";
 
 const PREFIX = "leo_memory_";
 function getDefaultTenantId(): number {

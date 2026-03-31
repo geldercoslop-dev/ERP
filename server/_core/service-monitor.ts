@@ -4,8 +4,8 @@
  * Este módulo fornece um monitor global para rastrear erros e alertar
  * sobre problemas críticos nos serviços.
  */
-import { getErrorStats, resetErrorStats, logInfo, logWarning, logCritical } from './service-logger';
-import { getInvalidReturnCount } from './service-protection';
+import { getErrorStats, resetErrorStats, logInfo, logWarning, logCritical } from './service-logger.js';
+import { getInvalidReturnCount } from './service-protection.js';
 
 /**
  * Intervalo de verificação do monitor (em ms)

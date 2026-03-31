@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import * as db from "../db/index";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
-import type { Produto, NewProduto } from "@shared/types";
-import { createSuccessResponse, createErrorResponse, createPaginatedResponse } from "../_core/api-response";
-import { requireTenant } from "../_core/tenant";
-import * as inventoryService from "../services/cached-inventory.service";
-import type { ApiResponse } from "../_core/api-response";
+import * as db from "../db/index.js";
+import { publicProcedure, protectedProcedure, router } from "../_core/trpc.js";
+import type { Produto, NewProduto } from "../../shared/types/index.js";
+import { createSuccessResponse, createErrorResponse, createPaginatedResponse } from "../_core/api-response.js";
+import { requireTenant } from "../_core/tenant.js";
+import * as inventoryService from "../services/cached-inventory.service.js";
+import type { ApiResponse } from "../_core/api-response.js";
 
 // Schema de validação
 const createProdutoSchema = z.object({

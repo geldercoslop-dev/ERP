@@ -6,7 +6,7 @@
 - **Arquivos temporários removidos**: 30+ arquivos
 - **Pasta duplicada eliminada**: `server/core/` → `server/_core/`
 - **Scripts de teste removidos**: 4 scripts temporários
-- **Imports padronizados**: Configuração de aliases atualizada
+- **Imports padronizados**: Imports convertidos para caminhos relativos (sem aliases)
 - **Dependências limpas**: npm prune + dedupe executados
 
 ---
@@ -86,31 +86,9 @@ c:\ERP\
 
 ## 🔧 **CONFIGURAÇÕES ATUALIZADAS**
 
-### **📝 tsconfig.json**
-```json
-{
-  "paths": {
-    "@/*": ["./client/src/*"],
-    "@shared/*": ["./shared/*"],
-    "@server/*": ["./server/*"],
-    "@types/*": ["./types/*"],
-    "@leo/*": ["./server/leo/*"]
-  }
-}
-```
-
-### **⚙️ vite.config.ts**
-```typescript
-resolve: {
-  alias: {
-    "@": path.resolve(__dirname, "./client/src"),
-    "@shared": path.resolve(__dirname, "./shared"),
-    "@server": path.resolve(__dirname, "./server"),
-    "@types": path.resolve(__dirname, "./types"),
-    "@leo": path.resolve(__dirname, "./server/leo"),
-  },
-}
-```
+### **📝 TypeScript/Vite**
+- Configurações de alias removidas.
+- Código usa imports relativos (compatível com ESM/NodeNext no backend).
 
 ---
 
@@ -120,7 +98,7 @@ resolve: {
 ```
 ✅ scripts/cleanup-temp-files.ts     - Remove arquivos temporários
 ✅ scripts/analyze-dead-code.ts      - Analisa código morto
-✅ scripts/standardize-imports.ts    - Padroniza imports
+✅ (removido) script de padronização por alias — agora o padrão é import relativo
 ```
 
 ### **🔍 Scripts de Análise**

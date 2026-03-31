@@ -1,0 +1,74 @@
+name: erp
+
+services:
+  vendas-mysql:
+    image: mysql:8
+    container_name: erp-mysql
+    restart: always
+    # SECURITY HARDENING: Memory limit para prevenir DoS
+    mem_limit: 2g
+    env_file:
+      - .env
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks:
+      - app-network
+
+  vendas-redis:
+    image: redis:7
+    restart: always
+    # SECURITY HARDENING: Memory limit para prevenir DoS
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks:
+      - app-network
+
+  app:
+    build: .
+    container_name: erp-app-1
+    restart: always
+    # SECURITY HARDENING: Memory limit para prevenir DoS
+    mem_limit: 1g
+    depends_on:
+      vendas-mysql:
+        condition: service_healthy
+      vendas-redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Dentro da rede Docker, Redis deve usar o host do serviço.
+      REDIS_URL: redis://vendas-redis:6379
+      REDIS_HOST: vendas-redis
+      REDIS_PORT: "6379"
+      NODE_ENV: production
+    volumes:
+      - ./.env:/app/.env:ro
+    ports:
+      - "3000:3000"
+    command: pnpm start
+    working_dir: /app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+
+networks:
+  app-network:
+    driver: bridge
+

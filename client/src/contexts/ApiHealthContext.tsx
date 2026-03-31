@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { GRS_API_NETWORK_ERROR } from "@/lib/api/events";
+import { GRS_API_NETWORK_ERROR } from "../lib/api/events";
 
 export type ApiHealthStatus = "checking" | "online" | "offline";
 

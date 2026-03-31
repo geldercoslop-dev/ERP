@@ -4,7 +4,7 @@
  */
 
 import { Router } from "express";
-import { metricsService } from "../monitoring/metrics";
+import { metricsService } from "../monitoring/metrics.js";
 
 export function createMetricsRouter() {
   const router = Router();

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { tracer } from './tracing';
-import { createLogger } from './structured-logger';
+import { tracer } from './tracing.js';
+import { createLogger } from './structured-logger.js';
 
 /**
  * Middleware para tracing de rotas HTTP

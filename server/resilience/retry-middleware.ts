@@ -1,4 +1,4 @@
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('retry-middleware');
 

@@ -4,7 +4,7 @@
  * Documentação: https://superfrete.readme.io/
  * Cache: 5 min para cotação (server/cache/api-cache.ts).
  */
-import { getOrSet } from "../cache/api-cache";
+import { getOrSet } from "../cache/api-cache.js";
 
 const BASE = process.env.SUPERFRETE_SANDBOX === "1"
   ? "https://sandbox.superfrete.com"

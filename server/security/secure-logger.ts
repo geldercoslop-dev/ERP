@@ -1,5 +1,5 @@
-import { createLogger } from '../infra/structured-logger';
-import { getObservabilityContext } from "../infra/observability-context";
+import { createLogger } from '../infra/structured-logger.js';
+import { getObservabilityContext } from "../infra/observability-context.js";
 
 /**
  * Logger Seguro - Remove dados sensíveis automaticamente
@@ -18,7 +18,8 @@ export class SecureLogger {
     /["']?senha["']?\s*[:=]\s*["'][^"']+["']/gi,
     /["']?token["']?\s*[:=]\s*["'][^"']+["']/gi,
     /\b[A-Za-z0-9]{32,}\b/g, // Possíveis tokens/chaves longas
-    /mysql:\/\/[^@]+:[^@]+@/gi, // Connection strings
+    // Connection strings (evita literal "@" seguido de "/" no arquivo-fonte por causa do delimitador "/")
+    new RegExp("mysql://[^@]+:[^@]+@", "gi"),
   ];
 
   /**
@@ -82,7 +83,7 @@ export class SecureLogger {
           return '[REDACTED_TOKEN]';
         }
         if (match.includes('mysql://')) {
-          return match.replace(/mysql:\/\/[^@]+:[^@]+@/, 'mysql://[USER]:[REDACTED]@');
+          return match.replace(new RegExp("mysql://[^@]+:[^@]+@", "gi"), "mysql://[USER]:[REDACTED]@");
         }
         return '[REDACTED]';
       });

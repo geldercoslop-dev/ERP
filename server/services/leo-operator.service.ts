@@ -1,4 +1,4 @@
-import type { HealthIssue } from "./health-rules.engine";
+import type { HealthIssue } from "./health-rules.engine.js";
 
 export type OperatorPriority = "low" | "medium" | "high";
 

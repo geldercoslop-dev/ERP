@@ -6,12 +6,12 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
-import { requireTenant } from "../_core/tenant";
-import { leoEngine } from '../leo/engine/leo-engine';
-import { leoLoop } from '../leo/engine/leo-loop';
-import { perguntar } from "../services/ai/erp-ai.service";
-import { resolveServiceActor } from "../_core/service-actor";
+import { router, publicProcedure, protectedProcedure } from '../_core/trpc.js';
+import { requireTenant } from "../_core/tenant.js";
+import { leoEngine } from '../leo/engine/leo-engine.js';
+import { leoLoop } from '../leo/engine/leo-loop.js';
+import { perguntar } from "../services/ai/erp-ai.service.js";
+import { resolveServiceActor } from "../_core/service-actor.js";
 
 // Schema de validação — sessionId: fila LEO por aba/cliente (1 ação ativa por sessão)
 const perguntaSchema = z.object({

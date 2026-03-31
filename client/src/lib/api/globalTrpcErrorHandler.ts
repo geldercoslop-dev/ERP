@@ -1,7 +1,7 @@
 import { TRPCClientError } from "@trpc/client";
 import { toast } from "sonner";
-import { GRS_AUTH_UNAUTHORIZED_EVENT } from "@/lib/security/apiClient";
-import { GRS_API_NETWORK_ERROR } from "@/lib/api/events";
+import { GRS_AUTH_UNAUTHORIZED_EVENT } from "../security/apiClient";
+import { GRS_API_NETWORK_ERROR } from "./events";
 
 function isLikelyNetworkFailure(message: string): boolean {
   const m = message.toLowerCase();

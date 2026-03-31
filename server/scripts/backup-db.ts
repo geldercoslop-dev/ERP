@@ -7,14 +7,14 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import { nanoid } from "nanoid";
-import { runBackup } from "../infra/backup/backupDb";
+import { runBackup } from "../infra/backup/backupDb.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
 const BACKUPS_DIR = path.join(root, "backups");
 
 async function main(): Promise<void> {
-  await import("../_core/loadEnv");
+  await import("../_core/loadEnv.js");
   const traceId = nanoid(10);
   await runBackup({ backupsDir: BACKUPS_DIR, traceId });
 }

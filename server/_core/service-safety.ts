@@ -5,8 +5,8 @@
  * sejam sempre consistentes e seguros, evitando erros como undefined ou
  * tipos incorretos.
  */
-import { ServiceList, ServiceObject, ServiceCreatedResult, ServiceUpdateResult, ServiceDeleteResult } from './service-types';
-import { logWarning, logError, logCritical, ErrorType } from './service-logger';
+import { ServiceList, ServiceObject, ServiceCreatedResult, ServiceUpdateResult, ServiceDeleteResult } from './service-types.js';
+import { logWarning, logError, logCritical, ErrorType } from './service-logger.js';
 import { nanoid } from 'nanoid';
 
 /**

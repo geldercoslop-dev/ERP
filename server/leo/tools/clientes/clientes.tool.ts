@@ -1,8 +1,8 @@
 import { z } from "zod";
-import * as clientesService from "../../../services/clientes.service";
-import type { LeoToolContext, LeoToolDefinition } from "../types";
-import { createToolResponse } from "../tool-response";
-import { serviceActorFromLeoExecutionContext } from "../../../_core/service-actor";
+import * as clientesService from "../../../services/clientes.service.js";
+import type { LeoToolContext, LeoToolDefinition } from "../types.js";
+import { createToolResponse } from "../tool-response.js";
+import { serviceActorFromLeoExecutionContext } from "../../../_core/service-actor.js";
 
 type Payload = Record<string, unknown>;
 

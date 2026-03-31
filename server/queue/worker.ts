@@ -6,17 +6,17 @@
  */
 
 import { Worker, Job } from 'bullmq';
-import { getRedisClient } from '../infra/redis';
-import { logInfo, logError, logWarn } from '../_core/logger';
-import { QUEUE_NAMES, JobData, JobResult } from './queue';
-import { processOcrJob } from './jobs';
-import { processScreenshotJob } from './jobs';
-import { processLeoAnalysisJob } from './jobs';
-import { processReportGenerationJob } from './jobs';
-import { processDesktopAutomationJob } from './jobs';
-import { processNotificationJob } from './jobs';
-import { processBackupJob } from './jobs';
-import { processCleanupJob } from './jobs';
+import { getRedisClient } from '../infra/redis.js';
+import { logInfo, logError, logWarn } from '../_core/logger.js';
+import { QUEUE_NAMES, JobData, JobResult } from './queue.js';
+import { processOcrJob } from './jobs.js';
+import { processScreenshotJob } from './jobs.js';
+import { processLeoAnalysisJob } from './jobs.js';
+import { processReportGenerationJob } from './jobs.js';
+import { processDesktopAutomationJob } from './jobs.js';
+import { processNotificationJob } from './jobs.js';
+import { processBackupJob } from './jobs.js';
+import { processCleanupJob } from './jobs.js';
 
 export interface WorkerConfig {
   name: string;

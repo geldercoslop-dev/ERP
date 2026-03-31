@@ -1,9 +1,9 @@
-import { logInfo, logError } from '../../_core/logger';
+import { logInfo, logError } from '../../_core/logger.js';
 import { nanoid } from 'nanoid';
 import {
   semanticMemoryExecute,
   semanticMemoryQueryRows,
-} from '../../services/leo-semantic-memory.service';
+} from '../../services/leo-semantic-memory.service.js';
 
 export type SemanticMemory = {
   id: string;

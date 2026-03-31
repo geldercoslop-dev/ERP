@@ -3,7 +3,7 @@
  * emitEvent + handlers simples; sem filas complexas.
  */
 
-import { logger } from "../../utils/logger";
+import { logger } from "../../utils/logger.js";
 
 type EventHandler = (data: unknown) => void | Promise<void>;
 

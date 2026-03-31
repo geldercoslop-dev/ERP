@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import type { TrpcContext } from "./context";
+import type { TrpcContext } from "./context.js";
 
 /**
  * Middleware para enforçar isolamento de tenant

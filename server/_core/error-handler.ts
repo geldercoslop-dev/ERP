@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
-import { systemLogger, logError } from './logger';
-import { createApiResponse } from './api-response';
+import { systemLogger, logError } from './logger.js';
+import { createApiResponse } from './api-response.js';
 
 /**
  * Tipos de erro customizados para o ERP
@@ -234,13 +234,12 @@ export function globalErrorHandler(options: {
   const erpError = new ERPError(
     ErrorCode.INTERNAL_SERVER_ERROR,
     process.env.NODE_ENV === 'production' 
-      ? 'Erro interno do servidor' 
+      ? 'Erro interno' 
       : error.message || 'Erro desconhecido',
     500,
     {
       originalError: error.name,
-      originalMessage: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      originalMessage: error.message
     },
     requestId,
     path
@@ -296,12 +295,11 @@ export function expressErrorHandler(
     erpError = new ERPError(
       ErrorCode.INTERNAL_SERVER_ERROR,
       process.env.NODE_ENV === 'production' 
-        ? 'Erro interno do servidor' 
+        ? 'Erro interno' 
         : error.message || 'Erro desconhecido',
       500,
       {
-        originalError: error.name,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        originalError: error.name
       },
       requestId,
       req.route?.path

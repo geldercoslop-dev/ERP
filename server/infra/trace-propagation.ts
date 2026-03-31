@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { tracer } from './tracing';
-import { createLogger } from './structured-logger';
+import { tracer } from './tracing.js';
+import { createLogger } from './structured-logger.js';
 import type { Request, Response, NextFunction } from 'express';
 
 const logger = createLogger('trace-propagation');

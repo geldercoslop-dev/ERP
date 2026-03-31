@@ -1,0 +1,25 @@
+---
+description: Ownership cliente–pedido; pedidos não são fonte de dono; validar sempre via cliente
+alwaysApply: true
+---
+
+# Cliente ↔ Pedido — ownership e acesso
+
+## Regras críticas
+
+- **Não** implementar ownership em `pedidos` como regra principal de “dono”.
+- **Não** usar pedido para validar dono do negócio (ex.: inferir dono só por `pedidos.vendedorId` ou por existência de pedido).
+- **Não** criar nem usar `userId` em `pedidos` como fonte de verdade para ownership.
+
+## Fonte de verdade
+
+- Ownership de cliente vem **exclusivamente** de **`clientes.userId`** (e demais regras de produto já definidas em `clientes` / RBAC).
+
+## Papel dos pedidos
+
+- Pedidos **apenas** referenciam **`clienteId`** (relação com `clientes`).
+- Regras de visibilidade / edição **herdam** do **cliente** (lookup ou join), não do pedido isolado.
+
+## Validação de acesso
+
+- Quando precisar validar se o utilizador pode agir sobre um fluxo que envolve pedido: **sempre** via **cliente** — join ou lookup em `clientes` (ex.: `clientes.id` = `pedidos.clienteId`, depois aplicar regra em `clientes.userId` ou política acordada no domínio).

@@ -1,7 +1,12 @@
 // Global types for the ERP system
 
+/**
+ * User entity
+ * All users belong to a specific tenant
+ */
 export interface User {
   id: number;
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   name: string;
   email: string;
   role: string;
@@ -10,8 +15,13 @@ export interface User {
   updatedAt: Date;
 }
 
+/**
+ * Vendedor (Salesperson) entity
+ * All salespeople belong to a specific tenant
+ */
 export interface Vendedor {
   id: number;
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   nome: string;
   comissao: number;
   meta: number;
@@ -19,8 +29,13 @@ export interface Vendedor {
   updatedAt: Date;
 }
 
+/**
+ * Cliente (Customer) entity
+ * All customers belong to a specific tenant
+ */
 export interface Cliente {
   id: number;
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   nome: string;
   email?: string;
   telefone?: string;
@@ -30,8 +45,13 @@ export interface Cliente {
   updatedAt: Date;
 }
 
+/**
+ * Produto (Product) entity
+ * All products belong to a specific tenant
+ */
 export interface Produto {
   id: number;
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   nome: string;
   descricao?: string;
   preco: number;
@@ -41,8 +61,13 @@ export interface Produto {
   updatedAt: Date;
 }
 
+/**
+ * Venda (Sale) entity
+ * All sales belong to a specific tenant
+ */
 export interface Venda {
   id: number;
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   clienteId: number;
   vendedorId: number;
   total: number;
@@ -51,8 +76,13 @@ export interface Venda {
   updatedAt: Date;
 }
 
+/**
+ * VendaItem (Sale Item) entity
+ * All sale items belong to a specific tenant
+ */
 export interface VendaItem {
   id: number;
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   vendaId: number;
   produtoId: number;
   quantidade: number;
@@ -63,7 +93,12 @@ export interface VendaItem {
 // LEO Agent Types
 export type LeoMode = 'SAFE' | 'ASSIST' | 'OPERATOR' | 'AUTONOMOUS';
 
+/**
+ * LEO context carries tenant isolation information
+ * MANDATORY: tenantId must ALWAYS be present
+ */
 export interface LeoContext {
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   userId?: number;
   vendedorId?: number;
   sessionId: string;
@@ -72,15 +107,22 @@ export interface LeoContext {
   timestamp: Date;
 }
 
+/**
+ * LEO event - typed event system
+ */
 export interface LeoEvent {
   id: string;
   type: string;
   source: string;
-  data: Record<string, any>;
+  /** Event metadata - typed as Record<string, unknown> for safety */
+  data: Record<string, unknown>;
   timestamp: Date;
   context: LeoContext;
 }
 
+/**
+ * LEO task - async task tracking
+ */
 export interface LeoTask {
   id: string;
   type: string;
@@ -99,7 +141,7 @@ export interface LeoInsight {
   type: 'pattern' | 'anomaly' | 'recommendation' | 'alert';
   title: string;
   description: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   confidence: number;
   timestamp: Date;
   category: string;
@@ -146,7 +188,7 @@ export interface AnomalyDetection {
   type: 'sales' | 'inventory' | 'behavior' | 'system';
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   detectedAt: Date;
   actions: string[];
 }
@@ -154,7 +196,7 @@ export interface AnomalyDetection {
 // Desktop Automation Types
 export interface DesktopAction {
   type: 'click' | 'type' | 'screenshot' | 'open' | 'close' | 'wait';
-  params: Record<string, any>;
+  params: Record<string, unknown>;
   timeout?: number;
 }
 
@@ -168,7 +210,7 @@ export interface AutomationScript {
 }
 
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

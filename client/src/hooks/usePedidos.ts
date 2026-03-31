@@ -1,9 +1,9 @@
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import type { inferRouterInputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
 import { useMemo } from "react";
-import { normalizeListResponse, getListTotal } from "@/utils/data-normalizer";
-import type { Pedido } from "@/shared/types";
+import { normalizeListResponse, getListTotal } from "../utils/data-normalizer";
+import type { Pedido } from "../shared/types";
 
 export type PedidosListInput = NonNullable<inferRouterInputs<AppRouter>["pedidos"]["list"]>;
 

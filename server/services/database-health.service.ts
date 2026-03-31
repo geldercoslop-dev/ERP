@@ -1,6 +1,6 @@
 import { performance } from "perf_hooks";
 import { sql } from "drizzle-orm";
-import { getDb } from "../db/index";
+import { getDb } from "../db/index.js";
 
 type StatusRow = { Variable_name?: string; Value?: string | number };
 

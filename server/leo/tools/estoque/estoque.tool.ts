@@ -1,7 +1,7 @@
 import { z } from "zod";
-import * as inventoryService from "../../../services/inventory.service";
-import type { LeoToolContext, LeoToolDefinition } from "../types";
-import { createToolResponse } from "../tool-response";
+import * as inventoryService from "../../../services/inventory.service.js";
+import type { LeoToolContext, LeoToolDefinition } from "../types.js";
+import { createToolResponse } from "../tool-response.js";
 
 const inputSchema = z.object({
   nome: z.string().optional().describe("Filtro por nome/descrição do produto"),

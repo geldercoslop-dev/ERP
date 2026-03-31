@@ -1,0 +1,4 @@
+time="2026-03-25T14:45:59-03:00" level=warning msg="C:\\ERP\\docker-compose.prod.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Image erp-app Building 
+failed to receive status: rpc error: code = Unavailable desc = error reading from server: EOF
+

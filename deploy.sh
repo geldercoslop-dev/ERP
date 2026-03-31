@@ -7,7 +7,7 @@ set -e  # Exit on any error
 
 # Configuration
 ENVIRONMENT=${1:-production}
-APP_NAME="erp-app"
+APP_NAME="erp-server"
 BACKUP_DIR="./backups"
 LOG_DIR="./logs"
 
@@ -34,12 +34,11 @@ install_deps() {
 # Function to build application
 build_app() {
     echo "🔨 Building application..."
-    pnpm run build:client
-    pnpm run build:server
+    pnpm run build
     
     # Verify build
-    if [ ! -d "dist/client" ] || [ ! -d "dist/server" ]; then
-        echo "❌ Build failed - missing directories"
+    if [ ! -d "dist/server" ]; then
+        echo "❌ Build failed - missing server directory"
         exit 1
     fi
 }
@@ -61,9 +60,9 @@ deploy_pm2() {
     
     # Start new process
     if [ "$ENVIRONMENT" = "development" ]; then
-        pm2 start ecosystem.config.json --env development --name $APP_NAME
+        pm2 start deployment/ecosystem.config.js --env development --update-env
     else
-        pm2 start ecosystem.config.json --env production --name $APP_NAME
+        pm2 start deployment/ecosystem.config.js --env production --update-env
     fi
     
     # Save PM2 configuration

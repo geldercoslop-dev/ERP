@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { trpc } from "@/lib/trpcClient";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { trpc } from "../lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Card, CardContent } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Separator } from "../components/ui/separator";
+import { useToast } from "../hooks/use-toast";
 import { ArrowLeft, Pencil, Truck, Plus, Trash2, FileText } from "lucide-react";
 
 // Detalhe da carga: apenas informações + edição (incluir/remover pedidos).

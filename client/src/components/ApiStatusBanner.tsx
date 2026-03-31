@@ -1,4 +1,4 @@
-import { useApiHealthOptional } from "@/contexts/ApiHealthContext";
+import { useApiHealthOptional } from "../contexts/ApiHealthContext";
 
 /**
  * Status da API no shell: 🟡 checking, 🟢 online, 🔴 offline.

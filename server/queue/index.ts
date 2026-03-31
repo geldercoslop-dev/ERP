@@ -5,10 +5,10 @@
  * Garante que tudo esteja pronto antes de aceitar jobs
  */
 
-import { redisManager } from '../infra/redis';
-import { queueManager } from './queue';
-import { workerManager } from './worker-simple';
-import { logInfo, logError, logWarn } from '../_core/logger';
+import { redisManager } from '../infra/redis.js';
+import { queueManager } from './queue.js';
+import { workerManager } from './worker-simple.js';
+import { logInfo, logError, logWarn } from '../_core/logger.js';
 
 export interface QueueSystemStatus {
   redis: {

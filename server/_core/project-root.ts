@@ -9,9 +9,14 @@ import { fileURLToPath } from "url";
 function inferRootFromModuleLocation(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const norm = here.replace(/\\/g, "/");
-  const isBundledCore = /\/dist\/server\/_core$/i.test(norm);
-  if (isBundledCore) {
+  // dist/server/_core (tsc rootDir ".") ou dist/_core (após flatten)
+  const isBundledCoreNested = /\/dist\/server\/_core$/i.test(norm);
+  const isBundledCoreFlat = /\/dist\/_core$/i.test(norm);
+  if (isBundledCoreNested) {
     return path.resolve(here, "..", "..", "..");
+  }
+  if (isBundledCoreFlat) {
+    return path.resolve(here, "..", "..");
   }
   return path.resolve(here, "..", "..");
 }

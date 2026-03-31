@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import {
   sendMessageToLeo,
   normalizeLeoResponse,
   type LeoChatResponse,
-} from "@/services/leoChatService";
-import { sanitizePlainTextInput } from "@/lib/security/sanitizePayload";
+} from "../services/leoChatService";
+import { sanitizePlainTextInput } from "../lib/security/sanitizePayload";
 
 export type ChatMessage = {
   id: string;

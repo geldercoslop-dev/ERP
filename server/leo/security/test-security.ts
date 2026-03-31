@@ -4,8 +4,8 @@
  * Simula tentativas de acesso indevido e valida bloqueios de segurança
  */
 
-import { agentPermissions } from './agent-permissions';
-import { toolExecutor } from '../agent/tool-executor';
+import { agentPermissions } from './agent-permissions.js';
+import { toolExecutor } from '../agent/tool-executor.js';
 
 interface TestResult {
   testName: string;

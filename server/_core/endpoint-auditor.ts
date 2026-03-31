@@ -1,4 +1,4 @@
-import { systemLogger, authLogger, dbLogger, apiLogger } from './logger';
+import { systemLogger, authLogger, dbLogger, apiLogger } from './logger.js';
 
 /**
  * Configuração de auditoria para endpoints críticos

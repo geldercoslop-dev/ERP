@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
-import { QuickClientModal } from "@/components/modals/QuickClientModal";
-import { QuickProductModal } from "@/components/modals/QuickProductModal";
+import { QuickClientModal } from "../components/modals/QuickClientModal";
+import { QuickProductModal } from "../components/modals/QuickProductModal";
 
 interface QuickActionsContextType {
   openQuickClient: () => void;

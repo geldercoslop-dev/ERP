@@ -2,8 +2,8 @@
  * Anti-regressão enterprise: Sentry configurável, Pino, smoke de carga HTTP (health).
  */
 import { describe, it, expect } from "vitest";
-import { rootPino, logger } from "../_core/logger";
-import { isSentryConfigured } from "../_core/sentry-config";
+import { rootPino, logger } from "../_core/logger.js";
+import { isSentryConfigured } from "../_core/sentry-config.js";
 
 describe("Enterprise — logger Pino", () => {
   it("rootPino expõe API Pino (logs estruturados)", () => {

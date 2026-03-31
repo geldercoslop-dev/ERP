@@ -6,11 +6,11 @@
 
 import { Express, Request, Response, NextFunction } from 'express';
 import { nanoid } from 'nanoid';
-import { createLogger } from '../infra/structured-logger';
-import { timeoutGuardMiddleware } from '../middleware/timeout-guard';
-import { wrapDatabaseConnection } from '../middleware/slow-query-logger';
-import { errorAlerter } from '../monitoring/error-alerter';
-import { metrics, recordSystemMetrics } from '../infra/metrics';
+import { createLogger } from '../infra/structured-logger.js';
+import { timeoutGuardMiddleware } from '../middleware/timeout-guard.js';
+import { wrapDatabaseConnection } from '../middleware/slow-query-logger.js';
+import { errorAlerter } from '../monitoring/error-alerter.js';
+import { metrics, recordSystemMetrics } from '../infra/metrics.js';
 
 const logger = createLogger('monitoring-setup');
 
@@ -23,43 +23,15 @@ export function setupMonitoring(app: Express): void {
   // Middleware para gerar ID único para cada requisição
   app.use((req: Request, _res: Response, next: NextFunction) => {
     // Usar ID fornecido pelo cliente ou gerar um novo
-    req.requestId = req.get('X-Request-ID') || nanoid(10);
-    req.startTime = Date.now();
+    if (!req.requestId) {
+      req.requestId = req.get('X-Request-ID') || nanoid(10);
+    }
+    req.startTime = req.startTime ?? Date.now();
     next();
   });
   
   // Middleware para prevenir travamentos
   app.use(timeoutGuardMiddleware());
-  
-  // Middleware para capturar erros não tratados
-  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    if (res.headersSent) {
-      return next(err);
-    }
-    
-    logger.error(`Erro não tratado: ${err.message}`, {
-      requestId: req.requestId,
-      error: err.message,
-      metadata: {
-        stack: err.stack,
-        path: req.path,
-        method: req.method
-      }
-    });
-    
-    // Registrar no sistema de alertas
-    errorAlerter.trackError(err.message, {
-      requestId: req.requestId,
-      path: req.path,
-      method: req.method,
-      stack: err.stack
-    });
-    
-    res.status(500).json({
-      error: 'Erro interno do servidor',
-      message: process.env.NODE_ENV === 'production' ? 'Ocorreu um erro inesperado' : err.message
-    });
-  });
   
   // Iniciar coleta periódica de métricas do sistema
   startMetricsCollection();

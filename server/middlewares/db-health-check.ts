@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { checkDatabasePoolHealth, getPoolHealthSnapshot, getPoolStatsSnapshot } from "../config/database";
-import { systemLogger } from "../_core/logger";
+import { checkDatabasePoolHealth, getPoolHealthSnapshot, getPoolStatsSnapshot } from "../config/database.js";
+import { systemLogger } from "../_core/logger.js";
 
 /**
  * Um único middleware: health do pool + circuit breaker.

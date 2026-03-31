@@ -1,5 +1,5 @@
 import type { RowDataPacket } from "mysql2/promise";
-import { getConnectionPool } from "../config/database";
+import { getConnectionPool } from "../config/database.js";
 
 export async function semanticMemoryQueryRows(sqlText: string, params: unknown[]): Promise<RowDataPacket[]> {
   try {

@@ -1,5 +1,5 @@
-import { publicProcedure, router } from '../../_core/trpc';
-import { collectSystemHealth, collectHealthCheck, collectSystemMetrics } from './system-health';
+import { publicProcedure, router } from '../../_core/trpc.js';
+import { collectSystemHealth, collectHealthCheck, collectSystemMetrics } from './system-health.js';
 import { z } from 'zod';
 
 export const adminRouter = router({

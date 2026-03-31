@@ -5,14 +5,14 @@
  * para reduzir a latência e evitar sobrecarga no banco de dados.
  */
 
-import { withSafeCacheList, withSafeCacheObject } from "../_core/safe-cache";
-import { invalidateClientesCachesForTenant } from "../_core/cache-invalidation";
-import * as clientesService from "./clientes.service";
-import type { CreateClienteWithVendedorInput } from "./clientes.service";
-import type { CreateClienteInput } from "./clientes.service";
-import type { Cliente } from "../db/core";
-import { logInfo } from "../_core/service-logger";
-import type { ServiceActor } from "../_core/service-actor";
+import { withSafeCacheList, withSafeCacheObject } from "../_core/safe-cache.js";
+import { invalidateClientesCachesForTenant } from "../_core/cache-invalidation.js";
+import * as clientesService from "./clientes.service.js";
+import type { CreateClienteWithVendedorInput } from "./clientes.service.js";
+import type { CreateClienteInput } from "./clientes.service.js";
+import type { Cliente } from "../db/core.js";
+import { logInfo } from "../_core/service-logger.js";
+import type { ServiceActor } from "../_core/service-actor.js";
 
 // Nome do serviço para logs e invalidação
 const SERVICE_NAME = 'clientes';
@@ -122,10 +122,11 @@ export async function createCliente(tenantId: number, data: CreateClienteWithVen
  */
 export async function updateCliente(
   tenantId: number,
+  actor: ServiceActor,
   id: number,
   data: Partial<CreateClienteInput>
 ): Promise<{ success: boolean }> {
-  const result = await clientesService.updateCliente(tenantId, id, data);
+  const result = await clientesService.updateCliente(tenantId, actor, id, data);
   
   // Invalidar todos os caches relacionados a este cliente
   invalidateClientesCachesForTenant(tenantId, id);
@@ -139,8 +140,8 @@ export async function updateCliente(
 /**
  * Exclui um cliente e invalida caches relacionados
  */
-export async function deleteCliente(tenantId: number, id: number): Promise<{ success: boolean }> {
-  const result = await clientesService.deleteCliente(tenantId, id);
+export async function deleteCliente(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean }> {
+  const result = await clientesService.deleteCliente(tenantId, actor, id);
   
   // Invalidar todos os caches relacionados a este cliente
   invalidateClientesCachesForTenant(tenantId, id);

@@ -5,6 +5,9 @@
  * Mostra como blindar um service existente
  */
 
+// HARDENING: safe improvement - tipo Payload padrão para substituir any
+export type Payload = Record<string, unknown>;
+
 import {
   ServiceList,
   ServiceSingle,
@@ -13,9 +16,9 @@ import {
   sanitizeCreate,
   safeListCall,
   logSafetyViolation,
-} from './service-safety';
+} from './service-safety.js';
 
-import { withServiceGuard } from './service-guard';
+import { withServiceGuard } from './service-guard.js';
 
 /**
  * ============================================================

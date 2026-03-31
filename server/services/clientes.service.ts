@@ -1,5 +1,5 @@
 import { eq, and, desc, asc, sql, like, ne } from "drizzle-orm";
-import { PedidoStatus } from "../shared/domain-status";
+import { PedidoStatus } from "../shared/domain-status.js";
 import {
   getDb,
   getInsertId,
@@ -11,11 +11,11 @@ import {
   normalizeTelefone,
   normalizeNomeSobrenome,
   NewCliente,
-} from "../db/core";
-import type { Cliente, ClienteVendedor } from "../db/core";
-import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response";
-import { validateTenantAccess, globalDbAuditor } from "../_core/tenant-validator";
-import { assertVendedorActor, type ServiceActor } from "../_core/service-actor";
+} from "../db/core.js";
+import type { Cliente, ClienteVendedor } from "../db/core.js";
+import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
+import { validateTenantAccess, globalDbAuditor } from "../_core/tenant-validator.js";
+import { assertVendedorActor, type ServiceActor } from "../_core/service-actor.js";
 
 export type CreateClienteInput = {
   nome: string;
@@ -34,13 +34,14 @@ export type CreateClienteInput = {
   vendedorIdPrincipal?: number;
 };
 import { nanoid } from "nanoid";
-import { recordQueryTime } from "../_core/system-monitor";
-import { auditLog } from "../_core/audit-log";
+import { recordQueryTime } from "../_core/system-monitor.js";
+import { auditLog } from "../_core/audit-log.js";
 
 // Types — entrada do router: nome e telefone obrigatórios; normalização feita no createCliente
 export type CreateClienteWithVendedorInput = {
   nome: string;
   telefone: string;
+  userId?: number; // Opcional para compatibilidade com callers antigos
   vendedorIdPrincipal?: number;
   telefoneRecado?: string | null;
   rua?: string | null;
@@ -90,13 +91,50 @@ async function vendedorLinkedToCliente(
   return row.length > 0;
 }
 
+/** Update/delete: apenas admin ou vendedor vinculado. */
+function userCanMutateCliente(actor: ServiceActor): boolean {
+  if (actor.role === "admin") return true;
+  return actor.vendedorId != null;
+}
+
+/** Verificar se vendedor/usuário tem acesso ao cliente (userId direto OU via clienteVendedores). */
+async function userCanAccessCliente(
+  dbConn: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  tenantId: number,
+  actor: ServiceActor,
+  clienteId: number
+): Promise<boolean> {
+  if (actor.role === "admin") return true;
+  
+  if (!actor.userId && !actor.vendedorId) return false;
+  
+  // Buscar cliente precisa verificar vendedorId
+  const row = await dbConn
+    .select({ id: clientes.id })
+    .from(clientes)
+    .where(eq(clientes.id, clienteId))
+    .limit(1);
+  
+  if (row.length === 0) return false;
+  
+  const cliente = row[0];
+  
+  // Acesso via clienteVendedores (compatibilidade)
+  if (actor.vendedorId) {
+    return await vendedorLinkedToCliente(dbConn, tenantId, actor.vendedorId, clienteId);
+  }
+  
+  return false;
+}
+
 /**
  * Cria um novo cliente com normalização de dados
  * @param tenantId - ID do tenant para isolamento de dados
  */
 export async function createCliente(
   tenantId: number, 
-  data: CreateClienteWithVendedorInput
+  data: CreateClienteWithVendedorInput,
+  userIdOverride?: number
 ): Promise<{ id: number }> {
   try {
     assertRequiredId(tenantId, "tenantId");
@@ -106,6 +144,9 @@ export async function createCliente(
 
     const dbConn = await getDb();
     if (!dbConn) throw new Error("Banco de dados indisponível");
+    
+    // userId: prioritário userIdOverride, senão data.userId (opcional para compatibilidade)
+    const userId = userIdOverride ?? data.userId;
     
     // Normalizar dados
     const telefone = normalizeTelefone(data.telefone);
@@ -163,7 +204,7 @@ export async function createCliente(
       action: "create",
       module: "clientes",
       resourceId: clienteId,
-      details: { nome: data.nome, telefone }
+      details: { nome: data.nome, telefone, userId }
     });
     
     // Registrar auditoria (banco legado)
@@ -172,7 +213,7 @@ export async function createCliente(
       action: "create",
       entity: "cliente",
       entityId: String(clienteId),
-      payloadJson: JSON.stringify({ nome: data.nome, telefone }),
+      payloadJson: JSON.stringify({ nome: data.nome, telefone, userId }),
       traceId: nanoid(10),
     });
     
@@ -239,10 +280,10 @@ export async function getClienteById(tenantId: number, actor: ServiceActor, id: 
   const result = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
   const row = result.length > 0 ? ensureObject(result[0]) : null;
   if (!row) return null;
-  if (actor.role === "admin") return row;
-  assertVendedorActor(actor);
-  const linked = await vendedorLinkedToCliente(dbConn, tenantId, actor.vendedorId, id);
-  return linked ? row : null;
+  
+  // Verificar ownership (userId direto OU vendedorID)
+  const canAccess = await userCanAccessCliente(dbConn, tenantId, actor, id);
+  return canAccess ? row : null;
 }
 
 /**
@@ -282,9 +323,12 @@ export async function listClientes(
   const conditions = [eq(clientes.tenantId, tenantId)];
 
   let effectiveVendedorFilter: number | undefined;
+  let effectiveUserIdFilter: number | undefined;
+  
   if (actor.role === "vendedor") {
     assertVendedorActor(actor);
     effectiveVendedorFilter = actor.vendedorId;
+    effectiveUserIdFilter = actor.userId;
   } else if (safeParams.vendedorId != null && Number.isInteger(safeParams.vendedorId) && safeParams.vendedorId > 0) {
     effectiveVendedorFilter = safeParams.vendedorId;
   }
@@ -298,38 +342,92 @@ export async function listClientes(
     );
   }
 
+  // Filtrar por vendedorId (compatibilidade)
   if (effectiveVendedorFilter != null) {
-    const queryWithJoin = dbConn
-      .select({
-        id: clientes.id,
-        tenantId: clientes.tenantId,
-        nome: clientes.nome,
-        telefone: clientes.telefone,
-        telefoneNorm: clientes.telefoneNorm,
-        nomeNorm: clientes.nomeNorm,
-        sobrenomeNorm: clientes.sobrenomeNorm,
-        cidade: clientes.cidade,
-        uf: clientes.uf,
-        createdAt: clientes.createdAt,
-        updatedAt: clientes.updatedAt,
-      })
-      .from(clientes)
-      .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
-      .where(and(...conditions, eq(clienteVendedores.vendedorId, effectiveVendedorFilter)))
-      .orderBy(asc(clientes.nome))
-      .limit(limit)
-      .offset(offset);
-    const rows = await queryWithJoin;
-    const items = ensureArray(rows as Cliente[]);
+    const vendedorCondition = effectiveVendedorFilter != null
+      ? eq(clienteVendedores.vendedorId, effectiveVendedorFilter)
+      : null;
 
-    const totalResult = await dbConn
-      .select({ count: sql<number>`count(*)` })
-      .from(clientes)
-      .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
-      .where(and(...conditions, eq(clienteVendedores.vendedorId, effectiveVendedorFilter)));
-    const total = Number(totalResult[0]?.count ?? 0);
-    recordQueryTime("clientes.service", "listClientes", Date.now() - start);
-    return { items, total, page, pageSize };
+    // Se temos vendedorCondition, usar JOIN com clienteVendedores
+    if (vendedorCondition) {
+      const queryWithVendedor = dbConn
+        .select({
+          id: clientes.id,
+          tenantId: clientes.tenantId,
+          nome: clientes.nome,
+          telefone: clientes.telefone,
+          telefoneNorm: clientes.telefoneNorm,
+          nomeNorm: clientes.nomeNorm,
+          sobrenomeNorm: clientes.sobrenomeNorm,
+          cidade: clientes.cidade,
+          uf: clientes.uf,
+          createdAt: clientes.createdAt,
+          updatedAt: clientes.updatedAt,
+        })
+        .from(clientes)
+        .leftJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
+        .where(
+          and(
+            ...conditions,
+            vendedorCondition
+          )
+        )
+        .orderBy(asc(clientes.nome))
+        .limit(limit)
+        .offset(offset);
+      const rows = await queryWithVendedor;
+      const items = ensureArray(rows as Cliente[]);
+
+      const totalResult = await dbConn
+        .select({ count: sql<number>`count(distinct ${clientes.id})` })
+        .from(clientes)
+        .leftJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
+        .where(
+          and(
+            ...conditions,
+            sql`${clienteVendedores.vendedorId} = ${effectiveVendedorFilter}`
+          )
+        );
+      const total = Number(totalResult[0]?.count ?? 0);
+      recordQueryTime("clientes.service", "listClientes", Date.now() - start);
+      return { items, total, page, pageSize };
+    }
+
+    
+    // Se só temos vendedorId (compatibilidade com dados antigos)
+    if (vendedorCondition) {
+      const queryWithJoin = dbConn
+        .select({
+          id: clientes.id,
+          tenantId: clientes.tenantId,
+          nome: clientes.nome,
+          telefone: clientes.telefone,
+          telefoneNorm: clientes.telefoneNorm,
+          nomeNorm: clientes.nomeNorm,
+          sobrenomeNorm: clientes.sobrenomeNorm,
+          cidade: clientes.cidade,
+          uf: clientes.uf,
+          createdAt: clientes.createdAt,
+          updatedAt: clientes.updatedAt,
+        })
+        .from(clientes)
+        .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
+        .where(and(...conditions, vendedorCondition))
+        .orderBy(asc(clientes.nome))
+        .limit(limit)
+        .offset(offset);
+      const rows = await queryWithJoin;
+      const items = ensureArray(rows as Cliente[]);
+
+      const totalResult = await dbConn
+        .select({ count: sql<number>`count(*)` })
+        .from(clientes)
+        .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
+        .where(and(...conditions, vendedorCondition));
+      const total = Number(totalResult[0]?.count ?? 0);
+      recordQueryTime("clientes.service", "listClientes", Date.now() - start);
+      return { items, total, page, pageSize };
+    }
   }
 
   const items = ensureArray(
@@ -347,13 +445,20 @@ export async function listClientes(
  * Atualiza dados do cliente
  * @param tenantId - ID do tenant para validação
  */
-export async function updateCliente(tenantId: number, id: number, data: Partial<CreateClienteInput>): Promise<{ success: boolean }> {
+export async function updateCliente(tenantId: number, actor: ServiceActor, id: number, data: Partial<CreateClienteInput>): Promise<{ success: boolean }> {
   try {
     assertRequiredId(tenantId, "tenantId");
     assertRequiredId(id, "clienteId");
     assertRequiredPayload(data, "Dados do cliente obrigatórios");
     const dbConn = await getDb();
     if (!dbConn) throw new Error("Banco de dados indisponível");
+    
+    // Verificar ownership (novo: userId direto OU via clienteVendedores)
+    const canAccess = await userCanAccessCliente(dbConn, tenantId, actor, id);
+    if (!canAccess) {
+      throw new Error("Acesso negado: você não tem permissão para editar este cliente");
+    }
+    
     const clienteAtual = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
     if (!clienteAtual.length) throw new Error("Cliente não encontrado");
     
@@ -539,14 +644,19 @@ export async function ensureClienteVendedorLink(
     } as ClienteVendedor);
   }
 }
-export async function deleteCliente(tenantId: number, id: number): Promise<{ success: boolean }> {
+export async function deleteCliente(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean }> {
   try {
     assertRequiredId(tenantId, "tenantId");
     assertRequiredId(id, "clienteId");
     const dbConn = await getDb();
     if (!dbConn) throw new Error("Banco de dados indisponível");
+
     const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
     if (!cliente.length) throw new Error("Cliente não encontrado");
+    const c0 = ensureObject(cliente[0]);
+    if (!userCanMutateCliente(actor)) {
+      throw new Error("Acesso negado: você não tem permissão para excluir este cliente");
+    }
     
     // 1. Verificar se existem pedidos vinculados
     const pedidosCount = await dbConn.select({ count: sql`count(*)` })

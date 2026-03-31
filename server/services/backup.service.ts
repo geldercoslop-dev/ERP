@@ -3,8 +3,8 @@
  * Usado por backup.ts e infra/backup.
  */
 
-import { getDb } from "../db/core";
-import * as schema from "../../drizzle/schema";
+import { getDb } from "../db/core.js";
+import * as schema from "../../drizzle/schema.js";
 
 export type BackupData = {
   dataBackup: string;

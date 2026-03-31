@@ -2,7 +2,7 @@
  * Serviço de cargas para o módulo de logística.
  * Encapsula criação, listagem e atualização de cargas (sem alterar regras de negócio do ERP).
  */
-import * as logisticsService from "../../services/logistica.service";
+import * as logisticsService from "../../services/logistica.service.js";
 
 export type CargaStatus = "ABERTA" | "EM_ROTA" | "ENTREGUE";
 

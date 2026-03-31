@@ -9,11 +9,11 @@
  * - Resultados obtidos
  */
 
-import * as ordersService from '../../services/orders.service';
-import * as clientesService from '../../services/clientes.service';
-import * as inventoryService from '../../services/inventory.service';
-import { ADMIN_ACTOR } from '../../_core/service-actor';
-import { leoLongMemory } from '../memory/leo-long-memory';
+import * as ordersService from '../../services/orders.service.js';
+import * as clientesService from '../../services/clientes.service.js';
+import * as inventoryService from '../../services/inventory.service.js';
+import { ADMIN_ACTOR } from '../../_core/service-actor.js';
+import { leoLongMemory } from '../memory/leo-long-memory.js';
 
 const DEFAULT_LEO_TENANT_ID = 1;
 

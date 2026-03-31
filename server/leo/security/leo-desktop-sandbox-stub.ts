@@ -5,8 +5,8 @@
  * Substitui as funcionalidades do leo-desktop-sandbox.ts
  */
 
-import type { Payload } from '@shared/types';
-import { LEO_DESKTOP_AUTOMATION } from '../../config/leo';
+import type { Payload } from "../../../shared/types/index.js";
+import { LEO_DESKTOP_AUTOMATION } from '../../config/leo.js';
 
 export interface SandboxConfig {
   allowedApplications: string[];

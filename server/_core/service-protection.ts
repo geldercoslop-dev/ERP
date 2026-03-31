@@ -4,8 +4,8 @@
  * Este módulo fornece uma camada de proteção global para todos os serviços,
  * garantindo que nenhum serviço retorne valores inválidos como undefined.
  */
-import { createSafeService } from './service-safety';
-import { logInfo, logWarning, logError, logCritical, ErrorType } from './service-logger';
+import { createSafeService } from './service-safety.js';
+import { logInfo, logWarning, logError, logCritical, ErrorType } from './service-logger.js';
 import { nanoid } from 'nanoid';
 
 /**

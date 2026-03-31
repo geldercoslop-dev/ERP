@@ -5,7 +5,7 @@
  * Automação desktop desativada temporariamente para reduzir erros de compilação
  */
 
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 
 export interface Point {
   x: number;

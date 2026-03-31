@@ -5,10 +5,10 @@
  * Identifica oportunidades, riscos e padrões de negócio
  */
 
-import type { Payload } from '@shared/types';
-import { leoErpObserver } from '../perception/leo-erp-observer';
-import { leoTaskQueue } from '../tasks/leo-task-queue';
-import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service';
+import type { Payload } from '../../../shared/types/index.js';
+import { leoErpObserver } from '../perception/leo-erp-observer.js';
+import { leoTaskQueue } from '../tasks/leo-task-queue.js';
+import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
 

@@ -1,10 +1,10 @@
 import { z } from "zod";
-import * as ordersService from "../../../services/orders.service";
-import type { CreatePedidoSafeInput, ListPedidosParams } from "../../../services/orders.service";
-import type { LeoToolContext, LeoToolDefinition } from "../types";
-import { createToolResponse } from "../tool-response";
-import { assertVendedorActor, serviceActorFromLeoExecutionContext } from "../../../_core/service-actor";
-import { stripSensitiveIdsFromRecord } from "../../../_core/strip-sensitive-payload";
+import * as ordersService from "../../../services/orders.service.js";
+import type { CreatePedidoSafeInput, ListPedidosParams } from "../../../services/orders.service.js";
+import type { LeoToolContext, LeoToolDefinition } from "../types.js";
+import { createToolResponse } from "../tool-response.js";
+import { assertVendedorActor, serviceActorFromLeoExecutionContext } from "../../../_core/service-actor.js";
+import { stripSensitiveIdsFromRecord } from "../../../_core/strip-sensitive-payload.js";
 
 const buscarInput = z.object({
   numero: z.number().describe("Número do pedido (número de exibição, não o id interno)"),

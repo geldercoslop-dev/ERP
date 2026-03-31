@@ -5,8 +5,8 @@
  * Usado antes de rodar database-consistency.test.ts
  */
 
-import { getDb } from '../db/index';
-import { produtos, clientes, usuarios, vendedores, tenants } from '../../drizzle/schema';
+import { getDb } from '../db/index.js';
+import { produtos, clientes, usuarios, vendedores, tenants } from '../../drizzle/schema.js';
 import { eq } from 'drizzle-orm';
 import pino from 'pino';
 

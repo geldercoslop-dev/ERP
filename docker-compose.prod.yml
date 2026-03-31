@@ -2,57 +2,52 @@ version: '3.8'
 
 services:
   app:
-    image: node:22-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: vendas-app-prod
     restart: always
+    mem_limit: 1g
+    cpus: "1.0"
     working_dir: /app
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/dist
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      APP_SECRET: ${APP_SECRET}
-      VITE_TRPC_URL: ${VITE_TRPC_URL}
-      SENTRY_DSN: ${SENTRY_DSN}
     ports:
       - "3000:3000"
     depends_on:
-      mysql:
+      vendas-mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      timeout: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
       retries: 5
-      interval: 30s
       start_period: 40s
     networks:
       - vendas-network
-    command: pnpm start:prod
+    command: node dist/server/index.js
 
-  mysql:
+  vendas-mysql:
     image: mysql:8.0
     container_name: vendas-mysql-prod
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "3306:3306"
+    mem_limit: 2g
+    cpus: "1.5"
+    env_file:
+      - .env.production
     volumes:
       - mysql_data_prod:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
-      timeout: 20s
-      retries: 10
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
     networks:
       - vendas-network
 
@@ -60,8 +55,8 @@ services:
     image: redis:7-alpine
     container_name: vendas-redis-prod
     restart: always
-    ports:
-      - "6379:6379"
+    mem_limit: 512m
+    cpus: "0.5"
     volumes:
       - redis_data_prod:/data
     healthcheck:

@@ -5,11 +5,11 @@
  */
 
 import { Router, Request, Response } from "express";
-import { getDashboardInsights } from "../services/dashboard-insights.service";
-import { getDashboardCache, setDashboardCache } from "../tools/dashboard-cache";
-import * as db from "../db/index";
+import { getDashboardInsights } from "../services/dashboard-insights.service.js";
+import { getDashboardCache, setDashboardCache } from "../tools/dashboard-cache.js";
+import * as db from "../db/index.js";
 import { nanoid } from "nanoid";
-import { requireAuthContext } from "../middlewares/require-auth-context";
+import { requireAuthContext } from "../middlewares/require-auth-context.js";
 
 const router = Router();
 

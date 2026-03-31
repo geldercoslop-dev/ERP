@@ -1,0 +1,13 @@
+{
+  "tenantId": 1,
+  "clienteNome": "Cliente E2E Teste",
+  "formaPagamento": "dinheiro",
+  "itens": [
+    {
+      "produtoId": 1,
+      "quantidade": 2,
+      "valorUnitario": 50.00,
+      "total": 100.00
+    }
+  ]
+}

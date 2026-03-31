@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { Redirect } from "wouter";
-import AppShell from "@/components/layout/AppShell";
-import LoadingScreen from "@/components/system/LoadingScreen";
-import { useAuthStore } from "@/store/authStore";
-import { isAuthenticatedForRoute } from "@/lib/security/routeGuards";
+import AppShell from "../layout/AppShell";
+import LoadingScreen from "../system/LoadingScreen";
+import { useAuthStore } from "../../store/authStore";
+import { isAuthenticatedForRoute } from "../../lib/security/routeGuards";
 
 /**
  * Rota protegida: loading → shell autenticado ou redirect ao login.

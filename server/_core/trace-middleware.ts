@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { nanoid } from 'nanoid';
-import { systemLogger } from './logger';
+import { systemLogger } from './logger.js';
 
 /**
  * Extensão para incluir traceId no Request
@@ -107,7 +107,9 @@ export function errorTraceMiddleware(err: Error, req: Request, res: Response, ne
   }, 'Request error');
   
   // Adicionar traceId ao erro para debugging
-  (err as any).traceId = traceId;
+  if (err && typeof err === 'object') {
+    (err as unknown as Record<string, unknown>).traceId = traceId;
+  }
   
   next(err);
 }

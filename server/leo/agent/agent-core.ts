@@ -1,12 +1,12 @@
-import { toolExecutor, ToolExecutionContext, ToolExecutionResult } from './tool-executor';
-import { toolRegistry } from './tool-registry';
-import { modelRouter } from './model-router';
-import { promptBuilder } from './prompt-builder';
-import { leoLogManager } from '../utils/leo-log-manager';
-import { agentPermissions } from '../security/agent-permissions';
-import { LeoActionsLog } from '../utils/leo-actions-log';
-import { buildLeoSessionKey, leoSessionGate } from '../runtime/leo-session-gate';
-import { createSecureExecutionContext, SecureAgentContext } from '../security/secure-context';
+import { toolExecutor, ToolExecutionContext, ToolExecutionResult } from './tool-executor.js';
+import { toolRegistry } from './tool-registry.js';
+import { modelRouter } from './model-router.js';
+import { promptBuilder } from './prompt-builder.js';
+import { leoLogManager } from '../utils/leo-log-manager.js';
+import { agentPermissions } from '../security/agent-permissions.js';
+import { LeoActionsLog } from '../utils/leo-actions-log.js';
+import { buildLeoSessionKey, leoSessionGate } from '../runtime/leo-session-gate.js';
+import { createSecureExecutionContext, SecureAgentContext } from '../security/secure-context.js';
 
 export interface AgentRequest {
   message: string;

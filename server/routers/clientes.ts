@@ -1,13 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, adminProcedure, router } from "../_core/trpc";
-import { assertOwnership } from "../_core/ownership";
-import { enforceAuth, validateOwnership, requireTenant } from "../_core/tenant";
-import type { Cliente, NewCliente } from "@shared/types";
-import { createSuccessResponse, createErrorResponse, createPaginatedResponse } from "../_core/api-response";
-import * as clientesService from "../services/cached-clientes.service";
-import { resolveServiceActor } from "../_core/service-actor";
-import { auditEntityChange } from "../_core/domain-audit";
+import { publicProcedure, protectedProcedure, adminProcedure, router } from "../_core/trpc.js";
+import { assertOwnership } from "../_core/ownership.js";
+import { enforceAuth, validateOwnership, requireTenant } from "../_core/tenant.js";
+import type { Cliente, NewCliente } from "../../shared/types/index.js";
+import { createSuccessResponse, createErrorResponse, createPaginatedResponse } from "../_core/api-response.js";
+import * as clientesService from "../services/cached-clientes.service.js";
+import { resolveServiceActor } from "../_core/service-actor.js";
+import { auditEntityChange } from "../_core/domain-audit.js";
 
 // Schema de validação
 const createClienteSchema = z.object({
@@ -65,7 +65,11 @@ export const clientesRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const tenantId = await requireTenant(ctx);
-        const cliente = await clientesService.createCliente(tenantId, input);
+        const actor = await resolveServiceActor(ctx);
+        if (actor.userId == null || actor.userId <= 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "userId do ator ausente para criar cliente." });
+        }
+        const cliente = await clientesService.createCliente(tenantId, { ...input, userId: actor.userId });
         return createSuccessResponse(cliente, "Cliente criado com sucesso");
       } catch (error) {
         console.error("Erro ao criar cliente:", error);
@@ -91,7 +95,7 @@ export const clientesRouter = router({
           });
         }
 
-        const cliente = await clientesService.updateCliente(tenantId, input.id, input);
+        const cliente = await clientesService.updateCliente(tenantId, actor, input.id, input);
         return {
           success: true,
           data: cliente,
@@ -120,7 +124,7 @@ export const clientesRouter = router({
           });
         }
 
-        await clientesService.deleteCliente(tenantId, input.id);
+        await clientesService.deleteCliente(tenantId, actor, input.id);
         await auditEntityChange(ctx, tenantId, "delete", "cliente", input.id, { id: input.id });
         return {
           success: true,

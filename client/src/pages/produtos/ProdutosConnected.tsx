@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpcClient";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { trpc } from "../../lib/trpcClient";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Card, CardContent } from "../../components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Checkbox } from "../../components/ui/checkbox";
 import { toast } from "sonner";
 import { Package, Plus, Save, X, Search, Trash2 } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { PageHeader } from "../../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../../components/layout/pageLayout";
 
 type ProdutoListItem = Record<string, unknown> & {
   id: number;

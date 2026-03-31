@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { authenticatedFetch, isSameOriginUrl } from '@/lib/security/apiClient';
+import { authenticatedFetch, isSameOriginUrl } from './security/apiClient';
 
 /**
  * Configurações de retry para requisições API

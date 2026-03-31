@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { GRS_AUTH_UNAUTHORIZED_EVENT } from "@/lib/security/apiClient";
-import { invalidateSessionAfter401 } from "@/store/authStore";
+import { GRS_AUTH_UNAUTHORIZED_EVENT } from "../lib/security/apiClient";
+import { invalidateSessionAfter401 } from "../store/authStore";
 
 /**
  * Escuta 401 global (fetch/tRPC) e limpa estado local antes de redirecionar ao login.

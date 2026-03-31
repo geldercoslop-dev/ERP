@@ -5,9 +5,9 @@
  * Automação desativada; todas as funções retornam success: false.
  */
 
-import type { ActionResult } from '../types';
-import { LEO_DESKTOP_AUTOMATION } from '../../config/leo';
-import { leoDesktopControl as desktopStub } from './leo-desktop-control-stub';
+import type { ActionResult } from '../types.js';
+import { LEO_DESKTOP_AUTOMATION } from '../../config/leo.js';
+import { leoDesktopControl as desktopStub } from './leo-desktop-control-stub.js';
 
 export interface MousePosition {
   x: number;

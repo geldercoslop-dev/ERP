@@ -2,11 +2,11 @@
  * Cache inteligente para consultas frequentes do ERP.
  * Extende o cache base com métodos específicos para dados do negócio.
  */
-import { getOrSet } from './api-cache';
-import * as db from '../db/index';
-import { logInfo } from '../_core/logger';
+import { getOrSet } from './api-cache.js';
+import * as db from '../db/index.js';
+import { logInfo } from '../_core/logger.js';
 import { eq, or, like, gte, lte, and, lt, sql } from 'drizzle-orm';
-import { produtos, clientes, pedidos, cargas, contasReceber, contasPagar } from '../../drizzle/schema';
+import { produtos, clientes, pedidos, cargas, contasReceber, contasPagar } from '../../drizzle/schema.js';
 
 // Alias para evitar conflito de nomes
 const produtosTable = produtos;

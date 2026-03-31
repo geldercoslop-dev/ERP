@@ -2,26 +2,34 @@
  * Safe Order Module
  * 
  * Módulo para criação e gestão de pedidos com transações seguras
+ * Tipos explícitos - ZERO ANY
  */
 
-import { runTransaction } from '../services/db-transaction';
-import { updateStockSafe, reserveStockForOrder } from '../services/stock-safety.service';
-import { insertAuditLog } from '../services/audit-service';
-import { logInfo } from '../_core/logger';
-import { getPool, getDb } from '../db/index';
-import { eq, sql } from 'drizzle-orm';
+import type { TransactionConnection } from '../types/transaction.types.js';
+import { runTransaction } from '../services/db-transaction.js';
+import { updateStockSafe, reserveStockForOrder } from '../services/stock-safety.service.js';
+import { insertAuditLog } from '../services/audit-service.js';
+import { logInfo } from '../_core/logger.js';
+import type { Pedido } from '../db/core.js';
+import { getDb, getPool } from '../db/core.js';
 
-export type OrderItem = {
+/**
+ * Item de pedido
+ */
+export interface OrderItem {
   produtoId: number;
   quantidade: number;
   valorUnitario: number;
   total: number;
   descricao?: string;
   id?: number;
-};
+}
 
-export type CreateOrderData = {
-  tenantId: number;
+/**
+ * Dados para criar pedido - tenantId OBRIGATÓRIO
+ */
+export interface CreateOrderData {
+  tenantId: number; // MANDATORY
   numero?: number;
   clienteNome: string;
   clienteId?: number;
@@ -38,23 +46,26 @@ export type CreateOrderData = {
   vendedorId?: number;
   ip?: string;
   userAgent?: string;
-};
+}
 
-export type OrderResult = {
+/**
+ * Resultado de criação de pedido
+ */
+export interface OrderResult {
   pedidoId: number;
   numero: number;
   status: string;
   total: number;
   itens: OrderItem[];
-  movimentacoesEstoque: any[];
-  auditRecord: any;
+  movimentacoesEstoque: Record<string, unknown>[];
+  auditRecord: Record<string, unknown>;
 };
 
 /**
  * Cria pedido de forma segura com transação completa
  */
 export async function createOrderSafe(orderData: CreateOrderData): Promise<OrderResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     logInfo(`[SafeOrder] Iniciando criação segura do pedido - Cliente: ${orderData.clienteNome}`);
 
     // 1. Validar itens do pedido
@@ -70,7 +81,17 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
       [orderData.tenantId, ...produtoIds]
     );
 
-    const produtosMap = new Map((produtosRows as any[]).map(p => [p.id, p]));
+    const produtosMap = new Map<number, Record<string, unknown>>();
+    
+    if (Array.isArray(produtosRows)) {
+      for (const p of produtosRows) {
+        if (typeof p === 'object' && p !== null) {
+          const row = p as Record<string, unknown>;
+          const id = typeof row.id === 'number' ? row.id : 0;
+          produtosMap.set(id, row);
+        }
+      }
+    }
 
     for (const item of orderData.itens) {
       const produtoData = produtosMap.get(item.produtoId);
@@ -210,9 +231,9 @@ export async function cancelOrderSafe(
   motivo: string = 'Cancelamento',
   usuarioId?: number,
   vendedorId?: number
-): Promise<{ success: boolean; message: string; movimentacoes?: any[] }> {
+): Promise<{ success: boolean; message: string; movimentacoes?: Record<string, unknown>[] }> {
   if (!tenantId) throw new Error("tenantId is required");
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     logInfo(`[SafeOrder] Iniciando cancelamento seguro do pedido - Tenant: ${tenantId}, ID: ${pedidoId}`);
 
     // 1. Buscar dados do pedido com bloqueio e tenantId
@@ -309,7 +330,7 @@ export async function updateOrderStatusSafe(
   vendedorId?: number
 ): Promise<{ success: boolean; message: string }> {
   if (!tenantId) throw new Error("tenantId is required");
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     logInfo(`[SafeOrder] Atualizando status do pedido - Tenant: ${tenantId}, ID: ${pedidoId}, Status: ${novoStatus}`);
 
     // 1. Buscar pedido atual com bloqueio e tenantId
@@ -385,7 +406,7 @@ export async function updateOrderStatusSafe(
 export async function validateOrderIntegrity(tenantId: number, pedidoId: number): Promise<{
   valido: boolean;
   erros: string[];
-  detalhes: any;
+  detalhes: Record<string, unknown>;
 }> {
   if (!tenantId) throw new Error("tenantId is required");
   const dbConnection = await getDb();
@@ -393,7 +414,7 @@ export async function validateOrderIntegrity(tenantId: number, pedidoId: number)
     return {
       valido: false,
       erros: ['Database connection not available'],
-      detalhes: null
+      detalhes: {}
     };
   }
 
@@ -414,7 +435,7 @@ export async function validateOrderIntegrity(tenantId: number, pedidoId: number)
       return {
         valido: false,
         erros: ['Pedido não encontrado'],
-        detalhes: null
+        detalhes: {}
       };
     }
 
@@ -470,7 +491,7 @@ export async function validateOrderIntegrity(tenantId: number, pedidoId: number)
     return {
       valido: false,
       erros: ['Erro na validação: ' + (error instanceof Error ? error.message : String(error))],
-      detalhes: null
+      detalhes: {}
     };
   }
 }

@@ -1,9 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import * as Sentry from "@sentry/react";
 import { AlertTriangle, Home, RefreshCcw } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { logger } from "@/lib/logger/frontendLogger";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { logger } from "../../lib/logger/frontendLogger";
 
 type GlobalErrorBoundaryProps = {
   children: ReactNode;

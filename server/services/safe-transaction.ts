@@ -5,14 +5,14 @@
  * Define ordem fixa: pedido → estoque → financeiro
  */
 
-import { getDb } from '../db/index';
+import { getDb } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
-import { pedidos, produtos, contasReceber, contasPagar } from '../../drizzle/schema';
-import { ContaPagarStatus, ContaReceberStatus, PedidoStatus, PedidoStatusValues } from "../shared/domain-status";
-import type { DbTransaction } from "../shared/types/db-transaction";
-import { validateStatus } from "../shared/guards/domain-guard";
-import { loggerInstance as logger, logError } from '../utils/logger';
-import { processStockOperation, StockOperation } from './safe-stock';
+import { pedidos, produtos, contasReceber, contasPagar } from '../../drizzle/schema.js';
+import { ContaPagarStatus, ContaReceberStatus, PedidoStatus, PedidoStatusValues } from "../shared/domain-status.js";
+import type { DbTransaction } from "../shared/types/db-transaction.js";
+import { validateStatus } from "../shared/guards/domain-guard.js";
+import { loggerInstance as logger, logError } from '../utils/logger.js';
+import { processStockOperation, StockOperation } from './safe-stock.js';
 
 export interface TransactionStep {
   type: 'pedido' | 'estoque' | 'financeiro';

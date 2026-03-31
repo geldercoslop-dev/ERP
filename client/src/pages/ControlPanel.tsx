@@ -5,20 +5,20 @@ import {
   TrendingUp,
   ChevronDown,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { HealthMonitor } from "@/components/dashboard/HealthMonitor";
-import { LeoActionPanel } from "@/components/dashboard/LeoActionPanel";
-import { LeoDashboard } from "@/components/ai/LeoDashboard";
-import { Badge } from "@/components/ui/badge";
-import { useSystemHealth } from "@/hooks/useSystemHealth";
-import { cn } from "@/lib/utils";
+} from "../components/ui/collapsible";
+import { HealthMonitor } from "../components/dashboard/HealthMonitor";
+import { LeoActionPanel } from "../components/dashboard/LeoActionPanel";
+import { LeoDashboard } from "../components/ai/LeoDashboard";
+import { Badge } from "../components/ui/badge";
+import { useSystemHealth } from "../hooks/useSystemHealth";
+import { cn } from "../lib/utils";
 
 /**
  * ControlPanel: Painel centralizado com:

@@ -1,17 +1,16 @@
 import { eq, and, desc, asc, sql, or, inArray, lte } from "drizzle-orm";
-import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index";
-import type { NewProduto as InsertProduto, InsertCor } from "../db/index";
+import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index.js";
+import type { NewProduto as InsertProduto, InsertCor } from "../db/index.js";
 import {
   produtos,
-  produtoVariacoes,
   cores,
   pendencias,
   itensPedido,
   gruposPrecificacao,
-} from "../../drizzle/schema";
-import { PendenciaStatus } from "../shared/domain-status";
+} from "../../drizzle/schema.js";
+import { PendenciaStatus } from "../shared/domain-status.js";
 import { nanoid } from "nanoid";
-import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response";
+import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 
 // Types
 export type CreateProdutoInput = InsertProduto;
@@ -492,7 +491,7 @@ export async function ajusteRapidoEstoque(
       } else break;
     }
   }
-  void import("../_core/cache-invalidation")
+  void import("../_core/cache-invalidation.js")
     .then((m) => m.invalidateInventoryCachesForTenant(tenantId))
     .catch(() => {});
   return { success: true, tipo, quantidade, produtoId };
@@ -557,7 +556,7 @@ export async function criarNotaEntrada(tenantId: number, input: {
         .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, it.produtoId)));
     }
   });
-  void import("../_core/cache-invalidation")
+  void import("../_core/cache-invalidation.js")
     .then((m) => m.invalidateInventoryCachesForTenant(tenantId))
     .catch(() => {});
   return { success: true };

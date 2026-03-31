@@ -5,8 +5,8 @@
  * permitindo que o LEO responda perguntas sobre o status do ERP.
  */
 
-import { SystemMonitorService, SystemHealth } from '../system-monitor';
-import { logger } from '../../utils/logger';
+import { SystemMonitorService, SystemHealth } from '../system-monitor.js';
+import { logger } from '../../utils/logger.js';
 
 export type SystemSummary = {
   status: 'healthy' | 'degraded' | 'unhealthy';

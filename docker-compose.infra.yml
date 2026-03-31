@@ -1,25 +1,25 @@
-version: '3.8'
-
 services:
-  mysql:
-    image: mysql:8.0
+  vendas-mysql:
+    # Usar 8.x alinhado ao datadir existente (8.0 sobre volume 8.4 falha com "Invalid MySQL server downgrade").
+    image: mysql:8.4
     container_name: vendas-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: vendas_app
+      MYSQL_DATABASE: erp
       MYSQL_USER: vendas
-      # Alinhar com DATABASE_URL local (.env.development): mysql://vendas:vendas123@localhost:3306/vendas_app
-      MYSQL_PASSWORD: vendas123
-    ports:
-      - "3306:3306"
+      MYSQL_PASSWORD: vendas
     volumes:
       - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-      interval: 5s
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      # Primeira init (InnoDB em volume vazio) pode levar vários minutos em disco lento; evita unhealthy/corte prematuro.
+      start_period: 360s
     networks:
       - vendas-network
 
@@ -27,10 +27,10 @@ services:
     image: redis:7-alpine
     container_name: vendas-redis
     restart: always
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       timeout: 10s
@@ -38,6 +38,36 @@ services:
       interval: 5s
     networks:
       - vendas-network
+
+  # Backend dev: deps no build (Dockerfile.dev). Sem install no start.
+  # docker compose -f docker-compose.infra.yml up -d
+  # docker compose -f docker-compose.infra.yml logs -f app
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: erp-app-dev
+    container_name: vendas-app
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      vendas-mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      # DATABASE_URL e Redis: definir em .env (host MySQL = vendas-mysql, ver .env.example)
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    ports:
+      - "3000:3000"
+    networks:
+      - vendas-network
+    command: sh -c "pnpm dev"
 
 volumes:
   mysql_data:

@@ -1,5 +1,5 @@
-import { tracer, withTracing } from './tracing';
-import { createLogger } from './structured-logger';
+import { tracer, withTracing } from './tracing.js';
+import { createLogger } from './structured-logger.js';
 
 const logger = createLogger('tracing-memory-test');
 

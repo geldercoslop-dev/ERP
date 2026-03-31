@@ -3,10 +3,10 @@
  * Máximo 5 etapas, execução sequencial, sem workflow complexo.
  */
 
-import { ActionExecutor, type ActionResponse, type ActionParams } from "./action-executor";
-import { toolRegistry } from "../../leo/agent/tool-registry";
-import { logger } from "../../utils/logger";
-import type { ExecutionGuard } from "./leo-execution-guard";
+import { ActionExecutor, type ActionResponse, type ActionParams } from "./action-executor.js";
+import { toolRegistry } from "../../leo/agent/tool-registry.js";
+import { logger } from "../../utils/logger.js";
+import type { ExecutionGuard } from "./leo-execution-guard.js";
 
 const MAX_STEPS = 5;
 
@@ -129,7 +129,7 @@ export async function executePlan(plan: TaskPlan, ctx: PlanContext): Promise<Exe
   }
 
   const allOk = stepResults.every((r) => r.success);
-  const anyOk = stepResults.some((r) => r.success);
+  const anyOk: boolean = stepResults.some((r) => r.success);
 
   return {
     success: anyOk,

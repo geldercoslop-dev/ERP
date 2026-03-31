@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { RBAC, Role, Permission } from '../security/rbac';
-import { systemLogger } from '../_core/logger';
+import { RBAC, Role, Permission } from '../security/rbac.js';
+import { systemLogger } from '../_core/logger.js';
 
 /**
  * Middleware que verifica permissão específica
@@ -33,7 +33,8 @@ export function requirePermission(resource: string, action: string) {
       userId,
       userTenantId,
       targetUserId: req.params.userId || req.body.userId,
-      resourceTenantId: req.params.tenantId || req.body.tenantId || req.query.tenantId,
+      // SECURITY: tenantId must come from JWT only
+      resourceTenantId: userTenantId,
       resourceOwnerId: req.params.createdBy || req.body.createdBy
     };
 
@@ -97,7 +98,8 @@ export function requirePermissions(permissions: Array<{ resource: string; action
       userId,
       userTenantId,
       targetUserId: req.params.userId || req.body.userId,
-      resourceTenantId: req.params.tenantId || req.body.tenantId || req.query.tenantId,
+      // SECURITY: tenantId must come from JWT only
+      resourceTenantId: userTenantId,
       resourceOwnerId: req.params.createdBy || req.body.createdBy
     };
 
@@ -162,7 +164,8 @@ export function requireAnyPermission(permissions: Array<{ resource: string; acti
       userId,
       userTenantId,
       targetUserId: req.params.userId || req.body.userId,
-      resourceTenantId: req.params.tenantId || req.body.tenantId || req.query.tenantId,
+      // SECURITY: tenantId must come from JWT only
+      resourceTenantId: userTenantId,
       resourceOwnerId: req.params.createdBy || req.body.createdBy
     };
 
@@ -288,32 +291,43 @@ export function requireTenantAccess() {
     }
 
     const userTenantId = req.user.tenantId;
-    
-    // Obter tenantId da requisição (params, query ou body)
-    const requestTenantId = req.params.tenantId || 
-                          req.query.tenantId || 
-                          req.body.tenantId;
 
-    // Se não há tenantId na requisição, permite (assume que é do mesmo tenant)
-    if (!requestTenantId) {
-      next();
-      return;
-    }
+    // SECURITY: tenantId must come from JWT only
+    const hasTenantOverride =
+      typeof req.params.tenantId !== 'undefined' ||
+      typeof req.query.tenantId !== 'undefined' ||
+      (typeof req.body === 'object' && req.body !== null && 'tenantId' in req.body);
 
-    if (String(requestTenantId) !== String(userTenantId)) {
+    if (hasTenantOverride) {
       systemLogger.warn({
         method: req.method,
         url: req.url,
         userId: req.user.userId,
         userTenantId,
-        requestTenantId,
         traceId: req.traceId
-      }, 'Authorization failed - tenant access denied');
+      }, 'Authorization failed - tenant override attempt');
+
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Tenant override is not allowed',
+        code: 'TENANT_OVERRIDE_FORBIDDEN'
+      });
+      return;
+    }
+
+    if (!Number.isFinite(userTenantId) || userTenantId <= 0) {
+      systemLogger.warn({
+        method: req.method,
+        url: req.url,
+        userId: req.user.userId,
+        userTenantId,
+        traceId: req.traceId
+      }, 'Authorization failed - invalid user tenant');
 
       res.status(403).json({
         error: 'Forbidden',
         message: 'Tenant access denied',
-        code: 'TENANTY_ACCESS_DENIED'
+        code: 'TENANT_INVALID'
       });
       return;
     }

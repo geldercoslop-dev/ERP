@@ -2,7 +2,7 @@
 // Substitui backdoor "admin-session" por autenticação real
 
 import { nanoid } from "nanoid";
-import { executeQuery } from "../config/database";
+import { executeQuery } from "../config/database.js";
 
 interface SessionData {
   userId: number;
@@ -22,7 +22,7 @@ export class SessionService {
     const sessionToken = nanoid(32); // Token seguro de 32 caracteres
     const expiresAt = new Date(Date.now() + this.SESSION_DURATION);
     const userAgent = (req?.headers as Record<string, string>)?.['user-agent'] || '';
-    const ipAddress = (req as any)?.ip || (req as any)?.connection?.remoteAddress || '';
+    const ipAddress = String(req?.ip || '');
 
     try {
       // Limpar sessões antigas do mesmo usuário

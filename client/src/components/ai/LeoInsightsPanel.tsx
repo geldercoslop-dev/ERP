@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, ThumbsUp, ThumbsDown, ArrowRight, Zap, TrendingUp, Package, ShieldAlert } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { eventBus } from "@/utils/eventBus";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { eventBus } from "../../utils/eventBus";
 import { useLocation } from "wouter";
-import { leoDecisionEngine, type LeoInsight } from "@/automation/leoDecisionEngine";
+import { leoDecisionEngine, type LeoInsight } from "../../automation/leoDecisionEngine";
 
 /**
  * LeoInsightsPanel: Painel de inteligência operacional do LEO.

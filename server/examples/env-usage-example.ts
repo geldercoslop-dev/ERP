@@ -7,8 +7,8 @@
  * @file server/examples/env-usage-example.ts
  */
 
-import { env, config, isProduction, getDatabaseUrl, getRedisOptions } from '../config/env';
-import { createLogger } from '../infra/structured-logger';
+import { env, config, isProduction, getDatabaseUrl, getRedisOptions } from '../config/env.js';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('env-example');
 

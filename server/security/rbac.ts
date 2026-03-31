@@ -1,4 +1,4 @@
-import { systemLogger } from '../_core/logger';
+import { systemLogger } from '../_core/logger.js';
 
 export type Role = 'admin' | 'operator' | 'user';
 

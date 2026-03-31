@@ -1,5 +1,5 @@
 import { eq, and, desc, asc, sql } from "drizzle-orm";
-import { getDb, getInsertId, promocoes, promocoesItens, insertAuditLog } from "../db/index";
+import { getDb, getInsertId, promocoes, promocoesItens, insertAuditLog } from "../db/index.js";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 

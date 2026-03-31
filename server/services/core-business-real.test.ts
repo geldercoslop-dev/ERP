@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq, and, inArray, gte, sql } from "drizzle-orm";
-import { getDb, getInsertId } from "../db/index";
+import { getDb, getInsertId } from "../db/index.js";
 import {
   pedidos,
   itensPedido,
@@ -19,19 +19,20 @@ import {
   contasReceber,
   pendencias,
   idempotencyKeys,
-} from "../../drizzle/schema";
-import * as inventoryService from "./inventory.service";
-import * as clientesService from "./clientes.service";
+} from "../../drizzle/schema.js";
+import * as inventoryService from "./inventory.service.js";
+import * as clientesService from "./clientes.service.js";
 import {
   createPedidoSafe,
   deletePedido,
   getPedidoById,
   updatePedidoStatus,
-} from "./orders.service";
-import * as financeService from "./finance.service";
-import { PedidoStatus } from "../shared/domain-status";
-import { BoletoStatus } from "../shared/domain-status";
+} from "./orders.service.js";
+import * as financeService from "./finance.service.js";
+import { PedidoStatus } from "../shared/domain-status.js";
+import { BoletoStatus } from "../shared/domain-status.js";
 import { nanoid } from "nanoid";
+import { ADMIN_ACTOR } from "../_core/service-actor.js";
 
 const RUN = process.env.RUN_REAL_CORE_TESTS !== "0" && process.env.RUN_REAL_CORE_TESTS !== "false";
 const TENANT_ID = Number(process.env.TEST_CORE_TENANT_ID || 99001);
@@ -319,7 +320,7 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
     const mid = await getPedidoById(TENANT_ID, pid);
     expect(mid?.status).toBe(PedidoStatus.CONFERIDO);
 
-    await deletePedido(TENANT_ID, pid);
+    await deletePedido(TENANT_ID, ADMIN_ACTOR, pid);
     const end = await getPedidoById(TENANT_ID, pid);
     expect(end).toBeNull();
 
@@ -354,6 +355,6 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
 
     await expect(updatePedidoStatus(TENANT_ID, created.pedidoId, "STATUS_INEXISTENTE_XYZ")).rejects.toThrow();
 
-    await deletePedido(TENANT_ID, created.pedidoId);
+    await deletePedido(TENANT_ID, ADMIN_ACTOR, created.pedidoId);
   });
 }, 120_000);

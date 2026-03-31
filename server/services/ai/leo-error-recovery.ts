@@ -3,9 +3,9 @@
  * Nunca expõe erro interno ao usuário.
  */
 
-import { ActionExecutor, type ActionResponse, type ActionParams } from "./action-executor";
-import type { ActionExecutorContext } from "./action-executor";
-import { logger } from "../../utils/logger";
+import { ActionExecutor, type ActionResponse, type ActionParams } from "./action-executor.js";
+import type { ActionExecutorContext } from "./action-executor.js";
+import { logger } from "../../utils/logger.js";
 
 const SAFE_MESSAGE = "Não consegui completar essa ação agora.";
 

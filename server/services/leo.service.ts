@@ -1,12 +1,12 @@
-import { leoLongMemory } from "../leo/memory/leo-long-memory";
-import { buildLeoContext } from "../leo/utils/leo-context";
+import { leoLongMemory } from "../leo/memory/leo-long-memory.js";
+import { buildLeoContext } from "../leo/utils/leo-context.js";
 import {
   aggregateTicketPedidos,
   sumPedidosTotalBetween,
-} from "./orders.service";
-import { listClientes } from "./clientes.service";
-import { getAllProdutos } from "./inventory.service";
-import { ADMIN_ACTOR } from "../_core/service-actor";
+} from "./orders.service.js";
+import { listClientes } from "./clientes.service.js";
+import { getAllProdutos } from "./inventory.service.js";
+import { ADMIN_ACTOR } from "../_core/service-actor.js";
 
 function startOfToday(): Date {
   const d = new Date();

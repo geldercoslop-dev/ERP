@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 import { Link } from "wouter";
-import { trpc } from "@/lib/trpcClient";
-import { sameOriginFetch } from "@/lib/security/apiClient";
+import { trpc } from "../lib/trpcClient";
+import { sameOriginFetch } from "../lib/security/apiClient";
 
 interface ServerStatus {
   status: "checking" | "online" | "offline";

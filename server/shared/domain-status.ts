@@ -6,6 +6,7 @@
 export const PedidoStatusValues = [
   "GERADO",
   "CONFERIDO",
+  "IMPRESSO",
   "EM_ROTA",
   "ENTREGUE",
   "CANCELADO",
@@ -18,6 +19,7 @@ export type PedidoStatusValue = (typeof PedidoStatusValues)[number];
 export const PedidoStatus = {
   GERADO: "GERADO",
   CONFERIDO: "CONFERIDO",
+  IMPRESSO: "IMPRESSO",
   EM_ROTA: "EM_ROTA",
   ENTREGUE: "ENTREGUE",
   CANCELADO: "CANCELADO",

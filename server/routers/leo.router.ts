@@ -1,11 +1,12 @@
 import { z, ZodError } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
-import { perguntar } from "../services/ai/erp-ai.service";
-import { resolveServiceActor } from "../_core/service-actor";
-import { leoAgentCore } from "../leo/agent/agent-core";
-import { leoActionService, type LeoAction, type LeoActionPayloadMap } from "../services/leoAction.service";
-import { parseLeoActionPayload } from "../services/leoActionPayload.parse";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc.js";
+import { perguntar } from "../services/ai/erp-ai.service.js";
+import { resolveServiceActor } from "../_core/service-actor.js";
+import { leoAgentCore } from "../leo/agent/agent-core.js";
+import { leoLogManager } from "../leo/utils/leo-log-manager.js";
+import { leoActionService, type LeoAction, type LeoActionPayloadMap } from "../services/leoAction.service.js";
+import { parseLeoActionPayload } from "../services/leoActionPayload.parse.js";
 
 const leoActionSchema = z.enum(["CREATE_ORDER", "PROCESS_PAYMENT", "REGISTER_SALE"]);
 
@@ -32,8 +33,32 @@ const leoRouterWithMiddleware = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "ID do tenant é obrigatório para o LEO." });
       }
 
+      leoLogManager.writeLog({
+        timestamp: new Date(),
+        level: "INFO",
+        module: "LEO_ROUTER",
+        message: "Entrada do LEO recebida",
+        data: {
+          tenantId: ctx.tenantId,
+          userId: ctx.user?.id,
+          role: ctx.user?.role,
+          pergunta: input.pergunta,
+        },
+      });
+
       const mappedAction = parseLeoActionFromCommand(input.pergunta);
       if (mappedAction && ctx.tenantId) {
+        leoLogManager.writeLog({
+          timestamp: new Date(),
+          level: "INFO",
+          module: "LEO_ROUTER",
+          message: "Ação detectada pelo parser do LEO",
+          data: {
+            action: mappedAction,
+            tenantId: ctx.tenantId,
+            userId: ctx.user?.id,
+          },
+        });
         const controlResponse = await leoActionService.executeAction({
           action: mappedAction,
           actor: {
@@ -77,7 +102,18 @@ const leoRouterWithMiddleware = router({
         };
       } catch (error) {
         // Fallback para o serviço antigo em caso de erro
-        console.error('Erro no LEO Agent Core, usando fallback:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        leoLogManager.writeLog({
+          timestamp: new Date(),
+          level: "ERROR",
+          module: "LEO_ROUTER",
+          message: "Erro no LEO Agent Core, acionando fallback",
+          data: {
+            tenantId: ctx.tenantId,
+            userId: ctx.user?.id,
+            error: errorMessage,
+          },
+        });
         if (!ctx.tenantId) {
           throw new Error("Tenant ID is required for fallback");
         }
@@ -188,9 +224,7 @@ const leoRouterWithMiddleware = router({
 
   insights: publicProcedure.query(async () => {
     const now = Date.now();
-    const { getProdutosCache, getClientesCache, getFinanceiroResumoCache } = await import(
-      "../cache/intelligent-cache"
-    );
+    const { getProdutosCache, getClientesCache, getFinanceiroResumoCache } = await import("../cache/intelligent-cache.js");
 
     const [produtos, clientes, financeiro] = await Promise.all([
       getProdutosCache(),

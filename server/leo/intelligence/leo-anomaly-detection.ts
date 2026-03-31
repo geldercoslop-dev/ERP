@@ -1,5 +1,5 @@
-import { logInfo, logError } from '../../_core/logger';
-import { AnomalyDetection } from '../../_core/types';
+import { logInfo, logError } from '../../_core/logger.js';
+import { AnomalyDetection } from '../../_core/types.js';
 
 export class LeoAnomalyDetection {
   private readonly name = 'AnomalyDetection';

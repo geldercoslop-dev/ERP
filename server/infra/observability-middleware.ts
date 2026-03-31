@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { context, propagation, trace, SpanStatusCode, SpanKind } from "@opentelemetry/api";
 import { nanoid } from "nanoid";
-import { runWithObservabilityContext } from "./observability-context";
-import { createLogger } from "./structured-logger";
+import { runWithObservabilityContext } from "./observability-context.js";
+import { createLogger } from "./structured-logger.js";
 
 const logger = createLogger("observability-middleware");
 const otelTracer = trace.getTracer("erp-server");

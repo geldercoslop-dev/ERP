@@ -6,9 +6,7 @@
  */
 
 import { createHash } from 'crypto';
-import { getDb } from '../db/index';
-import { auditLog } from '../../drizzle/schema';
-import { eq, and } from 'drizzle-orm';
+import { getDb } from '../db/index.js';
 
 export interface JobIdempotencyConfig {
   jobType: string;

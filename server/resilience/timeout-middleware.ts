@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
+import { isHealthProbePath } from '../_core/health-probe-paths.js';
 
 const logger = createLogger('timeout-middleware');
 
@@ -9,10 +10,71 @@ const logger = createLogger('timeout-middleware');
  */
 export function globalTimeoutMiddleware(timeoutMs: number = 10000) {
   return (req: Request, res: Response, next: NextFunction) => {
+    const pathOnly = req.path || req.url || "";
+    if (isHealthProbePath(pathOnly)) {
+      return next();
+    }
     const startTime = Date.now();
+    let timedOut = false;
+
+    const originalJson = res.json.bind(res);
+    const originalSend = res.send.bind(res);
+    const originalEnd = res.end.bind(res);
+
+    const shouldSkipResponse = () => timedOut || res.headersSent || res.writableEnded;
+
+    res.json = ((body: unknown) => {
+      if (shouldSkipResponse()) {
+        logger.warn('Response suppressed after timeout/headers sent', {
+          metadata: {
+            url: req.url,
+            method: req.method,
+            timeout: timeoutMs,
+          },
+        });
+        return res;
+      }
+      return originalJson(body);
+    }) as Response['json'];
+
+    res.send = ((body?: unknown) => {
+      if (shouldSkipResponse()) {
+        logger.warn('Send suppressed after timeout/headers sent', {
+          metadata: {
+            url: req.url,
+            method: req.method,
+            timeout: timeoutMs,
+          },
+        });
+        return res;
+      }
+      return originalSend(body);
+    }) as Response['send'];
+
+    res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void), cb?: () => void) => {
+      if (shouldSkipResponse()) {
+        logger.warn('End suppressed after timeout/headers sent', {
+          metadata: {
+            url: req.url,
+            method: req.method,
+            timeout: timeoutMs,
+          },
+        });
+        if (typeof encoding === 'function') {
+          encoding();
+        }
+        if (typeof cb === 'function') {
+          cb();
+        }
+        return res;
+      }
+      return originalEnd(chunk as never, encoding as never, cb as never);
+    }) as Response['end'];
     
     // Timeout timer
     const timeout = setTimeout(() => {
+      timedOut = true;
+      (res.locals as Record<string, unknown>).requestTimedOut = true;
       logger.warn('Request timeout', {
         metadata: {
           url: req.url,
@@ -142,8 +204,9 @@ export async function withTimeout<T>(
   timeoutMs: number,
   operationName: string = 'operation'
 ): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
       reject(new Error(`${operationName} timeout: ${timeoutMs}ms`));
     }, timeoutMs);
   });
@@ -160,6 +223,10 @@ export async function withTimeout<T>(
       },
     });
     throw error;
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

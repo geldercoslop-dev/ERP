@@ -1,4 +1,4 @@
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('resilience-test');
 
@@ -440,7 +440,7 @@ export class ResilienceTest {
 }
 
 // Importar funções necessárias
-import { getFailureDashboard } from './failure-logger';
+import { getFailureDashboard } from './failure-logger.js';
 
 /**
  * Executa teste de resiliência completo

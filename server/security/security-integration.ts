@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { createTenantRateLimit, createAuthRateLimit } from './rate-limiting';
-import { sanitizationMiddleware } from './input-sanitization';
-import { securityHeadersMiddleware } from './security-headers';
-import { completePayloadProtection } from './payload-protection';
-import { criticalAuditMiddleware } from './critical-audit';
-import { securityValidationMiddleware } from './security-validation';
+import { createTenantRateLimit, createAuthRateLimit } from './rate-limiting.js';
+import { sanitizationMiddleware } from './input-sanitization.js';
+import { securityHeadersMiddleware } from './security-headers.js';
+import { completePayloadProtection } from './payload-protection.js';
+import { criticalAuditMiddleware } from './critical-audit.js';
+import { securityValidationMiddleware } from './security-validation.js';
 
 /**
  * Middleware completo de segurança para produção

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { exitProcessInProductionUnlessDevelopment } from '../_core/dev-process-exit';
+import { exitProcessInProductionUnlessDevelopment } from '../_core/dev-process-exit.js';
 
 /**
  * Schema de validação de environment variables

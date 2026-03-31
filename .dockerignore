@@ -1,0 +1,104 @@
+# ===== Dependências e VCS =====
+node_modules
+**/node_modules
+.git
+**/.git
+
+# ===== Saídas de build / caches =====
+dist
+**/dist
+build
+**/build
+.next
+**/.turbo
+**/.vite
+coverage
+**/coverage
+*.tsbuildinfo
+**/*.tsbuildinfo
+.tsbuildinfo*
+
+# ===== Ambiente (nunca no contexto) =====
+.env
+.env.*
+**/.env
+**/.env.*
+
+# ===== IDE / local =====
+.vscode
+.idea
+.cursor
+**/.cursor
+
+# ===== Logs e temporários =====
+*.log
+**/*.log
+logs
+**/logs
+.cache
+**/.cache
+.tmp
+tmp
+temp
+test-out
+run
+
+# ===== pnpm store local =====
+.pnpm-store
+**/.pnpm-store
+
+# ===== Pastas que não entram no artefacto Docker =====
+.github
+.husky
+backups
+uploads
+# Apenas relatórios gerados no raiz — NÃO usar **/reports (remove server/services/reports)
+/reports
+/docs
+/tests
+frontend-dashboard
+grs
+apagar depois
+deployment
+# Só pastas no raiz — padrões sem "/" excluem homónimos em client/server
+/types
+/util
+/assets
+
+# Pasta com espaço no nome (ferramentas locais)
+scripts PAINEL/
+
+# Compose / dev image (metadados)
+docker-compose*.yml
+Dockerfile.dev
+
+# scripts/ incluído: server importa scripts/cleanup-system (tsc resolve .ts)
+
+# ===== Lixo / relatórios só no raiz do repositório =====
+/*.md
+/*.txt
+/*.log
+/*.mjs
+/*.tar
+/*.tar.gz
+/*.zip
+/*.bat
+/*.ps1
+/*.sh
+/*.jpeg
+/*.jpg
+/*.html
+/*.sql
+
+# Ficheiros grandes conhecidos no raiz
+erp-app.tar
+list-files.txt
+cookies.txt
+login.json
+login_response.json
+
+# Mapas de source no raiz (não necessários ao build)
+/*.map
+
+# Documentação dentro de client (não importada pelo Vite)
+client/**/*.md

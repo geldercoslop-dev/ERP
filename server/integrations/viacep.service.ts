@@ -3,7 +3,7 @@
  * https://viacep.com.br/
  * Cache: 5 min (server/cache/api-cache.ts).
  */
-import { getOrSet } from "../cache/api-cache";
+import { getOrSet } from "../cache/api-cache.js";
 
 export type EnderecoViaCep = {
   cep: string;

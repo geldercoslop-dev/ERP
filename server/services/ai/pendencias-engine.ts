@@ -2,7 +2,7 @@
  * Motor de pendências e lista de compras do LEO.
  * Usa as pendências de pedidos existentes no ERP.
  */
-import * as db from "../leo-erp-data.facade";
+import * as db from "../leo-erp-data.facade.js";
 
 /** Lista pendências de estoque (pendências ativas: PENDENTE ou COMPRADO). */
 export async function listarPendenciasEstoque(vendedorId?: number): Promise<

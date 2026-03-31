@@ -43,7 +43,7 @@ SENTRY_DSN=
     console.log('\n🚀 Iniciando servidor em produção com DB offline...');
     console.log('⏱️ Timeout: 15 segundos (fail-fast esperado)');
     
-    const serverProcess = spawn('node', ['dist/index.js'], {
+    const serverProcess = spawn('node', ['dist/server/index.js'], {
       stdio: 'pipe',
       cwd: __dirname,
       env: {
@@ -181,7 +181,7 @@ SENTRY_DSN=
 // Verificar se o build existe
 const distPath = path.join(__dirname, 'dist', 'index.js');
 if (!fs.existsSync(distPath)) {
-  console.log('❌ Build não encontrado em dist/index.js');
+  console.log('❌ Build não encontrado em dist/server/index.js');
   console.log('💡 Execute: pnpm run build');
   process.exit(1);
 }

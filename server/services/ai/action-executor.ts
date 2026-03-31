@@ -3,24 +3,25 @@
  * Integra: permissões, log, cache, timeout (3s), execution guard (5 tools / 10s por requisição).
  */
 
-import { toolRegistry } from "../../leo/agent/tool-registry";
-import type { ToolContext } from "../../leo/agent/tool-registry";
-import type { ServiceInvocationStore } from "../../_core/service-entry-guard";
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard";
+import { toolRegistry } from "../../leo/agent/tool-registry.js";
+import type { ToolContext } from "../../leo/agent/tool-registry.js";
+import type { ServiceInvocationStore } from "../../_core/service-entry-guard.js";
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard.js";
 import {
   reconstructLeoToolExecutionIdentity,
   stripForbiddenKeysFromToolInput,
   toSecureToolContext,
-} from "../../_core/tenant-ownership";
-import { logger } from "../../utils/logger";
-import { checkToolPermission } from "../../leo/security/tool-permissions";
-import { logAction } from "./leo-action-logger";
-import { getCached, setCached } from "./leo-query-cache";
-import { executeWithTimeout } from "./tool-timeout";
-import type { ExecutionGuard } from "./leo-execution-guard";
+} from "../../_core/tenant-ownership.js";
+import { logger } from "../../utils/logger.js";
+import { checkToolPermission } from "../../leo/security/tool-permissions.js";
+import { logAction } from "./leo-action-logger.js";
+import { getCached, setCached } from "./leo-query-cache.js";
+import { executeWithFailSafe } from "./tool-timeout.js";
+import type { ExecutionGuard } from "./leo-execution-guard.js";
 
 const CACHEABLE_TOOLS = new Set(["listar_pedidos", "resumo_financeiro", "listar_estoque"]);
-const TOOL_TIMEOUT_MS = 3000;
+const TOOL_TIMEOUT_MS = 15000;
+const TOOL_RETRIES = 2;
 
 export type ActionResponse = {
   success: boolean;
@@ -59,7 +60,13 @@ export class ActionExecutor {
     params: ActionParams,
     context?: Partial<ActionExecutorContext>
   ): Promise<ActionResponse> {
-    logger.info({ message: "LEO executando ação", action, tenantId });
+    logger.info({
+      message: "LEO entrada recebida",
+      action,
+      tenantId,
+      userId: context?.userId,
+      vendedorId: context?.vendedorId,
+    });
 
     if (context?.userId == null || !Number.isFinite(Number(context.userId)) || Number(context.userId) <= 0) {
       return { success: false, message: "Execução LEO recusada: userId ausente ou inválido." };
@@ -133,10 +140,11 @@ export class ActionExecutor {
         return { success: false, message: `Parâmetros inválidos: ${msg}` };
       }
 
+      logger.info({ message: "LEO ação executada", action, tenantId });
       const result = await runWithServiceInvocationAsync(ctx as ServiceInvocationStore, () =>
-        executeWithTimeout(
-          tool.handler(parsed.data as Record<string, unknown>, ctx),
-          TOOL_TIMEOUT_MS
+        executeWithFailSafe(
+          () => tool.handler(parsed.data as Record<string, unknown>, ctx),
+          { timeoutMs: TOOL_TIMEOUT_MS, retries: TOOL_RETRIES, toolName: action }
         )
       );
       context?.guard?.recordToolExecuted();
@@ -165,9 +173,11 @@ export class ActionExecutor {
       const executionTime = Date.now() - start;
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error({
-        message: "Erro ao executar ação do LEO",
+        message: "LEO erro em execução de ação",
         action,
         params: params as Record<string, unknown>,
+        tenantId,
+        userId: context?.userId,
         error: errorMsg,
       });
       logAction({

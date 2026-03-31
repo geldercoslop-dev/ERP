@@ -1,4 +1,4 @@
-import { insertLeoActionLog as insertLeoActionLogCore } from "../db/core";
+import { insertLeoActionLog as insertLeoActionLogCore } from "../db/core.js";
 
 export { insertLeoActionLogCore as insertLeoActionLog };
 

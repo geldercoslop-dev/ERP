@@ -1,4 +1,4 @@
-import { toolRegistry } from './tool-registry';
+import { toolRegistry } from './tool-registry.js';
 
 export type PromptPayload = Record<string, unknown>;
 

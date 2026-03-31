@@ -6,9 +6,9 @@
  */
 
 import { Worker, Job } from 'bullmq';
-import { getRedisClient } from '../infra/redis';
-import { logInfo, logError, logWarn } from '../_core/logger';
-import { QUEUE_NAMES, JobData, JobResult } from './queue';
+import { getRedisClient } from '../infra/redis.js';
+import { logInfo, logError, logWarn } from '../_core/logger.js';
+import { QUEUE_NAMES, JobData, JobResult } from './queue.js';
 
 /**
  * Configurações dos workers por fila

@@ -54,13 +54,13 @@ docker compose -f docker-compose.prod.yml up -d
 |----------|-------|------|
 | `NODE_ENV` | `production` | Força modo produção |
 | `PORT` | `3000` | Porta da aplicação |
-| `DATABASE_URL` | `mysql://vendas:...@mysql:3306/vendas_app` | Host Docker: `mysql` |
-| `REDIS_URL` | `redis://redis:6379/0` | Host Docker: `redis` |
+| `DATABASE_URL` | `mysql://vendas:...@vendas-mysql:3306/erp` | Host na rede compose: serviço `vendas-mysql` |
+| `REDIS_URL` | `redis://redis:6379/0` | Host na rede compose: serviço `redis` |
 | `APP_SECRET` | [64+ chars] | **ALTERAR ANTES DO DEPLOY** |
 | `SENTRY_DSN` | [optional] | Para error tracking |
 
 **Status:**
-- ✅ Hosts ajustados para Docker (`mysql`, `redis`)
+- ✅ Hosts ajustados para Docker (`vendas-mysql`, `redis`)
 - ✅ Portas configuradas (3306, 6379)
 - ⚠️ **PRECISA:** Alterar secrets antes de usar em VPS real
 

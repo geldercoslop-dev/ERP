@@ -1,7 +1,7 @@
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import { useMemo } from "react";
-import { normalizeListResponse, getListTotal } from "@/utils/data-normalizer";
-import type { Cliente } from "@/shared/types";
+import { normalizeListResponse, getListTotal } from "../utils/data-normalizer";
+import type { Cliente } from "../shared/types";
 
 /** Opções padrão para queries que não precisam de refetch constante */
 const DEFAULT_QUERY_OPTIONS = {

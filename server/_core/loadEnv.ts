@@ -1,45 +1,34 @@
 /**
- * Carrega .env e .env.<NODE_ENV> apenas a partir da raiz do projeto (getProjectRoot).
- * Sem fallback para process.cwd(): em produção as variáveis devem estar no ambiente ou no .env da raiz do artefato.
+ * Única leitura opcional de ficheiro: `.env` na raiz do projeto (getProjectRoot).
+ * Variáveis já definidas no processo (ex.: `env_file` do Docker Compose) NÃO são sobrescritas
+ * (dotenv sem override).
+ *
+ * Não carregar `.env.development`, `.env.production` nem cadeias com override — elimina
+ * sobreposição e conflitos com o ambiente injectado pelo compose.
  */
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import { getProjectRoot } from "./project-root";
+import { getProjectRoot } from "./project-root.js";
 
 console.log("[BOOT] loadEnv — início");
-console.log("[ENV] carregando .env / .env.<NODE_ENV>…");
+console.log("[ENV] carregando apenas .env (sem override; compose/env_file tem precedência)…");
 
 const root = getProjectRoot();
 const basePath = path.resolve(root, ".env");
-const base = dotenv.config({ path: basePath });
-const nodeEnv = process.env.NODE_ENV;
+const base = dotenv.config({ path: basePath, override: false });
 
 if (!fs.existsSync(basePath) && process.env.NODE_ENV !== "test") {
   console.warn(
-    `[ENV] Arquivo .env não encontrado em ${basePath}. Segredos e PORT devem vir do ambiente (ou copie .env para a raiz do deploy).`
+    `[ENV] Arquivo .env não encontrado em ${basePath}. Variáveis devem vir do ambiente (ex.: env_file no Docker).`
   );
 }
 
-let modeFile: ReturnType<typeof dotenv.config> | undefined;
-if (nodeEnv === "development" || nodeEnv === "production") {
-  const modePath = path.resolve(root, `.env.${nodeEnv}`);
-  // override: .env.<NODE_ENV> deve prevalecer sobre .env e qualquer preload
-  modeFile = dotenv.config({ path: modePath, override: true });
-}
-
-if (nodeEnv === "production" && (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === "")) {
-  const prodPath = path.resolve(root, ".env.production");
-  dotenv.config({ path: prodPath });
-}
-
 /**
- * Hardening de configuração:
- * Se algum segredo vier vazio (""), alguns ambientes/CI podem setar a variável sem valor.
- * Nesse caso, o dotenv não sobrescreve por padrão; portanto, preenchemos vazios
- * com os valores vindos dos arquivos .env para evitar erros 500 (ex.: ADMIN_PASSWORD_HASH).
+ * Se algum segredo vier vazio (""), preencher a partir do que foi parseado do único .env
+ * (não sobrescreve valores já injectados pelo runtime).
  */
-const combinedParsed = { ...(base?.parsed ?? {}), ...(modeFile?.parsed ?? {}) } as Record<string, string>;
+const combinedParsed = { ...(base?.parsed ?? {}) } as Record<string, string>;
 const keysToFill = [
   "ADMIN_PASSWORD_HASH",
   "JWT_ACCESS_SECRET",

@@ -2,13 +2,13 @@
  * Motor de ações do LEO (LEO Operador).
  * Executa ações do sistema somente após confirmação; registra em leo_actions_log.
  */
-import { insertLeoActionLog } from "../leo-action-log.service";
-import * as ordersService from "../orders.service";
-import * as financeService from "../finance.service";
-import * as inventoryService from "../inventory.service";
-import { logLeoSyntheticAudit } from "../app-audit.service";
-import { ContaReceberStatus, PedidoStatus } from "../../shared/domain-status";
-import { assertVendedorActor, type ServiceActor } from "../../_core/service-actor";
+import { insertLeoActionLog } from "../leo-action-log.service.js";
+import * as ordersService from "../orders.service.js";
+import * as financeService from "../finance.service.js";
+import * as inventoryService from "../inventory.service.js";
+import { logLeoSyntheticAudit } from "../app-audit.service.js";
+import { ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
+import { assertVendedorActor, type ServiceActor } from "../../_core/service-actor.js";
 
 function fmtMoeda(valor: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);

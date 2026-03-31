@@ -4,12 +4,12 @@
  * Serviço para operações seguras de estoque com controle de concorrência
  */
 
-import { runStockTransaction } from './db-transaction';
-import * as db from '../db/index';
+import { runStockTransaction } from './db-transaction.js';
+import * as db from '../db/index.js';
 import { eq, sql, and } from 'drizzle-orm';
-import { produtos, itensPedido } from '../../drizzle/schema';
-import { executeQuery } from '../config/database';
-import { isRecord } from '../_core/type-guards';
+import { produtos, itensPedido } from '../../drizzle/schema.js';
+import { executeQuery } from '../config/database.js';
+import { isRecord } from '../_core/type-guards.js';
 
 type ProdutoRowLock = {
   id: number;
@@ -40,7 +40,7 @@ function mapProdutoRowsToLock(rows: unknown): Map<number, ProdutoRowLock> {
   }
   return m;
 }
-import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response";
+import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 
 export type StockOperation = {
   produtoId: number;
@@ -176,7 +176,7 @@ export async function updateStockSafe(
       timestamp: new Date()
     };
   });
-  void import("../_core/cache-invalidation")
+  void import("../_core/cache-invalidation.js")
     .then((m) => m.invalidateInventoryCachesForTenant(tenantId))
     .catch(() => {});
   return out;

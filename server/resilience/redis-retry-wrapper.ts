@@ -4,7 +4,7 @@
  * Nunca deixa o servidor quebrado - fallback automático
  */
 
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
 import { Redis } from 'ioredis';
 
 const logger = createLogger('redis-retry');

@@ -83,7 +83,7 @@ validateProductionRuntime();
 // ============================================================================
 
 // Load service protection layer first
-import "./_core/init-protection";
+import "./_core/init-protection.js";
 
 // Start main application
-import "./_core/index";
+import "./_core/index.js";

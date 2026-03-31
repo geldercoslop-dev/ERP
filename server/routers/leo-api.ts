@@ -6,12 +6,12 @@
  * - /leo/status - Status do agente
  */
 
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { router, publicProcedure, protectedProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
-import { leoLongMemory } from '../leo/memory/leo-long-memory';
-import { requireTenant } from '../_core/tenant';
-import { askLeoQuestion, getLeoStatusSummary } from '../services/leo.service';
-import { createLogger } from '../infra/structured-logger';
+import { leoLongMemory } from '../leo/memory/leo-long-memory.js';
+import { requireTenant } from '../_core/tenant.js';
+import { askLeoQuestion, getLeoStatusSummary } from '../services/leo.service.js';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger("leo-api-router");
 

@@ -2,9 +2,9 @@
  * Invalidação centralizada após mutações (estoque, produtos, dashboard).
  */
 
-import { invalidateRelatedCaches } from "./safe-cache";
-import { memoryCache as simpleRouterCache } from "../cache/simple-memory-cache";
-import { clearDashboardCache } from "../tools/dashboard-cache";
+import { invalidateRelatedCaches } from "./safe-cache.js";
+import { memoryCache as simpleRouterCache } from "../cache/simple-memory-cache.js";
+import { clearDashboardCache } from "../tools/dashboard-cache.js";
 
 export function invalidateInventoryCachesForTenant(tenantId: number): void {
   invalidateRelatedCaches("inventory", { tenantId });

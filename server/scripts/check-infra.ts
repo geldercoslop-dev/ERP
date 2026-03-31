@@ -8,8 +8,8 @@
  * Exit code: 0 (sucesso) ou 1 (falha)
  */
 
-import '../_core/loadEnv';
-import { getEnv } from '../config/env';
+import "../_core/loadEnv.js";
+import { getEnv } from "../config/env.js";
 
 async function main(): Promise<void> {
   console.log('\n╔════════════════════════════════════════╗');

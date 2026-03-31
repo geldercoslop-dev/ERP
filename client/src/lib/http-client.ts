@@ -7,10 +7,10 @@
  * - Type-safe
  */
 
-import { apiClient, type ApiResult, type ApiRequestOptions } from '@/lib/api/apiClient';
-import { frontendLogger } from '@/monitoring/frontend-logger';
-import { generateRequestId } from '@/utils/request-id';
-import type { ApiError } from '@/types/api';
+import { apiClient, type ApiResult, type ApiRequestOptions } from './api/apiClient';
+import { frontendLogger } from '../monitoring/frontend-logger';
+import { generateRequestId } from '../utils/request-id';
+import type { ApiError } from '../types/api';
 
 export class HttpClient {
   private requestIdStack: string[] = [];

@@ -5,8 +5,8 @@
  * e monitoramento avançado do sistema
  */
 
-import { leoLogManager } from '../utils/leo-log-manager';
-import type { Payload } from '@shared/types';
+import { leoLogManager } from '../utils/leo-log-manager.js';
+import type { Payload } from "../../../shared/types/index.js";
 import { join } from 'path';
 
 /** Registro de ação LEO (stub; usar import de db quando disponível) */

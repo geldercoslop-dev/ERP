@@ -2,8 +2,10 @@
  * Saúde agregada do processo (HTTP + DB + Redis + shutdown).
  * Todos os checks são limitados por tempo — nunca bloqueiam indefinidamente se DB/Redis estiverem off.
  */
-import { isShutdownInProgress, isHttpServerListening } from "./shutdown.service";
-import { withCriticalDbTimeout, withExternalRequestTimeout } from "./enterprise-timeout.service";
+import { isShutdownInProgress, isHttpServerListening } from "./shutdown.service.js";
+import { withCriticalDbTimeout, withExternalRequestTimeout } from "./enterprise-timeout.service.js";
+import { parseEnv } from "../env.schema.js";
+import { createLogger } from "../../infra/structured-logger.js";
 
 export type HealthStatus = {
   http: "up" | "down";
@@ -35,44 +37,65 @@ export type AdvancedHealthReport = {
 
 export type HealthReport = AdvancedHealthReport;
 
+const logger = createLogger("system-health");
+
 const DEFAULT_TIMEOUT_MS = Math.min(
   90,
   Math.max(15, Number(process.env.HEALTH_CHECK_TIMEOUT_MS || 80))
 );
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, rej) => {
-      setTimeout(() => rej(new Error("health_check_timeout")), ms);
-    }),
-  ]);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, rej) => {
+    timeoutId = setTimeout(() => rej(new Error("health_check_timeout")), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  });
 }
 
 async function pingDb(ms: number): Promise<boolean> {
-  const url = process.env.DATABASE_URL?.trim();
-  if (!url) return false;
+  // Fail-fast: se ENV crítico estiver inválido, o health deve refletir DB down.
   try {
-    return await withCriticalDbTimeout(
+    void parseEnv();
+  } catch (error) {
+    logger.warn("Health DB ping com ENV inválido", {
+      metadata: {
+        timeoutMs: ms,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    return false;
+  }
+  try {
+    return await withTimeout(withCriticalDbTimeout(
       (async () => {
-        const { getConnectionPool } = await import("../../config/database");
+        const { getConnectionPool } = await import("../../config/database.js");
         const pool = await getConnectionPool();
         await pool.query("SELECT 1 AS health_ping");
         return true;
       })(),
       ms,
       "HEALTH_DB_PING"
-    );
-  } catch {
+    ), ms);
+  } catch (error) {
+    logger.warn("Health DB ping falhou", {
+      metadata: {
+        timeoutMs: ms,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return false;
   }
 }
 
 async function pingRedis(ms: number): Promise<boolean> {
   try {
-    return await withExternalRequestTimeout(
+    return await withTimeout(withExternalRequestTimeout(
       (async () => {
-        const { redisManager } = await import("../../infra/redis");
+        const { redisManager } = await import("../../infra/redis.js");
         const client = redisManager.getClient();
         if (!client) return false;
         const pong = await client.ping();
@@ -80,8 +103,14 @@ async function pingRedis(ms: number): Promise<boolean> {
       })(),
       ms,
       "HEALTH_REDIS_PING"
-    );
-  } catch {
+    ), ms);
+  } catch (error) {
+    logger.warn("Health Redis ping falhou", {
+      metadata: {
+        timeoutMs: ms,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return false;
   }
 }

@@ -2,8 +2,8 @@
  * Verificações locais (sem subir HTTP): ENV + schema Zod + MySQL + Redis.
  * Imports dinâmicos evitam inicializar Redis/MySQL quando VERIFY_SKIP_*=1.
  */
-import "../_core/loadEnv";
-import { getEnv } from "../config/env";
+import "../_core/loadEnv.js";
+import { getEnv } from "../config/env.js";
 
 async function main(): Promise<void> {
   console.log("[VERIFY] [ENV] validando schema e variáveis…");
@@ -14,7 +14,7 @@ async function main(): Promise<void> {
     console.log("[VERIFY] [DB] omitido (VERIFY_SKIP_DB=1)");
   } else {
     console.log("[VERIFY] [DB] testando pool MySQL…");
-    const { getConnectionPool } = await import("../config/database");
+    const { getConnectionPool } = await import("../config/database.js");
     const pool = await getConnectionPool();
     await pool.query("SELECT 1 AS verify_ping");
     console.log("[VERIFY] [DB] OK");
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
     console.log("[VERIFY] [REDIS] omitido (VERIFY_SKIP_REDIS=1)");
   } else {
     console.log("[VERIFY] [REDIS] aguardando conexão…");
-    const { waitForRedis } = await import("../infra/redis");
+    const { waitForRedis } = await import("../infra/redis.js");
     const redisOk = await waitForRedis(20_000);
     if (!redisOk) {
       console.error("[VERIFY] [REDIS] FALHA — Redis não respondeu a tempo");

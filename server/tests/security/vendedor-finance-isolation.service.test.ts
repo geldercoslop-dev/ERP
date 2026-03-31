@@ -3,10 +3,10 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq, and } from "drizzle-orm";
-import { getDb, getInsertId, contasReceber, vendedores } from "../../db/core";
-import * as financeService from "../../services/finance.service";
-import { ADMIN_ACTOR } from "../../_core/service-actor";
-import { ContaReceberStatus } from "../../shared/domain-status";
+import { getDb, getInsertId, contasReceber, vendedores } from "../../db/core.js";
+import * as financeService from "../../services/finance.service.js";
+import { ADMIN_ACTOR } from "../../_core/service-actor.js";
+import { ContaReceberStatus } from "../../shared/domain-status.js";
 
 describe("Isolamento financeiro vendedor A vs B (finance.service)", () => {
   const TENANT = 9191;

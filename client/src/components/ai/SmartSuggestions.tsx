@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Zap, ArrowRight, X, Sparkles, Package, Truck, DollarSign } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { eventBus } from "@/utils/eventBus";
+import { Card, CardContent } from "../ui/card";
+import { Button } from "../ui/button";
+import { eventBus } from "../../utils/eventBus";
 import { useLocation } from "wouter";
 
 export interface Suggestion {

@@ -4,7 +4,7 @@
  */
 
 import { eq, and, sql } from "drizzle-orm";
-import { getDb } from "../db/index";
+import { getDb } from "../db/index.js";
 import { nanoid } from "nanoid";
 
 // Tabela de controle de idempotência (se não existir, criar via schema)

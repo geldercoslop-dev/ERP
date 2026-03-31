@@ -2,8 +2,8 @@
  * Valida que a tabela idempotency_keys existe com UNIQUE(commandName, key).
  * Uso: tsx server/scripts/validate-idempotency-table.ts
  */
-import "../_core/loadEnv";
-import * as db from "../db/index";
+import "../_core/loadEnv.js";
+import * as db from "../db/index.js";
 
 async function main() {
   const conn = await db.getDb();

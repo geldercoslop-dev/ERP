@@ -6,10 +6,10 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { queueManager } from '../queue/queue';
-import { QUEUE_NAMES, JobData } from '../queue/queue';
+import { queueManager } from '../queue/queue.js';
+import { QUEUE_NAMES, JobData } from '../queue/queue.js';
 import { Job } from 'bullmq';
-import { logInfo, logError } from '../_core/logger';
+import { logInfo, logError } from '../_core/logger.js';
 
 export interface AsyncOperation {
   id: string;

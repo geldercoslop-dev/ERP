@@ -4,14 +4,14 @@
  * Serviço central que combina todas as análises para gerar insights acionáveis
  */
 
-import { getSalesAnalytics } from './ai/sales-analytics.service';
-import type { SalesAnalytics, ProdutoMaisVendido } from './ai/sales-analytics.service';
-import { getStockAnalytics } from './ai/stock-analytics.service';
-import type { StockAnalytics, EstoqueCritico, ProdutoSemGiro, ProdutoAltoGiro } from './ai/stock-analytics.service';
-import { getFinancialInsights } from './ai/financial-insights.service';
-import type { FinancialInsights } from './ai/financial-insights.service';
-import { getPrevisaoCompleta } from './ai/prediction-engine';
-import type { PrevisaoCompleta } from './ai/prediction-engine';
+import { getSalesAnalytics } from './ai/sales-analytics.service.js';
+import type { SalesAnalytics, ProdutoMaisVendido } from './ai/sales-analytics.service.js';
+import { getStockAnalytics } from './ai/stock-analytics.service.js';
+import type { StockAnalytics, EstoqueCritico, ProdutoSemGiro, ProdutoAltoGiro } from './ai/stock-analytics.service.js';
+import { getFinancialInsights } from './ai/financial-insights.service.js';
+import type { FinancialInsights } from './ai/financial-insights.service.js';
+import { getPrevisaoCompleta } from './ai/prediction-engine.js';
+import type { PrevisaoCompleta } from './ai/prediction-engine.js';
 
 export type Alert = {
   id: string;

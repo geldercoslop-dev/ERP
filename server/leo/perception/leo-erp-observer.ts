@@ -3,9 +3,9 @@
  * Implementação simplificada usando interfaces oficiais
  */
 
-import type { LeoEvent, ILeoErpObserver, LeoObserveResult, Payload } from '@shared/types';
-import { LeoEventType, LeoEventPriority, LeoEventStatus } from '@shared/types';
-import { logInfo, logError } from '../../_core/logger-rotation';
+import type { LeoEvent, ILeoErpObserver, LeoObserveResult, Payload } from "../../../shared/types/index.js";
+import { LeoEventType, LeoEventPriority, LeoEventStatus } from "../../../shared/types/index.js";
+import { logInfo, logError } from '../../_core/logger-rotation.js';
 
 // Implementação mínima da interface ILeoErpObserver
 export class LeoErpObserver implements ILeoErpObserver {

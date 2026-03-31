@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { Download, Package, Zap } from "lucide-react";
-import { AjusteEstoqueModal } from "@/components/AjusteEstoqueModal";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { AjusteEstoqueModal } from "../components/AjusteEstoqueModal";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { useAuth } from "../hooks/useAuth";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

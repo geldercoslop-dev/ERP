@@ -8,19 +8,21 @@ import {
   deletePromocao,
   getPromocaoItens,
   setPromocaoItens,
-} from '../db/index';
+} from '../db/index.js';
 
 function tenantFromRequest(req: Request): number {
-  const h = req.headers["x-tenant-id"];
-  const fromHeader = Number(Array.isArray(h) ? h[0] : h);
-  if (Number.isFinite(fromHeader) && fromHeader > 0) return fromHeader;
-  const q = req.query && typeof req.query.tenantId === "string" ? Number(req.query.tenantId) : NaN;
-  if (Number.isFinite(q) && q > 0) return q;
-  const env = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || "");
-  if (Number.isFinite(env) && env > 0) return env;
+  // SECURITY: tenantId must come from JWT only
+  const reqWithTenant = req as Request & {
+    tenantId?: unknown;
+    user?: { tenantId?: number | string };
+  };
+  const fromRequest = Number(reqWithTenant.tenantId);
+  if (Number.isFinite(fromRequest) && fromRequest > 0) return fromRequest;
+  const fromUser = Number(reqWithTenant.user?.tenantId);
+  if (Number.isFinite(fromUser) && fromUser > 0) return fromUser;
   throw new TRPCError({
-    code: "BAD_REQUEST",
-    message: "tenantId obrigatório: header X-Tenant-Id, query ?tenantId= ou env DEFAULT_TENANT_ID",
+    code: "UNAUTHORIZED",
+    message: "Tenant ID obrigatório via autenticação",
   });
 }
 

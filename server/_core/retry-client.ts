@@ -1,5 +1,5 @@
-import { apiLogger, logError, logPerformance } from './logger';
-import { getCircuitBreaker } from './circuit-breaker';
+import { apiLogger, logError, logPerformance } from './logger.js';
+import { getCircuitBreaker } from './circuit-breaker.js';
 
 /**
  * Configurações de retry para requisições HTTP

@@ -2,7 +2,7 @@
  * Utilitário para depuração de problemas de sessão
  */
 
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import { checkSessionCookies } from "./clearCookies";
 
 /**

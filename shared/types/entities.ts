@@ -13,27 +13,21 @@ import type {
   clientes,
   cores,
   produtos,
-  produtoVariacoes,
   gruposPrecificacao,
-  promocoes,
-  promocoesItens,
   pedidos,
   itensPedido,
   cargas,
   pedidosCarga,
-  pendencias,
-  boletos,
-  pagamentosBoleto,
   comissoes,
   planoContas,
   contasFixas,
   contasPagar,
   contasReceber,
-  caixaMensal,
-  configuracoes,
   counters,
-  schemaVersion,
-} from "../../drizzle/schema";
+  clienteVendedores,
+  fornecedores,
+  idempotencyKeys,
+} from "../../drizzle/schema.js";
 
 // Re-export das tabelas Drizzle (para uso em queries tipadas)
 export type {
@@ -42,26 +36,20 @@ export type {
   clientes,
   cores,
   produtos,
-  produtoVariacoes,
   gruposPrecificacao,
-  promocoes,
-  promocoesItens,
   pedidos,
   itensPedido,
   cargas,
   pedidosCarga,
-  pendencias,
-  boletos,
-  pagamentosBoleto,
   comissoes,
   planoContas,
   contasFixas,
   contasPagar,
   contasReceber,
-  caixaMensal,
-  configuracoes,
   counters,
-  schemaVersion,
+  clienteVendedores,
+  fornecedores,
+  idempotencyKeys,
 };
 
 // Tipos de linha (select) e de inserção (insert) por entidade
@@ -80,19 +68,8 @@ export type NewCor = typeof cores.$inferInsert;
 
 export type Produto = typeof produtos.$inferSelect;
 export type NewProduto = typeof produtos.$inferInsert;
-
-export type ProdutoVariacao = typeof produtoVariacoes.$inferSelect;
-export type NewProdutoVariacao = typeof produtoVariacoes.$inferInsert;
-
 export type GrupoPrecificacao = typeof gruposPrecificacao.$inferSelect;
 export type NewGrupoPrecificacao = typeof gruposPrecificacao.$inferInsert;
-
-export type Promocao = typeof promocoes.$inferSelect;
-export type NewPromocao = typeof promocoes.$inferInsert;
-
-export type PromocaoItem = typeof promocoesItens.$inferSelect;
-export type NewPromocaoItem = typeof promocoesItens.$inferInsert;
-
 export type Pedido = typeof pedidos.$inferSelect;
 export type NewPedido = typeof pedidos.$inferInsert;
 
@@ -105,14 +82,8 @@ export type NewCarga = typeof cargas.$inferInsert;
 export type PedidoCarga = typeof pedidosCarga.$inferSelect;
 export type NewPedidoCarga = typeof pedidosCarga.$inferInsert;
 
-export type Pendencia = typeof pendencias.$inferSelect;
-export type NewPendencia = typeof pendencias.$inferInsert;
-
-export type Boleto = typeof boletos.$inferSelect;
-export type NewBoleto = typeof boletos.$inferInsert;
-
-export type PagamentoBoleto = typeof pagamentosBoleto.$inferSelect;
-export type NewPagamentoBoleto = typeof pagamentosBoleto.$inferInsert;
+export type PendenciaCompra = Record<string, unknown> & { id?: number };
+export type NewPendenciaCompra = Partial<PendenciaCompra>;
 
 export type Comissao = typeof comissoes.$inferSelect;
 export type NewComissao = typeof comissoes.$inferInsert;
@@ -129,13 +100,36 @@ export type NewContaPagar = typeof contasPagar.$inferInsert;
 export type ContaReceber = typeof contasReceber.$inferSelect;
 export type NewContaReceber = typeof contasReceber.$inferInsert;
 
-export type CaixaMensal = typeof caixaMensal.$inferSelect;
-export type NewCaixaMensal = typeof caixaMensal.$inferInsert;
-
-export type Configuracao = typeof configuracoes.$inferSelect;
-export type NewConfiguracao = typeof configuracoes.$inferInsert;
-
 export type Counter = typeof counters.$inferSelect;
 export type NewCounter = typeof counters.$inferInsert;
 
-export type SchemaVersion = typeof schemaVersion.$inferSelect;
+export type ClienteVendedor = typeof clienteVendedores.$inferSelect;
+export type NewClienteVendedor = typeof clienteVendedores.$inferInsert;
+
+export type Fornecedor = typeof fornecedores.$inferSelect;
+export type NewFornecedor = typeof fornecedores.$inferInsert;
+
+export type IdempotencyKey = typeof idempotencyKeys.$inferSelect;
+export type NewIdempotencyKey = typeof idempotencyKeys.$inferInsert;
+
+export type JobExecution = Record<string, unknown> & { id?: number };
+export type NewJobExecution = Partial<JobExecution>;
+
+// Stubs para tabelas removidas do schema atual (compatibilidade legada)
+export type ProdutoVariacao = Record<string, unknown> & { id?: number };
+export type NewProdutoVariacao = Partial<ProdutoVariacao>;
+export type Promocao = Record<string, unknown> & { id?: number };
+export type NewPromocao = Partial<Promocao>;
+export type PromocaoItem = Record<string, unknown> & { id?: number };
+export type NewPromocaoItem = Partial<PromocaoItem>;
+export type Pendencia = Record<string, unknown> & { id?: number };
+export type NewPendencia = Partial<Pendencia>;
+export type Boleto = Record<string, unknown> & { id?: number };
+export type NewBoleto = Partial<Boleto>;
+export type PagamentoBoleto = Record<string, unknown> & { id?: number };
+export type NewPagamentoBoleto = Partial<PagamentoBoleto>;
+export type CaixaMensal = Record<string, unknown> & { id?: number };
+export type NewCaixaMensal = Partial<CaixaMensal>;
+export type Configuracao = Record<string, unknown> & { id?: number };
+export type NewConfiguracao = Partial<Configuracao>;
+export type SchemaVersion = Record<string, unknown> & { id?: number; version?: number };

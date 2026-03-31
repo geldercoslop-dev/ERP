@@ -11,8 +11,8 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import * as Sentry from '@sentry/react';
-import { frontendLogger } from '@/monitoring/frontend-logger';
-import type { AppError } from '@/types/error';
+import { frontendLogger } from '../monitoring/frontend-logger';
+import type { AppError } from '../types/error';
 
 interface ErrorBoundaryProProps {
   children: ReactNode;

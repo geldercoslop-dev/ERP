@@ -1,8 +1,11 @@
 import * as mysql from "mysql2/promise";
-import { systemLogger } from "../_core/logger";
-import { createLogger } from "../infra/structured-logger";
-import { recordDatabase } from "../infra/metrics";
-import { instrumentMySQL } from "../infra/mysql-instrumentation";
+import { systemLogger } from "../_core/logger.js";
+import { createLogger } from "../infra/structured-logger.js";
+import { recordDatabase } from "../infra/metrics.js";
+import { instrumentMySQL } from "../infra/mysql-instrumentation.js";
+import { parseEnv } from "../services/env.schema.js";
+import { executeWithResilience } from "../resilience/query-wrapper.js";
+import { resolveRuntimeServiceHost } from "./runtime-host-resolver.js";
 
 /**
  * Pool MySQL — única fonte de conexão.
@@ -15,7 +18,7 @@ let _pool: mysql.Pool | null = null;
 
 /** Falha imediata se DATABASE_URL não estiver definido. */
 export function requireDatabaseUrl(): string {
-  const raw = process.env.DATABASE_URL?.trim();
+  const raw = parseEnv().DATABASE_URL.trim();
   if (!raw) {
     throw new Error(
       "DATABASE_URL é obrigatório. Ex.: mysql://usuario:senha@host:3306/nome_do_banco"
@@ -38,15 +41,15 @@ function parseUrlToPoolOptions(urlString: string): mysql.PoolOptions {
   if (!database) {
     throw new Error("DATABASE_URL deve incluir o nome do banco no path (ex.: .../vendas_app).");
   }
-  /** Sob carga (ex.: 50× mesma idempotencyKey), cada request segura 1 conexão até o lock liberar. */
+  // HARDENING: safe improvement - reduzir connectionLimit para ~20 para produção
   const connectionLimit = Math.max(
     10,
-    Number(process.env.DB_POOL_CONNECTION_LIMIT || process.env.MYSQL_POOL_SIZE || 100)
+    Number(process.env.DB_POOL_CONNECTION_LIMIT || process.env.MYSQL_POOL_SIZE || 20)
   );
   const queueLimit = Math.max(0, Number(process.env.DB_POOL_QUEUE_LIMIT || 200));
 
   return {
-    host: u.hostname,
+    host: resolveRuntimeServiceHost(u.hostname, "mysql"),
     port: parseInt(u.port || "3306", 10),
     user: decodeURIComponent(u.username),
     password: decodeURIComponent(u.password),
@@ -154,7 +157,25 @@ export async function checkDatabasePoolHealth(): Promise<boolean> {
 }
 
 function getDatabaseConfig(): mysql.PoolOptions {
-  return getMysqlPoolOptionsFromEnv();
+  const config = getMysqlPoolOptionsFromEnv();
+  
+  // LOG TEMPORÁRIO PARA DIAGNÓSTICO
+  console.log("DB CONFIG:", {
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    database: config.database,
+    hasPassword: !!config.password,
+    connectionLimit: config.connectionLimit,
+    connectTimeout: config.connectTimeout,
+    envDbUrl: process.env.DATABASE_URL ? "SET" : "NOT_SET",
+    envDbHost: process.env.DB_HOST,
+    envDbPort: process.env.DB_PORT,
+    envDbUser: process.env.DB_USER,
+    envDbName: process.env.DB_NAME
+  });
+  
+  return config;
 }
 
 /**
@@ -167,6 +188,8 @@ export async function getConnectionPool(): Promise<mysql.Pool> {
   }
 
   const config = getDatabaseConfig();
+  requireDatabaseUrl();
+  
   console.log(`[Database] Creating connection pool to MySQL at ${config.host}:${config.port}`);
 
   _pool = mysql.createPool(config);
@@ -218,11 +241,23 @@ async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Pr
       const conn = await pool.getConnection();
       await conn.query("SELECT 1 AS connection_test");
       conn.release();
+      console.log(`[Database] Connection test successful on attempt ${attempt}`);
       return;
     } catch (error) {
       lastError = error;
       const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`[Database] Connection test failed (attempt ${attempt}/${maxRetries}):`, msg);
+      const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+      
+      // LOG COMPLETO PARA DIAGNÓSTICO
+      console.error(`[Database] Connection test failed (attempt ${attempt}/${maxRetries}):`, {
+        message: msg,
+        code,
+        errno: (error as any)?.errno,
+        sqlState: (error as any)?.sqlState,
+        fatal: (error as any)?.fatal,
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
 
       if (attempt < maxRetries) {
         console.log(`[Database] Retrying in ${retryDelay}ms...`);
@@ -233,7 +268,9 @@ async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Pr
   }
 
   const lastMsg = lastError instanceof Error ? lastError.message : String(lastError ?? "");
-  throw new Error(`Failed to connect to database after ${maxRetries} attempts: ${lastMsg}`);
+  const lastCode = lastError && typeof lastError === "object" && "code" in lastError ? (lastError as { code?: string }).code : undefined;
+  
+  throw new Error(`Failed to connect to database after ${maxRetries} attempts: ${lastMsg} (code: ${lastCode})`);
 }
 
 export async function getConnection(maxRetries = 3): Promise<mysql.PoolConnection> {
@@ -265,71 +302,81 @@ export async function executeQuery(
   params: unknown[] = [],
   maxRetries = 3
 ): Promise<[unknown, mysql.FieldPacket[]]> {
+  // Usa wrapper de resilience que coordena: timeout > circuit breaker > retry
+  return executeWithResilience(
+    async () => _executeQueryCore(query, params),
+    {
+      serviceName: 'database-query',
+      timeoutMs: 10_000, // 10 segundos de timeout
+      maxRetries,
+      retryDelayMs: 1000,
+      circuitBreakerConfig: {
+        errorThreshold: 50,
+        resetTimeout: 30_000,
+      },
+    }
+  );
+}
+
+/**
+ * Executa query sem retry (proteção feita pelo wrapper acima)
+ */
+async function _executeQueryCore(
+  query: string,
+  params: unknown[] = []
+): Promise<[unknown, mysql.FieldPacket[]]> {
   const startTime = Date.now();
   let conn: mysql.PoolConnection | null = null;
-  let lastError: unknown;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      conn = await getConnection();
-      const result = await conn.query(query, params as any[]);
+  try {
+    conn = await getConnection();
+    const result = await conn.query(query, params as any[]);
 
-      const duration = Date.now() - startTime;
-      recordDatabase({
-        query: query.replace(/\s+/g, " ").substring(0, 300),
+    const duration = Date.now() - startTime;
+    recordDatabase({
+      query: query.replace(/\s+/g, " ").substring(0, 300),
+      duration,
+      timestamp: new Date(),
+      success: true,
+    });
+    if (duration > 300) {
+      systemLogger.warn({
+        message: "Slow query detected",
+        query: query.replace(/\s+/g, " ").substring(0, 200) + (query.length > 200 ? "..." : ""),
         duration,
-        timestamp: new Date(),
-        success: true,
-      });
-      if (duration > 300) {
-        systemLogger.warn({
-          message: "Slow query detected",
-          query: query.replace(/\s+/g, " ").substring(0, 200) + (query.length > 200 ? "..." : ""),
-          duration,
-          params: params.length > 0 ? "[PARAMS_PRESENT]" : "[NO_PARAMS]",
-        } as Record<string, unknown>);
-        observabilityLogger.warn("Slow query detected", {
-          duration,
-          query: query.replace(/\s+/g, " ").substring(0, 200),
-        });
-      }
-
-      return result;
-    } catch (error) {
-      lastError = error;
-      const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`[Database] Query failed (attempt ${attempt}/${maxRetries}):`, msg);
-      const duration = Date.now() - startTime;
-      recordDatabase({
-        query: query.replace(/\s+/g, " ").substring(0, 300),
+        params: params.length > 0 ? "[PARAMS_PRESENT]" : "[NO_PARAMS]",
+      } as Record<string, unknown>);
+      observabilityLogger.warn("Slow query detected", {
         duration,
-        timestamp: new Date(),
-        success: false,
-        error: msg,
+        query: query.replace(/\s+/g, " ").substring(0, 200),
       });
-      observabilityLogger.error(
-        "Database query failed",
-        error instanceof Error ? error : new Error(msg),
-        {
-          duration,
-          query: query.replace(/\s+/g, " ").substring(0, 200),
-        }
-      );
+    }
 
-      if (attempt < maxRetries) {
-        const delay = 1000 * Math.pow(2, attempt - 1);
-        console.log(`[Database] Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+    return result;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const duration = Date.now() - startTime;
+    recordDatabase({
+      query: query.replace(/\s+/g, " ").substring(0, 300),
+      duration,
+      timestamp: new Date(),
+      success: false,
+      error: msg,
+    });
+    observabilityLogger.error(
+      "Database query failed",
+      error instanceof Error ? error : new Error(msg),
+      {
+        duration,
+        query: query.replace(/\s+/g, " ").substring(0, 200),
       }
-    } finally {
-      if (conn) {
-        conn.release();
-      }
+    );
+    throw error;
+  } finally {
+    if (conn) {
+      conn.release();
     }
   }
-
-  const lastMsg = lastError instanceof Error ? lastError.message : String(lastError ?? "");
-  throw new Error(`Query failed after ${maxRetries} attempts: ${lastMsg}`);
 }
 
 export async function closeConnectionPool(): Promise<void> {

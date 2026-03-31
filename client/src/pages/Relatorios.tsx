@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { useLocation } from "wouter";
 import { ArrowLeft, TrendingUp, Users, Package, CreditCard, DollarSign, Calendar, BarChart3 } from "lucide-react";
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import { useState, useMemo } from "react";
 
 export default function Relatorios() {

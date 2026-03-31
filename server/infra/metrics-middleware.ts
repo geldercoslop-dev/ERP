@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { recordRequest, metrics } from './metrics';
+import { recordRequest, metrics } from './metrics.js';
 
 /**
  * Middleware para medir tempo de requests

@@ -9,9 +9,9 @@
  */
 
 import { performance } from 'perf_hooks';
-import { logInfo, logError, logWarn } from '../_core/logger';
-import { queueManager } from '../queue/queue';
-import { CircuitBreakerManager } from '../infra/circuit-breaker';
+import { logInfo, logError, logWarn } from '../_core/logger.js';
+import { queueManager } from '../queue/queue.js';
+import { CircuitBreakerManager } from '../infra/circuit-breaker.js';
 
 // Interfaces para monitoramento
 export interface ApiMetrics {
@@ -262,7 +262,7 @@ export class AdvancedMonitoring {
     const startTime = performance.now();
     
     try {
-      const { getDb } = await import('../db');
+      const { getDb } = await import('../db/index.js');
       const db = await getDb();
       await db.execute('SELECT 1');
       
@@ -291,7 +291,7 @@ export class AdvancedMonitoring {
     const startTime = performance.now();
     
     try {
-      const { redisManager } = await import('../infra/redis');
+      const { redisManager } = await import('../infra/redis.js');
       await redisManager.testConnection();
       
       const responseTime = performance.now() - startTime;
@@ -317,7 +317,7 @@ export class AdvancedMonitoring {
    */
   private async checkApis(): Promise<HealthCheck> {
     try {
-      const { ExternalApiManager } = await import('../services/external-apis');
+      const { ExternalApiManager } = await import('../services/external-apis.js');
       const health = await ExternalApiManager.checkAllApisHealth();
       
       return {
@@ -341,8 +341,8 @@ export class AdvancedMonitoring {
    */
   private async checkCircuitBreakers(): Promise<HealthCheck> {
     try {
-      const circuitBreakers = CircuitBreakerManager.listCircuitBreakers();
-      const unhealthyCount = circuitBreakers.filter((cb: { state: { isOpen: boolean } }) => cb.state.isOpen).length;
+      const circuitBreakers = Object.values(CircuitBreakerManager.listCircuitBreakers());
+      const unhealthyCount = circuitBreakers.filter((cb: any) => cb?.state?.isOpen).length;
       
       return {
         service: 'circuit-breakers',

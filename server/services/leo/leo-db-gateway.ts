@@ -1,4 +1,4 @@
-import { getDb } from "../../db/index";
+import { getDb } from "../../db/index.js";
 
 /**
  * Ponto único para obter conexão Drizzle no ecossistema LEO (sem re-exportar schema/tabelas).

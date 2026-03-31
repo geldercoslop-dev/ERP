@@ -5,14 +5,14 @@
  * Monitora, decide, executa e aprende automaticamente
  */
 
-import { leoEngine } from './leo-engine';
-import { buildLeoContext } from '../utils/leo-context';
-import { leoMemory } from '../memory/leo-memory';
-import { leoSystemMonitor } from '../perception/leo-system-monitor';
-import { leoEvents } from '../memory/leo-events';
-import { leoErpObserver } from '../perception/leo-erp-observer';
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
-import { LeoEventType, LeoEventPriority } from '../../../shared/types';
+import { leoEngine } from './leo-engine.js';
+import { buildLeoContext } from '../utils/leo-context.js';
+import { leoMemory } from '../memory/leo-memory.js';
+import { leoSystemMonitor } from '../perception/leo-system-monitor.js';
+import { leoEvents } from '../memory/leo-events.js';
+import { leoErpObserver } from '../perception/leo-erp-observer.js';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import { LeoEventType, LeoEventPriority } from '../../../shared/types/index.js';
 
 /** Tipo mínimo do contexto do loop para decisões (events/health/erp com estrutura conhecida) */
 interface LoopContextShaped {
@@ -24,8 +24,8 @@ interface LoopContextShaped {
   health: { status?: string };
   memory: unknown;
 }
-import { eventBus, SystemEvent } from '../../_core/event-bus';
-import type { Payload } from '../../../shared/types';
+import { eventBus, SystemEvent } from '../../_core/event-bus.js';
+import type { Payload } from '../../../shared/types/index.js';
 
 export interface LoopContext {
   timestamp: number;

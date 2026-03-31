@@ -7,10 +7,11 @@
 
 import { EventEmitter } from "events";
 import { Redis } from "ioredis";
-import { logInfo, logError, logWarn } from "../utils/logger";
-import { recordRedis } from "./metrics";
-import { createLogger } from "./structured-logger";
-import { instrumentRedis } from "./redis-instrumentation";
+import { logInfo, logError, logWarn } from "../utils/logger.js";
+import { recordRedis } from "./metrics.js";
+import { createLogger } from "./structured-logger.js";
+import { instrumentRedis } from "./redis-instrumentation.js";
+import { resolveRuntimeServiceHost } from "../config/runtime-host-resolver.js";
 
 const logger = createLogger("redis");
 
@@ -59,6 +60,42 @@ export interface RedisStatus {
   uptime: number;
 }
 
+function parseRedisConfigFromEnv(): RedisConfig {
+  if (process.env.REDIS_URL?.trim()) {
+    try {
+      const redisUrl = new URL(process.env.REDIS_URL);
+      const port = Number(redisUrl.port || "6379");
+      const dbPart = redisUrl.pathname.replace("/", "").trim();
+      const db = dbPart ? Number(dbPart) : 0;
+      return {
+        host: resolveRuntimeServiceHost(redisUrl.hostname, "redis"),
+        port: Number.isFinite(port) ? port : 6379,
+        password: redisUrl.password ? decodeURIComponent(redisUrl.password) : process.env.REDIS_PASSWORD,
+        db: Number.isFinite(db) ? db : 0,
+        maxRetriesPerRequest: 3,
+        retryDelayOnFailover: 100,
+        lazyConnect: true,
+        keepAlive: 30000,
+        family: 4,
+      };
+    } catch {
+      logWarn("REDIS_URL inválida; usando REDIS_HOST/REDIS_PORT.");
+    }
+  }
+
+  return {
+    host: resolveRuntimeServiceHost(process.env.REDIS_HOST || "localhost", "redis"),
+    port: parseInt(process.env.REDIS_PORT || "6379"),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB || "0"),
+    maxRetriesPerRequest: 3,
+    retryDelayOnFailover: 100,
+    lazyConnect: true,
+    keepAlive: 30000,
+    family: 4,
+  };
+}
+
 /**
  * Gerenciador de conexão Redis
  */
@@ -73,17 +110,7 @@ class RedisManager {
   private statusCacheExpiry: number = 30000; // 30 segundos
 
   private constructor() {
-    this.config = {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_DB || '0'),
-      maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
-      lazyConnect: true,
-      keepAlive: 30000,
-      family: 4,
-    };
+    this.config = parseRedisConfigFromEnv();
 
     this.initializeClient();
   }

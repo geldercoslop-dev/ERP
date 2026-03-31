@@ -1,7 +1,7 @@
-import { LeoSalesAnalysis } from '../intelligence/leo-sales-analysis';
-import { LeoStockMonitor } from '../intelligence/leo-stock-monitor';
-import { LeoPatternDetection } from '../intelligence/leo-pattern-detection';
-import { logInfo } from '../../_core/logger';
+import { LeoSalesAnalysis } from '../intelligence/leo-sales-analysis.js';
+import { LeoStockMonitor } from '../intelligence/leo-stock-monitor.js';
+import { LeoPatternDetection } from '../intelligence/leo-pattern-detection.js';
+import { logInfo } from '../../_core/logger.js';
 
 const salesAnalysis = new LeoSalesAnalysis();
 const stockMonitor = LeoStockMonitor.getInstance();

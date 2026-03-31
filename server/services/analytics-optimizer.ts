@@ -4,11 +4,11 @@
  * Serviço para consultas analíticas otimizadas com performance
  */
 
-import { getDb } from '../db/index';
-import { executeQuery } from '../config/database';
+import { getDb } from '../db/index.js';
+import { executeQuery } from '../config/database.js';
 import { sql, eq, and, lt, desc } from 'drizzle-orm';
-import { pedidos, itensPedido, produtos, contasReceber, contasPagar } from '../../drizzle/schema';
-import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from '../shared/domain-status';
+import { pedidos, itensPedido, produtos, contasReceber, contasPagar } from '../../drizzle/schema.js';
+import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from '../shared/domain-status.js';
 
 /**
  * Queries otimizadas para Sales Analytics

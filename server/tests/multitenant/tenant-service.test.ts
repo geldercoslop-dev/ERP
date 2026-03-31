@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import * as usersService from '../../services/users.service';
-import * as inventoryService from '../../services/inventory.service';
-import { getDb, schema } from '../../db/index';
+import * as usersService from '../../services/users.service.js';
+import * as inventoryService from '../../services/inventory.service.js';
+import { getDb, schema } from '../../db/index.js';
 import { eq, and } from 'drizzle-orm';
 
 const { users, produtos } = schema;

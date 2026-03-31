@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Bell, X, CheckCircle2, AlertCircle, Info, Package, Truck, DollarSign } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Button } from "../ui/button";
+import { ScrollArea } from "../ui/scroll-area";
 
 export interface Notification {
   id: string;

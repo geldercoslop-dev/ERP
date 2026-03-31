@@ -4,8 +4,8 @@
  * Uso: tsx server/tests/leo-commands-validation.ts
  * Não altera banco nem executa ações destrutivas.
  */
-import { perguntar } from "../services/ai/erp-ai.service";
-import { ADMIN_ACTOR } from "../_core/service-actor";
+import { perguntar } from "../services/ai/erp-ai.service.js";
+import { ADMIN_ACTOR } from "../_core/service-actor.js";
 
 const TENANT_AUDIT = 1;
 const USER_AUDIT = 1;

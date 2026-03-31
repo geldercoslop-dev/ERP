@@ -1,7 +1,7 @@
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 import { useMemo } from "react";
-import { normalizeListResponse, getListTotal } from "@/utils/data-normalizer";
-import type { Comissao, ContaReceber, ContaPagar, PlanoConta } from "@/shared/types";
+import { normalizeListResponse, getListTotal } from "../utils/data-normalizer";
+import type { Comissao, ContaReceber, ContaPagar, PlanoConta } from "../shared/types";
 
 /** Opções padrão para financeiro: atualizações constantes */
 const FINANCE_QUERY_OPTIONS = {

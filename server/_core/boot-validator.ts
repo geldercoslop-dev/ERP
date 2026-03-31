@@ -1,8 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { getDb } from '../db/index';
-import { getConnectionPool } from '../config/database';
-import { systemLogger } from './logger';
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from './service-entry-guard';
+import { getDb } from '../db/index.js';
+import { getConnectionPool } from '../config/database.js';
+import { systemLogger } from './logger.js';
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from './service-entry-guard.js';
+import { parseEnv } from '../services/env.schema.js';
 
 export interface BootValidationResult {
   success: boolean;
@@ -271,8 +272,7 @@ export class BootValidator {
     const startTime = Date.now();
 
     // Verificar segredos JWT
-    const jwtAccessSecret = process.env.JWT_ACCESS_SECRET;
-    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+    const { JWT_ACCESS_SECRET: jwtAccessSecret, JWT_REFRESH_SECRET: jwtRefreshSecret } = parseEnv();
 
     if (!jwtAccessSecret || jwtAccessSecret === 'default-access-secret') {
       this.warnings.push('Using default JWT access secret - set JWT_ACCESS_SECRET in production');
@@ -311,7 +311,7 @@ export class BootValidator {
     const startTime = Date.now();
 
     // Placeholder para validação de Redis, S3, etc.
-    const redisUrl = process.env.REDIS_URL;
+    const { REDIS_URL: redisUrl } = parseEnv();
     if (redisUrl) {
       // TODO: Implementar validação Redis
       this.warnings.push('Redis URL configured but validation not implemented');

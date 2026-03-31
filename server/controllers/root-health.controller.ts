@@ -6,8 +6,8 @@ import {
   buildSystemHealthFailureResponse,
   getSystemHealthComplete,
   getSystemHealthLight,
-} from "../services/system-health.service";
-import { systemLogger } from "../_core/logger";
+} from "../services/system-health.service.js";
+import { systemLogger } from "../_core/logger.js";
 
 const router = Router();
 

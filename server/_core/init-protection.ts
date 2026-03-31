@@ -4,14 +4,14 @@
  * Este módulo deve ser importado no início da aplicação para
  * aplicar proteção a todos os serviços.
  */
-import * as clientesService from '../services/clientes.service';
-import * as inventoryService from '../services/inventory.service';
-import * as ordersService from '../services/orders.service';
-import * as financeService from '../services/finance.service';
-import * as stockSafetyService from '../services/stock-safety.service';
-import { applyServiceProtection } from './service-protection';
-import { startServiceMonitor } from './service-monitor';
-import { logInfo } from './service-logger';
+import * as clientesService from '../services/clientes.service.js';
+import * as inventoryService from '../services/inventory.service.js';
+import * as ordersService from '../services/orders.service.js';
+import * as financeService from '../services/finance.service.js';
+import * as stockSafetyService from '../services/stock-safety.service.js';
+import { applyServiceProtection } from './service-protection.js';
+import { startServiceMonitor } from './service-monitor.js';
+import { logInfo } from './service-logger.js';
 
 /**
  * Aplica proteção a todos os serviços conhecidos

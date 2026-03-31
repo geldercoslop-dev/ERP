@@ -1,4 +1,4 @@
-import { apiClient, type ApiError as EnterpriseApiError } from "@/lib/api/apiClient";
+import { apiClient, type ApiError as EnterpriseApiError } from "./apiClient";
 
 export interface FetchWithHandlingOptions {
   timeout?: number;

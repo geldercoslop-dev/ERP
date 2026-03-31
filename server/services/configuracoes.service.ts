@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "../db/index";
-import { configuracoes } from "../../drizzle/schema";
-import { getConfig as getConfigCore, setConfig as setConfigCore } from "../db/core";
+import { getDb } from "../db/index.js";
+import { configuracoes } from "../../drizzle/schema.js";
+import { getConfig as getConfigCore, setConfig as setConfigCore } from "../db/core.js";
 
 export async function getConfig(chave: string): Promise<string | null> {
   return getConfigCore(chave);

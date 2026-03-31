@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { Search, ShoppingCart, CheckCircle, Clock, ExternalLink, Package, User, Calendar, Filter } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { useToast } from "../hooks/use-toast";
+import { Badge } from "../components/ui/badge";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 
 export default function Pendencias() {
   const [, setLocation] = useLocation();

@@ -3,10 +3,10 @@
  * (mesma lógica de tenant-ownership das tools).
  */
 
-import type { SecureRole } from "../../_core/secure-context";
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard";
-import { reconstructLeoToolExecutionIdentity } from "../../_core/tenant-ownership";
-import { securityLogger } from "../../_core/logger";
+import type { SecureRole } from "../../_core/secure-context.js";
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard.js";
+import { reconstructLeoToolExecutionIdentity } from "../../_core/tenant-ownership.js";
+import { securityLogger } from "../../_core/logger.js";
 
 /** Evita import circular com agent-core. */
 export type LeoAgentRequestLike = {

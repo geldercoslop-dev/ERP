@@ -6,25 +6,25 @@
  */
 
 // Brazilian APIs
-export * from './brasilapi.service';
-export * from './viacep.service';
+export * from './brasilapi.service.js';
+export * from './viacep.service.js';
 
 // Communication Services
-export * from './telegram.service';
-export * from './whatsapp.service';
+export * from './telegram.service.js';
+export * from './whatsapp.service.js';
 
 // Logistics & Shipping
-export * from './freight.service';
-export * from './superfrete.service';
-export * from './tracking.service';
+export * from './freight.service.js';
+export * from './superfrete.service.js';
+export * from './tracking.service.js';
 
 // Utilities
-export * from './currency.service';
-export * from './weather.service';
-export * from './maps.service';
-export * from './qr.service';
-export * from './ocr.service';
-export * from './chart.service';
+export * from './currency.service.js';
+export * from './weather.service.js';
+export * from './maps.service.js';
+export * from './qr.service.js';
+export * from './ocr.service.js';
+export * from './chart.service.js';
 
 // Integration Registry - provides metadata about available integrations
 export const INTEGRATION_REGISTRY = {

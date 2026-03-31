@@ -1,10 +1,10 @@
 import React from "react";
 import { Route, Redirect } from "wouter";
 import { pages } from "./lazyPages";
-import AppShell from "@/components/layout/AppShell";
-import { useAuthStore } from "@/store/authStore";
-import { LoadingState } from "@/components/ui/perf/StatusStates";
-import { isAuthenticatedForRoute } from "@/lib/security/routeGuards";
+import AppShell from "../components/layout/AppShell";
+import { useAuthStore } from "../store/authStore";
+import { LoadingState } from "../components/ui/perf/StatusStates";
+import { isAuthenticatedForRoute } from "./security/routeGuards";
 
 export function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();

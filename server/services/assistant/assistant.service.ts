@@ -1,9 +1,9 @@
 /**
  * Assistente operacional: analisa dados do banco e gera sugestões em tom amigável e conversacional.
  */
-import * as db from "../../db";
+import * as db from "../../db/index.js";
 import { inArray, ne } from "drizzle-orm";
-import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status";
+import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
 
 export type SugestaoSistema = {
   tipo: string;

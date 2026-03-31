@@ -8,11 +8,11 @@
  */
 
 import { nanoid } from 'nanoid';
-import { leoComputerControl } from './leo-computer-control';
-import { leoErpService } from '../../services/leo-service';
-import { ADMIN_ACTOR } from '../../_core/service-actor';
-import { leoEvents } from '../memory/leo-events';
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
+import { leoComputerControl } from './leo-computer-control.js';
+import { leoErpService } from '../../services/leo-service.js';
+import { ADMIN_ACTOR } from '../../_core/service-actor.js';
+import { leoEvents } from '../memory/leo-events.js';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 
 export type TaskStatus = 'pendente' | 'executando' | 'concluida' | 'falha' | 'cancelada';
 export type TaskRecurrence = 'daily' | 'weekly' | 'monthly' | 'hourly' | 'none';

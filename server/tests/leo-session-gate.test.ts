@@ -2,7 +2,7 @@
  * Anti-regressão: fila LEO por sessão — sem execução paralela na mesma chave.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { buildLeoSessionKey, leoSessionGate } from "../leo/runtime/leo-session-gate";
+import { buildLeoSessionKey, leoSessionGate } from "../leo/runtime/leo-session-gate.js";
 
 describe("LEO session gate", () => {
   beforeEach(() => {

@@ -1,9 +1,8 @@
 // Versão simplificada do authStore.ts sem zustand
 // Para uso temporário até que o zustand seja instalado corretamente
 
-import { setSessionToken } from '@/lib/security/sessionToken';
-import { authenticatedFetch } from '@/lib/security/apiClient';
-import { GRS_API_ORIGIN } from '@/lib/apiOrigin';
+import { setSessionToken } from '../lib/security/sessionToken';
+import { trpcCall } from '../lib/trpcClient';
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -36,15 +35,6 @@ interface AuthMeResponse {
   isImpersonating?: boolean;
   vendedorNome?: string | null;
   vendedorId?: number | null;
-}
-
-
-function getTrpcBaseUrl(): string {
-  // No navegador: relativo — em dev o proxy do Vite encaminha /api → GRS_API_ORIGIN (3000).
-  if (typeof window !== "undefined") return "/api/trpc";
-  const raw = (import.meta as any)?.env?.VITE_TRPC_URL as string | undefined;
-  const url = (raw ?? "").trim().replace(/\/+$/, "");
-  return url || `${GRS_API_ORIGIN}/api/trpc`;
 }
 
 function hasForceLogout(): boolean {
@@ -155,47 +145,22 @@ function setUser(user: User | null) {
   notifyListeners();
 }
 
-async function trpcBatchCall(path: string, input: unknown) {
-  const baseUrl = getTrpcBaseUrl();
-  // auth.me é uma query: usar GET para evitar 405 Method Not Allowed no servidor
-  if (path === "auth.me") {
-    const inputStr = encodeURIComponent(JSON.stringify(input ?? {}));
-    const res = await authenticatedFetch(`${baseUrl}/auth.me?input=${inputStr}`, {
-      method: "GET",
-    });
-    if (!res.ok) {
-      if (res.status === 401) return null;
-      throw new Error(`auth.me: ${res.status}`);
-    }
-    const result = await res.json();
-    const data = result?.result?.data?.json ?? result?.result?.data ?? result?.result;
-    return data ?? null;
-  }
-  // Mutations (login, logout): POST em batch
-  const batchBody = typeof input === "object" && input !== null ? { 0: input } : { 0: {} };
-  const response = await authenticatedFetch(`${baseUrl}/${path}?batch=1`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(batchBody),
-  });
-
-  const result = await response.json();
-  const payload = Array.isArray(result) ? result[0] : result;
-  if (payload?.error) {
-    throw new Error(payload.error?.message || "Erro na requisição");
-  }
-  return payload?.result?.data?.json ?? payload?.result?.data ?? payload?.result ?? null;
-}
-
 async function login(username: string, password: string) {
   globalIsLoading = true;
   notifyListeners();
   
   try {
-    const data = await trpcBatchCall("auth.login", {
+    const data = (await trpcCall("auth.login", {
       username: username.trim(),
       password: password.trim(),
-    });
+    })) as {
+      ok?: boolean;
+      sessionToken?: string;
+      openId?: string;
+      name?: string;
+      role?: string;
+      id?: number;
+    };
     
     if (data?.ok) {
       setLoginConfirmadoNestaSessao(true);
@@ -212,7 +177,7 @@ async function login(username: string, password: string) {
       };
 
       const user = {
-        id: -1,
+        id: data.id ?? 0,
         openId: data.openId ?? "",
         name: data.name ?? "Usuário",
         role: normalizeRole(data.role),
@@ -259,7 +224,7 @@ async function logout() {
 
   try {
     // chama backend para invalidar sessão/cookie
-    await trpcBatchCall("auth.logout", {});
+    await trpcCall("auth.logout", null);
   } catch (e) {
     // mesmo se falhar, seguimos com logout local
     console.warn("[authStore] logout remoto falhou:", e);
@@ -300,7 +265,7 @@ async function checkAuth() {
   notifyListeners();
   
   try {
-    const userData = await trpcBatchCall("auth.me", null);
+    const userData = await trpcCall("auth.me", null);
     const confirmed = hasLoginConfirmadoNestaSessao();
 
     if (userData && confirmed) {
@@ -364,7 +329,7 @@ async function checkAuth() {
  */
 async function doStopImpersonation(): Promise<void> {
   try {
-    await trpcBatchCall("auth.stopImpersonation", {});
+    await trpcCall("auth.stopImpersonation", null);
     toast.success("Voltou ao painel de administrador.");
     await checkAuth();
     window.location.href = "/dashboard";

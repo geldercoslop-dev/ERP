@@ -4,9 +4,9 @@
  * Controle principal de operações desktop
  */
 
-import { AppController } from './app-controller';
-import { BrowserController } from './browser-controller';
-import { SystemController } from './system-controller';
+import { AppController } from './app-controller.js';
+import { BrowserController } from './browser-controller.js';
+import { SystemController } from './system-controller.js';
 
 export interface DesktopAction {
   type: 'app' | 'browser' | 'system' | 'file';

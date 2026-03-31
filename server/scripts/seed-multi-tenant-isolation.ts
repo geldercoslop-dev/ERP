@@ -11,7 +11,7 @@
 
 import mysql from "mysql2/promise";
 import "dotenv/config";
-import * as db from "../db/index";
+import * as db from "../db/index.js";
 
 async function hashPassword(plain: string): Promise<string> {
   const bcryptImported = await import("bcryptjs");

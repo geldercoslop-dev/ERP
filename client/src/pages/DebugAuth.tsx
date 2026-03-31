@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/store/authStore';
-import { trpc } from '@/lib/trpcClient';
-import { checkSessionCookies } from '@/utils/clearCookies';
+import { useAuthStore } from '../store/authStore';
+import { trpc } from '../lib/trpcClient';
+import { checkSessionCookies } from '../utils/clearCookies';
 import { ShieldCheck, Database, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 export default function DebugAuth() {

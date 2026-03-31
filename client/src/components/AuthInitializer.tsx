@@ -1,15 +1,36 @@
 import { useEffect, useRef } from "react";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "../store/authStore";
+import { fetchCSRFToken } from "../lib/security/csrfToken";
 
 /**
  * Inicializador de autenticação.
  * - NÃO roda na rota /login (evita tela preta/loop).
  * - Chama checkAuth só UMA vez no mount (ref), evita loop de auth.me.
  * - Re-checa a cada 60s apenas quando NÃO autenticado (intervalo separado).
+ * - Fetch CSRF token no mount (requerido por middleware de segurança).
  */
 export function AuthInitializer() {
   const { checkAuth, isAuthenticated } = useAuthStore();
   const hasCheckedOnceRef = useRef(false);
+  const hasFetchedCSRFRef = useRef(false);
+
+  // 0) Fetch CSRF token ao montar (precisa ser feito uma única vez no app init)
+  useEffect(() => {
+    if (hasFetchedCSRFRef.current) return;
+    hasFetchedCSRFRef.current = true;
+
+    let cancelled = false;
+    const fetchCSRF = async () => {
+      if (cancelled) return;
+      try {
+        await fetchCSRFToken();
+      } catch (e) {
+        console.warn("[AuthInitializer] fetchCSRFToken failed:", e);
+      }
+    };
+    fetchCSRF();
+    return () => { cancelled = true; };
+  }, []);
 
   // 1) Uma única checagem ao montar (quando não está no /login)
   useEffect(() => {

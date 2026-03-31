@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { authLogger } from "./logger";
+import { authLogger } from "./logger.js";
 
 interface LoginAttempt {
   attempts: number;

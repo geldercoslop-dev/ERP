@@ -1,7 +1,16 @@
-import rateLimit from 'express-rate-limit';
-import { Request, Response } from 'express';
-import type { JWTPayload } from './jwt-auth';
-import { securityLogger } from '../_core/logger';
+import { Request } from 'express';
+import type { JWTPayload } from './jwt-auth.js';
+import { securityLogger } from '../_core/logger.js';
+import { createRedisRateLimitMiddleware } from './redis-rate-limit.js';
+
+type TenantAwareRequest = Request & { tenantId?: string | number };
+
+function getTenantId(req: Request): string {
+  const tenantId = (req as TenantAwareRequest).tenantId;
+  if (typeof tenantId === "number" && Number.isFinite(tenantId)) return String(tenantId);
+  if (typeof tenantId === "string" && tenantId.trim() !== "") return tenantId.trim();
+  return "anonymous";
+}
 
 function isLoopbackIp(ip: string | undefined): boolean {
   if (!ip) return false;
@@ -34,25 +43,20 @@ export function createTenantRateLimit(options: {
     message = 'Too many requests from this tenant, please try again later.',
   } = options;
 
-  return rateLimit({
+  return createRedisRateLimitMiddleware({
+    name: 'tenant',
     windowMs,
     max,
-    message: {
-      error: message,
-      retryAfter: Math.ceil(windowMs / 1000),
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    // Chave customizada: tenantId + IP
-    keyGenerator: (req: Request) => {
-      const tenantId = (req as any).tenantId || 'anonymous';
+    code: 'TENANT_RATE_LIMIT',
+    message,
+    keySuffix: (req: Request) => {
+      const tenantId = getTenantId(req);
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       return `${tenantId}:${ip}`;
     },
-    // Skip para health checks e arquivos estáticos
-    skip: (req: Request) => {
+    shouldApply: (req: Request) => {
       const path = req.path;
-      return (
+      const shouldSkip = (
         path.startsWith('/health') ||
         path.startsWith('/metrics') ||
         path.startsWith('/assets') ||
@@ -63,10 +67,10 @@ export function createTenantRateLimit(options: {
         path.endsWith('.jpg') ||
         path.endsWith('.ico')
       );
+      return !shouldSkip;
     },
-    // Handler customizado com logging
-    handler: (req: Request, res: Response) => {
-      const tenantId = (req as any).tenantId || 'anonymous';
+    onBlocked: (req: Request) => {
+      const tenantId = getTenantId(req);
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       
       securityLogger.warn({
@@ -77,13 +81,6 @@ export function createTenantRateLimit(options: {
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString(),
       }, `[Rate Limit] tenant ${tenantId} IP ${ip}`);
-      
-      res.status(429).json({
-        error: message,
-        retryAfter: Math.ceil(windowMs / 1000),
-        tenantId,
-        ip,
-      });
     },
   });
 }
@@ -102,22 +99,20 @@ export function createCriticalRateLimit(options: {
     message = 'Too many requests to critical endpoint, please try again later.',
   } = options;
 
-  return rateLimit({
+  return createRedisRateLimitMiddleware({
+    name: 'critical',
     windowMs,
     max,
-    message: {
-      error: message,
-      retryAfter: Math.ceil(windowMs / 1000),
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req: Request) => {
-      const tenantId = (req as any).tenantId || 'anonymous';
+    code: 'CRITICAL_RATE_LIMIT',
+    message,
+    keySuffix: (req: Request) => {
+      const tenantId = getTenantId(req);
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       return `critical:${tenantId}:${ip}`;
     },
-    handler: (req: Request, res: Response) => {
-      const tenantId = (req as any).tenantId || 'anonymous';
+    shouldApply: () => true,
+    onBlocked: (req: Request) => {
+      const tenantId = getTenantId(req);
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       
       securityLogger.error({
@@ -129,14 +124,6 @@ export function createCriticalRateLimit(options: {
         timestamp: new Date().toISOString(),
         severity: 'HIGH',
       }, `[Critical Rate Limit] tenant ${tenantId} IP ${ip}`);
-
-      res.status(429).json({
-        error: message,
-        retryAfter: Math.ceil(windowMs / 1000),
-        tenantId,
-        ip,
-        severity: 'HIGH',
-      });
     },
   });
 }
@@ -155,24 +142,21 @@ export function createLeoRateLimit(options: {
     message = 'Too many LEO requests, please wait before making another request.',
   } = options;
 
-  return rateLimit({
+  return createRedisRateLimitMiddleware({
+    name: 'leo',
     windowMs,
     max,
-    message: {
-      error: message,
-      retryAfter: Math.ceil(windowMs / 1000),
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req: Request) => {
+    code: 'LEO_RATE_LIMIT',
+    message,
+    keySuffix: (req: Request) => {
       const jwt = req.user as JWTPayload | undefined;
       const tenantId = jwt?.tenantId ?? "anonymous";
       const userId = jwt?.userId ?? "anonymous";
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       return `leo:${tenantId}:${userId}:${ip}`;
     },
-    skip: (req: Request) => !trpcPathIncludesProcedure(req, "leo.") && !trpcPathIncludesProcedure(req, "health.") && !trpcPathIncludesProcedure(req, "health."),
-    handler: (req: Request, res: Response) => {
+    shouldApply: (req: Request) => trpcPathIncludesProcedure(req, "leo."),
+    onBlocked: (req: Request) => {
       const jwt = req.user as JWTPayload | undefined;
       const tenantId = jwt?.tenantId ?? "anonymous";
       const userId = jwt?.userId ?? "anonymous";
@@ -188,15 +172,6 @@ export function createLeoRateLimit(options: {
         timestamp: new Date().toISOString(),
         severity: 'CRITICAL',
       }, `[LEO Rate Limit] user ${userId} tenant ${tenantId} IP ${ip}`);
-
-      res.status(429).json({
-        error: message,
-        retryAfter: Math.ceil(windowMs / 1000),
-        tenantId,
-        userId,
-        ip,
-        severity: 'CRITICAL',
-      });
     },
   });
 }
@@ -215,31 +190,28 @@ export function createAuthRateLimit(options: {
     message = 'Too many authentication attempts, please try again later.',
   } = options;
 
-  return rateLimit({
+  return createRedisRateLimitMiddleware({
+    name: 'auth',
     windowMs,
     max,
-    message: {
-      error: message,
-      retryAfter: Math.ceil(windowMs / 1000),
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req: Request) => {
+    code: 'AUTH_RATE_LIMIT',
+    message,
+    keySuffix: (req: Request) => {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       return `auth:${ip}`;
     },
-    skip: (req: Request) => {
+    shouldApply: (req: Request) => {
       const path = req.path;
       const isAuthEndpoint =
         path.includes("/login") || path.includes("/auth") || path.includes("/signin");
-      if (!isAuthEndpoint) return true;
+      if (!isAuthEndpoint) return false;
       // Dev + localhost: mesmo critério do rate limit global em index.ts (carga / http-perf).
       if (process.env.NODE_ENV === "development" && isLoopbackIp(req.ip || req.connection.remoteAddress)) {
-        return true;
+        return false;
       }
-      return false;
+      return true;
     },
-    handler: (req: Request, res: Response) => {
+    onBlocked: (req: Request) => {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       
       securityLogger.error({
@@ -250,13 +222,6 @@ export function createAuthRateLimit(options: {
         timestamp: new Date().toISOString(),
         severity: 'CRITICAL',
       }, `[Auth Rate Limit] IP ${ip}`);
-
-      res.status(429).json({
-        error: message,
-        retryAfter: Math.ceil(windowMs / 1000),
-        ip,
-        severity: 'CRITICAL',
-      });
     },
   });
 }
@@ -275,28 +240,23 @@ export function createFinanceiroTrpcRateLimit(options: {
     message = "Limite de requisições financeiro excedido. Aguarde e tente novamente.",
   } = options;
 
-  return rateLimit({
+  return createRedisRateLimitMiddleware({
+    name: 'financeiro',
     windowMs,
     max,
-    message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req: Request) => {
+    code: 'FINANCEIRO_RATE_LIMIT',
+    message,
+    keySuffix: (req: Request) => {
       const jwt = req.user as JWTPayload | undefined;
       const tenantId = jwt?.tenantId ?? "anon";
       const userId = jwt?.userId ?? "anon";
       const ip = req.ip || req.connection.remoteAddress || "unknown";
       return `fin:${tenantId}:${userId}:${ip}`;
     },
-    skip: (req: Request) => !trpcPathIncludesProcedure(req, "financeiro.") && !trpcPathIncludesProcedure(req, "health.") && !trpcPathIncludesProcedure(req, "health."),
-    handler: (req: Request, res: Response) => {
+    shouldApply: (req: Request) => trpcPathIncludesProcedure(req, "financeiro."),
+    onBlocked: (req: Request) => {
       const ip = req.ip || req.connection.remoteAddress || "unknown";
       securityLogger.error({ ip, path: req.path }, "[Financeiro Rate Limit]");
-      res.status(429).json({
-        error: message,
-        retryAfter: Math.ceil(windowMs / 1000),
-        ip,
-      });
     },
   });
 }
@@ -316,13 +276,13 @@ export function createTrpcAuthenticatedRateLimit(options: {
     message = "Muitas requisições à API. Tente novamente em instantes.",
   } = options;
 
-  return rateLimit({
+  return createRedisRateLimitMiddleware({
+    name: 'trpc-authenticated',
     windowMs,
     max,
-    message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req: Request) => {
+    code: 'TRPC_AUTH_RATE_LIMIT',
+    message,
+    keySuffix: (req: Request) => {
       const jwt = req.user as JWTPayload | undefined;
       const ip = req.ip || req.connection.remoteAddress || "unknown";
       if (jwt?.userId != null && jwt?.tenantId != null) {
@@ -330,10 +290,13 @@ export function createTrpcAuthenticatedRateLimit(options: {
       }
       return `trpc-anon:${ip}`;
     },
-    skip: (req: Request) => {
-      if (req.method === "OPTIONS") return true;
-      if (req.path.includes("/api/trpc/health")) return true;
-      return false;
+    shouldApply: (req: Request) => {
+      if (req.method === "OPTIONS") return false;
+      if (req.path.includes("/api/trpc/health")) return false;
+      return true;
+    },
+    onBlocked: (req: Request) => {
+      securityLogger.warn({ path: req.path, method: req.method }, "[TRPC Authenticated Rate Limit]");
     },
   });
 }

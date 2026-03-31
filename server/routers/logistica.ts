@@ -1,11 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
-import * as db from "../db/index";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
-import type { Carga, NewCarga, PedidoCarga, NewPedidoCarga } from "@shared/types";
-import { requireTenant } from "../_core/tenant";
-import * as logisticaService from "../services/logistica.service";
+import * as db from "../db/index.js";
+import { publicProcedure, protectedProcedure, router } from "../_core/trpc.js";
+import type { Carga, NewCarga, PedidoCarga, NewPedidoCarga } from "../../shared/types/index.js";
+import { requireTenant } from "../_core/tenant.js";
+import * as logisticaService from "../services/logistica.service.js";
 
 // Schema de validação
 const createCargaSchema = z.object({

@@ -4,12 +4,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import express from "express";
 import http from "node:http";
-import { securityHeadersMiddleware } from "../security/security-headers";
-import { getAllowedOriginsList } from "../security/cors-policy";
-import { createLeoRateLimit, trpcPathIncludesProcedure } from "../security/rate-limiting";
+import { securityHeadersMiddleware } from "../security/security-headers.js";
+import { getAllowedOriginsList } from "../security/cors-policy.js";
+import { createLeoRateLimit, trpcPathIncludesProcedure } from "../security/rate-limiting.js";
 import type { Request } from "express";
-import * as db from "../db/index";
-import { auditEntityChange } from "../_core/domain-audit";
+import * as db from "../db/index.js";
+import { auditEntityChange } from "../_core/domain-audit.js";
 
 function listen(app: express.Application): Promise<{ port: number; close: () => Promise<void> }> {
   return new Promise((resolve, reject) => {

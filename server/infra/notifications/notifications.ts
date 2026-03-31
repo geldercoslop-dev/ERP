@@ -1,4 +1,4 @@
-import { notifyOwner } from '../../_core/notification';
+import { notifyOwner } from '../../_core/notification.js';
 import { nanoid } from 'nanoid';
 
 // Tipo principal de notificação

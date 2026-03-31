@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { useLocation } from "wouter";
 import { ArrowLeft, Package, Users, Palette, Calculator, Truck, CreditCard, FileText, ShieldCheck } from "lucide-react";
-import { MenuSection } from "@/components/MenuSection";
-import { MenuTile } from "@/components/MenuTile";
+import { MenuSection } from "../components/MenuSection";
+import { MenuTile } from "../components/MenuTile";
 
 export default function Cadastros() {
   const [, setLocation] = useLocation();

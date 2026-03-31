@@ -5,8 +5,8 @@
  * Monitora recursos, execuções e impede sobrecarga do sistema
  */
 
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
-import { leoEvents } from '../memory/leo-events';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import { leoEvents } from '../memory/leo-events.js';
 
 export interface SupervisorLimits {
   maxActionsPerMinute: number;

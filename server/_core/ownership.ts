@@ -1,10 +1,11 @@
 /**
  * Validação centralizada de ownership (RBAC).
- * Uso: em procedures protected que acessam recurso por id;
- * garante que vendedor só acessa recursos próprios (pedido, conta a receber, boleto, cliente).
+ * Cliente: fonte de verdade é `clientes.userId` (users.id).
+ * Pedido: valida via `pedidos.clienteId` → cliente → `userId` (não usa `pedidos.vendedorId` como dono).
  */
 import { TRPCError } from "@trpc/server";
-import * as db from "../db/index";
+import type { TrpcContext } from "./context.js";
+import * as db from "../db/index.js";
 
 export type OwnershipContext = {
   user: { id: number; role: string } | null;
@@ -12,12 +13,52 @@ export type OwnershipContext = {
 
 export type OwnableEntity = "pedido" | "conta_receber" | "boleto" | "cliente";
 
+export type OwnershipTrpcContext = Pick<TrpcContext, "user" | "vendedor" | "session" | "tenantId">;
+
+function getOptionalNumberField(source: unknown, field: string): number | null {
+  if (source == null || typeof source !== "object") return null;
+  const value = (source as Record<string, unknown>)[field];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return null;
+}
+
+/**
+ * Resolve o `users.id` dono da carteira para comparar com `clientes.userId`.
+ * Não usar para admin (admin não passa por ownership de cliente).
+ */
+export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vendedor" | "session">): Promise<number> {
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão necessária." });
+  }
+  if (ctx.user.role === "admin") {
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "resolveOwnerUserId não aplicável a admin." });
+  }
+  if (ctx.vendedor?.userId != null && ctx.vendedor.userId > 0) {
+    return ctx.vendedor.userId;
+  }
+  if (ctx.session?.tokenKind === "user") {
+    return ctx.user.id;
+  }
+  const vByPk = await db.getVendedorById(ctx.user.id);
+  if (vByPk?.userId != null && vByPk.userId > 0) {
+    return vByPk.userId;
+  }
+  const u = await db.getUserById(ctx.user.id);
+  if (u) {
+    return ctx.user.id;
+  }
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "Conta sem user_id vinculado para ownership de cliente/pedido.",
+  });
+}
+
 /**
  * Se ctx.user for admin, não faz nada.
- * Se for vendedor, verifica se o recurso pertence ao vendedor; caso contrário lança FORBIDDEN ou NOT_FOUND.
+ * Se for vendedor, verifica ownership conforme entidade; caso contrário lança FORBIDDEN ou NOT_FOUND.
  */
 export async function assertOwnership(
-  ctx: OwnershipContext,
+  ctx: OwnershipTrpcContext,
   entity: OwnableEntity,
   entityId: number
 ): Promise<void> {
@@ -27,13 +68,22 @@ export async function assertOwnership(
   if (ctx.user.role === "admin") {
     return;
   }
-  const vendedorId = ctx.user.id;
 
   switch (entity) {
     case "pedido": {
       const pedido = await db.getPedidoById(entityId);
       if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-      if (pedido.vendedorId !== vendedorId) {
+      const pedidoTenantId = getOptionalNumberField(pedido, "tenantId");
+      if (ctx.tenantId != null && pedidoTenantId != null && pedidoTenantId !== ctx.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+      }
+      const clienteRow = await db.getClienteOwnerRowById(pedido.clienteId);
+      if (!clienteRow) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+      if (ctx.tenantId != null && clienteRow.tenantId !== ctx.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+      }
+      const ownerUid = await resolveOwnerUserId(ctx);
+      if (clienteRow.userId == null || clienteRow.userId !== ownerUid) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
       }
       return;
@@ -41,7 +91,8 @@ export async function assertOwnership(
     case "conta_receber": {
       const conta = await db.getContaReceberById(entityId);
       if (!conta) throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada." });
-      if (conta.vendedorId === null || conta.vendedorId !== vendedorId) {
+      const vendedorId = getOptionalNumberField(conta, "vendedorId");
+      if (vendedorId == null || vendedorId !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
       }
       return;
@@ -49,15 +100,21 @@ export async function assertOwnership(
     case "boleto": {
       const boleto = await db.getBoletoById(entityId);
       if (!boleto) throw new TRPCError({ code: "NOT_FOUND", message: "Boleto não encontrado." });
-      if (boleto.vendedorId !== vendedorId) {
+      const vendedorId = getOptionalNumberField(boleto, "vendedorId");
+      if (vendedorId == null || vendedorId !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
       }
       return;
     }
     case "cliente": {
-      const pertence = await db.clienteTemPedidoDoVendedor(entityId, vendedorId);
-      if (!pertence) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Cliente não pertence ao seu portfólio." });
+      const row = await db.getClienteOwnerRowById(entityId);
+      if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+      if (ctx.tenantId != null && row.tenantId !== ctx.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+      }
+      const ownerUid = await resolveOwnerUserId(ctx);
+      if (row.userId == null || row.userId !== ownerUid) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
       }
       return;
     }

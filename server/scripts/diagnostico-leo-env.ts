@@ -5,7 +5,7 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { verificarConfiguracaoIntegracoes } from "../config/verificarIntegracoes";
+import { verificarConfiguracaoIntegracoes } from "../config/verificarIntegracoes.js";
 
 function main() {
   const envPath = path.join(process.cwd(), ".env");

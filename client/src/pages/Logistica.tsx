@@ -1,8 +1,8 @@
 import { useLocation } from "wouter";
 import { Truck, Package, Map, FileText, History, ClipboardList } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { Card, CardContent } from "../components/ui/card";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 
 /**
  * Hub do menu Logística: links para Gerar carga, Roteiro, Mapa, Baixa, Histórico, Relatório.

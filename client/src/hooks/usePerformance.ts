@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { deepCloneByJson } from '@/utils/json-helpers';
+import { deepCloneByJson } from '../utils/json-helpers';
 
 /**
  * useDeepMemo - Memorização com comparação profunda

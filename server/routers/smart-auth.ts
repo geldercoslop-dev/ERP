@@ -2,15 +2,15 @@
  * Router de Autenticação Inteligente
  * Usa detecção automática da tabela de login
  */
-import { publicProcedure, router } from "../_core/trpc";
+import { publicProcedure, router } from "../_core/trpc.js";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { getAuthConfig, authenticateUser } from "../_core/auth-detection";
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import { getSessionCookieOptions } from "../_core/cookies";
-import * as usersService from "../services/users.service";
-import * as authSecurity from "../_core/auth-security";
-import { auditLog } from "../_core/audit-log";
+import { getAuthConfig, authenticateUser } from "../_core/auth-detection.js";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
+import { getSessionCookieOptions } from "../_core/cookies.js";
+import * as usersService from "../services/users.service.js";
+import * as authSecurity from "../_core/auth-security.js";
+import { auditLog } from "../_core/audit-log.js";
 
 /**
  * Router de autenticação inteligente

@@ -5,9 +5,9 @@
  */
 
 import { Router } from 'express';
-import { runStockTransaction, runTransaction } from '../services/db-transaction';
-import { updateStockSafe } from '../services/stock-safety.service';
-import { getDb, getPool } from '../db/index';
+import { runStockTransaction, runTransaction } from '../services/db-transaction.js';
+import { updateStockSafe } from '../services/stock-safety.service.js';
+import { getDb, getPool } from '../db/index.js';
 
 const router = Router();
 

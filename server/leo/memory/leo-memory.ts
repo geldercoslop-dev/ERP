@@ -5,11 +5,11 @@
  * Armazena histórico de ações, decisões, erros e padrões
  */
 
-import { LeoMemoryType, LeoEventStatus, LeoEventPriority } from '../../../shared/types';
+import { LeoMemoryType, LeoEventStatus, LeoEventPriority } from '../../../shared/types/index.js';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { insertLeoActionLog } from '../../services/ai/leo-action-logger';
-import { leoMemoryPersistence } from './leo-memory-persistence';
+import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import { leoMemoryPersistence } from './leo-memory-persistence.js';
 
 export interface MemoryDecision {
   timestamp: Date;

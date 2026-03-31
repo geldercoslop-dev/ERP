@@ -5,11 +5,11 @@
  * usando apenas services existentes (sem acesso direto ao DB).
  */
 
-import { listPedidos, createPedidoSafe, getPedidoByIdForActor, updatePedidoStatus } from './orders.service';
-import { listClientes, createCliente } from './clientes.service';
-import { ADMIN_ACTOR, assertVendedorActor, type ServiceActor } from '../_core/service-actor';
-import { getAllProdutos, getProdutoById, updateEstoqueProduto } from './inventory.service';
-import { listContasReceber, listContasPagar } from './finance.service';
+import { listPedidos, createPedidoSafe, getPedidoByIdForActor, updatePedidoStatus } from './orders.service.js';
+import { listClientes, createCliente } from './clientes.service.js';
+import { ADMIN_ACTOR, assertVendedorActor, type ServiceActor } from '../_core/service-actor.js';
+import { getAllProdutos, getProdutoById, updateEstoqueProduto } from './inventory.service.js';
+import { listContasReceber, listContasPagar } from './finance.service.js';
 import { nanoid } from 'nanoid';
 
 /** Sem vendedorId: escopo vem apenas do actor (sessão / contexto LEO). */
@@ -252,6 +252,9 @@ export class LeoErpService {
         assertVendedorActor(actor);
         vendedorIdPrincipal = actor.vendedorId;
       }
+      if (actor.userId == null || actor.userId <= 0) {
+        throw new Error("userId do ator ausente para criar cliente");
+      }
       const clienteData = {
         nome: input.nome,
         telefone: input.telefone,
@@ -261,6 +264,7 @@ export class LeoErpService {
         bairro: input.bairro,
         cidade: input.cidade,
         uf: input.uf,
+        userId: actor.userId,
         ...(vendedorIdPrincipal != null && vendedorIdPrincipal > 0 ? { vendedorIdPrincipal } : {}),
       };
 

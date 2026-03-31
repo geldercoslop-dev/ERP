@@ -1,1 +1,1 @@
-export { clientesTool, detalharClienteTool } from "./clientes.tool";
+export { clientesTool, detalharClienteTool } from "./clientes.tool.js";

@@ -1,6 +1,6 @@
-import { logInfo, logError } from '../../_core/logger';
-import * as inventoryService from '../../services/inventory.service';
-import { LeoTaskPriority } from '../../../shared/types';
+import { logInfo, logError } from '../../_core/logger.js';
+import * as inventoryService from '../../services/inventory.service.js';
+import { LeoTaskPriority } from '../../../shared/types/index.js';
 
 export interface StockAlert {
   productId: number;

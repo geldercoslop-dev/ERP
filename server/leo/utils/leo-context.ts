@@ -11,7 +11,7 @@
  */
 
 
-/** Contexto de runtime construído para o LEO (tomada de decisão / ações). LeoContext em @shared/types é o tipo canônico de contexto. */
+/** Contexto de runtime construído para o LEO (tomada de decisão / ações). LeoContext em `shared/types` é o tipo canônico de contexto. */
 export interface LeoRuntimeContext {
   traceId?: string;
   usuario: {

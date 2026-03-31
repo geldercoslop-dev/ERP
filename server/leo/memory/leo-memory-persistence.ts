@@ -3,8 +3,8 @@
  * Implementação simplificada usando interfaces oficiais
  */
 
-import { LeoMemoryRecord, LeoDecision, ILeoMemory } from '@shared/types';
-import { logInfo, logError } from '../../_core/logger-rotation';
+import { LeoMemoryRecord, LeoDecision, ILeoMemory } from "../../../shared/types/index.js";
+import { logInfo, logError } from '../../_core/logger-rotation.js';
 
 // Implementação mínima da interface ILeoMemory
 export class LeoMemoryPersistence implements ILeoMemory {

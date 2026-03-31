@@ -1,5 +1,5 @@
-import { getConnectionPool } from "../config/database";
-import { logger } from "../utils/logger";
+import { getConnectionPool } from "../config/database.js";
+import { logger } from "../utils/logger.js";
 
 const MAX_ATTEMPTS = Math.max(1, Number(process.env.DB_BOOT_MAX_ATTEMPTS) || 12);
 const INITIAL_MS = Math.max(100, Number(process.env.DB_BOOT_BACKOFF_MS) || 500);

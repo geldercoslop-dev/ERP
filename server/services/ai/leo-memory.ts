@@ -5,7 +5,7 @@
  * (ex.: "quem é esse cliente?", "quanto ele está devendo?").
  */
 
-import { logger } from "../../utils/logger";
+import { logger } from "../../utils/logger.js";
 
 export type MemoryEntry = {
   id: string;

@@ -11,7 +11,7 @@
  * - LEO NÃO pode acessar dados de outros usuários sem permissão
  */
 
-import * as usersService from '../../services/users.service';
+import * as usersService from '../../services/users.service.js';
 import { nanoid } from 'nanoid';
 
 export type PermissionLevel = 'consulta' | 'operacao_erp' | 'operacao_sistema' | 'admin';

@@ -1,6 +1,6 @@
-import { tracer } from '../infra/tracing';
-import { performanceRegistry, getPerformanceDashboard } from '../infra/performance-logging';
-import { createLogger } from '../infra/structured-logger';
+import { tracer } from '../infra/tracing.js';
+import { performanceRegistry, getPerformanceDashboard } from '../infra/performance-logging.js';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('tracing-validation');
 

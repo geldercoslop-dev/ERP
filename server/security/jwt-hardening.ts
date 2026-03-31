@@ -1,5 +1,7 @@
-import jwt from 'jsonwebtoken';
-import { createLogger } from '../infra/structured-logger';
+import jwt from "jsonwebtoken";
+import type { Algorithm, JwtPayload, SignOptions, VerifyOptions } from "jsonwebtoken";
+import { createLogger } from '../infra/structured-logger.js';
+import { parseEnv } from '../services/env.schema.js';
 
 const logger = createLogger('jwt-security');
 
@@ -24,7 +26,7 @@ export interface JWTValidationResult {
  * Configuração JWT com segurança reforçada
  */
 export class JWTSecurity {
-  private static readonly ALGORITHM = 'HS256';
+  private static readonly ALGORITHM: Algorithm = "HS256";
   private static readonly MIN_SECRET_LENGTH = 32;
   private static readonly DEFAULT_EXPIRY = '15m';
   private static readonly REFRESH_EXPIRY = '7d';
@@ -32,6 +34,23 @@ export class JWTSecurity {
   /**
    * Valida se o secret é forte o suficiente
    */
+  /** Converte "15m", "7d", etc. em segundos (mesma convenção que jwt-auth). */
+  private static parseExpiryToSeconds(expiry: string): number {
+    const units: Record<string, number> = {
+      s: 1,
+      m: 60,
+      h: 3600,
+      d: 86400,
+      w: 604800,
+    };
+    const match = expiry.match(/^(\d+)([smhdw])$/);
+    if (!match) {
+      throw new Error(`Invalid expiry format: ${expiry}`);
+    }
+    const [, value, unit] = match;
+    return parseInt(value, 10) * units[unit]!;
+  }
+
   static validateSecret(secret: string): boolean {
     if (!secret || typeof secret !== 'string') {
       return false;
@@ -80,7 +99,7 @@ export class JWTSecurity {
     audience?: string;
   } = {}): string {
     try {
-      const secret = process.env.JWT_ACCESS_SECRET;
+      const secret = parseEnv().JWT_ACCESS_SECRET;
       if (!secret || !this.validateSecret(secret)) {
         throw new Error('JWT_ACCESS_SECRET is invalid or missing');
       }
@@ -91,13 +110,14 @@ export class JWTSecurity {
         jti: this.generateJTI(),
       };
       
-      const signOptions = {
+      const expiryStr = options.expiresIn || this.DEFAULT_EXPIRY;
+      const signOptions: SignOptions = {
         algorithm: this.ALGORITHM,
-        expiresIn: options.expiresIn || this.DEFAULT_EXPIRY,
-        issuer: options.issuer || process.env.JWT_ISSUER || 'erp-system',
-        audience: options.audience || process.env.JWT_AUDIENCE || 'erp-users',
+        expiresIn: this.parseExpiryToSeconds(expiryStr),
+        issuer: options.issuer || process.env.JWT_ISSUER || "erp-system",
+        audience: options.audience || process.env.JWT_AUDIENCE || "erp-users",
       };
-      
+
       const token = jwt.sign(jwtPayload, secret, signOptions);
       
       logger.info('JWT token generated', {
@@ -121,7 +141,7 @@ export class JWTSecurity {
    */
   static generateRefreshToken(payload: Pick<JWTPayload, 'userId' | 'tenantId'>): string {
     try {
-      const secret = process.env.JWT_REFRESH_SECRET;
+      const secret = parseEnv().JWT_REFRESH_SECRET;
       if (!secret || !this.validateSecret(secret)) {
         throw new Error('JWT refresh secret is invalid or missing');
       }
@@ -134,9 +154,9 @@ export class JWTSecurity {
       
       return jwt.sign(refreshPayload, secret, {
         algorithm: this.ALGORITHM,
-        expiresIn: this.REFRESH_EXPIRY,
-        issuer: process.env.JWT_ISSUER || 'erp-system',
-      } as any);
+        expiresIn: this.parseExpiryToSeconds(this.REFRESH_EXPIRY),
+        issuer: process.env.JWT_ISSUER || "erp-system",
+      } satisfies SignOptions);
     } catch (error) {
       logger.error('Error generating refresh token', error as Error);
       throw new Error('Failed to generate refresh token');
@@ -152,7 +172,7 @@ export class JWTSecurity {
     audience?: string;
   } = {}): JWTValidationResult {
     try {
-      const secret = options.secret || process.env.JWT_ACCESS_SECRET;
+      const secret = options.secret || parseEnv().JWT_ACCESS_SECRET;
       if (!secret || !this.validateSecret(secret)) {
         return {
           valid: false,
@@ -160,17 +180,22 @@ export class JWTSecurity {
         };
       }
       
-      const verifyOptions = {
+      const verifyOptions: VerifyOptions = {
         algorithms: [this.ALGORITHM],
-        issuer: options.issuer || process.env.JWT_ISSUER || 'erp-system',
-        audience: options.audience || process.env.JWT_AUDIENCE || 'erp-users',
+        issuer: options.issuer || process.env.JWT_ISSUER || "erp-system",
+        audience: options.audience || process.env.JWT_AUDIENCE || "erp-users",
         clockTolerance: 30, // 30 segundos de tolerância
       };
-      
-      const decoded = jwt.verify(token, secret, verifyOptions as any) as any;
+
+      const decoded = jwt.verify(token, secret, verifyOptions);
+      if (typeof decoded === "string" || decoded === null) {
+        return { valid: false, error: "Invalid token payload" };
+      }
+
+      const p = decoded as JwtPayload & Partial<JWTPayload>;
       
       // Validações adicionais do payload
-      if (!decoded.userId || !decoded.tenantId) {
+      if (typeof p.userId !== "number" || typeof p.tenantId !== "number") {
         return {
           valid: false,
           error: 'Invalid token payload structure',
@@ -179,22 +204,32 @@ export class JWTSecurity {
       
       // Verifica se o token não expirou em breve (próximos 5 minutos)
       const now = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = (decoded.exp || 0) - now;
+      const timeUntilExpiry = (typeof p.exp === "number" ? p.exp : 0) - now;
       
       if (timeUntilExpiry < 300) { // 5 minutos
         logger.warn('Token expiring soon', {
           metadata: {
-            userId: decoded.userId,
-            tenantId: decoded.tenantId,
-            expiresAt: new Date((decoded.exp || 0) * 1000).toISOString(),
+            userId: p.userId,
+            tenantId: p.tenantId,
+            expiresAt: new Date(((typeof p.exp === "number" ? p.exp : 0) || 0) * 1000).toISOString(),
             timeUntilExpiry,
           },
         });
       }
       
+      const safePayload: JWTPayload = {
+        userId: p.userId,
+        tenantId: p.tenantId,
+        vendedorId: typeof p.vendedorId === "number" ? p.vendedorId : undefined,
+        role: typeof p.role === "string" ? p.role : "user",
+        iat: typeof p.iat === "number" ? p.iat : undefined,
+        exp: typeof p.exp === "number" ? p.exp : undefined,
+        jti: typeof p.jti === "string" ? p.jti : undefined,
+      };
+
       return {
         valid: true,
-        payload: decoded,
+        payload: safePayload,
       };
       
     } catch (error) {
@@ -243,7 +278,7 @@ export class JWTSecurity {
    */
   static validateRefreshToken(token: string): JWTValidationResult {
     try {
-      const secret = process.env.JWT_REFRESH_SECRET;
+      const secret = parseEnv().JWT_REFRESH_SECRET;
       if (!secret || !this.validateSecret(secret)) {
         return {
           valid: false,

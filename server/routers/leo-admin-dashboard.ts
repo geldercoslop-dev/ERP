@@ -5,19 +5,19 @@
  * Fornece informações detalhadas sobre status, tarefas, eventos e performance
  */
 
-import { router, publicProcedure } from '../_core/trpc';
+import { router, publicProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
-import { leoEngine } from '../leo/engine/leo-engine';
-import { leoLoop } from '../leo/engine/leo-loop';
-import { leoTaskQueue } from '../leo/tasks/leo-task-queue';
-import { leoScheduler } from '../leo/engine/leo-scheduler';
-import { leoSupervisor } from '../leo/engine/leo-supervisor';
-import { leoLoopProtection } from '../leo/security/leo-loop-protection';
-import { leoErpObserver } from '../leo/perception/leo-erp-observer';
-import { leoEvents } from '../leo/memory/leo-events';
-import { leoPlanner } from '../leo/planning/leo-planner';
-import { LeoTaskStatus } from '@shared/types';
-import type { LeoTask, LeoEvent } from '@shared/types';
+import { leoEngine } from '../leo/engine/leo-engine.js';
+import { leoLoop } from '../leo/engine/leo-loop.js';
+import { leoTaskQueue } from '../leo/tasks/leo-task-queue.js';
+import { leoScheduler } from '../leo/engine/leo-scheduler.js';
+import { leoSupervisor } from '../leo/engine/leo-supervisor.js';
+import { leoLoopProtection } from '../leo/security/leo-loop-protection.js';
+import { leoErpObserver } from '../leo/perception/leo-erp-observer.js';
+import { leoEvents } from '../leo/memory/leo-events.js';
+import { leoPlanner } from '../leo/planning/leo-planner.js';
+import { LeoTaskStatus } from "../../shared/types/index.js";
+import type { LeoTask, LeoEvent } from "../../shared/types/index.js";
 
 export const leoAdminDashboardRouter = router({
   /**

@@ -1,4 +1,4 @@
-import type { ApiListResponse } from "@/shared/types";
+import type { ApiListResponse } from "../shared/types";
 
 /**
  * Normaliza respostas de API que podem vir em formatos variados (Array, ApiListResponse, { items })

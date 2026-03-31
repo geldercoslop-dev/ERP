@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import { Sparkles, TrendingUp, Package, Users, AlertTriangle, ArrowUpRight, ArrowDownRight, Zap } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { trpc } from "@/lib/trpcClient";
-import { LoadingState } from "@/components/ui/perf/StatusStates";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { trpc } from "../../lib/trpcClient";
+import { LoadingState } from "../ui/perf/StatusStates";
 import { 
   BarChart, 
   Bar, 

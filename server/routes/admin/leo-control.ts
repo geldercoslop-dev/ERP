@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { ZodError } from "zod";
-import { requireAdmin } from "../../_core/requireAdmin";
-import { leoActionService, type LeoAction, type LeoActionPayloadMap } from "../../services/leoAction.service";
-import { parseLeoActionPayload } from "../../services/leoActionPayload.parse";
+import { requireAdmin } from "../../_core/requireAdmin.js";
+import { leoActionService, type LeoAction, type LeoActionPayloadMap } from "../../services/leoAction.service.js";
+import { parseLeoActionPayload } from "../../services/leoActionPayload.parse.js";
 
 function parseLimit(raw: unknown): number {
   if (typeof raw !== "string") return 100;

@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { useLocation } from "wouter";
 import { ArrowLeft, Calendar, Landmark, CreditCard, Wallet, DollarSign, History } from "lucide-react";
-import { trpc } from "@/lib/trpcClient";
+import { trpc } from "../lib/trpcClient";
 
 export default function HistoricoCaixa() {
   const [, setLocation] = useLocation();

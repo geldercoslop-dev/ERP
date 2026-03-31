@@ -3,9 +3,9 @@
  * Envia mensagem para POST /api/leo/chat ou usa fallback via tRPC.
  */
 
-import { sanitizePlainTextInput } from "@/lib/security/sanitizePayload";
-import { GRS_API_ORIGIN } from "@/lib/apiOrigin";
-import { apiClient } from "@/lib/api/apiClient";
+import { sanitizePlainTextInput } from "../lib/security/sanitizePayload";
+import { GRS_API_ORIGIN } from "../lib/apiOrigin";
+import { apiClient } from "../lib/api/apiClient";
 
 const getBaseUrl = () =>
   import.meta.env.VITE_API_URL ||

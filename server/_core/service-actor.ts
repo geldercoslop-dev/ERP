@@ -2,13 +2,14 @@
  * Ator de serviço — obrigatório em leituras/listagens sensíveis.
  * admin: visão do tenant inteiro; vendedor: apenas vínculos próprios / pedidos próprios.
  */
-import type { TrpcContext } from "./context";
-import * as db from "../db/index";
+import type { TrpcContext } from "./context.js";
+import * as db from "../db/index.js";
 
 export type ServiceActorRole = "admin" | "vendedor";
 
 export type ServiceActor = {
   role: ServiceActorRole;
+  userId?: number; // Adicionado para hardening de ownership
   /** Obrigatório quando role === "vendedor". */
   vendedorId?: number;
 };
@@ -25,13 +26,14 @@ export function assertVendedorActor(actor: ServiceActor): asserts actor is Servi
 
 /**
  * Resolve vendedor a partir do contexto tRPC (mesma regra que routers: ctx.vendedor → userId → id legado).
+ * `userId` no ator é sempre o `users.id` dono da carteira (alinha a `clientes.userId`), não o id da linha em `vendedores`.
  */
-export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vendedor">): Promise<ServiceActor> {
+export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vendedor" | "session">): Promise<ServiceActor> {
   if (!ctx.user) {
     throw new Error("Usuário não autenticado");
   }
   if (ctx.user.role === "admin") {
-    return { role: "admin" };
+    return { role: "admin", userId: ctx.user.id };
   }
   const v =
     ctx.vendedor ??
@@ -40,7 +42,16 @@ export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vende
   if (!v) {
     throw new Error("Não foi possível resolver o vendedor para este usuário");
   }
-  return { role: "vendedor", vendedorId: v.id };
+  let ownerUserId: number | undefined;
+  if (v.userId != null && v.userId > 0) {
+    ownerUserId = v.userId;
+  } else if (ctx.session?.tokenKind === "user") {
+    ownerUserId = ctx.user.id;
+  }
+  if (ownerUserId == null || ownerUserId <= 0) {
+    throw new Error("Vendedor sem user_id vinculado para ownership de cliente");
+  }
+  return { role: "vendedor", userId: ownerUserId, vendedorId: v.id };
 }
 
 /** Papel string usado em permissões de tools ("admin" | "vendedor"). */

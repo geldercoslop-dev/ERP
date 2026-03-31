@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { sameOriginFetch } from '@/lib/security/apiClient';
+import { sameOriginFetch } from '../lib/security/apiClient';
 
 export function ConnectionDebugger() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   useEffect(() => {
-    const input = encodeURIComponent(JSON.stringify({}));
-    const apiUrl = `/api/trpc/auth.me?input=${input}`;
+    const apiUrl = '/api/health';
 
     const checkConnection = async () => {
       try {

@@ -2,22 +2,24 @@
  * Safe Shipment Module
  * 
  * Módulo para criação e gestão de cargas com transações seguras
+ * Tipos explícitos - ZERO ANY
  */
 
-import { runTransaction } from '../services/db-transaction';
-import { insertAuditLog } from '../services/audit-service';
-import { getPool } from '../db/index';
-import * as db from '../db/index';
+import type { TransactionConnection } from '../types/transaction.types.js';
+import { runTransaction } from '../services/db-transaction.js';
+import { insertAuditLog } from '../services/audit-service.js';
+import { getPool } from '../db/index.js';
+import * as db from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
 
-export type ShipmentItem = {
+export interface ShipmentItem {
   pedidoId: number;
   status?: string;
   observacoes?: string;
-};
+}
 
-export type CreateShipmentData = {
-  tenantId?: number;
+export interface CreateShipmentData {
+  tenantId: number; // MANDATORY
   placa: string;
   motorista: string;
   veiculo?: string;
@@ -30,21 +32,29 @@ export type CreateShipmentData = {
   vendedorId?: number;
   ip?: string;
   userAgent?: string;
-};
+}
 
-export type ShipmentResult = {
+export interface ShipmentResult {
   success: boolean;
   shipmentId?: number;
   message: string;
-  auditRecord?: any;
+  auditRecord?: Record<string, unknown>;
   itensProcessados?: number;
-};
+}
 
 /**
  * Cria carga de forma segura com validações completas
  */
 export async function createShipmentSafe(shipmentData: CreateShipmentData): Promise<ShipmentResult> {
-  return runTransaction(async (tx: any) => {
+  // Validação de tenantId obrigatório
+  if (!shipmentData.tenantId || shipmentData.tenantId <= 0) {
+    return {
+      success: false,
+      message: 'TENANT_ID_OBRIGATORIO: tenantId é obrigatório',
+    };
+  }
+
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Criando carga - Placa: ${shipmentData.placa}, Motorista: ${shipmentData.motorista}`);
 
     // 1. Validar dados obrigatórios
@@ -61,7 +71,7 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
     }
 
     // 2. Validar itens da carga
-    const pedidosValidados: any[] = [];
+    const pedidosValidados: Record<string, unknown>[] = [];
     let valorTotalCarga = 0;
 
     for (const item of shipmentData.itens) {
@@ -71,18 +81,21 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
         [item.pedidoId]
       );
 
-      if (!pedido || !(pedido as any[])[0]) {
-        throw new Error(`CARGA_PEDIDO_NAO_ENCONTRADO: Pedido ${item.pedidoId} não encontrado`);
+      const pedidoData = Array.isArray(pedido) && pedido.length > 0
+        ? (pedido[0] as Record<string, unknown>)
+        : null;
+
+      // Validar se pedido foi encontrado
+      if (!pedidoData) {
+        throw new Error(`CARGA_PEDIDO_NAO_ENCONTRADO: Pedido #${item.pedidoId} não encontrado`);
       }
 
-      const pedidoData = (pedido as any[])[0];
-
       // Validar status do pedido
-      if (pedidoData.status === 'CANCELADO') {
+      if (pedidoData && typeof pedidoData.status === 'string' && pedidoData.status === 'CANCELADO') {
         throw new Error(`CARGA_PEDIDO_CANCELADO: Pedido #${pedidoData.numero} está cancelado`);
       }
 
-      if (pedidoData.status === 'ENTREGUE') {
+      if (pedidoData && typeof pedidoData.status === 'string' && pedidoData.status === 'ENTREGUE') {
         throw new Error(`CARGA_PEDIDO_ENTREGUE: Pedido #${pedidoData.numero} já foi entregue`);
       }
 
@@ -92,8 +105,12 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
         [item.pedidoId]
       );
 
-      const jaEmCarga = (emCarga as any[])[0]?.total || 0;
-      if (jaEmCarga > 0) {
+      const emCargaRow = Array.isArray(emCarga) && emCarga.length > 0
+        ? (emCarga[0] as Record<string, unknown>)
+        : null;
+
+      const jaEmCarga = (emCargaRow?.total as number) || 0;
+      if (jaEmCarga > 0 && pedidoData) {
         throw new Error(`CARGA_PEDIDO_JA_EM_CARGA: Pedido #${pedidoData.numero} já está em outra carga`);
       }
 
@@ -103,7 +120,7 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
         observacoesItem: item.observacoes
       });
 
-      valorTotalCarga += Number(pedidoData.total || 0);
+      valorTotalCarga += Number(pedidoData?.total || 0);
     }
 
     // 3. Validar peso e volume totais (se houver limites)
@@ -211,7 +228,7 @@ export async function startShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Iniciando carga - ID: ${shipmentId}`);
 
     // 1. Buscar carga com bloqueio
@@ -286,7 +303,7 @@ export async function finishShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Finalizando carga - ID: ${shipmentId}`);
 
     // 1. Buscar carga com bloqueio
@@ -369,7 +386,7 @@ export async function removeOrderFromShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Removendo pedido da carga - Carga: ${shipmentId}, Pedido: ${pedidoId}`);
 
     // 1. Validar carga
@@ -495,7 +512,7 @@ export async function getShipmentsReport(
       WHERE 1=1
     `;
 
-    const params: any[] = [];
+    const params: (string | number | Date)[] = [];
 
     // Aplicar filtros
     if (filtros.status) {

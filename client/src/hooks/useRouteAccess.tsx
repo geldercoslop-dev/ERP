@@ -1,7 +1,7 @@
 import { Redirect } from "wouter";
 import type { ReactNode } from "react";
-import { useAuthStore } from "@/store/authStore";
-import { canAccessAdminRoute, isAuthenticatedForRoute } from "@/lib/security/routeGuards";
+import { useAuthStore } from "../store/authStore";
+import { canAccessAdminRoute, isAuthenticatedForRoute } from "../lib/security/routeGuards";
 
 type RouteAccessResult = {
   allowed: boolean;

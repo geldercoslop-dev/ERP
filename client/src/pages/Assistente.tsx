@@ -1,11 +1,11 @@
-import { useAuth } from "@/hooks/useAuth";
-import { useAuthStore } from "@/store/authStore";
-import { trpc } from "@/lib/trpcClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "../hooks/useAuth";
+import { useAuthStore } from "../store/authStore";
+import { trpc } from "../lib/trpcClient";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User } from "lucide-react";
-import { LeoVoiceInput } from "@/components/LeoVoiceInput";
+import { LeoVoiceInput } from "../components/LeoVoiceInput";
 
 type Mensagem = {
   pergunta: string;

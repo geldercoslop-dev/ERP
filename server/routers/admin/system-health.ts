@@ -6,13 +6,13 @@
  */
 
 import { Request, Response } from 'express';
-import { queueManager } from '../../queue/queue';
-import { getJobExecutionStats } from '../../queue/idempotency';
-import { getRateLimitStats } from '../../queue/rate-limiter';
-import { leoLoop } from '../../leo/engine/leo-loop';
-import { leoLoopProtection } from '../../leo/security/leo-loop-protection';
-import { logInfo, logError } from '../../_core/logger';
-import type { HealthCheck } from '@shared/types';
+import { queueManager } from '../../queue/queue.js';
+import { getJobExecutionStats } from '../../queue/idempotency.js';
+import { getRateLimitStats } from '../../queue/rate-limiter.js';
+import { leoLoop } from '../../leo/engine/leo-loop.js';
+import { leoLoopProtection } from '../../leo/security/leo-loop-protection.js';
+import { logInfo, logError } from '../../_core/logger.js';
+import type { HealthCheck } from "../../../shared/types/index.js";
 import { sql } from 'drizzle-orm';
 
 export interface SystemHealth {
@@ -123,7 +123,7 @@ async function checkDatabaseHealth(): Promise<{
   
   try {
     // Simular verificação de conexão (implementar real se necessário)
-    const { getDb } = await import('../../db');
+    const { getDb } = await import('../../db/index.js');
     const db = await getDb();
     
     if (!db) {
@@ -214,7 +214,7 @@ export async function collectSystemHealth(): Promise<SystemHealth> {
   const leoProtectionStats = leoLoopProtection.getStatistics();
 
   // Métricas de rate limit
-  const rateLimitStats = getRateLimitStats();
+  const rateLimitStats = await getRateLimitStats();
 
   // Montar objeto de saúde
   const health: SystemHealth = {
@@ -296,7 +296,7 @@ export async function getHealthCheck(req: Request, res: Response): Promise<void>
 }
 
 export async function collectHealthCheck(): Promise<HealthCheck> {
-  const { getDb } = await import("../../db");
+  const { getDb } = await import("../../db/index.js");
   const db = await getDb();
   if (!db) {
     return {

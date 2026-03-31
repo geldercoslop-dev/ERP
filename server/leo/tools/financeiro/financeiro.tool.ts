@@ -1,9 +1,9 @@
 import { z } from "zod";
-import * as financeService from "../../../services/finance.service";
-import type { BaixaPedidoInput } from "../../../services/finance.service";
-import type { LeoToolDefinition } from "../types";
-import { createToolResponse } from "../tool-response";
-import { serviceActorFromLeoExecutionContext } from "../../../_core/service-actor";
+import * as financeService from "../../../services/finance.service.js";
+import type { BaixaPedidoInput } from "../../../services/finance.service.js";
+import type { LeoToolDefinition } from "../types.js";
+import { createToolResponse } from "../tool-response.js";
+import { serviceActorFromLeoExecutionContext } from "../../../_core/service-actor.js";
 
 type Payload = Record<string, unknown>;
 

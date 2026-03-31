@@ -4,8 +4,8 @@ CREATE TABLE `cargas` (
 	`cidadeRota` varchar(100),
 	`dataEntrega` varchar(10),
 	`status` enum('ABERTA','BAIXADA') NOT NULL DEFAULT 'ABERTA',
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `cargas_id` PRIMARY KEY(`id`),
 	CONSTRAINT `cargas_numero_unique` UNIQUE(`numero`)
 );
@@ -22,8 +22,8 @@ CREATE TABLE `clientes` (
 	`uf` varchar(2),
 	`referencia` text,
 	`condominio` text,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `clientes_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -37,15 +37,15 @@ CREATE TABLE `comissoes` (
 	`valorComissao` decimal(10,2) NOT NULL DEFAULT '0',
 	`status` enum('PENDENTE','PAGA') NOT NULL DEFAULT 'PENDENTE',
 	`dataPagamento` timestamp,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `comissoes_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `cores` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`nome` varchar(100) NOT NULL,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `cores_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -54,7 +54,7 @@ CREATE TABLE `counters` (
 	`name` varchar(50) NOT NULL,
 	`seq` int NOT NULL DEFAULT 0,
 	`free` text,
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `counters_id` PRIMARY KEY(`id`),
 	CONSTRAINT `counters_name_unique` UNIQUE(`name`)
 );
@@ -66,8 +66,8 @@ CREATE TABLE `grupos_precificacao` (
 	`percentualLucro` decimal(5,2) NOT NULL DEFAULT '0',
 	`percentualComissao` decimal(5,2) NOT NULL DEFAULT '0',
 	`percentualCartao` decimal(5,2) NOT NULL DEFAULT '0',
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `grupos_precificacao_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -83,7 +83,7 @@ CREATE TABLE `itens_pedido` (
 	`quantidade` int NOT NULL DEFAULT 1,
 	`valorUnitario` decimal(10,2) NOT NULL DEFAULT '0',
 	`custo` decimal(10,2) NOT NULL DEFAULT '0',
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `itens_pedido_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -111,8 +111,8 @@ CREATE TABLE `pedidos` (
 	`dataEntrega` timestamp,
 	`garantiaInicio` timestamp,
 	`observacoes` text,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `pedidos_id` PRIMARY KEY(`id`),
 	CONSTRAINT `pedidos_numero_unique` UNIQUE(`numero`)
 );
@@ -124,7 +124,7 @@ CREATE TABLE `pedidos_carga` (
 	`numeroPedido` int NOT NULL,
 	`clienteNome` varchar(255) NOT NULL,
 	`valorTotal` decimal(10,2) NOT NULL DEFAULT '0',
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `pedidos_carga_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -135,8 +135,8 @@ CREATE TABLE `pendencias_compra` (
 	`quantidade` int NOT NULL DEFAULT 1,
 	`status` enum('PENDENTE','COMPRADO','CHEGOU') NOT NULL DEFAULT 'PENDENTE',
 	`observacoes` text,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `pendencias_compra_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -149,8 +149,8 @@ CREATE TABLE `produtos` (
 	`custo` decimal(10,2) NOT NULL DEFAULT '0',
 	`estoque` int NOT NULL DEFAULT 0,
 	`ativo` boolean NOT NULL DEFAULT true,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `produtos_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
@@ -163,8 +163,8 @@ CREATE TABLE `vendedores` (
 	`senha` varchar(255),
 	`admin` boolean NOT NULL DEFAULT false,
 	`ativo` boolean NOT NULL DEFAULT true,
-	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `vendedores_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint

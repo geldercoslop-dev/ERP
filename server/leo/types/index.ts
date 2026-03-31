@@ -1,9 +1,9 @@
 /**
  * Tipos Centrais LEO - Estrutura Oficial
- * Tipos de dados vêm de @shared/types via ../types.ts; interfaces de sistema ficam aqui.
+ * Tipos de dados vêm de `shared/types` via `../types.ts`; interfaces de sistema ficam aqui.
  */
 
-import type { LeoTask, LeoEvent, LeoAction, LeoDecision, LeoContext, Payload } from "../types";
+import type { LeoTask, LeoEvent, LeoAction, LeoDecision, LeoContext, Payload } from "../types.js";
 
 export type { LeoTask, LeoEvent, LeoAction, LeoDecision, LeoContext, Payload };
 
@@ -29,7 +29,7 @@ export interface LeoActionHandler {
 }
 
 /**
- * Contexto de execução LEO (ambiente de runtime) — distinto de LeoContext em @shared/types
+ * Contexto de execução LEO (ambiente de runtime) — distinto de LeoContext em `shared/types`
  */
 export interface LeoExecutionContext {
   memory: LeoMemory;

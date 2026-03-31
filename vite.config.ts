@@ -35,19 +35,14 @@ export default defineConfig({
         ]
       : []),
   ],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./client/src"),
-      "@shared": path.resolve(__dirname, "./shared"),
-    },
-  },
   root: path.resolve(__dirname, "./client"),
   server: {
     port: 5173,
     strictPort: false,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        // SECURITY HARDENING: Usar environment variable em vez de IP hardcoded
+        target: process.env.VITE_API_URL || "http://localhost:3000",
         changeOrigin: true,
         secure: false,
       },

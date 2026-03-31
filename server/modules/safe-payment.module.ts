@@ -4,14 +4,15 @@
  * Módulo para registro de pagamentos com transações seguras
  */
 
-import { runTransaction } from '../services/db-transaction';
-import { insertAuditLog } from '../services/audit-service';
-import { getPool } from '../db/index';
-import * as db from '../db/index';
+import { runTransaction } from '../services/db-transaction.js';
+import type { TransactionConnection } from '../types/transaction.types.js';
+import { insertAuditLog } from '../services/audit-service.js';
+import { getPool } from '../db/index.js';
+import * as db from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
 
 export type PaymentData = {
-  tenantId?: number;
+  tenantId: number; // MANDATORY: Multi-tenant isolation
   contaId?: number;
   pedidoId?: number;
   tipo: 'receita' | 'despesa';
@@ -34,14 +35,16 @@ export type PaymentResult = {
   success: boolean;
   paymentId?: number;
   message: string;
-  auditRecord?: any;
+  auditRecord?: Record<string, unknown>;
 };
 
 /**
  * Registra pagamento de forma segura com validações
+ * @param paymentData - Dados de pagamento (tenantId obrigatório)
+ * @returns Resultado da operação
  */
 export async function registerPaymentSafe(paymentData: PaymentData): Promise<PaymentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafePayment] Registrando pagamento - Tipo: ${paymentData.tipo}, Valor: ${paymentData.valor}`);
 
     // 1. Validar dados obrigatórios
@@ -184,7 +187,7 @@ export async function cancelPaymentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<PaymentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafePayment] Cancelando pagamento - ID: ${paymentId}`);
 
     // 1. Buscar pagamento com bloqueio
@@ -276,7 +279,7 @@ export async function reconcilePaymentsSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; message: string; reconciliados: number[] }> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafePayment] Conciliando ${payments.length} pagamentos`);
 
     const reconciliados: number[] = [];
@@ -388,7 +391,7 @@ export async function getPaymentsReport(
       WHERE 1=1
     `;
 
-    const params: any[] = [];
+    const params: (string | number | Date)[] = [];
 
     // Aplicar filtros
     if (filtros.tipo) {

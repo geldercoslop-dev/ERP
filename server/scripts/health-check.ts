@@ -3,8 +3,8 @@
  * Uso: tsx server/scripts/health-check.ts (ou npm run health-check se configurado).
  * Retorna exit 0 se tudo ok, exit 1 em falha.
  */
-import "../_core/loadEnv";
-import * as db from "../db/index";
+import "../_core/loadEnv.js";
+import * as db from "../db/index.js";
 
 function hasDbConfig(): boolean {
   if (process.env.DATABASE_URL?.trim()) return true;

@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { MemoryType, MemoryImportance } from '../leo/memory/leo-long-memory';
+import { MemoryType, MemoryImportance } from '../leo/memory/leo-long-memory.js';
 
 /**
  * Schema de validação para entradas de memória

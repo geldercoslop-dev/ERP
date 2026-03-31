@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, User, Package, FileText, Truck, Loader2, X, Command, Sparkles } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/trpcClient";
+import { Input } from "../ui/input";
+import { trpc } from "../../lib/trpcClient";
 import { useLocation } from "wouter";
-import { useDebouncedValue } from "@/hooks/useDebounce";
+import { useDebouncedValue } from "../../hooks/useDebounce";
 
 /**
  * GlobalSearch: Busca integrada do ERP.

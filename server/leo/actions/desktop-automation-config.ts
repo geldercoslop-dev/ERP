@@ -1,4 +1,4 @@
-import { logInfo, logError } from '../../_core/logger';
+import { logInfo, logError } from '../../_core/logger.js';
 
 export interface DesktopAutomationConfig {
   // RobotJS Configuration

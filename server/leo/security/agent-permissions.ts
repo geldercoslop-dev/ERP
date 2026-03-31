@@ -4,7 +4,7 @@
  * Controla segurança e permissões para operações do LEO Agent
  */
 
-import type { SecureRole } from '../../_core/secure-context';
+import type { SecureRole } from '../../_core/secure-context.js';
 
 export interface PermissionRule {
   toolName: string;

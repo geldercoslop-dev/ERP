@@ -4,12 +4,27 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { TrpcContext } from "./context";
-import type { SecureRole, SecureToolContext } from "./secure-context";
-import { assertSecureContext, isSecureContext, secureRoleFromRequest } from "./secure-context";
+import type { TrpcContext } from "./context.js";
+import type { SecureRole, SecureToolContext } from "./secure-context.js";
+import { assertSecureContext, isSecureContext, secureRoleFromRequest } from "./secure-context.js";
 
 /** Contexto armazenado na cadeia async (serviços + getDb). */
 export type ServiceInvocationStore = SecureToolContext & { __fromTool: true };
+
+export class ServiceContextMissingError extends Error {
+  readonly code = "SERVICE_CONTEXT_MISSING" as const;
+  readonly timestamp: string;
+  readonly suggestion: string;
+  constructor() {
+    super(
+      "SECURITY: contexto de serviço ausente — use runWithServiceInvocation / executor de tools / tRPC autenticado"
+    );
+    this.name = "ServiceContextMissingError";
+    this.timestamp = new Date().toISOString();
+    this.suggestion =
+      "Envolver chamada com runWithServiceInvocationAsync(buildBootstrapInvocation(tenantId), async () => { ... })";
+  }
+}
 
 const als = new AsyncLocalStorage<ServiceInvocationStore>();
 
@@ -84,14 +99,7 @@ export function assertServiceEntryIfEnabled(): void {
   }
   const store = als.getStore();
   if (!store) {
-    const error = new Error(
-      "SECURITY: contexto de serviço ausente — use runWithServiceInvocation / executor de tools / tRPC autenticado"
-    );
-    // Adicionar metadados para facilitar debugging
-    (error as any).code = "SERVICE_CONTEXT_MISSING";
-    (error as any).timestamp = new Date().toISOString();
-    (error as any).suggestion = "Envolver chamada com runWithServiceInvocationAsync(buildBootstrapInvocation(tenantId), async () => { ... })";
-    throw error;
+    throw new ServiceContextMissingError();
   }
   validateInvocationStore(store);
 }

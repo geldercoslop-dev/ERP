@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Pencil, Plus, Search, Shield, Trash2, UserPlus, Users } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpcClient";
-import { onlyDigits, maskPhoneBr } from "@/lib/masks";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { trpc } from "../lib/trpcClient";
+import { onlyDigits, maskPhoneBr } from "../lib/masks";
 import { toast } from "sonner";
 
 type Vendedor = {

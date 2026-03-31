@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff } from "lucide-react";
 import { TRPCClientError } from "@trpc/client";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "../store/authStore";
 
 const REMEMBERED_USERNAME_KEY = "remembered_username";
 

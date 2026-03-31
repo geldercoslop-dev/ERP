@@ -5,7 +5,7 @@
  */
 import { Request, Response, NextFunction } from "express";
 import cookie from "cookie";
-import { jwtAuth } from "../security/jwt-auth";
+import { jwtAuth } from "../security/jwt-auth.js";
 
 function getToken(req: Request): string | undefined {
   const rawCookie = req.headers.cookie;

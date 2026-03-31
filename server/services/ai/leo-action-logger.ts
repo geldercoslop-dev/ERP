@@ -4,7 +4,7 @@
  * Usa insertLeoActionLog (db/index) — tabela leo_action_logs compatível.
  */
 
-import { insertLeoActionLog } from "../leo-action-log.service";
+import { insertLeoActionLog } from "../leo-action-log.service.js";
 
 export type LeoActionLogContext = {
   tenantId: number;

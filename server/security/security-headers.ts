@@ -1,6 +1,6 @@
 import helmet from 'helmet';
 import { Request, Response, NextFunction } from 'express';
-import { securityLogger } from '../_core/logger';
+import { securityLogger } from '../_core/logger.js';
 
 /**
  * Configuração de headers de segurança

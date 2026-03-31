@@ -25,7 +25,7 @@
 // 3. Em responses de API
 // VERIFICAR: todas as respostas precisam estar em types/
 // PADRÃO:
-// import type { ApiResponse, ApiError } from '@/types'
+// import type { ApiResponse, ApiError } from './'
 // const response: ApiResponse<User> = await fetch(...)
 
 // ============================================
@@ -114,9 +114,9 @@ export const RECOMMENDED_PATTERNS = {
 
   // ✅ CORRETO
   serviceWithValidation: `
-    import { LoginSchema, type LoginPayload } from '@/schemas/validation';
-    import { httpClient } from '@/lib/http-client';
-    import type { ApiResponse } from '@/types/api';
+    import { LoginSchema, type LoginPayload } from '../schemas/validation';
+    import { httpClient } from '../lib/http-client';
+    import type { ApiResponse } from './api';
     
     export async function login(payload: LoginPayload): Promise<ApiResponse<AuthToken>> {
       const result = await httpClient.post<AuthToken, LoginPayload>(

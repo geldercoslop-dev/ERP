@@ -221,7 +221,7 @@ export const MIGRATION_GUIDE = `
   }
 
 ✅ DEPOIS:
-  import { sanitizeList } from './types/service-safety';
+  import { sanitizeList } from './types/service-safety.js';
   
   export async function getAllProdutos() {
     const result = await db.query(...);
@@ -239,7 +239,7 @@ export const MIGRATION_GUIDE = `
   }
 
 ✅ SEMPRE USE:
-  import { safeListCall } from './types/service-safety';
+  import { safeListCall } from './types/service-safety.js';
   
   return await safeListCall(
     () => db.list(),
@@ -256,7 +256,7 @@ export const MIGRATION_GUIDE = `
   })
 
 ✅ DEPOIS:
-  import { withServiceGuard } from './types/service-guard';
+  import { withServiceGuard } from './types/service-guard.js';
   
   list: protectedProcedure.query(async () => {
     const todos = await withServiceGuard(
@@ -269,7 +269,7 @@ export const MIGRATION_GUIDE = `
 
 4️⃣ VERIFICAR INTEGRIDADE
 ────────────────────────
-  import { checkServiceIntegrity } from './types/service-guard';
+  import { checkServiceIntegrity } from './types/service-guard.js';
   
   const check = await checkServiceIntegrity(
     () => db.getAllProdutos(),
@@ -282,7 +282,7 @@ export const MIGRATION_GUIDE = `
 
 5️⃣ MONITORAR VIOLAÇÕES
 ──────────────────────
-  import { generateSafetyReport, getSafetyLogs } from './types/service-safety';
+  import { generateSafetyReport, getSafetyLogs } from './types/service-safety.js';
   
   // Ao final da execução
   console.log(generateSafetyReport());
@@ -299,7 +299,7 @@ export const MIGRATION_GUIDE = `
 
 6️⃣ USAR PROXY PARA PROTEÇÃO AUTOMÁTICA
 ────────────────────────────────────────
-  import { createGuardedProxy } from './types/service-guard';
+  import { createGuardedProxy } from './types/service-guard.js';
   
   // Antes: precisa wrappear cada chamada
   const db = getDb();

@@ -6,8 +6,8 @@
 
 import { drizzle } from "drizzle-orm/mysql2";
 import * as mysql from "mysql2/promise";
-import { getDb } from "../db/index";
-import { getConnectionPool } from "../config/database";
+import { getDb } from "../db/index.js";
+import { getConnectionPool } from "../config/database.js";
 
 export type TransactionCallback<T> = (tx: mysql.PoolConnection) => Promise<T>;
 

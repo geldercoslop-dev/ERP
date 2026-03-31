@@ -1,9 +1,16 @@
 /**
- * Rate Limiter para Jobs
+ * Rate Limiter para Jobs — Redis-backed
  * 
  * Controla a quantidade de jobs por minuto e implementa debounce
  * Evita explosão de jobs em eventos repetidos
+ * Usa Redis para persistência entre instâncias
  */
+
+import { getRedisClient } from "../infra/redis.js";
+import { createLogger } from "../infra/structured-logger.js";
+import { createHash } from "crypto";
+
+const logger = createLogger("job-rate-limiter");
 
 export interface RateLimitConfig {
   maxJobsPerMinute?: number;
@@ -16,16 +23,22 @@ export interface JobRateLimitEntry {
   jobType: string;
   entity?: string;
   entityId?: string;
-  payload?: any;
+  payload?: unknown;
+}
+
+const REDIS_KEY_PREFIX = "job:ratelimit:";
+const ONE_MINUTE = 60_000;
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
 }
 
 /**
- * Rate Limiter com debounce por tipo de job
+ * Rate Limiter com debounce por tipo de job — Redis-backed
  */
 class JobRateLimiter {
   private static instance: JobRateLimiter;
-  private jobCounts: Map<string, number[]> = new Map(); // jobType -> timestamps
-  private debounceCache: Map<string, NodeJS.Timeout> = new Map(); // key -> timeout
+  private debounceCache: Map<string, NodeJS.Timeout> = new Map(); // local debounce timeouts
   private config: Map<string, RateLimitConfig> = new Map(); // jobType -> config
 
   private constructor() {}
@@ -49,44 +62,69 @@ class JobRateLimiter {
   }
 
   /**
-   * Verifica se job pode ser executado (rate limit)
+   * Verifica se job pode ser executado (rate limit) usando Redis sorted sets
    */
-  public canExecute(jobType: string, entity?: string, entityId?: string): boolean {
+  public async canExecute(
+    jobType: string,
+    entity?: string,
+    entityId?: string
+  ): Promise<boolean> {
+    const redis = getRedisClient();
+    if (!redis) {
+      logger.warn("Redis not available, allowing job execution");
+      return true;
+    }
+
     const config = this.config.get(jobType);
     if (!config || !config.maxJobsPerMinute) {
       return true; // Sem limite configurado
     }
 
-    const now = Date.now();
-    const oneMinuteAgo = now - 60000; // 60 segundos
+    try {
+      const now = Date.now();
+      const oneMinuteAgo = now - ONE_MINUTE;
+      const redisKey = `${REDIS_KEY_PREFIX}${jobType}`;
 
-    // Obter timestamps do tipo de job
-    let timestamps = this.jobCounts.get(jobType) || [];
-    
-    // Limpar timestamps antigos
-    timestamps = timestamps.filter((timestamp: any) => timestamp > oneMinuteAgo);
-    
-    // Verificar limite
-    if (timestamps.length >= config.maxJobsPerMinute) {
-      console.warn(`Rate limit atingido para ${jobType}: ${timestamps.length}/${config.maxJobsPerMinute} jobs/minuto`);
-      return false;
+      // Usar Redis sorted set com timestamps como scores
+      // Remove entradas antigas
+      await redis.zremrangebyscore(redisKey, "-inf", oneMinuteAgo);
+
+      // Contar jobs nos últimos 60 segundos
+      const count = await redis.zcard(redisKey);
+
+      if (count >= config.maxJobsPerMinute) {
+        logger.warn(
+          `Rate limit reached for ${jobType}: ${count}/${config.maxJobsPerMinute} jobs/min`
+        );
+        return false;
+      }
+
+      // Adicionar timestamp atual
+      const entryData = JSON.stringify({
+        entity: entity || "unknown",
+        entityId: entityId || "unknown",
+      });
+      await redis.zadd(redisKey, now, `${now}:${entryData}`);
+
+      // Set expiration to 2 minutes (cleanup)
+      await redis.expire(redisKey, 120);
+
+      return true;
+    } catch (error) {
+      logger.error("Redis error checking rate limit:", toError(error));
+      // Fail open - allow execution if Redis is down
+      return true;
     }
-
-    // Adicionar timestamp atual
-    timestamps.push(now);
-    this.jobCounts.set(jobType, timestamps);
-
-    return true;
   }
 
   /**
-   * Implementa debounce para jobs repetidos
+   * Implementa debounce para jobs repetidos (local timeouts + Redis tracking)
    */
   public debounce(
     jobType: string,
     entity: string | undefined,
     entityId: string | undefined,
-    payload: any,
+    payload: unknown,
     callback: () => void | Promise<void>
   ): void {
     const config = this.config.get(jobType);
@@ -98,7 +136,7 @@ class JobRateLimiter {
 
     // Gerar chave de debounce
     const debounceKey = this.generateDebounceKey(jobType, entity, entityId, payload);
-    
+
     // Limpar timeout anterior se existir
     const existingTimeout = this.debounceCache.get(debounceKey);
     if (existingTimeout) {
@@ -111,7 +149,7 @@ class JobRateLimiter {
       try {
         await callback();
       } catch (error) {
-        console.error(`Erro executando job debounced ${jobType}:`, error);
+        logger.error(`Error executing debounced job ${jobType}:`, toError(error));
       }
     }, config.debounceMs);
 
@@ -125,11 +163,12 @@ class JobRateLimiter {
     jobType: string,
     entity: string | undefined,
     entityId: string | undefined,
-    payload: any,
+    payload: unknown,
     callback: () => void | Promise<void>
   ): Promise<boolean> {
     // Verificar rate limit
-    if (!this.canExecute(jobType, entity, entityId)) {
+    const canExecute = await this.canExecute(jobType, entity, entityId);
+    if (!canExecute) {
       return false;
     }
 
@@ -140,7 +179,7 @@ class JobRateLimiter {
           await callback();
           resolve(true);
         } catch (error) {
-          console.error(`Erro executando job com limites ${jobType}:`, error);
+          logger.error(`Error executing job with limits ${jobType}:`, toError(error));
           resolve(false);
         }
       });
@@ -154,98 +193,123 @@ class JobRateLimiter {
     jobType: string,
     entity: string | undefined,
     entityId: string | undefined,
-    payload: any
+    payload: unknown
   ): string {
     const parts = [jobType];
     if (entity) parts.push(entity);
     if (entityId) parts.push(entityId);
-    
+
     // Hash do payload se existir (para capturar mudanças nos dados)
     if (payload) {
-      const crypto = require('crypto');
-      const payloadHash = crypto
-        .createHash('md5')
+      const payloadHash = createHash("md5")
         .update(JSON.stringify(payload))
-        .digest('hex')
+        .digest("hex")
         .substring(0, 8);
       parts.push(payloadHash);
     }
-    
-    return parts.join(':');
+
+    return parts.join(":");
   }
 
   /**
-   * Obtém estatísticas de rate limit
+   * Obtém estatísticas de rate limit (Redis-backed)
    */
-  public getStats(): Record<string, unknown> {
+  public async getStats(): Promise<Record<string, unknown>> {
+    const redis = getRedisClient();
     const stats: Record<string, unknown> = {};
-    const now = Date.now();
-    const oneMinuteAgo = now - 60000;
 
-    for (const [jobType, timestamps] of Array.from(this.jobCounts.entries())) {
-      const recentTimestamps = timestamps.filter((t: number) => t > oneMinuteAgo);
-      const config = this.config.get(jobType);
-      
-      stats[jobType] = {
-        jobsLastMinute: recentTimestamps.length,
-        maxJobsPerMinute: config?.maxJobsPerMinute || 'unlimited',
-        debounceActiveDebounces: Array.from(this.debounceCache.keys())
-          .filter((key: string) => key.startsWith(jobType))
-          .length,
-        utilizationRate: config?.maxJobsPerMinute 
-          ? `${(recentTimestamps.length / config.maxJobsPerMinute * 100).toFixed(1)}%`
-          : 'N/A',
-      };
+    if (!redis) {
+      logger.warn("Redis not available for stats");
+      return { error: "Redis not available" };
+    }
+
+    try {
+      const now = Date.now();
+      const oneMinuteAgo = now - ONE_MINUTE;
+
+      for (const [jobType, config] of Array.from(this.config.entries())) {
+        const redisKey = `${REDIS_KEY_PREFIX}${jobType}`;
+
+        // Limpar entradas antigas
+        await redis.zremrangebyscore(redisKey, "-inf", oneMinuteAgo);
+
+        // Contar jobs
+        const count = await redis.zcard(redisKey);
+        const activeDebounces = Array.from(this.debounceCache.keys()).filter((k) =>
+          k.startsWith(jobType)
+        ).length;
+
+        stats[jobType] = {
+          jobsLastMinute: count,
+          maxJobsPerMinute: config.maxJobsPerMinute || "unlimited",
+          activeDebounces,
+          utilizationRate:
+            config.maxJobsPerMinute && config.maxJobsPerMinute > 0
+              ? `${((count / config.maxJobsPerMinute) * 100).toFixed(1)}%`
+              : "N/A",
+        };
+      }
+    } catch (error) {
+      logger.error("Error getting rate limit stats:", toError(error));
     }
 
     return stats;
   }
 
   /**
-   * Limpa caches antigos
+   * Limpa caches antigos (local debounce timeouts + Redis old entries)
    */
-  public cleanup(): void {
+  public async cleanup(): Promise<void> {
+    const redis = getRedisClient();
     const now = Date.now();
-    const oneMinuteAgo = now - 60000;
+    const oneMinuteAgo = now - ONE_MINUTE;
 
-    // Limpar timestamps antigos
-    for (const [jobType, timestamps] of Array.from(this.jobCounts.entries())) {
-      const filtered = timestamps.filter((t: number) => t > oneMinuteAgo);
-      if (filtered.length === 0) {
-        this.jobCounts.delete(jobType);
-      } else {
-        this.jobCounts.set(jobType, filtered);
-      }
+    // Limpar timeouts de debounce locais antigos
+    for (const [key, timeout] of Array.from(this.debounceCache.entries())) {
+      // Keep for now - local timeouts are cleaned up naturally
     }
 
-    console.log(`Rate limper cleanup: ${this.jobCounts.size} tipos ativos, ${this.debounceCache.size} debounces ativos`);
+    // Limpar entradas antigas no Redis
+    if (redis) {
+      try {
+        for (const jobType of this.config.keys()) {
+          const redisKey = `${REDIS_KEY_PREFIX}${jobType}`;
+          await redis.zremrangebyscore(redisKey, "-inf", oneMinuteAgo);
+        }
+        logger.debug(
+          `Cleanup complete: ${this.config.size} rate limit types monitored`
+        );
+      } catch (error) {
+        logger.error("Error during cleanup:", toError(error));
+      }
+    }
   }
 }
 
 // Configurações padrão para diferentes tipos de jobs
 export const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Jobs críticos de negócio - limite alto
-  'pedido_create': { maxJobsPerMinute: 30, debounceMs: 500 },
-  'estoque_update': { maxJobsPerMinute: 60, debounceMs: 200 },
-  'financeiro_update': { maxJobsPerMinute: 20, debounceMs: 1000 },
-  
+  pedido_create: { maxJobsPerMinute: 30, debounceMs: 500 },
+  estoque_update: { maxJobsPerMinute: 60, debounceMs: 200 },
+  financeiro_update: { maxJobsPerMinute: 20, debounceMs: 1000 },
+
   // Jobs de análise - limite moderado
-  'leo_analysis': { maxJobsPerMinute: 10, debounceMs: 2000 },
-  'ocr_processing': { maxJobsPerMinute: 5, debounceMs: 5000 },
-  
+  leo_analysis: { maxJobsPerMinute: 10, debounceMs: 2000 },
+  ocr_processing: { maxJobsPerMinute: 5, debounceMs: 5000 },
+
   // Jobs de notificação - limite alto com debounce
-  'notifications': { maxJobsPerMinute: 100, debounceMs: 100 },
-  
+  notifications: { maxJobsPerMinute: 100, debounceMs: 100 },
+
   // Jobs de sistema - limite baixo
-  'backup': { maxJobsPerMinute: 2, debounceMs: 30000 },
-  'cleanup': { maxJobsPerMinute: 1, debounceMs: 60000 },
-  
+  backup: { maxJobsPerMinute: 2, debounceMs: 30000 },
+  cleanup: { maxJobsPerMinute: 1, debounceMs: 60000 },
+
   // Jobs de automação - limite muito baixo
-  'desktop_automation': { maxJobsPerMinute: 3, debounceMs: 10000 },
-  'screenshot_capture': { maxJobsPerMinute: 10, debounceMs: 1000 },
-  
+  desktop_automation: { maxJobsPerMinute: 3, debounceMs: 10000 },
+  screenshot_capture: { maxJobsPerMinute: 10, debounceMs: 1000 },
+
   // Jobs de relatórios - limite moderado
-  'report_generation': { maxJobsPerMinute: 5, debounceMs: 5000 },
+  report_generation: { maxJobsPerMinute: 5, debounceMs: 5000 },
 };
 
 // Exportar instância singleton
@@ -256,13 +320,15 @@ export function initializeRateLimits(): void {
   Object.entries(DEFAULT_RATE_LIMITS).forEach(([jobType, config]) => {
     jobRateLimiter.configure(jobType, config);
   });
-  
+
   // Limpeza periódica (a cada 5 minutos)
   setInterval(() => {
-    jobRateLimiter.cleanup();
+    jobRateLimiter.cleanup().catch((err) => {
+      logger.warn("Cleanup error:", err);
+    });
   }, 5 * 60 * 1000);
-  
-  console.log('Rate limits inicializados para jobs');
+
+  logger.info("Rate limits initialized for jobs (Redis-backed)");
 }
 
 // Funções de conveniência
@@ -270,12 +336,12 @@ export async function executeJobWithLimits(
   jobType: string,
   entity: string | undefined,
   entityId: string | undefined,
-  payload: any,
+  payload: unknown,
   callback: () => void | Promise<void>
 ): Promise<boolean> {
   return jobRateLimiter.executeWithLimits(jobType, entity, entityId, payload, callback);
 }
 
-export function getRateLimitStats(): Record<string, any> {
+export async function getRateLimitStats(): Promise<Record<string, unknown>> {
   return jobRateLimiter.getStats();
 }

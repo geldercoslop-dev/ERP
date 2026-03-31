@@ -3,8 +3,8 @@
  * Wrapper para cliente Redis com spans de tracing
  */
 
-import { measureRedisOperation } from "../_core/opentelemetry";
-import { createLogger } from "./structured-logger";
+import { measureRedisOperation } from "../_core/opentelemetry.js";
+import { createLogger } from "./structured-logger.js";
 
 const logger = createLogger("redis-instrumentation");
 

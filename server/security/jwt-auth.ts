@@ -1,5 +1,7 @@
-import jwt from 'jsonwebtoken';
-import { systemLogger } from '../_core/logger';
+import jwt from "jsonwebtoken";
+import type { JwtPayload, SignOptions } from "jsonwebtoken";
+import { systemLogger } from '../_core/logger.js';
+import { parseEnv } from '../services/env.schema.js';
 
 export interface JWTPayload {
   userId: number;
@@ -33,8 +35,9 @@ class JWTAuth {
   private readonly refreshTokenExpiry: string;
 
   constructor() {
-    const access = process.env.JWT_ACCESS_SECRET?.trim();
-    const refresh = process.env.JWT_REFRESH_SECRET?.trim();
+    const { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } = parseEnv();
+    const access = JWT_ACCESS_SECRET.trim();
+    const refresh = JWT_REFRESH_SECRET.trim();
     if (!access || !refresh) {
       throw new Error(
         'JWT_ACCESS_SECRET e JWT_REFRESH_SECRET são obrigatórios (sem valor padrão).'
@@ -74,15 +77,16 @@ class JWTAuth {
       exp: now + this.parseExpiryToSeconds(this.refreshTokenExpiry)
     };
 
-    const accessToken = jwt.sign(accessTokenPayload, this.accessTokenSecret, {
-      algorithm: 'HS256',
-      expiresIn: this.accessTokenExpiry
-    });
-
-    const refreshToken = jwt.sign(refreshTokenPayload, this.refreshTokenSecret, {
-      algorithm: 'HS256',
-      expiresIn: this.refreshTokenExpiry
-    });
+    const accessSign: SignOptions = {
+      algorithm: "HS256",
+      expiresIn: this.parseExpiryToSeconds(this.accessTokenExpiry),
+    };
+    const refreshSign: SignOptions = {
+      algorithm: "HS256",
+      expiresIn: this.parseExpiryToSeconds(this.refreshTokenExpiry),
+    };
+    const accessToken = jwt.sign(accessTokenPayload, this.accessTokenSecret, accessSign);
+    const refreshToken = jwt.sign(refreshTokenPayload, this.refreshTokenSecret, refreshSign);
 
     const expiresIn = this.parseExpiryToSeconds(this.accessTokenExpiry);
 
@@ -108,17 +112,42 @@ class JWTAuth {
   verifyAccessToken(token: string): JWTPayload {
     try {
       const decoded = jwt.verify(token, this.accessTokenSecret, {
-        algorithms: ['HS256']
-      }) as JWTPayload;
+        algorithms: ["HS256"],
+      });
+
+      if (typeof decoded === "string" || decoded === null) {
+        throw new Error("Invalid access token payload");
+      }
+
+      const p = decoded as JwtPayload & Partial<JWTPayload>;
+      if (
+        typeof p.userId !== "number" ||
+        typeof p.tenantId !== "number" ||
+        typeof p.email !== "string" ||
+        typeof p.role !== "string" ||
+        typeof p.sessionId !== "string"
+      ) {
+        throw new Error("Invalid access token payload");
+      }
+
+      const safePayload: JWTPayload = {
+        userId: p.userId,
+        tenantId: p.tenantId,
+        email: p.email,
+        role: p.role as JWTPayload["role"],
+        sessionId: p.sessionId,
+        iat: typeof p.iat === "number" ? p.iat : undefined,
+        exp: typeof p.exp === "number" ? p.exp : undefined,
+      };
 
       systemLogger.debug({
-        userId: decoded.userId,
-        tenantId: decoded.tenantId,
-        sessionId: decoded.sessionId,
-        role: decoded.role
+        userId: safePayload.userId,
+        tenantId: safePayload.tenantId,
+        sessionId: safePayload.sessionId,
+        role: safePayload.role
       }, 'Access token verified');
 
-      return decoded;
+      return safePayload;
     } catch (error) {
       systemLogger.warn({
         error: error instanceof Error ? error.message : String(error),
@@ -143,17 +172,40 @@ class JWTAuth {
   verifyRefreshToken(token: string): RefreshTokenPayload {
     try {
       const decoded = jwt.verify(token, this.refreshTokenSecret, {
-        algorithms: ['HS256']
-      }) as RefreshTokenPayload;
+        algorithms: ["HS256"],
+      });
+
+      if (typeof decoded === "string" || decoded === null) {
+        throw new Error("Invalid refresh token payload");
+      }
+
+      const p = decoded as JwtPayload & Partial<RefreshTokenPayload>;
+      if (
+        typeof p.userId !== "number" ||
+        typeof p.tenantId !== "number" ||
+        typeof p.sessionId !== "string" ||
+        typeof p.tokenVersion !== "number"
+      ) {
+        throw new Error("Invalid refresh token payload");
+      }
+
+      const safePayload: RefreshTokenPayload = {
+        userId: p.userId,
+        tenantId: p.tenantId,
+        sessionId: p.sessionId,
+        tokenVersion: p.tokenVersion,
+        iat: typeof p.iat === "number" ? p.iat : undefined,
+        exp: typeof p.exp === "number" ? p.exp : undefined,
+      };
 
       systemLogger.debug({
-        userId: decoded.userId,
-        tenantId: decoded.tenantId,
-        sessionId: decoded.sessionId,
-        tokenVersion: decoded.tokenVersion
+        userId: safePayload.userId,
+        tenantId: safePayload.tenantId,
+        sessionId: safePayload.sessionId,
+        tokenVersion: safePayload.tokenVersion
       }, 'Refresh token verified');
 
-      return decoded;
+      return safePayload;
     } catch (error) {
       systemLogger.warn({
         error: error instanceof Error ? error.message : String(error),

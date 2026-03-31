@@ -3,10 +3,10 @@
  * Reutiliza: prediction-engine (previsão ruptura), stock-analytics, e queries diretas.
  */
 
-import * as db from "../db/index";
-import { previsaoRupturaEstoque } from "./ai/prediction-engine";
+import * as db from "../db/index.js";
+import { previsaoRupturaEstoque } from "./ai/prediction-engine.js";
 import { eq, sql, and, lt, ne, desc } from "drizzle-orm";
-import { ContaReceberStatusValues, PedidoStatusValues } from "../shared/domain-status";
+import { ContaReceberStatusValues, PedidoStatusValues } from "../shared/domain-status.js";
 
 const MIN_STOCK_DEFAULT = 5;
 const DIAS_INATIVIDADE_CLIENTE = 60;

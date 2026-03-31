@@ -1,6 +1,6 @@
-import { useApiHealth } from "@/contexts/ApiHealthContext";
-import ClientesConnected from "@/pages/clientes/ClientesConnected";
-import ClientesOfflinePanel from "@/pages/clientes/ClientesOfflinePanel";
+import { useApiHealth } from "../contexts/ApiHealthContext";
+import ClientesConnected from "./clientes/ClientesConnected";
+import ClientesOfflinePanel from "./clientes/ClientesOfflinePanel";
 
 export default function Clientes() {
   const { status } = useApiHealth();

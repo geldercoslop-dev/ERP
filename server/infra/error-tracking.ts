@@ -1,20 +1,8 @@
-import { recordRequest } from './metrics';
-import { ErrorContext } from './logger-core';
+import { recordRequest } from './metrics.js';
+import { ErrorContext } from './logger-core.js';
 
 /**
- * Lazy load do logger para evitar circular dependency
- */
-let errorLoggerInstance: any = null;
-function getErrorLogger() {
-  if (!errorLoggerInstance) {
-    const { createLogger } = require('./structured-logger');
-    errorLoggerInstance = createLogger("error-tracking");
-  }
-  return errorLoggerInstance;
-}
-
-/**
- * Logger de erro estruturado com métricas
+ * Logger de erro estruturado PURO - sem dependência de logger
  */
 export class StructuredErrorLogger {
   /**
@@ -44,19 +32,8 @@ export class StructuredErrorLogger {
       },
     };
     
-    // Log estruturado centralizado
-    getErrorLogger().error(errorMessage, {
-      requestId: context.requestId,
-      tenantId: context.tenantId,
-      userId: context.userId,
-      path: context.path,
-      method: context.method,
-      duration: context.duration,
-      metadata: {
-        stack: errorStack,
-        logEntry,
-      },
-    });
+    // Log direto para console - sem dependência circular
+    console.error('[ERROR-TRACKING]', JSON.stringify(logEntry));
     
     // Registra métricas se houver contexto de request
     if (context.method && context.path && context.duration !== undefined) {
@@ -96,15 +73,7 @@ export class StructuredErrorLogger {
       },
     };
     
-    getErrorLogger().warn(message, {
-      requestId: context.requestId,
-      tenantId: context.tenantId,
-      userId: context.userId,
-      path: context.path,
-      method: context.method,
-      duration: context.duration,
-      metadata: { logEntry },
-    });
+    console.warn('[ERROR-TRACKING]', JSON.stringify(logEntry));
   }
   
   /**
@@ -129,15 +98,7 @@ export class StructuredErrorLogger {
       },
     };
     
-    getErrorLogger().info(message, {
-      requestId: context.requestId,
-      tenantId: context.tenantId,
-      userId: context.userId,
-      path: context.path,
-      method: context.method,
-      duration: context.duration,
-      metadata: { logEntry },
-    });
+    console.info('[ERROR-TRACKING]', JSON.stringify(logEntry));
   }
 }
 

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('attack-detection');
 

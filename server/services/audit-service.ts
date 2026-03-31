@@ -6,13 +6,13 @@
  */
 
 import { nanoid } from 'nanoid';
-import { getDb } from '../db/index';
-import { auditLog } from '../../drizzle/schema';
+import { getDb } from '../db/index.js';
+import { auditLog } from '../../drizzle/schema.js';
 import { eq, sql, and, desc, like, gte, lte, type SQL } from 'drizzle-orm';
-import { ContaReceberStatus, PedidoStatus } from '../shared/domain-status';
+import { ContaReceberStatus, PedidoStatus } from '../shared/domain-status.js';
 import { MySql2Database } from 'drizzle-orm/mysql2';
-import { isRecord, createResponse } from '../_core/type-guards';
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from '../_core/service-entry-guard';
+import { isRecord, createResponse } from '../_core/type-guards.js';
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from '../_core/service-entry-guard.js';
 
 // Interfaces alinhadas com schema
 export interface AuditLogData {

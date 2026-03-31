@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import * as inventoryService from '../../services/inventory.service';
-import * as clientesService from '../../services/clientes.service';
-import * as ordersService from '../../services/orders.service';
-import { ADMIN_ACTOR } from '../../_core/service-actor';
-import { getDb } from '../../db/index';
-import { schema } from '../../db/index';
+import * as inventoryService from '../../services/inventory.service.js';
+import * as clientesService from '../../services/clientes.service.js';
+import * as ordersService from '../../services/orders.service.js';
+import { ADMIN_ACTOR } from '../../_core/service-actor.js';
+import { getDb } from '../../db/index.js';
+import { schema } from '../../db/index.js';
 import { eq, and, or } from 'drizzle-orm';
 
 const { produtos, clientes, pedidos } = schema;

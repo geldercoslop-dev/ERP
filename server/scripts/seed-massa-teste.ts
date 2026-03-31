@@ -5,8 +5,8 @@
  * Pré-requisito: ao menos um vendedor existente (ex.: npm run seed:admin).
  * Uso: npx tsx server/scripts/seed-massa-teste.ts
  */
-import "../_core/loadEnv";
-import * as db from "../db/index";
+import "../_core/loadEnv.js";
+import * as db from "../db/index.js";
 
 const PREFIX = "[seed-massa-teste]";
 

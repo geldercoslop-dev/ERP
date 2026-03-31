@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { Button } from "../components/ui/button";
+import { useAuth } from "../hooks/useAuth";
 import { useLocation } from "wouter";
 import { ArrowLeft, User, Shield, LogOut } from "lucide-react";
-import { APP_VERSION } from "@/const";
+import { APP_VERSION } from "../const";
 
 export default function Perfil() {
   const [, setLocation] = useLocation();

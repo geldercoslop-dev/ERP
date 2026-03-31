@@ -3,7 +3,7 @@
  * https://docs.awesomeapi.com.br/api-de-moedas
  * Cache: 5 min (server/cache/api-cache.ts).
  */
-import { getOrSet } from "../cache/api-cache";
+import { getOrSet } from "../cache/api-cache.js";
 
 const BASE = "https://economia.awesomeapi.com.br/json/last";
 

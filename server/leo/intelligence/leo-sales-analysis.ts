@@ -1,5 +1,5 @@
-import * as ordersService from '../../services/orders.service';
-import { logInfo, logError } from '../../_core/logger';
+import * as ordersService from '../../services/orders.service.js';
+import { logInfo, logError } from '../../_core/logger.js';
 
 const DEFAULT_TENANT_ID = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 1);
 

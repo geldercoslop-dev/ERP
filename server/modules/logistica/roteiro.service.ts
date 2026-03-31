@@ -1,8 +1,8 @@
 /**
  * Serviço de roteiro de entrega: geração de roteiro (PDF/impressão) e dados para relatório.
  */
-import * as logisticaService from "../../services/logistica.service";
-import * as pdf from "../../infra/pdf/pdf";
+import * as logisticaService from "../../services/logistica.service.js";
+import * as pdf from "../../infra/pdf/pdf.js";
 
 export interface ItemRoteiro {
   ordem: number;

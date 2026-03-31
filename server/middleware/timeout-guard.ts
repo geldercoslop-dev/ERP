@@ -5,7 +5,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../infra/structured-logger';
+import { createLogger } from '../infra/structured-logger.js';
+import { isHealthProbePath } from '../_core/health-probe-paths.js';
 
 const logger = createLogger('timeout-guard');
 
@@ -17,6 +18,10 @@ const MAX_EXECUTION_TIME = 10000;
  */
 export function timeoutGuardMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
+    const pathOnly = req.path || req.url || "";
+    if (isHealthProbePath(pathOnly)) {
+      return next();
+    }
     // Criar controller para abortar operação
     const abortController = new AbortController();
     const { signal } = abortController;
@@ -120,18 +125,17 @@ class TimeoutError extends Error {
 }
 
 function extractTenantId(req: Request): number | undefined {
-  const queryTenantId = Number(req.query.tenantId);
-  if (Number.isFinite(queryTenantId) && queryTenantId > 0) {
-    return queryTenantId;
+  // SECURITY: tenantId must come from JWT only
+  const reqWithTenant = req as Request & { tenantId?: unknown; user?: { tenantId?: unknown } };
+
+  const requestTenantId = Number(reqWithTenant.tenantId);
+  if (Number.isFinite(requestTenantId) && requestTenantId > 0) {
+    return requestTenantId;
   }
 
-  const bodyValue =
-    typeof req.body === "object" && req.body !== null && "tenantId" in req.body
-      ? (req.body as { tenantId?: unknown }).tenantId
-      : undefined;
-  const bodyTenantId = Number(bodyValue);
-  if (Number.isFinite(bodyTenantId) && bodyTenantId > 0) {
-    return bodyTenantId;
+  const userTenantId = Number(reqWithTenant.user?.tenantId);
+  if (Number.isFinite(userTenantId) && userTenantId > 0) {
+    return userTenantId;
   }
 
   return undefined;

@@ -5,15 +5,15 @@
  * Inclui vendas, estoque, tarefas, erros e performance
  */
 
-import { leoTaskQueue } from '../tasks/leo-task-queue';
-import { leoEvents } from '../memory/leo-events';
-import { leoErpObserver } from '../perception/leo-erp-observer';
-import { leoScheduler } from '../engine/leo-scheduler';
-import { LeoTaskStatus } from '@shared/types';
-import { leoLoop } from '../engine/leo-loop';
-import { leoSupervisor } from '../engine/leo-supervisor';
-import { leoLoopProtection } from '../security/leo-loop-protection';
-import { leoEngine } from '../engine/leo-engine';
+import { leoTaskQueue } from '../tasks/leo-task-queue.js';
+import { leoEvents } from '../memory/leo-events.js';
+import { leoErpObserver } from '../perception/leo-erp-observer.js';
+import { leoScheduler } from '../engine/leo-scheduler.js';
+import { LeoTaskStatus } from '../../../shared/types/index.js';
+import { leoLoop } from '../engine/leo-loop.js';
+import { leoSupervisor } from '../engine/leo-supervisor.js';
+import { leoLoopProtection } from '../security/leo-loop-protection.js';
+import { leoEngine } from '../engine/leo-engine.js';
 
 /** Helper para registrar ação no log (stub para evitar dependência de insertLeoActionLog em db). */
 async function insertLeoActionLog(_entry: Record<string, unknown>): Promise<void> {
@@ -379,7 +379,7 @@ class LeoDailyReport {
       const tasks = leoTaskQueue.listTasks({ limit: 100 });
       
       // Filtrar tarefas do período (LeoTaskFull.createdAt é Date)
-      type TaskItem = import('../tasks/leo-task-queue').LeoTaskFull;
+      type TaskItem = import('../tasks/leo-task-queue.js').LeoTaskFull;
       const tarefasPeriodo = tasks.filter((task: TaskItem) => {
         const created = task.createdAt instanceof Date ? task.createdAt.getTime() : 0;
         return created >= inicio.getTime() && created <= fim.getTime();

@@ -1,5 +1,5 @@
-import { createPedidoSafe } from '../services/orders.service';
-import { getDb } from '../db/index';
+import { createPedidoSafe } from '../services/orders.service.js';
+import { getDb } from '../db/index.js';
 
 /**
  * TESTE REAL DE IDEMPOTÊNCIA E CONCORRÊNCIA
@@ -43,7 +43,7 @@ async function testIdempotencyReal() {
     // Limpar registros de idempotência antes do teste
     const db = await getDb();
     if (db) {
-      await db.delete((await import('../db/index')).idempotencyKeys);
+      await db.delete((await import('../db/index.js')).idempotencyKeys);
       console.log('✅ Tabela de idempotência limpa');
     }
 
@@ -81,10 +81,10 @@ async function testIdempotencyReal() {
       // Verificar se não há duplicação no banco
       const db2 = await getDb();
       if (db2) {
-        const pedidos = await db2.select().from((await import('../db/index')).pedidos);
+        const pedidos = await db2.select().from((await import('../db/index.js')).pedidos);
         console.log(`📈 Total de pedidos no banco: ${pedidos.length}`);
         
-        const idempotencyRecords = await db2.select().from((await import('../db/index')).idempotencyKeys);
+        const idempotencyRecords = await db2.select().from((await import('../db/index.js')).idempotencyKeys);
         console.log(`🔑 Registros de idempotência: ${idempotencyRecords.length}`);
       }
       

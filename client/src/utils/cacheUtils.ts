@@ -1,4 +1,4 @@
-import { trpc } from '@/lib/trpcClient';
+import { trpc } from '../lib/trpcClient';
 
 /**
  * Utilitário para gerenciar o cache do tRPC

@@ -2,9 +2,9 @@
  * Interpretação inteligente de perguntas do usuário.
  * Tenta LLM (quando disponível); se não identificar intenção, usa regras do query-engine.
  */
-import { identificarIntencao, type EntidadesExtraidas } from "./query-engine";
-import { LLMConnector, type LLMMessage } from "./llm-connector";
-import { logger } from "../../utils/logger";
+import { identificarIntencao, type EntidadesExtraidas } from "./query-engine.js";
+import { LLMConnector, type LLMMessage } from "./llm-connector.js";
+import { logger } from "../../utils/logger.js";
 
 export type LeoIntent =
   | "consultar_pedido"

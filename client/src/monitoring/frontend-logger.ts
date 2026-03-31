@@ -10,8 +10,8 @@
  * - Sem impacto em produção (configurável)
  */
 
-import { isDevelopment, LOG_CONFIG } from '@/config/app';
-import type { AppError } from '@/types/error';
+import { isDevelopment, LOG_CONFIG } from '../config/app';
+import type { AppError } from '../types/error';
 
 /** Níveis de log */
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';

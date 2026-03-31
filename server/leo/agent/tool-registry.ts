@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { desktopController } from '../desktop/desktop-controller';
-import { getLeoToolDefinitions } from '../tools';
-import type { Payload } from '../../../shared/types';
-import type { SecureToolContext } from '../../_core/secure-context';
+import { desktopController } from '../desktop/desktop-controller.js';
+import { getLeoToolDefinitions } from '../tools/index.js';
+import type { Payload } from '../../../shared/types/index.js';
+import type { SecureToolContext } from '../../_core/secure-context.js';
 
 /** Contexto obrigatório em todo handler de tool (alinhado ao executor LEO). */
 export type ToolContext = SecureToolContext;

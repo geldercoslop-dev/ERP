@@ -1,7 +1,7 @@
 /**
  * Tipos de usuário e auth — entidades (User, Vendedor) vêm de entities.ts
  */
-import type { users } from "./entities";
+import type { users } from "./entities.js";
 
 type UserType = typeof users.$inferSelect;
 

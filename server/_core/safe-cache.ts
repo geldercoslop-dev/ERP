@@ -5,9 +5,9 @@
  * e integração com o sistema de proteção de serviços.
  */
 
-import { memoryCache, withCache, withCacheByParams, CacheOptions } from './memory-cache';
-import { isArraySafe, isObjectSafe, hasValidId, ensureArray, ensureObject, ensureCreatedResult } from './service-safety';
-import { logInfo, logWarning, logError, LogLevel, ErrorType } from './service-logger';
+import { memoryCache, withCache, withCacheByParams, CacheOptions } from './memory-cache.js';
+import { isArraySafe, isObjectSafe, hasValidId, ensureArray, ensureObject, ensureCreatedResult } from './service-safety.js';
+import { logInfo, logWarning, logError, LogLevel, ErrorType } from './service-logger.js';
 import { nanoid } from 'nanoid';
 
 /**

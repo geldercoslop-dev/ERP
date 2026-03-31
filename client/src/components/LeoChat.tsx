@@ -1,9 +1,9 @@
 import { useRef, useEffect } from "react";
 import { Send, Bot, User, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useLeoChat, type ChatMessage } from "@/hooks/useLeoChat";
-import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { useLeoChat, type ChatMessage } from "../hooks/useLeoChat";
+import { cn } from "../lib/utils";
 
 function DataTable({ data }: { data: unknown }) {
   if (data == null) return null;

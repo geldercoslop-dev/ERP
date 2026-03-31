@@ -3,10 +3,10 @@
  * Requer MySQL rodando (npm run test:db deve passar) e migração 0005+0006 idempotency_keys.
  * Uso: npm run test:core
  */
-import "../_core/loadEnv";
-import * as db from "../db/index";
-import { executeCommand } from "../_core/command";
-import { isInProgress } from "@shared/idempotency";
+import "../_core/loadEnv.js";
+import * as db from "../db/index.js";
+import { executeCommand } from "../_core/command.js";
+import { isInProgress } from "../../shared/idempotency.js";
 
 async function main() {
   console.log("[test:core] Iniciando testes de integração...");

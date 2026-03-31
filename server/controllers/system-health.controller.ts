@@ -9,8 +9,8 @@ import { Router } from 'express';
 import {
   buildSystemHealthFailureResponse,
   getSystemHealthComplete,
-} from '../services/system-health.service';
-import { systemLogger } from '../_core/logger';
+} from '../services/system-health.service.js';
+import { systemLogger } from '../_core/logger.js';
 
 const router = Router();
 

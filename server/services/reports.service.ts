@@ -1,6 +1,6 @@
-import * as db from "../db/index";
+import * as db from "../db/index.js";
 import { eq, and, gte, lte, sql, asc } from "drizzle-orm";
-import { pedidos } from "../../drizzle/schema";
+import { pedidos } from "../../drizzle/schema.js";
 
 /**
  * Serviço de relatórios e análises do ERP.

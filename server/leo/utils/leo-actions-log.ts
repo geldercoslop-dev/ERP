@@ -4,7 +4,7 @@
  * Sistema de logging para auditoria de ações do agente
  */
 
-import { leoLogManager } from './leo-log-manager';
+import { leoLogManager } from './leo-log-manager.js';
 
 export interface ActionLogEntry {
   id?: number;

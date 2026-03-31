@@ -1,0 +1,23 @@
+# Imagem de desenvolvimento: dependências instaladas no build (sem install no entrypoint).
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+ENV HUSKY=0 \
+    CI=true \
+    NODE_ENV=development
+
+RUN npm install -g pnpm@10.15.1
+
+RUN apt-get update && apt-get install -y python3 make g++
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile \
+    --config.node-linker=hoisted \
+    --config.package-import-method=copy
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "pnpm dev"]

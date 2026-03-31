@@ -1,4 +1,4 @@
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 export type AuditModule = "auth" | "clientes" | "pedidos" | "financeiro" | "admin" | "system";
 export type AuditAction = "login" | "logout" | "create" | "update" | "delete" | "impersonate" | "config_change";

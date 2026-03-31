@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle, AlertCircle, Clock, PackageSearch, CreditCard, ArrowRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "./card";
+import { Badge } from "./badge";
 import { useLocation } from "wouter";
 
 /**

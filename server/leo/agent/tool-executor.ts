@@ -1,15 +1,15 @@
-import type { Payload } from '../../../shared/types';
-import type { SecureToolContext, ToolExecutionPayload } from '../../_core/secure-context';
-import { permissionUserRoleFromSecure } from '../../_core/secure-context';
-import type { ServiceInvocationStore } from '../../_core/service-entry-guard';
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from '../../_core/service-entry-guard';
+import type { Payload } from '../../../shared/types/index.js';
+import type { SecureToolContext, ToolExecutionPayload } from '../../_core/secure-context.js';
+import { permissionUserRoleFromSecure } from '../../_core/secure-context.js';
+import type { ServiceInvocationStore } from '../../_core/service-entry-guard.js';
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from '../../_core/service-entry-guard.js';
 import {
   reconstructLeoToolExecutionIdentity,
   stripForbiddenKeysFromToolInput,
   toSecureToolContext,
-} from '../../_core/tenant-ownership';
-import { toolRegistry, ToolDefinition } from './tool-registry';
-import { leoLogManager } from '../utils/leo-log-manager';
+} from '../../_core/tenant-ownership.js';
+import { toolRegistry, ToolDefinition } from './tool-registry.js';
+import { leoLogManager } from '../utils/leo-log-manager.js';
 
 /** Alias do contexto seguro de execução (handlers e executor). */
 export type ToolExecutionContext = SecureToolContext;
@@ -34,6 +34,68 @@ function sanitizeToolInput(input: unknown): Record<string, unknown> {
 }
 
 export class ToolExecutor {
+  private static readonly TOOL_TIMEOUT_MS = 15000;
+  private static readonly MAX_RETRIES = 2;
+
+  private async executeWithTimeout<T>(promise: Promise<T>, timeoutMs: number, toolName: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`Timeout de ${timeoutMs}ms excedido na tool '${toolName}'`));
+      }, timeoutMs);
+
+      promise
+        .then((value) => {
+          clearTimeout(timer);
+          resolve(value);
+        })
+        .catch((error: unknown) => {
+          clearTimeout(timer);
+          reject(error instanceof Error ? error : new Error(String(error)));
+        });
+    });
+  }
+
+  private async executeToolWithRetry(
+    toolName: string,
+    payload: Payload,
+    context: ToolExecutionContext
+  ): Promise<{ result?: unknown; error?: string }> {
+    let lastError = '';
+
+    for (let attempt = 1; attempt <= ToolExecutor.MAX_RETRIES + 1; attempt += 1) {
+      try {
+        const tool = toolRegistry.getTool(toolName);
+        if (!tool) {
+          return { error: `Tool '${toolName}' não encontrada` };
+        }
+
+        const result = await this.executeWithTimeout(
+          tool.handler(payload, context),
+          ToolExecutor.TOOL_TIMEOUT_MS,
+          toolName
+        );
+
+        return { result };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        lastError = errorMessage;
+
+        await this.logToolExecution(toolName, payload, context, 'ERROR', {
+          attempt,
+          maxAttempts: ToolExecutor.MAX_RETRIES + 1,
+          error: errorMessage,
+          isRetry: attempt <= ToolExecutor.MAX_RETRIES,
+        });
+
+        if (attempt > ToolExecutor.MAX_RETRIES) {
+          break;
+        }
+      }
+    }
+
+    return { error: `Falha na tool '${toolName}' após retry automático: ${lastError}` };
+  }
+
   /** Execução tipada com payload único (recomendado para novos call sites). */
   async executeToolWithPayload(payload: ToolExecutionPayload): Promise<ToolExecutionResult> {
     const ctx: ToolExecutionContext = {
@@ -63,7 +125,7 @@ export class ToolExecutor {
 
     try {
       // 0. Validar contexto obrigatório antes de tudo
-      const { agentPermissions } = await import('../security/agent-permissions');
+      const { agentPermissions } = await import('../security/agent-permissions.js');
       const permissionContext = {
         tenantId: invocationCtx.tenantId,
         userId: invocationCtx.userId,
@@ -106,7 +168,11 @@ export class ToolExecutor {
       const payload: Payload = (validationResult.data != null && typeof validationResult.data === 'object')
         ? (validationResult.data as Payload)
         : {};
-      const result = await tool.handler(payload, invocationCtx);
+      const execution = await this.executeToolWithRetry(toolName, payload, invocationCtx);
+      if (execution.error) {
+        throw new Error(execution.error);
+      }
+      const result = execution.result;
 
       const executionTime = Date.now() - startTime;
 
@@ -133,7 +199,12 @@ export class ToolExecutor {
         error: errorMessage
       });
 
-      throw error instanceof Error ? error : new Error(errorMessage);
+      return {
+        success: false,
+        error: `Fallback de erro acionado: ${errorMessage}`,
+        executionTime,
+        toolName,
+      };
     }
     });
   }
@@ -238,7 +309,7 @@ export class ToolExecutor {
     toolName: string,
     context: ToolExecutionContext
   ): Promise<boolean> {
-    const { agentPermissions } = await import('../security/agent-permissions');
+    const { agentPermissions } = await import('../security/agent-permissions.js');
     const permissionContext = {
         tenantId: context.tenantId,
         userId: context.userId,
@@ -254,7 +325,7 @@ export class ToolExecutor {
 
   // Lista todas as tools disponíveis para o contexto atual
   async getAvailableTools(context: ToolExecutionContext): Promise<ToolDefinition[]> {
-    const { agentPermissions } = await import('../security/agent-permissions');
+    const { agentPermissions } = await import('../security/agent-permissions.js');
     const allTools = toolRegistry.getAllTools();
     const availableTools: ToolDefinition[] = [];
 

@@ -1,30 +1,23 @@
 /**
  * Verificação rápida de DB + Redis (sem subir HTTP).
  * Usado por pnpm run verify:system
+ * Alinhado a loadEnv: apenas `.env` na raiz, sem override em cadeia.
  */
 import dotenv from "dotenv";
 import path from "path";
 
 const root = process.cwd();
-dotenv.config({ path: path.resolve(root, ".env") });
-const nodeEnv = process.env.NODE_ENV || "development";
-dotenv.config({ path: path.resolve(root, `.env.${nodeEnv}`), override: true });
-if (
-  nodeEnv === "production" &&
-  (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === "")
-) {
-  dotenv.config({ path: path.resolve(root, ".env.production"), override: true });
-}
+dotenv.config({ path: path.resolve(root, ".env"), override: false });
 
 async function main(): Promise<void> {
   console.log("[DB] testando pool MySQL…");
-  const { getConnectionPool } = await import("../config/database");
+  const { getConnectionPool } = await import("../config/database.js");
   const pool = await getConnectionPool();
   await pool.query("SELECT 1 AS verify_ping");
   console.log("[DB] ok");
 
   console.log("[REDIS] testando conexão…");
-  const { redisManager } = await import("../infra/redis");
+  const { redisManager } = await import("../infra/redis.js");
   const r = await redisManager.testConnection();
   if (!r.success) {
     console.error("[REDIS] falha:", r.message);

@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { trpc } from "@/lib/trpcClient";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { trpc } from "../lib/trpcClient";
 import { useLocation } from "wouter";
 import { 
   DollarSign, 
@@ -20,8 +20,8 @@ import {
   Plus,
   ArrowLeft
 } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 import { toast } from "sonner";
 
 /**

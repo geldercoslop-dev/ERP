@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { Package, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
-import type { ProdutoLocal } from "@/types/appDomain";
-import { saveProdutosMock, seedProdutosIfEmpty } from "@/mocks/localProdutosStore";
-import { newLocalId } from "@/mocks/id";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { PageHeader } from "../../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../../components/layout/pageLayout";
+import type { ProdutoLocal } from "../../types/appDomain";
+import { saveProdutosMock, seedProdutosIfEmpty } from "../../mocks/localProdutosStore";
+import { newLocalId } from "../../mocks/id";
 import { toast } from "sonner";
 
 /**

@@ -2,7 +2,7 @@
  * VALIDAÇÃO REAL DE SEGURANÇA LEO - RELATÓRIO VERDADEIRO
  */
 
-import { agentPermissions } from './agent-permissions';
+import { agentPermissions } from './agent-permissions.js';
 
 console.log('🔍 VALIDAÇÃO REAL DE SEGURANÇA LEO');
 console.log('=====================================\n');

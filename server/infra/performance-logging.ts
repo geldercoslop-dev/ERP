@@ -1,5 +1,5 @@
-import { tracer } from './tracing';
-import { createLogger } from './structured-logger';
+import { tracer } from './tracing.js';
+import { createLogger } from './structured-logger.js';
 
 const logger = createLogger('performance-logging');
 
@@ -263,7 +263,7 @@ export function measurePerformance<T>(
   metadata?: Record<string, any>
 ): Promise<T> {
   return new Promise(async (resolve, reject) => {
-    const { getCurrentSpan } = await import('./tracing');
+    const { getCurrentSpan } = await import('./tracing.js');
     const currentSpan = getCurrentSpan();
     const traceId = currentSpan?.traceId || tracer.generateTraceId();
     const spanId = currentSpan?.spanId || tracer.generateSpanId();

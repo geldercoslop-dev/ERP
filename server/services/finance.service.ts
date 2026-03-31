@@ -1,14 +1,14 @@
 import { eq, and, desc, asc, sql, inArray, ne, getTableColumns } from "drizzle-orm";
-import { getDb, getInsertId, contasReceber, contasPagar, caixaMensal, comissoes, pedidos, boletos, clientes, planoContas, contasFixas, insertAuditLog } from "../db/index";
+import { getDb, getInsertId, contasReceber, contasPagar, comissoes, pedidos, boletos, clientes, planoContas, contasFixas, insertAuditLog, caixaMensal, clienteVendedores } from "../db/index.js";
 import { nanoid } from "nanoid";
-import { auditLog } from "../_core/audit-log";
-import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response";
+import { auditLog } from "../_core/audit-log.js";
+import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 import { 
   financialIdempotencyCheck, 
   executeWithIdempotency, 
   generateIdempotencyKey,
   markOperationProcessed
-} from "./financial-idempotency";
+} from "./financial-idempotency.js";
 import {
   BoletoStatus,
   BoletoStatusValues,
@@ -20,10 +20,10 @@ import {
   ContaReceberStatusValues,
   type ContaReceberStatusValue,
   PedidoStatus,
-} from "../shared/domain-status";
-import { validateStatus } from "../shared/guards/domain-guard";
-import type { ServiceActor } from "../_core/service-actor";
-import { assertVendedorActor, financeScopeVendedorId } from "../_core/service-actor";
+} from "../shared/domain-status.js";
+import { validateStatus } from "../shared/guards/domain-guard.js";
+import type { ServiceActor } from "../_core/service-actor.js";
+import { assertVendedorActor, financeScopeVendedorId } from "../_core/service-actor.js";
 
 /** Opções de baixa de pedido (transação interna + ator para isolamento). */
 export type BaixarPedidoDiretoOptions = {
@@ -130,8 +130,18 @@ export async function baixarPedidoDireto(
 
     if (actor?.role === "vendedor") {
       assertVendedorActor(actor);
-      if (Number(pedido.vendedorId) !== actor.vendedorId) {
-        throw new Error("Acesso negado: pedido de outro vendedor.");
+      // ✅ HARDENING: Validar por clienteVendedores (fonte oficial)
+      const clienteRows = await tx.select({ clienteId: clienteVendedores.clienteId })
+        .from(clienteVendedores)
+        .where(and(
+          eq(clienteVendedores.vendedorId, actor.vendedorId)
+        )).limit(1);
+      if (clienteRows.length === 0) {
+        throw new Error("Cliente não encontrado.");
+      }
+      const cliente = clienteRows[0];
+      if (cliente.clienteId !== pedido.clienteId) {
+        throw new Error("Acesso negado: cliente de outro proprietário.");
       }
     }
 
@@ -497,10 +507,11 @@ export async function deleteContaReceber(tenantId: number, id: number): Promise<
 }
 
 export async function getCaixaMensal(
-  _tenantId: number, 
+  tenantId: number,
   mesAno?: string, 
   opts?: { page?: number; pageSize?: number; }
 ): Promise<{ items: CaixaMensal[]; total: number; page: number; pageSize: number; }> {
+  assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
   if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
   
@@ -508,12 +519,15 @@ export async function getCaixaMensal(
   const pageSize = Math.min(opts?.pageSize ?? 50, 100);
   const offset = (page - 1) * pageSize;
   
-  const filter = mesAno ? eq(caixaMensal.mesAno, mesAno) : sql`1=1`;
+  const conditions = [eq(caixaMensal.tenantId, tenantId)];
+  if (mesAno) {
+    conditions.push(eq(caixaMensal.mesAno, mesAno));
+  }
   
   const items = await dbConn
     .select()
     .from(caixaMensal)
-    .where(filter)
+    .where(and(...conditions))
     .orderBy(desc(caixaMensal.mesAno))
     .limit(pageSize)
     .offset(offset);
@@ -521,7 +535,7 @@ export async function getCaixaMensal(
   const totalResult = await dbConn
     .select({ count: sql`count(*)` })
     .from(caixaMensal)
-    .where(filter);
+    .where(and(...conditions));
   const total = Number(totalResult[0]?.count ?? 0);
   
   return { items: ensureArray(items) as CaixaMensal[], total, page, pageSize };
@@ -534,10 +548,11 @@ export async function getAllCaixaMensal(tenantId: number): Promise<CaixaMensal[]
 }
 
 export async function getPlanoContas(
-  _tenantId: number, 
+  tenantId: number,
   tipo?: 'RECEITA' | 'DESPESA',
   opts?: { page?: number; pageSize?: number; }
 ): Promise<{ items: PlanoConta[]; total: number; page: number; pageSize: number; }> {
+  assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
   if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
   
@@ -545,12 +560,15 @@ export async function getPlanoContas(
   const pageSize = Math.min(opts?.pageSize ?? 50, 100);
   const offset = (page - 1) * pageSize;
   
-  const filter = tipo ? eq(planoContas.tipo, tipo) : sql`1=1`;
+  const conditions = [eq(planoContas.tenantId, tenantId)];
+  if (tipo) {
+    conditions.push(eq(planoContas.tipo, tipo));
+  }
   
   const items = await dbConn
     .select()
     .from(planoContas)
-    .where(filter)
+    .where(and(...conditions))
     .orderBy(asc(planoContas.nome))
     .limit(pageSize)
     .offset(offset);
@@ -558,7 +576,7 @@ export async function getPlanoContas(
   const totalResult = await dbConn
     .select({ count: sql`count(*)` })
     .from(planoContas)
-    .where(filter);
+    .where(and(...conditions));
   const total = Number(totalResult[0]?.count ?? 0);
   
   return { items: ensureArray(items) as PlanoConta[], total, page, pageSize };
@@ -570,7 +588,7 @@ export async function createPlanoContas(tenantId: number, data: Omit<PlanoConta,
     assertRequiredPayload(data, "Dados do plano de contas obrigatórios");
     const dbConn = await getDb();
     if (!dbConn) throw new Error("Banco de dados indisponível");
-    const result = await dbConn.insert(planoContas).values({ ...data });
+    const result = await dbConn.insert(planoContas).values({ ...data, tenantId });
     const id = getInsertId(result);
     if (!Number.isInteger(id) || id <= 0) {
       throw new Error("Falha ao criar plano de contas");
@@ -615,9 +633,10 @@ export async function deleteContaPagar(tenantId: number, id: number): Promise<{ 
 }
 
 export async function listContasFixas(
-  _tenantId: number,
+  tenantId: number,
   opts?: { page?: number; pageSize?: number; }
 ): Promise<{ items: ContaFixa[]; total: number; page: number; pageSize: number; }> {
+  assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
   if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
   
@@ -628,14 +647,14 @@ export async function listContasFixas(
   const items = await dbConn
     .select()
     .from(contasFixas)
-    .where(eq(contasFixas.ativo, true))
+    .where(and(eq(contasFixas.tenantId, tenantId), eq(contasFixas.ativo, true)))
     .limit(pageSize)
     .offset(offset);
     
   const totalResult = await dbConn
     .select({ count: sql`count(*)` })
     .from(contasFixas)
-    .where(eq(contasFixas.ativo, true));
+    .where(and(eq(contasFixas.tenantId, tenantId), eq(contasFixas.ativo, true)));
   const total = Number(totalResult[0]?.count ?? 0);
   
   return { items: items as ContaFixa[], total, page, pageSize };
@@ -646,7 +665,7 @@ export async function createContaFixa(tenantId: number, data: Omit<ContaFixa, 'i
   assertRequiredPayload(data, "Dados da conta fixa obrigatórios");
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Banco de dados indisponível");
-  const result = await dbConn.insert(contasFixas).values({ ...data, ativo: true });
+  const result = await dbConn.insert(contasFixas).values({ ...data, tenantId, ativo: true });
   const id = getInsertId(result);
   if (!Number.isInteger(id) || id <= 0) {
     throw new Error("Falha ao criar conta fixa");
@@ -666,7 +685,7 @@ export async function gerarContasFixasMes(tenantId: number, mesAno: string): Pro
   for (const fixa of fixas) {
     const vcto = new Date(`${mesAno}-${String(fixa.diaVencimento).padStart(2, '0')}T12:00:00Z`);
     const res = await createContaPagar(tenantId, {
-      fornecedor: fixa.descricao,
+      fornecedor: fixa.descricao || '',
       descricao: `CONTA FIXA: ${fixa.descricao} - ${mesAno}`,
       valor: Number(fixa.valor),
       dataVencimento: vcto,
@@ -938,7 +957,7 @@ export async function atualizarCaixaMensal(
 
   const existing = await (dbTx as TxLike).select()
     .from(caixaMensal)
-    .where(eq(caixaMensal.mesAno, mesAno))
+    .where(and(eq(caixaMensal.tenantId, tenantId), eq(caixaMensal.mesAno, mesAno)))
     .limit(1) as Array<typeof caixaMensal.$inferSelect>;
 
   if (existing.length > 0) {
@@ -958,16 +977,16 @@ export async function atualizarCaixaMensal(
         totalGeral: sql`${caixaMensal.totalGeral} + ${valor}`,
         updatedAt: new Date()
       })
-      .where(eq(caixaMensal.mesAno, mesAno));
+      .where(and(eq(caixaMensal.tenantId, tenantId), eq(caixaMensal.mesAno, mesAno)));
   } else {
     const newData = {
+      tenantId,
       mesAno,
       totalPix: formaPagamento === 'PIX' ? String(valor) : "0",
       totalBoleto: formaPagamento === 'BOLETO' ? String(valor) : "0",
       totalCartao: formaPagamento === 'CARTAO' ? String(valor) : "0",
       totalDinheiro: formaPagamento === 'DINHEIRO' ? String(valor) : "0",
       totalGeral: String(valor),
-      createdAt: new Date(),
       updatedAt: new Date()
     };
     await (dbTx as TxLike).insert(caixaMensal).values(newData);

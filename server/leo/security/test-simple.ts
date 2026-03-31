@@ -2,7 +2,7 @@
  * Teste Simples de Segurança LEO - Versão Simplificada
  */
 
-import { agentPermissions } from './agent-permissions';
+import { agentPermissions } from './agent-permissions.js';
 
 console.log('🔒 TESTE DE SEGURANÇA LEO - INICIADO\n');
 

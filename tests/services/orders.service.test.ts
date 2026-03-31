@@ -6,6 +6,7 @@ import {
   updatePedidoStatus,
 } from "../../server/services/orders.service";
 import { getDb } from "../../server/db/index";
+import { ADMIN_ACTOR } from "../../server/_core/service-actor";
 
 vi.mock("../../server/db/index", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../server/db/index")>();
@@ -55,21 +56,29 @@ describe("OrdersService", () => {
       const pedidoRow = {
         id: 1,
         tenantId: 1,
+        clienteId: 1,
         clienteNome: "Antigo",
         total: "100",
         status: "GERADO",
       };
+      const clienteRow = { id: 1, tenantId: 1, userId: 1 };
+      let limitRound = 0;
       const mockDb = {
         select: vi.fn().mockReturnThis(),
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([pedidoRow]),
+        limit: vi.fn().mockImplementation(() => {
+          limitRound += 1;
+          // assert: pedido → cliente → getPedido (update) → getPedido (pós-update)
+          if (limitRound === 2) return Promise.resolve([clienteRow]);
+          return Promise.resolve([pedidoRow]);
+        }),
         update: vi.fn().mockReturnThis(),
         set: vi.fn().mockReturnThis(),
       };
       vi.mocked(getDb).mockResolvedValue(mockDb as never);
 
-      const result = await updatePedido(1, 1, { clienteNome: "Cliente Atualizado" });
+      const result = await updatePedido(1, ADMIN_ACTOR, 1, { clienteNome: "Cliente Atualizado" });
 
       expect(result).toEqual({ success: true });
       expect(mockDb.update).toHaveBeenCalled();

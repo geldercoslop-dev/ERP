@@ -1,6 +1,6 @@
-import * as financeEngine from "../../services/ai/finance-engine";
-import * as ordersService from "../../services/orders.service";
-import * as inventoryService from "../../services/inventory.service";
+import * as financeEngine from "../../services/ai/finance-engine.js";
+import * as ordersService from "../../services/orders.service.js";
+import * as inventoryService from "../../services/inventory.service.js";
 
 const INTERVAL_MS = 10 * 60 * 1000;
 const DEFAULT_TENANT_ID = 1;
@@ -95,7 +95,7 @@ export function startScheduler(): void {
         if (alertas.length > 0 && process.env.NODE_ENV !== "production") {
           console.log("[LEO scheduler]", alertas.map((a) => a.resumo).join("; "));
         }
-        const { enviarNotificacoesInteligentes } = await import("../utils/leo-notifier");
+        const { enviarNotificacoesInteligentes } = await import("../utils/leo-notifier.js");
         await enviarNotificacoesInteligentes(results).catch(() => {});
       })
       .catch((e) => console.error("[LEO scheduler]", (e as Error)?.message ?? e));

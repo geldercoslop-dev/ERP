@@ -1,11 +1,11 @@
 import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
-import { getDb, getInsertId, cargas, pedidosCarga, pedidos, vendedores, insertAuditLog } from "../db/core";
+import { getDb, getInsertId, cargas, pedidosCarga, pedidos, vendedores, insertAuditLog } from "../db/core.js";
 import { nanoid } from "nanoid";
-import * as financeService from "./finance.service";
-import { ADMIN_ACTOR } from "../_core/service-actor";
-import { ensureObject } from "../_core/service-response";
-import { CargaStatus, CargaStatusValues, PedidoStatus, type CargaStatusValue } from "../shared/domain-status";
-import { validateStatus } from "../shared/guards/domain-guard";
+import * as financeService from "./finance.service.js";
+import { ADMIN_ACTOR } from "../_core/service-actor.js";
+import { ensureObject } from "../_core/service-response.js";
+import { CargaStatus, CargaStatusValues, PedidoStatus, type CargaStatusValue } from "../shared/domain-status.js";
+import { validateStatus } from "../shared/guards/domain-guard.js";
 
 // ... (types)
 // ... (createCarga, getCargaById, listCargas, updateCargaStatus, addPedidosToCarga, removePedidosFromCarga, updatePedidoCarga, finalizarCarga)
@@ -542,6 +542,8 @@ export async function getPedidosParaCarga(
   filtros?: {
     vendedorId?: number;
     clienteId?: number;
+    /** Escopo por dono do cadastro em `clientes.user_id` (users.id). */
+    clienteOwnerUserId?: number;
     dataInicio?: Date;
     dataFim?: Date;
   },
@@ -563,6 +565,11 @@ export async function getPedidosParaCarga(
   // Aplicar filtros adicionais
   if (filtros?.vendedorId) {
     conditions.push(eq(pedidos.vendedorId, filtros.vendedorId));
+  }
+  if (filtros?.clienteOwnerUserId != null) {
+    conditions.push(
+      sql`exists (select 1 from clientes c where c.id = ${pedidos.clienteId} and c.user_id = ${filtros.clienteOwnerUserId})`
+    );
   }
   if (filtros?.clienteId) {
     conditions.push(eq(pedidos.clienteId, filtros.clienteId));

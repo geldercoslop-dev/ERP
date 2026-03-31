@@ -1,5 +1,5 @@
-import { getDb } from '../db/index';
-import { metrics } from './metrics';
+import { getDb } from '../db/index.js';
+import { metrics } from './metrics.js';
 
 /**
  * Wrapper para monitorar queries do banco de dados

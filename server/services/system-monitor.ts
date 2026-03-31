@@ -7,16 +7,16 @@
 
 import { Request, Response } from 'express';
 import { performance } from 'perf_hooks';
-import { redisManager } from '../infra/redis';
-import { queueManager } from '../queue/queue';
-import { workerManager } from '../queue/worker-simple';
-import { leoMemoryManager } from '../leo/memory/memory-manager';
-import { safeStockService } from '../services/safe-stock';
-import { safeTransactionService } from '../services/safe-transaction';
-import { getDb } from '../db/index';
-import { logger, logError } from '../_core/logger';
+import { redisManager } from '../infra/redis.js';
+import { queueManager } from '../queue/queue.js';
+import { workerManager } from '../queue/worker-simple.js';
+import { leoMemoryManager } from '../leo/memory/memory-manager.js';
+import { safeStockService } from '../services/safe-stock.js';
+import { safeTransactionService } from '../services/safe-transaction.js';
+import { getDb } from '../db/index.js';
+import { logger, logError } from '../_core/logger.js';
 import { sql } from 'drizzle-orm';
-import type { QueueStats } from '../queue/queue';
+import type { QueueStats } from '../queue/queue.js';
 
 export interface SystemHealth {
   status: 'healthy' | 'degraded' | 'unhealthy';

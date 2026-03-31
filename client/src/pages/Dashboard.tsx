@@ -1,12 +1,12 @@
 import { TrendingUp, Users, ShoppingCart } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { PAGE_WRAPPER, PAGE_MAIN } from "@/components/layout/pageLayout";
+import { PageHeader } from "../components/layout/PageHeader";
+import { PAGE_WRAPPER, PAGE_MAIN } from "../components/layout/pageLayout";
 import {
   MOCK_FATURAMENTO_MES,
   MOCK_TOTAL_CLIENTES,
   MOCK_TOTAL_VENDAS,
   MOCK_VENDAS_RECENTES,
-} from "@/mocks/dashboardMock";
+} from "../mocks/dashboardMock";
 
 export default function Dashboard() {
   return (

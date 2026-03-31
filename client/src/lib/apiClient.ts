@@ -2,10 +2,10 @@
  * Camada HTTP padronizada do frontend (tipagem ApiResponse).
  * Usa o mesmo fetch autenticado do app; não altera o backend.
  */
-import { authenticatedFetch } from "@/lib/security/apiClient";
-import type { ApiResponse } from "@/lib/api/types";
+import { authenticatedFetch } from "./security/apiClient";
+import type { ApiResponse } from "./api/types";
 
-export type { ApiResponse } from "@/lib/api/types";
+export type { ApiResponse } from "./api/types";
 
 function toFriendlyMessage(err: unknown): string {
   if (err instanceof Error) {

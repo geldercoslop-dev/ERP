@@ -5,7 +5,7 @@
  * Retorna resposta padrão desabilitada
  */
 
-import { LEO_DESKTOP_AUTOMATION } from '../../config/leo';
+import { LEO_DESKTOP_AUTOMATION } from '../../config/leo.js';
 
 interface ActionResult {
   success: boolean;

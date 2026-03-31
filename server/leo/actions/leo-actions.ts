@@ -4,24 +4,24 @@
  * Usa apenas os métodos disponíveis no LeoErpService
  */
 
-import type { Payload } from '../../../shared/types';
-import { LeoRuntimeContext } from '../utils/leo-context';
-import { leoErpService } from '../../services/leo-service';
-import { actorFromLeoRuntimeContext } from '../../_core/service-actor';
-import { stripSensitiveIdsFromUnknown } from '../../_core/strip-sensitive-payload';
-import type { PedidoInput } from '../../services/leo-service';
-import { leoComputerControl } from './leo-computer-control';
-import { leoDesktopControl } from './leo-desktop-control';
-import { leoScreen } from '../perception/leo-screen';
-import leoOcr from '../perception/leo-ocr';
-import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service';
+import type { Payload } from '../../../shared/types/index.js';
+import { LeoRuntimeContext } from '../utils/leo-context.js';
+import { leoErpService } from '../../services/leo-service.js';
+import { actorFromLeoRuntimeContext } from '../../_core/service-actor.js';
+import { stripSensitiveIdsFromUnknown } from '../../_core/strip-sensitive-payload.js';
+import type { PedidoInput } from '../../services/leo-service.js';
+import { leoComputerControl } from './leo-computer-control.js';
+import { leoDesktopControl } from './leo-desktop-control.js';
+import { leoScreen } from '../perception/leo-screen.js';
+import leoOcr from '../perception/leo-ocr.js';
+import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
 async function insertLeoActionLog(params: InsertLeoActionLogParams): Promise<void> {
   await insertLeoLegacyActionLog(params);
 }
 
-/** Requisição de ação do LEO (alinhado com LeoAction em @shared/types) */
+/** Requisição de ação do LEO (alinhado com LeoAction em `shared/types`) */
 export interface LeoActionRequest {
   action: string;
   parameters?: Payload;
@@ -332,7 +332,7 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
       case 'estoque':
         if (operation === 'ajustar_estoque') {
           const userId = context.usuario?.id ?? 0;
-          const resultado = await leoErpService.ajustarEstoque((parametros ?? {}) as unknown as import('../../services/leo-service').EstoqueInput, userId);
+          const resultado = await leoErpService.ajustarEstoque((parametros ?? {}) as unknown as import('../../services/leo-service.js').EstoqueInput, userId);
           return {
             success: resultado.success,
             message: resultado.message || 'Estoque ajustado com sucesso',

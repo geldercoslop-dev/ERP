@@ -2,10 +2,10 @@
  * Serviço de alertas proativos do LEO.
  * Monitora eventos críticos do sistema e envia notificações amigáveis.
  */
-import { logger, logWarn, logInfo } from '../../_core/logger';
-import * as db from '../leo-erp-data.facade';
+import { logger, logWarn, logInfo } from '../../_core/logger.js';
+import * as db from '../leo-erp-data.facade.js';
 import { eq, lt, and, sql, ne } from "drizzle-orm";
-import { CargaStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status";
+import { CargaStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
 
 export type Alerta = {
   id: string;
