@@ -12,6 +12,11 @@ import { PendenciaStatus } from "../shared/domain-status.js";
 import { nanoid } from "nanoid";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 
+// Type REAL da transaction Drizzle
+import type { Database } from '../db/core.js';
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
+type DbConn = Database;
+
 // Types
 export type CreateProdutoInput = InsertProduto;
 export type UpdateProdutoInput = Partial<InsertProduto>;
@@ -515,7 +520,7 @@ export async function criarNotaEntrada(tenantId: number, input: {
   const txSqlRunner = (tx: unknown) =>
     tx as { execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]> };
 
-  await dbConn.transaction(async (tx) => {
+  await dbConn.transaction(async (tx: DbTx) => {
     // 1. Inserir nota (exemplo simplificado, idealmente via schema)
     const [notaRes] = await txSqlRunner(tx).execute(
       "INSERT INTO notas_entrada (tenantId, marca, dataChegada, valorTotal, formaPagamento, observacao, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?)",

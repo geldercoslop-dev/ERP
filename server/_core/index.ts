@@ -272,16 +272,15 @@ async function startServer() {
 
   // LOG GLOBAL PARA DEBUGAR FLUXO
   app.use((req, res, next) => {
-    console.log('>>> ENTRY', req.method, req.path);
-    console.log('🔍 REQUEST START:', {
-      method: req.method,
-      path: req.path,
-      originalUrl: req.originalUrl,
-      headers: {
-        authorization: req.headers.authorization?.substring(0, 50) + '...',
-        'content-type': req.headers['content-type']
-      }
-    });
+    if (req.url.includes('trpc')) {
+      console.log('>>> TRPC DEBUG', {
+        method: req.method,
+        url: req.url,
+        path: req.path,
+        originalUrl: req.originalUrl,
+        headers: req.headers
+      });
+    }
     next();
   });
 
@@ -677,8 +676,9 @@ async function startServer() {
   // Endpoint para obter token CSRF (para SPA/React)
   app.get("/api/csrf-token", CSRFProtection.csrfTokenEndpoint());
   
-  // Aplicar CSRF protection em todas as rotas /api exceto GET/HEAD/OPTIONS
-  app.use("/api", CSRFProtection.csrfProtection());
+  // CSRF protection removido das rotas API - agora usa apenas Bearer tokens
+  // CSRF será aplicado apenas em rotas do browser (frontend)
+  // app.use("/api", CSRFProtection.csrfProtection());
 
   // OAuth callback under /api/oauth/callback - DESABILITADO
   // registerOAuthRoutes(app);
@@ -773,9 +773,6 @@ async function startServer() {
     next();
   });
 
-  console.log('ROUTES REGISTERED');
-  app.use("/api", apiRouter);
-
   // Internal Status: GET /internal/status (debug endpoint protegido)
   const internalRouter = (await import("../controllers/internal-router.js")).default;
   app.use("/internal", internalRouter);
@@ -786,7 +783,8 @@ async function startServer() {
     app.use("/api/test/failure", failureRoutes);
     console.log("[BOOT] rotas /api/test/failure (dev)");
   }
-  // tRPC API com tratamento de erros melhorado
+
+  // tRPC API com tratamento de erros melhorado (DEVE vir antes do apiRouter se ambos usarem /api prefix)
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -811,6 +809,9 @@ async function startServer() {
       }
     })
   );
+
+  console.log('ROUTES REGISTERED');
+  app.use("/api", apiRouter);
 
   // Sentry: captura erros do Express (após todas as rotas, antes de outros error handlers)
   if (process.env.SENTRY_DSN) {

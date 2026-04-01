@@ -85,8 +85,12 @@ export async function getDashboardInsights(tenantId: number): Promise<DashboardI
   };
 }
 
+// Type REAL da connection Drizzle
+import type { Database } from '../db/core.js';
+type DbConn = Database;
+
 async function getProdutosQueVaoFaltar(
-  conn: Awaited<ReturnType<typeof db.getDb>>,
+  conn: DbConn,
   tenantId: number
 ): Promise<ProdutoQueVaiFaltar[]> {
   const ruptura = await previsaoRupturaEstoque(tenantId);
@@ -109,7 +113,7 @@ async function getProdutosQueVaoFaltar(
 }
 
 async function getClientesInativos(
-  conn: Awaited<ReturnType<typeof db.getDb>>,
+  conn: DbConn,
   tenantId: number
 ): Promise<ClienteInativo[]> {
   const limite = new Date();
@@ -147,7 +151,7 @@ async function getClientesInativos(
 }
 
 async function getVendedoresAbaixoMedia(
-  conn: Awaited<ReturnType<typeof db.getDb>>,
+  conn: DbConn,
   tenantId: number
 ): Promise<VendedorAbaixoMedia[]> {
   const inicio = new Date();
@@ -197,7 +201,7 @@ async function getVendedoresAbaixoMedia(
 }
 
 async function getPedidosAtrasados(
-  conn: Awaited<ReturnType<typeof db.getDb>>,
+  conn: DbConn,
   tenantId: number
 ): Promise<PedidoAtrasado[]> {
   const hoje = new Date();
@@ -231,7 +235,7 @@ async function getPedidosAtrasados(
 }
 
 async function getContasVencidas(
-  conn: Awaited<ReturnType<typeof db.getDb>>,
+  conn: DbConn,
   tenantId: number
 ): Promise<ContaVencida[]> {
   const hoje = new Date();

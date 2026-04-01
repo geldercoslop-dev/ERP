@@ -8,8 +8,11 @@
 import { getDb } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
 import { produtos } from '../../drizzle/schema.js';
-import type { DbTransaction } from "../shared/types/db-transaction.js";
 import { logger, logError, logInfo } from '../utils/logger.js';
+
+// Type REAL da transaction Drizzle
+import type { Database } from '../db/core.js';
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export interface StockOperation {
   produtoId: number;
@@ -100,7 +103,7 @@ class SafeStockService {
       }
 
       // Processar dentro de transação
-      const result = await db.transaction(async (tx: DbTransaction) => {
+      const result = await db.transaction(async (tx: DbTx) => {
         // 1. Bloquear o produto para evitar concorrência
         const produto = await this.lockProduct(tx, operation.produtoId);
         
@@ -123,8 +126,7 @@ class SafeStockService {
         const saldoNovo = this.calculateNewSaldo(saldoAnterior, operation);
 
         // 4. Executar update atômico
-        const updateResult = await this.executeAtomicUpdate(
-          tx,
+        const updateResult = await this.executeAtomicUpdate(tx,
           operation.produtoId,
           saldoAnterior,
           operation.quantidade,
@@ -192,7 +194,7 @@ class SafeStockService {
   /**
    * Bloqueia produto para operação (SELECT FOR UPDATE)
    */
-  private async lockProduct(tx: DbTransaction, produtoId: number): Promise<Record<string, unknown> | null> {
+  private async lockProduct(tx: DbTx, produtoId: number): Promise<Record<string, unknown> | null> {
     try {
       // Usar prepared statement para maior segurança e controle
       const runner = tx as unknown as {
@@ -258,7 +260,7 @@ class SafeStockService {
    * Executa update atômico com verificação de concorrência
    */
   private async executeAtomicUpdate(
-    tx: DbTransaction,
+    tx: DbTx,
     produtoId: number,
     saldoAnterior: number,
     quantidade: number,
@@ -362,7 +364,7 @@ class SafeStockService {
       // em todas as transações, evitando deadlocks
       const sortedOperations = [...operations].sort((a: StockOperation, b: StockOperation) => a.produtoId - b.produtoId);
 
-      const results = await db.transaction(async (tx: DbTransaction) => {
+      const results = await db.transaction(async (tx: DbTx) => {
         const batchResults: StockOperationResult[] = [];
 
         for (const operation of sortedOperations) {
@@ -421,7 +423,7 @@ class SafeStockService {
    * Processa operação individual dentro de transação existente
    */
   private async processSingleOperationInTransaction(
-    tx: DbTransaction,
+    tx: DbTx,
     operation: StockOperation,
     traceId: string
   ): Promise<StockOperationResult> {

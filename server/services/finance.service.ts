@@ -92,9 +92,11 @@ function assertRequiredPayload<T>(value: T | null | undefined, message: string):
   return value;
 }
 
-type TxLike = Awaited<ReturnType<typeof getDb>>;
+// Type REAL da transaction Drizzle
+import type { Database } from '../db/core.js';
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
-function hasTransaction(v: unknown): v is { transaction: <T>(fn: (tx: TxLike) => Promise<T>) => Promise<T> } {
+function hasTransaction(v: unknown): v is { transaction: <T>(fn: (tx: DbTx) => Promise<T>) => Promise<T> } {
   return typeof v === "object" && v !== null && "transaction" in v;
 }
 
@@ -122,7 +124,7 @@ export async function baixarPedidoDireto(
   const boletoIds: number[] = [];
 
   if (!hasTransaction(dbTx)) throw new Error("Transação indisponível para baixa de pedido");
-  return await dbTx.transaction(async (tx) => {
+  return await dbTx.transaction(async (tx: DbTx) => {
     // 1. Buscar dados do pedido
     const pedidoRows = await tx.select().from(pedidos).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId))).for("update").limit(1);
     if (pedidoRows.length === 0) throw new Error('Pedido não encontrado');
@@ -955,7 +957,7 @@ export async function atualizarCaixaMensal(
     }
   }
 
-  const existing = await (dbTx as TxLike).select()
+  const existing = await (dbTx as DbTx).select()
     .from(caixaMensal)
     .where(and(eq(caixaMensal.tenantId, tenantId), eq(caixaMensal.mesAno, mesAno)))
     .limit(1) as Array<typeof caixaMensal.$inferSelect>;
@@ -971,7 +973,7 @@ export async function atualizarCaixaMensal(
       : formaPagamento === 'CARTAO' ? { totalCartao: sql`${caixaMensal.totalCartao} + ${valor}` }
       : { totalDinheiro: sql`${caixaMensal.totalDinheiro} + ${valor}` };
 
-    await (dbTx as TxLike).update(caixaMensal)
+    await (dbTx as DbTx).update(caixaMensal)
       .set({
         ...updateData,
         totalGeral: sql`${caixaMensal.totalGeral} + ${valor}`,
@@ -989,7 +991,7 @@ export async function atualizarCaixaMensal(
       totalGeral: String(valor),
       updatedAt: new Date()
     };
-    await (dbTx as TxLike).insert(caixaMensal).values(newData);
+    await (dbTx as DbTx).insert(caixaMensal).values(newData);
   }
 
   // Marcar como processado se tiver chave de idempotência

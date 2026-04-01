@@ -3,6 +3,17 @@
  * Todas as comparações, SQL e inputs críticos devem referenciar estes objetos / arrays — sem literais soltos.
  */
 
+/** Referência nomeada (mesmos valores de PedidoStatusValues) */
+export const PedidoStatus = {
+  GERADO: "GERADO",
+  CONFERIDO: "CONFERIDO",
+  IMPRESSO: "IMPRESSO",
+  EM_ROTA: "EM_ROTA",
+  ENTREGUE: "ENTREGUE",
+  CANCELADO: "CANCELADO",
+  PENDENTE_ESTOQUE: "PENDENTE_ESTOQUE",
+} as const;
+
 export const PedidoStatusValues = [
   "GERADO",
   "CONFERIDO",
@@ -14,17 +25,7 @@ export const PedidoStatusValues = [
 ] as const;
 
 export type PedidoStatusValue = (typeof PedidoStatusValues)[number];
-
-/** Referência nomeada (mesmos valores de PedidoStatusValues) */
-export const PedidoStatus = {
-  GERADO: "GERADO",
-  CONFERIDO: "CONFERIDO",
-  IMPRESSO: "IMPRESSO",
-  EM_ROTA: "EM_ROTA",
-  ENTREGUE: "ENTREGUE",
-  CANCELADO: "CANCELADO",
-  PENDENTE_ESTOQUE: "PENDENTE_ESTOQUE",
-} as const satisfies Record<string, PedidoStatusValue>;
+export type PedidoStatusType = typeof PedidoStatus[keyof typeof PedidoStatus];
 
 export const ContaReceberStatusValues = ["PENDENTE", "RECEBIDA", "VENCIDA"] as const;
 export type ContaReceberStatusValue = (typeof ContaReceberStatusValues)[number];

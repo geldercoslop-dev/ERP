@@ -9,6 +9,11 @@ import { createHash } from 'crypto';
 import { ensureArray, ensureObject } from "../_core/service-response.js";
 import type { ServiceActor } from "../_core/service-actor.js";
 import { assertVendedorActor } from "../_core/service-actor.js";
+
+// Type REAL da transaction Drizzle
+import type { Database } from '../db/core.js';
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
+type DbConn = Database;
 import {
   ContaReceberStatus,
   PedidoStatus,
@@ -332,7 +337,7 @@ export async function createPedidoSafe(
     throw error;
   }
 
-  const trxResult = await dbConn.transaction(async (tx) => {
+  const trxResult = await dbConn.transaction(async (tx: DbTx) => {
     try {
     const hit = await tx
       .select({ seq: counters.seq })

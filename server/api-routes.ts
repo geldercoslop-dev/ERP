@@ -29,10 +29,14 @@ apiRouter.use('/payments', paymentRoutes);
 /**
  * Health check endpoint
  */
-apiRouter.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API is running',
+apiRouter.get('/health', async (req, res) => {
+  const { checkDatabasePoolHealth } = await import("./config/database.js");
+  const isDbHealthy = await checkDatabasePoolHealth();
+  
+  res.status(isDbHealthy ? 200 : 503).json({
+    success: isDbHealthy,
+    status: isDbHealthy ? 'UP' : 'DOWN',
+    message: isDbHealthy ? 'API and Database are running' : 'Database connection error',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });

@@ -9,10 +9,13 @@ import { getDb } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
 import { pedidos, produtos, contasReceber, contasPagar } from '../../drizzle/schema.js';
 import { ContaPagarStatus, ContaReceberStatus, PedidoStatus, PedidoStatusValues } from "../shared/domain-status.js";
-import type { DbTransaction } from "../shared/types/db-transaction.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
 import { loggerInstance as logger, logError } from '../utils/logger.js';
 import { processStockOperation, StockOperation } from './safe-stock.js';
+
+// Type REAL da transaction Drizzle
+import type { Database } from '../db/core.js';
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export interface TransactionStep {
   type: 'pedido' | 'estoque' | 'financeiro';
@@ -220,7 +223,7 @@ class SafeTransactionService {
       throw new Error('Database não disponível');
     }
 
-    await db.transaction(async (tx: DbTransaction) => {
+    await db.transaction(async (tx: DbTx) => {
       for (const step of transaction.steps) {
         try {
           const result = await this.executeStep(tx, step);
@@ -258,7 +261,7 @@ class SafeTransactionService {
   /**
    * Executa step individual
    */
-  private async executeStep(tx: DbTransaction, step: TransactionStep): Promise<Record<string, unknown>> {
+  private async executeStep(tx: DbTx, step: TransactionStep): Promise<Record<string, unknown>> {
     switch (step.type) {
       case 'pedido':
         return await this.executePedidoStep(tx, step);
@@ -277,7 +280,7 @@ class SafeTransactionService {
   /**
    * Executa operação de pedido
    */
-  private async executePedidoStep(tx: DbTransaction, step: TransactionStep): Promise<Record<string, unknown>> {
+  private async executePedidoStep(tx: DbTx, step: TransactionStep): Promise<Record<string, unknown>> {
     const pedidoOp = step.data as unknown as PedidoOperation;
     
     switch (step.operation) {
@@ -301,7 +304,7 @@ class SafeTransactionService {
   /**
    * Executa operação de estoque
    */
-  private async executeEstoqueStep(tx: DbTransaction, step: TransactionStep): Promise<Record<string, unknown>> {
+  private async executeEstoqueStep(tx: DbTx, step: TransactionStep): Promise<Record<string, unknown>> {
     const stockOp = step.data as unknown as StockOperation;
     
     // Usar o serviço de estoque seguro dentro da transação
@@ -317,7 +320,7 @@ class SafeTransactionService {
   /**
    * Executa operação financeira
    */
-  private async executeFinanceiroStep(tx: DbTransaction, step: TransactionStep): Promise<Record<string, unknown>> {
+  private async executeFinanceiroStep(tx: DbTx, step: TransactionStep): Promise<Record<string, unknown>> {
     const finOp = step.data as unknown as FinanceiroOperation;
     
     switch (finOp.tipo) {
@@ -335,7 +338,7 @@ class SafeTransactionService {
   /**
    * Criar pedido
    */
-  private async criarPedido(tx: DbTransaction, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+  private async criarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
     // Implementação específica para criar pedido
     // Por enquanto, simulação
     const result = await tx.insert(pedidos).values({
@@ -356,7 +359,7 @@ class SafeTransactionService {
   /**
    * Atualizar pedido
    */
-  private async atualizarPedido(tx: DbTransaction, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+  private async atualizarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
     const result = await tx
       .update(pedidos)
       .set({
@@ -377,7 +380,7 @@ class SafeTransactionService {
   /**
    * Cancelar pedido
    */
-  private async cancelarPedido(tx: DbTransaction, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+  private async cancelarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
     const motivo = pedidoOp.dados?.motivo;
     const result = await tx
       .update(pedidos)
@@ -400,7 +403,7 @@ class SafeTransactionService {
   /**
    * Atualizar status do pedido
    */
-  private async atualizarStatusPedido(tx: DbTransaction, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+  private async atualizarStatusPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
     const novoStatus = validateStatus(pedidoOp.dados?.status, PedidoStatusValues, "pedido.status");
     const result = await tx
       .update(pedidos)
@@ -422,7 +425,7 @@ class SafeTransactionService {
   /**
    * Executar operação de conta a receber
    */
-  private async executeContaReceberStep(tx: DbTransaction, finOp: FinanceiroOperation): Promise<Record<string, unknown>> {
+  private async executeContaReceberStep(tx: DbTx, finOp: FinanceiroOperation): Promise<Record<string, unknown>> {
     switch (finOp.acao) {
       case 'criar':
         const result = await tx.insert(contasReceber).values({
@@ -443,9 +446,7 @@ class SafeTransactionService {
         if (typeof contaId !== "number" || !Number.isInteger(contaId) || contaId <= 0) {
           throw new Error("conta a receber: id inválido");
         }
-        const updateResult = await tx
-          .update(contasReceber)
-          .set({
+        const updateResult = await tx.update(contasReceber).set({
             status: ContaReceberStatus.RECEBIDA,
             dataRecebimento: new Date(),
             updatedAt: new Date(),
@@ -467,7 +468,7 @@ class SafeTransactionService {
   /**
    * Executar operação de conta a pagar
    */
-  private async executeContaPagarStep(tx: DbTransaction, finOp: FinanceiroOperation): Promise<Record<string, unknown>> {
+  private async executeContaPagarStep(tx: DbTx, finOp: FinanceiroOperation): Promise<Record<string, unknown>> {
     switch (finOp.acao) {
       case 'criar':
         const result = await tx.insert(contasPagar).values({
@@ -488,9 +489,7 @@ class SafeTransactionService {
         if (typeof contaPagarId !== "number" || !Number.isInteger(contaPagarId) || contaPagarId <= 0) {
           throw new Error("conta a pagar: id inválido");
         }
-        const updateResult = await tx
-          .update(contasPagar)
-          .set({
+        const updateResult = await tx.update(contasPagar).set({
             status: ContaPagarStatus.PAGO,
             dataPagamento: new Date(),
             updatedAt: new Date(),

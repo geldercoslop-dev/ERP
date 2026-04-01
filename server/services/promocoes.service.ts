@@ -3,6 +3,11 @@ import { getDb, getInsertId, promocoes, promocoesItens, insertAuditLog } from ".
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
+// Type REAL da transaction Drizzle
+import type { Database } from '../db/core.js';
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
+type DbConn = Database;
+
 // Types
 export type CreatePromocaoInput = {
   nome: string;
@@ -206,7 +211,7 @@ export async function setPromocaoItens(tenantId: number, promocaoId: number, ite
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
-  return await dbConn.transaction(async (tx) => {
+  return await dbConn.transaction(async (tx: DbTx) => {
     // Remover itens existentes
     await tx.delete(promocoesItens).where(and(eq(promocoesItens.tenantId, tenantId), eq(promocoesItens.promocaoId, promocaoId)));
 

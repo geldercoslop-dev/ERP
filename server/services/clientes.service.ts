@@ -69,9 +69,13 @@ function assertRequiredPayload<T>(value: T | null | undefined, message: string):
   return value;
 }
 
+// Type REAL da connection Drizzle
+import type { Database } from '../db/core.js';
+type DbConn = Database;
+
 /** Vínculo cliente_vendedores válido no tenant (prova de escopo vendedor). */
 async function vendedorLinkedToCliente(
-  dbConn: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  dbConn: DbConn,
   tenantId: number,
   vendedorId: number,
   clienteId: number
@@ -99,7 +103,7 @@ function userCanMutateCliente(actor: ServiceActor): boolean {
 
 /** Verificar se vendedor/usuário tem acesso ao cliente (userId direto OU via clienteVendedores). */
 async function userCanAccessCliente(
-  dbConn: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  dbConn: DbConn,
   tenantId: number,
   actor: ServiceActor,
   clienteId: number
@@ -557,7 +561,7 @@ export async function associarClienteVendedor(tenantId: number, clienteId: numbe
 export async function getOrCreateCliente(
   tenantId: number,
   data: CreateClienteInput & { nome: string; telefone: string },
-  tx?: Awaited<ReturnType<typeof getDb>>
+  tx?: DbConn
 ): Promise<number> {
   assertRequiredId(tenantId, "tenantId");
   assertRequiredPayload(data, "Dados do cliente obrigatórios");
@@ -622,7 +626,7 @@ export async function getOrCreateCliente(
  * @param vendedorId - ID do vendedor
  */
 export async function ensureClienteVendedorLink(
-  tx: Awaited<ReturnType<typeof getDb>>,
+  tx: DbConn,
   clienteId: number,
   vendedorId: number
 ): Promise<void> {

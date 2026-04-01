@@ -22,6 +22,11 @@ RUN corepack enable && pnpm install --frozen-lockfile --ignore-scripts
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/drizzle ./drizzle
 
+# Garantir permissões para o usuário node
+RUN chown -R node:node /app
+
+USER node
+
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000

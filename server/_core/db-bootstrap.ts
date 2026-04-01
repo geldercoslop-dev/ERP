@@ -1,8 +1,8 @@
 import { getConnectionPool } from "../config/database.js";
 import { logger } from "../utils/logger.js";
 
-const MAX_ATTEMPTS = Math.max(1, Number(process.env.DB_BOOT_MAX_ATTEMPTS) || 12);
-const INITIAL_MS = Math.max(100, Number(process.env.DB_BOOT_BACKOFF_MS) || 500);
+const MAX_ATTEMPTS = Math.max(1, Number(process.env.DB_BOOT_MAX_ATTEMPTS) || 20);
+const INITIAL_MS = Math.max(100, Number(process.env.DB_BOOT_BACKOFF_MS) || 1000);
 
 /**
  * Aguarda o MySQL responder a um ping simples, com backoff exponencial (teto 30s).

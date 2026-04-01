@@ -7,6 +7,11 @@ import { ensureObject } from "../_core/service-response.js";
 import { CargaStatus, CargaStatusValues, PedidoStatus, type CargaStatusValue } from "../shared/domain-status.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
 
+// Type REAL da transaction Drizzle
+import type { Database } from '../db/core.js';
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
+type DbConn = Database;
+
 // ... (types)
 // ... (createCarga, getCargaById, listCargas, updateCargaStatus, addPedidosToCarga, removePedidosFromCarga, updatePedidoCarga, finalizarCarga)
 
@@ -18,7 +23,7 @@ export async function liberarCargaParaRota(tenantId: number, cargaId: number) {
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
-  return await dbConn.transaction(async (tx) => {
+  return await dbConn.transaction(async (tx: DbTx) => {
     const pedidosCargaRows = await tx.select({ pedidoId: pedidosCarga.pedidoId })
       .from(pedidosCarga)
       .where(eq(pedidosCarga.cargaId, cargaId));
@@ -58,7 +63,7 @@ export async function baixarPedidoCarga(tenantId: number, pedidoCargaId: number,
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
-  return await dbConn.transaction(async (tx) => {
+  return await dbConn.transaction(async (tx: DbTx) => {
     const rel = await tx.select().from(pedidosCarga).where(eq(pedidosCarga.id, pedidoCargaId)).limit(1);
     if (rel.length === 0) throw new Error("Relação carga-pedido não encontrada");
     const cargaIdRel = rel[0].cargaId;
@@ -319,7 +324,7 @@ export async function addPedidosToCarga(tenantId: number, cargaId: number, pedid
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
-  return await dbConn.transaction(async (tx) => {
+  return await dbConn.transaction(async (tx: DbTx) => {
     // Verificar se carga existe e está em status adequado
     const carga = await tx.select().from(cargas).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId))).limit(1);
     if (!carga.length) {
@@ -372,7 +377,7 @@ export async function removePedidosFromCarga(tenantId: number, cargaId: number, 
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
-  return await dbConn.transaction(async (tx) => {
+  return await dbConn.transaction(async (tx: DbTx) => {
     // Verificar se carga existe
     const carga = await tx.select().from(cargas).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId))).limit(1);
     if (!carga.length) {
@@ -477,7 +482,7 @@ export async function finalizarCarga(tenantId: number, cargaId: number) {
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
-  return await dbConn.transaction(async (tx) => {
+  return await dbConn.transaction(async (tx: DbTx) => {
     // Verificar se carga existe e está EM_ROTA
     const carga = await tx.select().from(cargas).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId))).limit(1);
     if (!carga.length) {
