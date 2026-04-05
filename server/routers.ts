@@ -1478,7 +1478,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(input.id);
+        const pedido = await db.getPedidoById(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), input.id);
         if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
         const atual = pedido.status as any;
         const proximo = input.status as any;
