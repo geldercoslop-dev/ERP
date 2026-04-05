@@ -295,7 +295,7 @@ export const appRouter = router({
           };
         }
 
-        const vendedor = await db.getVendedorByUserId(user.id);
+        const vendedor = await db.getVendedorByUserId(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), user.id);
         if (!vendedor) {
           audit(false);
           throw new TRPCError({
@@ -1528,7 +1528,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(input.id);
+        const pedido = await db.getPedidoById(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), input.id);
         if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
         try {
           const actor = await resolveServiceActor(ctx);
@@ -1720,7 +1720,7 @@ export const appRouter = router({
               const isAdmin = ctx.user?.role === "admin";
               let vendedor: db.Vendedor | null = ctx.vendedor ?? null;
               if (!vendedor && isAdmin && input.vendedorId) {
-                vendedor = await db.getVendedorById(input.vendedorId);
+                vendedor = await db.getVendedorById(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), input.vendedorId);
               }
               if (!vendedor && !isAdmin) {
                 vendedor = await getVendedorFromContext(ctx);
