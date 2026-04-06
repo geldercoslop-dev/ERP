@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification.js";
 import { adminProcedure, publicProcedure, router } from "./trpc.js";
-import * as db from "../db/index.js";
-import { getConnectionPool } from "../config/database.js";
+import { checkProtectedDatabaseConnection } from "../services/system-db-check.service.js";
 
 export const systemRouter = router({
   health: publicProcedure
@@ -33,19 +32,7 @@ export const systemRouter = router({
   checkDatabase: adminProcedure
     .mutation(async () => {
       try {
-        // Verificar conexão com o pool
-        const pool = await getConnectionPool();
-        if (!pool) {
-          throw new Error("Não foi possível obter o pool de conexões");
-        }
-        
-        // Usar services em vez de queries diretas - teste simples
-        return {
-          connected: true,
-          tables: "protected", // Não expor estrutura real
-          vendedores: "protected", // Não expor dados
-          timestamp: new Date().toISOString()
-        };
+        return await checkProtectedDatabaseConnection();
       } catch (error) {
         console.error("Erro ao verificar banco de dados:", error);
         throw new Error(error instanceof Error ? error.message : "Erro desconhecido na conexão com o banco de dados");

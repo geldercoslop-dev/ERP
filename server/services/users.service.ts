@@ -5,7 +5,7 @@ import type { User, Vendedor } from "../db/index.js";
 import { users, vendedores } from "../../drizzle/schema.js";
 import { nanoid } from "nanoid";
 import { recordQueryTime } from "../_core/system-monitor.js";
-import { auditLog } from "../_core/audit-log.js";
+import { logAuditAction } from "./audit-log.service.js";
 
 // Types
 export type CreateVendedorInput = InsertVendedor;
@@ -13,15 +13,15 @@ export type CreateVendedorInput = InsertVendedor;
 /**
  * Cria ou atualiza um usuário (vinculado ao tenant)
  */
-export async function upsertUser(tenantId: number, user: InsertUser) {
-  if (!tenantId) throw new Error("tenantId is required");
+export async function upsertUser(tenantId: number, user: InsertUser): Promise<{ success: boolean; data?: User; error?: string }> {
+  if (!tenantId) return { success: false, error: "tenantId is required" };
   if (!user.openId) {
-    throw new Error("User openId is required for upsert");
+    return { success: false, error: "User openId is required for upsert" };
   }
 
   try {
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Database not available");
+    if (!dbConn) return { success: false, error: "Database not available" };
 
     const existing = await dbConn.select().from(users).where(and(eq(users.tenantId, tenantId), eq(users.openId, user.openId))).limit(1);
 
@@ -34,13 +34,16 @@ export async function upsertUser(tenantId: number, user: InsertUser) {
       }).where(and(eq(users.tenantId, tenantId), eq(users.openId, user.openId)));
 
       // Auditoria Logger
-      auditLog({
-        action: "update",
-        module: "admin",
-        resourceId: user.openId,
-        details: { action: "upsert_user_update", email: user.email },
-        traceId: nanoid(10)
-      });
+      await logAuditAction(
+        "update",
+        "users",
+        { action: "upsert_user_update", email: user.email },
+        {
+          tenantId,
+          entityId: user.openId,
+          traceId: nanoid(10)
+        }
+      );
     } else {
       // Create new user
       const result = await dbConn.insert(users).values({
@@ -54,17 +57,24 @@ export async function upsertUser(tenantId: number, user: InsertUser) {
       });
 
       // Auditoria Logger
-      auditLog({
-        action: "create",
-        module: "admin",
-        resourceId: user.openId,
-        details: { action: "upsert_user_create", email: user.email },
-        traceId: nanoid(10)
-      });
+      await logAuditAction(
+        "create",
+        "users",
+        { action: "upsert_user_create", email: user.email },
+        {
+          tenantId,
+          entityId: user.openId,
+          traceId: nanoid(10)
+        }
+      );
     }
+
+    // Return success
+    const updatedUser = await dbConn.select().from(users).where(and(eq(users.tenantId, tenantId), eq(users.openId, user.openId))).limit(1);
+    return { success: true, data: updatedUser[0] };
   } catch (error) {
     console.error('[UserService] Error in upsertUser:', error);
-    throw new Error(`Failed to upsert user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return { success: false, error: `Failed to upsert user: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -128,9 +138,9 @@ export async function listUsers(
     sortBy?: "name" | "createdAt" | "lastSignedInAt";
     sortOrder?: "asc" | "desc";
   } = {}
-): Promise<{ users: User[]; total: number; page: number; limit: number }> {
+): Promise<{ success: boolean; data?: { users: User[]; total: number; page: number; limit: number }; error?: string }> {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  if (!dbConn) return { success: false, error: "Database not available" };
 
   const { page = 1, limit = 50, search, role, active, sortBy = "name", sortOrder = "asc" } = options;
   const offset = (page - 1) * limit;
@@ -179,65 +189,83 @@ export async function listUsers(
   recordQueryTime('users', 'listUsers', Date.now() - startTime);
 
   return {
-    users: result,
-    total: countResult[0]?.count || 0,
-    page,
-    limit
+    success: true,
+    data: {
+      users: result,
+      total: countResult[0]?.count || 0,
+      page,
+      limit
+    }
   };
 }
 
 /**
  * Cria ou atualiza um vendedor (vinculado ao tenant)
  */
-export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor) {
-  if (!tenantId) throw new Error("tenantId is required");
-  if (!vendedor.nome) {
-    throw new Error("Vendedor nome is required");
-  }
+export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor): Promise<{ success: boolean; data?: Vendedor; error?: string }> {
+  try {
+    if (!tenantId) return { success: false, error: "tenantId is required" };
+    if (!vendedor.nome) {
+      return { success: false, error: "Vendedor nome is required" };
+    }
 
-  const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
 
-  const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(vendedor.nome);
-  const nomeVendedor = [nomeNorm, sobrenomeNorm].filter(Boolean).join(" ").trim() || String(vendedor.nome);
+    const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(vendedor.nome);
+    const nomeVendedor = [nomeNorm, sobrenomeNorm].filter(Boolean).join(" ").trim() || String(vendedor.nome);
 
-  const existing = await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.nome, vendedor.nome))).limit(1);
+    const existing = await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.nome, vendedor.nome))).limit(1);
 
-  if (existing.length > 0) {
-    // Update existing vendedor
-    await dbConn.update(vendedores).set({
-      nome: nomeVendedor,
-      telefone: vendedor.telefone || null,
-      email: vendedor.email || null,
-      updatedAt: new Date(),
-    }).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.nome, vendedor.nome)));
+    if (existing.length > 0) {
+      // Update existing vendedor
+      await dbConn.update(vendedores).set({
+        nome: nomeVendedor,
+        telefone: vendedor.telefone || null,
+        email: vendedor.email || null,
+        updatedAt: new Date(),
+      }).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.nome, vendedor.nome)));
 
-    // Auditoria Logger
-    auditLog({
-      action: "update",
-      module: "admin",
-      resourceId: String(existing[0].id),
-      details: { action: "upsert_vendedor_update", nome: vendedor.nome }
-    });
-  } else {
-    // Create new vendedor
-    const result = await dbConn.insert(vendedores).values({
-      tenantId,
-      nome: nomeVendedor,
-      telefone: vendedor.telefone || null,
-      email: vendedor.email || null,
-      ativo: vendedor.ativo ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+      // Auditoria Logger
+      void logAuditAction(
+        "update",
+        "admin",
+        { action: "upsert_vendedor_update", nome: vendedor.nome },
+        { tenantId, entityId: String(existing[0].id) }
+      );
 
-    // Auditoria Logger
-    auditLog({
-      action: "create",
-      module: "admin",
-      resourceId: String(getInsertId(result)),
-      details: { action: "upsert_vendedor_create", nome: vendedor.nome }
-    });
+      // Return updated vendedor
+      const updatedVendedor = await dbConn.select().from(vendedores).where(eq(vendedores.id, existing[0].id)).limit(1);
+      return { success: true, data: updatedVendedor[0] };
+    } else {
+      // Create new vendedor
+      const result = await dbConn.insert(vendedores).values({
+        tenantId,
+        nome: nomeVendedor,
+        telefone: vendedor.telefone || null,
+        email: vendedor.email || null,
+        ativo: vendedor.ativo ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const vendedorId = getInsertId(result);
+
+      // Auditoria Logger
+      void logAuditAction(
+        "create",
+        "admin",
+        { action: "upsert_vendedor_create", nome: vendedor.nome },
+        { tenantId, entityId: String(vendedorId) }
+      );
+
+      // Return created vendedor
+      const createdVendedor = await dbConn.select().from(vendedores).where(eq(vendedores.id, vendedorId)).limit(1);
+      return { success: true, data: createdVendedor[0] };
+    }
+  } catch (error) {
+    console.error('[UserService] Error in upsertVendedor:', error);
+    return { success: false, error: `Failed to upsert vendedor: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -267,9 +295,9 @@ export async function listVendedores(
     sortBy?: "nome" | "createdAt" | "comissao";
     sortOrder?: "asc" | "desc";
   } = {}
-): Promise<{ vendedores: Vendedor[]; total: number; page: number; limit: number }> {
+): Promise<{ success: boolean; data?: { vendedores: Vendedor[]; total: number; page: number; limit: number }; error?: string }> {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  if (!dbConn) return { success: false, error: "Database not available" };
 
   const { page = 1, limit = 50, search, active, sortBy = "nome", sortOrder = "asc" } = options;
   const offset = (page - 1) * limit;
@@ -316,10 +344,13 @@ export async function listVendedores(
   recordQueryTime('vendedores', 'listVendedores', Date.now() - startTime);
 
   return {
-    vendedores: result,
-    total: countResult[0]?.count || 0,
-    page,
-    limit
+    success: true,
+    data: {
+      vendedores: result,
+      total: countResult[0]?.count || 0,
+      page,
+      limit
+    }
   };
 }
 
@@ -328,7 +359,7 @@ export async function listVendedores(
  */
 export async function toggleVendedor(tenantId: number, id: number, active: boolean): Promise<{ success: boolean; message: string }> {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  if (!dbConn) return { success: false, message: "Database not available" };
 
   const result = await dbConn
     .update(vendedores)
@@ -341,12 +372,12 @@ export async function toggleVendedor(tenantId: number, id: number, active: boole
   }
 
   // Auditoria Logger
-  auditLog({
-    action: "update",
-    module: "admin",
-    resourceId: String(id),
-    details: { action: "toggle_vendedor", active }
-  });
+  void logAuditAction(
+    "update",
+    "admin",
+    { action: "toggle_vendedor", active },
+    { tenantId, entityId: String(id) }
+  );
 
   return { success: true, message: `Vendedor ${active ? "ativado" : "desativado"} com sucesso` };
 }
@@ -356,7 +387,7 @@ export async function toggleVendedor(tenantId: number, id: number, active: boole
  */
 export async function removeVendedor(tenantId: number, id: number): Promise<{ success: boolean; message: string }> {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  if (!dbConn) return { success: false, message: "Database not available" };
 
   const result = await dbConn
     .update(vendedores)
@@ -369,12 +400,12 @@ export async function removeVendedor(tenantId: number, id: number): Promise<{ su
   }
 
   // Auditoria Logger
-  auditLog({
-    action: "delete",
-    module: "admin",
-    resourceId: String(id),
-    details: { action: "remove_vendedor" }
-  });
+  void logAuditAction(
+    "delete",
+    "admin",
+    { action: "remove_vendedor" },
+    { tenantId, entityId: String(id) }
+  );
 
   return { success: true, message: "Vendedor removido com sucesso" };
 }

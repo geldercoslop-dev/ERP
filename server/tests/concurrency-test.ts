@@ -55,16 +55,20 @@ async function testIdempotencyReal() {
       createPedidoSafe(tenantId, pedidoData, { vendedorId: 1 })
     ];
 
-    const results = await Promise.all(promises);
+    const results = await Promise.allSettled(promises);
     
     console.log('📊 RESULTADOS:');
     results.forEach((result, index) => {
-      console.log(`Request ${index + 1}:`, {
-        success: result.success,
-        pedidoId: result.pedidoId,
-        numero: result.numero,
-        status: result.status
-      });
+      if (result.status === 'fulfilled') {
+        console.log(`Request ${index + 1}:`, {
+          success: result.value.success,
+          pedidoId: result.value.pedidoId,
+          numero: result.value.numero,
+          status: result.value.status
+        });
+      } else {
+        console.log(`Request ${index + 1} ERROR:`, result.reason);
+      }
     });
 
     // 🎯 VERIFICAR RESULTADO ESPERADO

@@ -1,3 +1,16 @@
+node_modules
+dist
+.git
+.gitignore
+Dockerfile
+docker-compose*
+*.log
+tmp
+coverage
+.env
+.env.*
+.claude
+
 # ===== Dependências e VCS =====
 node_modules
 **/node_modules
@@ -29,6 +42,8 @@ coverage
 .idea
 .cursor
 **/.cursor
+.claude
+**/.claude
 
 # ===== Logs e temporários =====
 *.log

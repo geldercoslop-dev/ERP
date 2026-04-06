@@ -86,7 +86,7 @@ export async function validateTenantOwnership(
 
     if (user.role === "admin") {
       if (options?.claimedVendedorId != null) {
-        const v = await getVendedorById(options.claimedVendedorId);
+        const v = await getVendedorById(String(claimedTenantId), options.claimedVendedorId);
         const vTenantId = v ? (v as VendedorWithTenant).tenantId : undefined;
         if (!v || vTenantId == null || vTenantId !== userTenantId) {
           logInvalidAttempt("vendedorId inconsistente para admin", {
@@ -104,7 +104,7 @@ export async function validateTenantOwnership(
       };
     }
 
-    const vByUser = await getVendedorByUserId(user.id);
+    const vByUser = await getVendedorByUserId(String(claimedTenantId), user.id);
     const vByUserTenantId = vByUser ? (vByUser as VendedorWithTenant).tenantId : undefined;
     if (vByUser && vByUserTenantId != null && vByUserTenantId === userTenantId) {
       if (options?.claimedVendedorId != null && options.claimedVendedorId !== vByUser.id) {
@@ -132,7 +132,7 @@ export async function validateTenantOwnership(
     };
   }
 
-  const vById = await getVendedorById(userId);
+  const vById = await getVendedorById(String(claimedTenantId), userId);
   const vByIdTenantId = vById ? (vById as VendedorWithTenant).tenantId : undefined;
   if (vById && vByIdTenantId != null && vByIdTenantId === claimedTenantId) {
     if (options?.claimedVendedorId != null && options.claimedVendedorId !== vById.id) {

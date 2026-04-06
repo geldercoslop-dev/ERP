@@ -59,11 +59,12 @@ async function resolveSessionTokenToPayload(token: string): Promise<JWTPayload |
     return u ? mapUserToJwtPayload(u) : null;
   }
   if (token.startsWith('v:')) {
-    const id = parseInt(token.slice(2), 10);
-    if (!Number.isFinite(id)) return null;
-    const v = await db.getVendedorById(id);
+    const parts = token.split(':');
+    const tenantId = Number(parts[1]);
+    const id = Number(parts[2]);
+    if (!Number.isInteger(tenantId) || tenantId <= 0 || !Number.isInteger(id) || id <= 0) return null;
+    const v = await db.getVendedorById(String(tenantId), id);
     if (!v?.ativo) return null;
-    const tenantId = v.tenantId ?? 0;
     return mapVendedorToJwtPayload(v, tenantId);
   }
   if (token === 'admin-session') {
@@ -71,10 +72,7 @@ async function resolveSessionTokenToPayload(token: string): Promise<JWTPayload |
     return u ? mapUserToJwtPayload(u) : null;
   }
   if (token === 'vendedor-session') {
-    const vendedor = await db.getVendedorByUserId(2);
-    if (!vendedor?.ativo) return null;
-    const tenantId = vendedor.tenantId ?? 0;
-    return mapVendedorToJwtPayload(vendedor, tenantId);
+    return null;
   }
   return null;
 }

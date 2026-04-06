@@ -10,6 +10,14 @@ type Payload = Record<string, unknown>;
  * Sets req.user and req.userId
  */
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET?.trim();
+  if (!secret) {
+    throw new Error('JWT_SECRET não configurado');
+  }
+  return secret;
+}
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   try {
     const authHeader = req.headers.authorization;
@@ -36,28 +44,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as Payload;
-    
-    // DEBUG: Log decoded token
-    console.log('[AUTH-MIDDLEWARE] Token decoded:', {
-      decoded,
-      hasUserId: !!decoded.userId,
-      hasTenantId: !!decoded.tenantId,
-      userId: decoded.userId,
-      tenantId: decoded.tenantId
-    });
+    const decoded = jwt.verify(token, getJwtSecret()) as Payload;
     
     // Attach user info to request
     (req as any).user = decoded;
     (req as any).userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);
-    
-    console.log('[AUTH-MIDDLEWARE] Request after auth:', {
-      userId: (req as any).userId,
-      user: (req as any).user,
-      headers: {
-        authorization: authHeader?.substring(0, 50) + '...'
-      }
-    });
     
     next();
   } catch (error: unknown) {
@@ -91,7 +82,7 @@ export function optionalAuthMiddleware(req: Request, res: Response, next: NextFu
       return next();
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as Payload;
+    const decoded = jwt.verify(token, getJwtSecret()) as Payload;
     
     (req as any).user = decoded;
     (req as any).userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);

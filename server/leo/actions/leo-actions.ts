@@ -137,12 +137,12 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
     console.log(`🔍 [LeoActions] Executando consulta: ${action.description || action.action}`);
     
     const tid = Number((context as unknown as { tenantId?: number }).tenantId);
-    const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+    const fromEnv = Number(process.env.TENANT_ID || 0);
     const tenantId = Number.isFinite(tid) && tid > 0 ? tid : fromEnv;
     if (!tenantId) {
       return {
         success: false,
-        message: "tenantId obrigatório no contexto LEO ou env DEFAULT_TENANT_ID",
+        message: "tenantId obrigatório no contexto LEO ou ambiente (TENANT_ID)",
         executionTime: Date.now() - startTime,
       };
     }

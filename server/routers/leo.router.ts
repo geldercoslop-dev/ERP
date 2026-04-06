@@ -126,7 +126,7 @@ const leoRouterWithMiddleware = router({
           actor,
         });
         return {
-          mensagem: fallbackResponse.response,
+          mensagem: (fallbackResponse as any).response,
           toolCalls: [],
           success: fallbackResponse.success ?? true,
           executionTime: 0,

@@ -88,7 +88,7 @@ class AsyncOperationsService {
     request: OcrRequest,
     userId?: string,
     priority: number = 0
-  ): Promise<{ jobId: string; operationId: string }> {
+  ): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
     const operationId = uuidv4();
     const jobId = uuidv4();
 
@@ -129,7 +129,7 @@ class AsyncOperationsService {
       );
 
       if (!job) {
-        throw new Error('Falha ao criar job na fila');
+        return { success: false, error: 'Falha ao criar job na fila', jobId: '', operationId };
       }
 
       logInfo('Operação OCR enviada para fila', {
@@ -139,6 +139,7 @@ class AsyncOperationsService {
       });
 
       return {
+        success: true,
         jobId: job.id || '',
         operationId,
       };
@@ -154,7 +155,7 @@ class AsyncOperationsService {
         operation.completedAt = new Date();
       }
 
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido', jobId: '', operationId };
     }
   }
 
@@ -165,7 +166,7 @@ class AsyncOperationsService {
     request: ScreenshotRequest,
     userId?: string,
     priority: number = 0
-  ): Promise<{ jobId: string; operationId: string }> {
+  ): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
     const operationId = uuidv4();
     const jobId = uuidv4();
 
@@ -206,7 +207,7 @@ class AsyncOperationsService {
       );
 
       if (!job) {
-        throw new Error('Falha ao criar job na fila');
+        return { success: false, error: 'Falha ao criar job na fila', jobId: '', operationId };
       }
 
       logInfo('Operação de screenshot enviada para fila', {
@@ -215,6 +216,7 @@ class AsyncOperationsService {
       });
 
       return {
+        success: true,
         jobId: job.id || '',
         operationId,
       };
@@ -230,7 +232,7 @@ class AsyncOperationsService {
         operation.completedAt = new Date();
       }
 
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido', jobId: '', operationId };
     }
   }
 
@@ -241,7 +243,7 @@ class AsyncOperationsService {
     request: LeoAnalysisRequest,
     userId?: string,
     priority: number = 0
-  ): Promise<{ jobId: string; operationId: string }> {
+  ): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
     const operationId = uuidv4();
     const jobId = uuidv4();
 
@@ -282,7 +284,7 @@ class AsyncOperationsService {
       );
 
       if (job === null || job === undefined) {
-        throw new Error('Falha ao criar job na fila');
+        return { success: false, error: 'Falha ao criar job na fila', jobId: '', operationId };
       }
 
       logInfo('Análise do LEO enviada para fila', {
@@ -291,6 +293,7 @@ class AsyncOperationsService {
       });
 
       return {
+        success: true,
         jobId: job.id || '',
         operationId,
       };
@@ -306,7 +309,7 @@ class AsyncOperationsService {
         operation.completedAt = new Date();
       }
 
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido', jobId: '', operationId };
     }
   }
 
@@ -317,7 +320,7 @@ class AsyncOperationsService {
     request: ReportGenerationRequest,
     userId?: string,
     priority: number = 0
-  ): Promise<{ jobId: string; operationId: string }> {
+  ): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
     const operationId = uuidv4();
     const jobId = uuidv4();
 
@@ -359,7 +362,7 @@ class AsyncOperationsService {
       );
 
       if (job === null || job === undefined) {
-        throw new Error('Falha ao criar job na fila');
+        return { success: false, error: 'Falha ao criar job na fila', jobId: '', operationId };
       }
 
       logInfo('Geração de relatório enviada para fila', {
@@ -368,6 +371,7 @@ class AsyncOperationsService {
       });
 
       return {
+        success: true,
         jobId: job.id || '',
         operationId,
       };
@@ -383,7 +387,7 @@ class AsyncOperationsService {
         operation.completedAt = new Date();
       }
 
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido', jobId: '', operationId };
     }
   }
 
@@ -394,7 +398,7 @@ class AsyncOperationsService {
     request: NotificationRequest,
     userId?: string,
     priority: number = 0
-  ): Promise<{ jobId: string; operationId: string }> {
+  ): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
     const operationId = uuidv4();
     const jobId = uuidv4();
 
@@ -436,7 +440,7 @@ class AsyncOperationsService {
       );
 
       if (job === null || job === undefined) {
-        throw new Error('Falha ao criar job na fila');
+        return { success: false, error: 'Falha ao criar job na fila', jobId: '', operationId };
       }
 
       logInfo('Notificação enviada para fila', {
@@ -445,6 +449,7 @@ class AsyncOperationsService {
       });
 
       return {
+        success: true,
         jobId: job.id || '',
         operationId,
       };
@@ -460,7 +465,7 @@ class AsyncOperationsService {
         operation.completedAt = new Date();
       }
 
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido', jobId: '', operationId };
     }
   }
 
@@ -520,7 +525,7 @@ export async function processOcrAsync(
   request: OcrRequest,
   userId?: string,
   priority?: number
-): Promise<{ jobId: string; operationId: string }> {
+): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
   return asyncOperations.processOcr(request, userId, priority);
 }
 
@@ -528,7 +533,7 @@ export async function captureScreenshotAsync(
   request: ScreenshotRequest,
   userId?: string,
   priority?: number
-): Promise<{ jobId: string; operationId: string }> {
+): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
   return asyncOperations.captureScreenshot(request, userId, priority);
 }
 
@@ -536,7 +541,7 @@ export async function processLeoAnalysisAsync(
   request: LeoAnalysisRequest,
   userId?: string,
   priority?: number
-): Promise<{ jobId: string; operationId: string }> {
+): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
   return asyncOperations.processLeoAnalysis(request, userId, priority);
 }
 
@@ -544,7 +549,7 @@ export async function generateReportAsync(
   request: ReportGenerationRequest,
   userId?: string,
   priority?: number
-): Promise<{ jobId: string; operationId: string }> {
+): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
   return asyncOperations.generateReport(request, userId, priority);
 }
 
@@ -552,6 +557,6 @@ export async function sendNotificationAsync(
   request: NotificationRequest,
   userId?: string,
   priority?: number
-): Promise<{ jobId: string; operationId: string }> {
+): Promise<{ success: boolean; jobId?: string; operationId?: string; error?: string }> {
   return asyncOperations.sendNotification(request, userId, priority);
 }

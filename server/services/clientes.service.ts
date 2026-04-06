@@ -55,20 +55,6 @@ export type CreateClienteWithVendedorInput = {
   apartamento?: string | null;
 };
 
-function assertRequiredId(value: number, fieldName: string): void {
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${fieldName} obrigatório`);
-  }
-}
-
-function assertRequiredPayload<T>(value: T | null | undefined, message: string): T {
-  if (value == null) {
-    throw new Error(message);
-  }
-
-  return value;
-}
-
 // Type REAL da connection Drizzle
 import type { Database } from '../db/core.js';
 type DbConn = Database;
@@ -139,15 +125,19 @@ export async function createCliente(
   tenantId: number, 
   data: CreateClienteWithVendedorInput,
   userIdOverride?: number
-): Promise<{ id: number }> {
+): Promise<{ success: boolean; data?: { id: number }; error?: string }> {
   try {
-    assertRequiredId(tenantId, "tenantId");
-    assertRequiredPayload(data, "Dados do cliente obrigatórios");
-    if (!data.nome) throw new Error("Nome do cliente obrigatório");
-    if (!data.telefone) throw new Error("Telefone do cliente obrigatório");
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!data || typeof data !== 'object') {
+      return { success: false, error: "Dados do cliente obrigatórios" };
+    }
+    if (!data.nome) return { success: false, error: "Nome do cliente obrigatório" };
+    if (!data.telefone) return { success: false, error: "Telefone do cliente obrigatório" };
 
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Banco de dados indisponível");
+    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
     
     // userId: prioritário userIdOverride, senão data.userId (opcional para compatibilidade)
     const userId = userIdOverride ?? data.userId;
@@ -164,7 +154,7 @@ export async function createCliente(
       .limit(1);
     
     if (existingByPhone.length > 0) {
-      throw new Error("Já existe um cliente com este telefone");
+      return { success: false, error: "Já existe um cliente com este telefone" };
     }
     
     // Inserir cliente com tenantId
@@ -189,31 +179,26 @@ export async function createCliente(
     
     const clienteId = getInsertId(result);
     if (!Number.isInteger(Number(clienteId)) || Number(clienteId) <= 0) {
-      throw new Error("Falha ao criar cliente");
+      return { success: false, error: "Falha ao criar cliente" };
     }
     
     // Associar ao vendedor principal se informado
     if (data.vendedorIdPrincipal) {
-      assertRequiredId(Number(data.vendedorIdPrincipal), "vendedorIdPrincipal");
+      if (!Number.isInteger(Number(data.vendedorIdPrincipal)) || Number(data.vendedorIdPrincipal) <= 0) {
+        return { success: false, error: "vendedorIdPrincipal obrigatório" };
+      }
+      
       await dbConn.insert(clienteVendedores).values({
         clienteId,
-        vendedorId: data.vendedorIdPrincipal,
+        vendedorId: Number(data.vendedorIdPrincipal),
         tipo: "PRINCIPAL",
         createdAt: new Date(),
-      } as ClienteVendedor);
+      });
     }
     
-    // Registrar auditoria (nova camada de auditoria logger)
-    auditLog({
-      action: "create",
-      module: "clientes",
-      resourceId: clienteId,
-      details: { nome: data.nome, telefone, userId }
-    });
-    
-    // Registrar auditoria (banco legado)
+    // Registrar auditoria
     await insertAuditLog({
-      tenantId, // Agora obrigatório
+      tenantId,
       action: "create",
       entity: "cliente",
       entityId: String(clienteId),
@@ -221,11 +206,9 @@ export async function createCliente(
       traceId: nanoid(10),
     });
     
-    // Garantir que o retorno tenha um ID válido
-    return ensureCreatedResult({ id: clienteId });
+    return { success: true, data: { id: Number(clienteId) } };
   } catch (error) {
-    console.error("Erro ao criar cliente:", error);
-    throw error;
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -234,66 +217,79 @@ export async function getHistoricoCliente(
   actor: ServiceActor,
   clienteId: number,
   limit = 20
-): Promise<Array<{ id: number; numero: number; total: string; createdAt: Date; status: string }>> {
-  assertRequiredId(tenantId, "tenantId");
-  assertRequiredId(clienteId, "clienteId");
+): Promise<{ success: boolean; data?: Array<{ id: number; numero: number; total: string; createdAt: Date; status: string }>; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
 
-  const dbConn = await getDb();
-  if (!dbConn) return [];
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
 
-  if (actor.role === "vendedor") {
-    assertVendedorActor(actor);
-    const ok = await vendedorLinkedToCliente(dbConn, tenantId, actor.vendedorId, clienteId);
-    if (!ok) return [];
+    if (actor.role === "vendedor") {
+      if (!actor.vendedorId) {
+        return { success: false, error: "Vendedor ID obrigatório" };
+      }
+      const ok = await vendedorLinkedToCliente(dbConn, tenantId, actor.vendedorId, clienteId);
+      if (!ok) return { success: false, error: "Acesso negado" };
+    }
+
+    const pedidoConds = [eq(pedidos.tenantId, tenantId), eq(pedidos.clienteId, clienteId)];
+    if (actor.role === "vendedor") {
+      if (!actor.vendedorId) {
+        return { success: false, error: "Vendedor ID obrigatório" };
+      }
+      pedidoConds.push(eq(pedidos.vendedorId, actor.vendedorId));
+    }
+
+    const rows = await dbConn
+      .select({
+        id: pedidos.id,
+        numero: pedidos.numero,
+        total: pedidos.total,
+        createdAt: pedidos.createdAt,
+        status: pedidos.status,
+      })
+      .from(pedidos)
+      .where(and(...pedidoConds))
+      .orderBy(desc(pedidos.createdAt))
+      .limit(Math.min(Math.max(limit, 1), 50));
+
+    return { success: true, data: ensureArray(rows).map((r) => ({
+      ...r,
+      status: String(r.status),
+    })) };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-
-  const pedidoConds = [eq(pedidos.tenantId, tenantId), eq(pedidos.clienteId, clienteId)];
-  if (actor.role === "vendedor") {
-    assertVendedorActor(actor);
-    pedidoConds.push(eq(pedidos.vendedorId, actor.vendedorId));
-  }
-
-  const rows = await dbConn
-    .select({
-      id: pedidos.id,
-      numero: pedidos.numero,
-      total: pedidos.total,
-      createdAt: pedidos.createdAt,
-      status: pedidos.status,
-    })
-    .from(pedidos)
-    .where(and(...pedidoConds))
-    .orderBy(desc(pedidos.createdAt))
-    .limit(Math.min(Math.max(limit, 1), 50));
-
-  return ensureArray(rows).map((r) => ({
-    ...r,
-    status: String(r.status),
-  }));
 }
 
-/**
- * Busca cliente por ID com escopo de ator (vendedor só com vínculo em cliente_vendedores).
- */
-export async function getClienteById(tenantId: number, actor: ServiceActor, id: number): Promise<Cliente | null> {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) return null;
-  if (!Number.isInteger(id) || id <= 0) return null;
-  const dbConn = await getDb();
-  if (!dbConn) return null;
+export async function getClienteById(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean; data?: Cliente; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(id) || id <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
 
-  const result = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
-  const row = result.length > 0 ? ensureObject(result[0]) : null;
-  if (!row) return null;
+    const result = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
+    const row = result.length > 0 ? ensureObject(result[0]) : null;
+    if (!row) return { success: false, error: "Cliente não encontrado" };
   
-  // Verificar ownership (userId direto OU vendedorID)
-  const canAccess = await userCanAccessCliente(dbConn, tenantId, actor, id);
-  return canAccess ? row : null;
+    // Verificar ownership (userId direto OU vendedorID)
+    const canAccess = await userCanAccessCliente(dbConn, tenantId, actor, id);
+    return { success: true, data: canAccess ? row : undefined };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
-/**
- * Lista clientes com busca e paginação. Admin: tenant inteiro (filtro opcional por vendedor em params).
- * Vendedor: obrigatório escopo pelo próprio vendedorId do ator (ignora spoofing de params).
- */
 export async function listClientes(
   tenantId: number,
   actor: ServiceActor,
@@ -304,56 +300,47 @@ export async function listClientes(
     /** Somente admin: filtrar listagem a um vendedor. */
     vendedorId?: number;
   }
-): Promise<{ items: Cliente[]; total: number; page: number; pageSize: number }> {
-  const start = Date.now();
-  
-  // VALIDAÇÃO CRÍTICA DE SEGURANÇA
+): Promise<{ success: boolean; data?: { items: Cliente[]; total: number; page: number; pageSize: number }; error?: string }> {
   try {
-    validateTenantAccess(tenantId, actor);
-  } catch (error) {
-    console.error('[listClientes] Falha de segurança:', (error as Error).message);
-    return { items: [], total: 0, page: 1, pageSize: 50 };
-  }
+    // VALIDAÇÃO CRÍTICA DE SEGURANÇA
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
+
+    const safeParams = params ?? {};
+    const { page = 1, pageSize = 50, busca } = safeParams;
+    const limit = Math.min(pageSize, 100);
+    const offset = (page - 1) * pageSize;
+
+    const conditions = [eq(clientes.tenantId, tenantId)];
+
+    let effectiveVendedorFilter: number | undefined;
+    let effectiveUserIdFilter: number | undefined;
   
-  if (!Number.isInteger(tenantId) || tenantId <= 0) return { items: [], total: 0, page: 1, pageSize: 50 };
-  const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+    if (actor.role === "vendedor") {
+      effectiveVendedorFilter = actor.vendedorId;
+      effectiveUserIdFilter = actor.userId;
+    } else if (safeParams.vendedorId != null && Number.isInteger(safeParams.vendedorId) && safeParams.vendedorId > 0) {
+      effectiveVendedorFilter = safeParams.vendedorId;
+    }
 
-  const safeParams = params ?? {};
-  const { page = 1, pageSize = 50, busca } = safeParams;
-  const limit = Math.min(pageSize, 100);
-  const offset = (page - 1) * pageSize;
+    if (busca && busca.trim()) {
+      const searchTerm = `%${busca.trim()}%`;
+      conditions.push(
+        sql`(${clientes.nome} LIKE ${searchTerm} OR 
+              ${clientes.telefone} LIKE ${searchTerm} OR 
+              ${clientes.cidade} LIKE ${searchTerm})`
+      );
+    }
 
-  const conditions = [eq(clientes.tenantId, tenantId)];
+    // Filtrar por vendedorId (compatibilidade)
+    if (effectiveVendedorFilter != null) {
+      const vendedorCondition = eq(clienteVendedores.vendedorId, effectiveVendedorFilter);
 
-  let effectiveVendedorFilter: number | undefined;
-  let effectiveUserIdFilter: number | undefined;
-  
-  if (actor.role === "vendedor") {
-    assertVendedorActor(actor);
-    effectiveVendedorFilter = actor.vendedorId;
-    effectiveUserIdFilter = actor.userId;
-  } else if (safeParams.vendedorId != null && Number.isInteger(safeParams.vendedorId) && safeParams.vendedorId > 0) {
-    effectiveVendedorFilter = safeParams.vendedorId;
-  }
-
-  if (busca && busca.trim()) {
-    const searchTerm = `%${busca.trim()}%`;
-    conditions.push(
-      sql`(${clientes.nome} LIKE ${searchTerm} OR 
-            ${clientes.telefone} LIKE ${searchTerm} OR 
-            ${clientes.cidade} LIKE ${searchTerm})`
-    );
-  }
-
-  // Filtrar por vendedorId (compatibilidade)
-  if (effectiveVendedorFilter != null) {
-    const vendedorCondition = effectiveVendedorFilter != null
-      ? eq(clienteVendedores.vendedorId, effectiveVendedorFilter)
-      : null;
-
-    // Se temos vendedorCondition, usar JOIN com clienteVendedores
-    if (vendedorCondition) {
+      // Se temos vendedorCondition, usar JOIN com clienteVendedores
       const queryWithVendedor = dbConn
         .select({
           id: clientes.id,
@@ -379,6 +366,7 @@ export async function listClientes(
         .orderBy(asc(clientes.nome))
         .limit(limit)
         .offset(offset);
+      
       const rows = await queryWithVendedor;
       const items = ensureArray(rows as Cliente[]);
 
@@ -392,14 +380,13 @@ export async function listClientes(
             sql`${clienteVendedores.vendedorId} = ${effectiveVendedorFilter}`
           )
         );
+      
       const total = Number(totalResult[0]?.count ?? 0);
-      recordQueryTime("clientes.service", "listClientes", Date.now() - start);
-      return { items, total, page, pageSize };
+      return { success: true, data: { items, total, page, pageSize } };
     }
 
-    
     // Se só temos vendedorId (compatibilidade com dados antigos)
-    if (vendedorCondition) {
+    if (effectiveVendedorFilter) {
       const queryWithJoin = dbConn
         .select({
           id: clientes.id,
@@ -416,10 +403,11 @@ export async function listClientes(
         })
         .from(clientes)
         .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
-        .where(and(...conditions, vendedorCondition))
+        .where(and(...conditions, eq(clienteVendedores.vendedorId, effectiveVendedorFilter)))
         .orderBy(asc(clientes.nome))
         .limit(limit)
         .offset(offset);
+      
       const rows = await queryWithJoin;
       const items = ensureArray(rows as Cliente[]);
 
@@ -427,44 +415,50 @@ export async function listClientes(
         .select({ count: sql<number>`count(*)` })
         .from(clientes)
         .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
-        .where(and(...conditions, vendedorCondition));
+        .where(and(...conditions, eq(clienteVendedores.vendedorId, effectiveVendedorFilter)));
+      
       const total = Number(totalResult[0]?.count ?? 0);
-      recordQueryTime("clientes.service", "listClientes", Date.now() - start);
-      return { items, total, page, pageSize };
+      return { success: true, data: { items, total, page, pageSize } };
     }
+
+    const items = ensureArray(
+      await dbConn.select().from(clientes).where(and(...conditions)).orderBy(asc(clientes.nome)).limit(limit).offset(offset)
+    );
+
+    const totalResult = await dbConn.select({ count: sql<number>`count(*)` }).from(clientes).where(and(...conditions));
+    const total = Number(totalResult[0]?.count || 0);
+
+    return { success: true, data: { items, total, page, pageSize } };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-
-  const items = ensureArray(
-    await dbConn.select().from(clientes).where(and(...conditions)).orderBy(asc(clientes.nome)).limit(limit).offset(offset)
-  );
-
-  const totalResult = await dbConn.select({ count: sql<number>`count(*)` }).from(clientes).where(and(...conditions));
-  const total = Number(totalResult[0]?.count || 0);
-
-  recordQueryTime("clientes.service", "listClientes", Date.now() - start);
-  return { items, total, page, pageSize };
 }
 
-/**
- * Atualiza dados do cliente
- * @param tenantId - ID do tenant para validação
- */
-export async function updateCliente(tenantId: number, actor: ServiceActor, id: number, data: Partial<CreateClienteInput>): Promise<{ success: boolean }> {
+export async function updateCliente(tenantId: number, actor: ServiceActor, id: number, data: Partial<CreateClienteInput>): Promise<{ success: boolean; error?: string }> {
   try {
-    assertRequiredId(tenantId, "tenantId");
-    assertRequiredId(id, "clienteId");
-    assertRequiredPayload(data, "Dados do cliente obrigatórios");
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(id) || id <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+    if (!data || typeof data !== 'object') {
+      return { success: false, error: "Dados do cliente obrigatórios" };
+    }
+
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Banco de dados indisponível");
+    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
     
     // Verificar ownership (novo: userId direto OU via clienteVendedores)
     const canAccess = await userCanAccessCliente(dbConn, tenantId, actor, id);
     if (!canAccess) {
-      throw new Error("Acesso negado: você não tem permissão para editar este cliente");
+      return { success: false, error: "Acesso negado: você não tem permissão para editar este cliente" };
     }
     
     const clienteAtual = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
-    if (!clienteAtual.length) throw new Error("Cliente não encontrado");
+    if (clienteAtual.length === 0) {
+      return { success: false, error: "Cliente não encontrado" };
+    }
     
     const updateData: Partial<Cliente> & { updatedAt: Date } = { updatedAt: new Date() };
     
@@ -484,7 +478,7 @@ export async function updateCliente(tenantId: number, actor: ServiceActor, id: n
         .limit(1);
       
       if (existingByPhone.length > 0) {
-        throw new Error("Já existe um cliente com este telefone");
+        return { success: false, error: "Já existe um cliente com este telefone" };
       }
       updateData.telefone = telefone;
     }
@@ -499,167 +493,195 @@ export async function updateCliente(tenantId: number, actor: ServiceActor, id: n
     }
     
     await dbConn.update(clientes)
-      .set(updateData)
+      .set(updatePayload)
       .where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id)));
+    
     const after = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
-    if (after.length === 0) throw new Error("Falha ao atualizar cliente");
+    if (after.length === 0) {
+      return { success: false, error: "Falha ao atualizar cliente" };
+    }
+    
     return { success: true };
   } catch (error) {
-    console.error("Erro ao atualizar cliente:", error);
-    throw error;
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
-/**
- * Associa cliente a vendedor (com validação de tenant)
- * @param tenantId - ID do tenant para validação
- */
-export async function associarClienteVendedor(tenantId: number, clienteId: number, vendedorId: number, principal: boolean = false): Promise<void> {
-  assertRequiredId(tenantId, "tenantId");
-  assertRequiredId(clienteId, "clienteId");
-  assertRequiredId(vendedorId, "vendedorId");
-  const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+export async function associarClienteVendedor(tenantId: number, clienteId: number, vendedorId: number, principal: boolean = false): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+    if (!Number.isInteger(vendedorId) || vendedorId <= 0) {
+      return { success: false, error: "vendedorId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
   
-  // Validar que cliente pertence ao tenant
-  const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
-  if (cliente.length === 0) throw new Error("Cliente não encontrado");
+    // Validar que cliente pertence ao tenant
+    const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
+    if (cliente.length === 0) {
+      return { success: false, error: "Cliente não encontrado" };
+    }
   
-  // Se for principal, remover associação principal anterior
-  if (principal) {
-    await dbConn.update(clienteVendedores)
-      .set({ tipo: "SECUNDARIO" })
-      .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.tipo, "PRINCIPAL")));
-  }
+    // Se for principal, remover associação principal anterior
+    if (principal) {
+      await dbConn.update(clienteVendedores)
+        .set({ tipo: "SECUNDARIO" })
+        .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.tipo, "PRINCIPAL")));
+    }
   
-  // Verificar se associação já existe
-  const existing = await dbConn.select()
-    .from(clienteVendedores)
-    .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)))
-    .limit(1);
+    // Verificar se associação já existe
+    const existing = await dbConn.select()
+      .from(clienteVendedores)
+      .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)))
+      .limit(1);
   
-  if (existing.length > 0) {
-    await dbConn.update(clienteVendedores)
-      .set({ tipo: principal ? "PRINCIPAL" : "SECUNDARIO", createdAt: new Date() })
-      .where(eq(clienteVendedores.id, existing[0].id));
-  } else {
-    await dbConn.insert(clienteVendedores).values({
-      clienteId,
-      vendedorId,
-      tipo: principal ? "PRINCIPAL" : "SECUNDARIO",
-      createdAt: new Date(),
-    } as ClienteVendedor);
+    if (existing.length > 0) {
+      await dbConn.update(clienteVendedores)
+        .set({ tipo: principal ? "PRINCIPAL" : "SECUNDARIO", createdAt: new Date() })
+        .where(eq(clienteVendedores.id, existing[0].id));
+    } else {
+      await dbConn.insert(clienteVendedores).values({
+        clienteId,
+        vendedorId,
+        tipo: principal ? "PRINCIPAL" : "SECUNDARIO",
+        createdAt: new Date(),
+      } as ClienteVendedor);
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
-/**
- * Busca ou cria um cliente baseado em nome e telefone (normalizados)
- * @param tenantId - ID do tenant para isolamento
- * @param data - Dados do cliente para criação
- * @param tx - Transação opcional
- */
 export async function getOrCreateCliente(
   tenantId: number,
   data: CreateClienteInput & { nome: string; telefone: string },
   tx?: DbConn
-): Promise<number> {
-  assertRequiredId(tenantId, "tenantId");
-  assertRequiredPayload(data, "Dados do cliente obrigatórios");
-  if (!data.nome) throw new Error("Nome do cliente obrigatório");
-  if (!data.telefone) throw new Error("Telefone do cliente obrigatório");
-  const dbConn = tx || await getDb();
-  if (!dbConn) throw new Error("Database not available");
+): Promise<{ success: boolean; data?: number; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!data || typeof data !== 'object') {
+      return { success: false, error: "Dados do cliente obrigatórios" };
+    }
+    if (!data.nome) return { success: false, error: "Nome do cliente obrigatório" };
+    if (!data.telefone) return { success: false, error: "Telefone do cliente obrigatório" };
 
-  const telefoneNorm = normalizeTelefone(data.telefone);
-  const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(data.nome);
-  const nn = nomeNorm.slice(0, 120);
-  const sn = sobrenomeNorm.slice(0, 120);
+    const dbConn = tx || await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
 
-  // Buscar existente
-  const existing = await dbConn.select({ id: clientes.id })
-    .from(clientes)
-    .where(and(
-      eq(clientes.tenantId, tenantId),
-      eq(clientes.telefoneNorm, telefoneNorm),
-      eq(clientes.nomeNorm, nn),
-      eq(clientes.sobrenomeNorm, sn)
-    ))
-    .limit(1);
+    const telefoneNorm = normalizeTelefone(data.telefone);
+    const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(data.nome);
+    const nn = nomeNorm.slice(0, 120);
+    const sn = sobrenomeNorm.slice(0, 120);
 
-  if (existing.length > 0) {
-    return existing[0].id;
+    // Buscar existente
+    const existing = await dbConn.select({ id: clientes.id })
+      .from(clientes)
+      .where(and(
+        eq(clientes.tenantId, tenantId),
+        eq(clientes.telefoneNorm, telefoneNorm),
+        eq(clientes.nomeNorm, nn),
+        eq(clientes.sobrenomeNorm, sn)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return { success: true, data: existing[0].id };
+    }
+
+    // Criar novo
+    const created = await dbConn.insert(clientes).values({
+      tenantId,
+      nome: data.nome,
+      telefone: data.telefone === '' || data.telefone == null ? null : (data.telefone || null),
+      telefoneNorm: telefoneNorm.slice(0, 32),
+      nomeNorm: nn,
+      sobrenomeNorm: sn,
+      telefoneRecado: data.telefoneRecado || null,
+      rua: data.rua || null,
+      numero: data.numero || null,
+      bairro: data.bairro || null,
+      cidade: data.cidade || null,
+      uf: data.uf || null,
+      referencia: data.referencia || null,
+      condominio: data.condominio || null,
+      bloco: data.bloco || null,
+      apartamento: data.apartamento || null,
+    });
+
+    const clienteId = getInsertId(created);
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "Falha ao criar cliente" };
+    }
+
+    return { success: true, data: clienteId };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-
-  // Criar novo
-  const tel = data.telefone === '' || data.telefone == null ? null : (data.telefone || null);
-  const created = await dbConn.insert(clientes).values({
-    tenantId,
-    nome: data.nome,
-    telefone: tel,
-    telefoneNorm: telefoneNorm.slice(0, 32),
-    nomeNorm: nn,
-    sobrenomeNorm: sn,
-    telefoneRecado: data.telefoneRecado || null,
-    rua: data.rua || null,
-    numero: data.numero || null,
-    bairro: data.bairro || null,
-    cidade: data.cidade || null,
-    uf: data.uf || null,
-    referencia: data.referencia || null,
-    condominio: data.condominio || null,
-    bloco: data.bloco || null,
-    apartamento: data.apartamento || null,
-  });
-
-  const clienteId = getInsertId(created);
-  if (!Number.isInteger(clienteId) || clienteId <= 0) {
-    throw new Error("Falha ao criar cliente");
-  }
-
-  return clienteId;
 }
 
-/**
- * Garante que existe um vínculo entre cliente e vendedor
- * @param tx - Transação ativa
- * @param clienteId - ID do cliente
- * @param vendedorId - ID do vendedor
- */
 export async function ensureClienteVendedorLink(
   tx: DbConn,
   clienteId: number,
   vendedorId: number
-): Promise<void> {
-  assertRequiredPayload(tx, "Transação obrigatória");
-  assertRequiredId(clienteId, "clienteId");
-  assertRequiredId(vendedorId, "vendedorId");
-  const existing = await tx
-    .select({ id: clienteVendedores.id })
-    .from(clienteVendedores)
-    .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)))
-    .limit(1);
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!Number.isInteger(vendedorId) || vendedorId <= 0) {
+      return { success: false, error: "vendedorId obrigatório" };
+    }
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
 
-  if (existing.length === 0) {
-    await tx.insert(clienteVendedores).values({
-      clienteId,
-      vendedorId,
-      tipo: "SECUNDARIO",
-      createdAt: new Date(),
-    } as ClienteVendedor);
+    const existing = await tx
+      .select({ id: clienteVendedores.id })
+      .from(clienteVendedores)
+      .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)))
+      .limit(1);
+
+    if (existing.length === 0) {
+      await tx.insert(clienteVendedores).values({
+        clienteId,
+        vendedorId,
+        tipo: "SECUNDARIO",
+        createdAt: new Date(),
+      } as ClienteVendedor);
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
-export async function deleteCliente(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean }> {
+
+export async function deleteCliente(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean; error?: string }> {
   try {
-    assertRequiredId(tenantId, "tenantId");
-    assertRequiredId(id, "clienteId");
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(id) || id <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Banco de dados indisponível");
+    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
 
     const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
-    if (!cliente.length) throw new Error("Cliente não encontrado");
+    if (cliente.length === 0) {
+      return { success: false, error: "Cliente não encontrado" };
+    }
     const c0 = ensureObject(cliente[0]);
     if (!userCanMutateCliente(actor)) {
-      throw new Error("Acesso negado: você não tem permissão para excluir este cliente");
+      return { success: false, error: "Acesso negado: você não tem permissão para excluir este cliente" };
     }
     
     // 1. Verificar se existem pedidos vinculados
@@ -668,7 +690,7 @@ export async function deleteCliente(tenantId: number, actor: ServiceActor, id: n
       .where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.clienteId, id)));
       
     if (Number(pedidosCount[0]?.count || 0) > 0) {
-      throw new Error("Não é possível excluir cliente com pedidos realizados");
+      return { success: false, error: "Não é possível excluir cliente com pedidos realizados" };
     }
     
     // 2. Excluir vínculos com vendedores
@@ -676,196 +698,237 @@ export async function deleteCliente(tenantId: number, actor: ServiceActor, id: n
     
     // 3. Excluir cliente
     await dbConn.delete(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id)));
+    
     const after = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
-    if (after.length > 0) throw new Error("Falha ao excluir cliente");
+    if (after.length > 0) {
+      return { success: false, error: "Falha ao excluir cliente" };
+    }
+    
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir cliente:", error);
-    throw error;
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
-/**
- * Busca o vendedor principal de um cliente
- */
-export async function getVendedorPrincipalDoCliente(tenantId: number, clienteId: number): Promise<{ vendedorId: number; vendedorNome: string } | null> {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) return null;
-  if (!Number.isInteger(clienteId) || clienteId <= 0) return null;
-  const dbConn = await getDb();
-  if (!dbConn) return null;
+export async function getVendedorPrincipalDoCliente(tenantId: number, clienteId: number): Promise<{ success: boolean; data?: { vendedorId: number; vendedorNome: string }; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
   
-  const result = await dbConn.select({
-    vendedorId: clienteVendedores.vendedorId,
-    vendedorNome: vendedores.nome
-  })
-  .from(clienteVendedores)
-  .innerJoin(vendedores, eq(clienteVendedores.vendedorId, vendedores.id))
-  .where(and(
-    eq(clienteVendedores.clienteId, clienteId),
-    eq(clienteVendedores.tipo, "PRINCIPAL"),
-    eq(vendedores.tenantId, tenantId)
-  ))
-  .limit(1);
+    const result = await dbConn.select({
+      vendedorId: clienteVendedores.vendedorId,
+      vendedorNome: vendedores.nome
+    })
+      .from(clienteVendedores)
+      .innerJoin(vendedores, eq(vendedores.id, clienteVendedores.vendedorId))
+      .where(and(
+        eq(clienteVendedores.clienteId, clienteId),
+        eq(clienteVendedores.tipo, "PRINCIPAL"),
+        eq(vendedores.tenantId, tenantId)
+      ))
+      .limit(1);
   
-  return result.length > 0 ? result[0] : null;
-}
-export async function removerAssociacaoClienteVendedor(tenantId: number, clienteId: number, vendedorId: number): Promise<void> {
-  assertRequiredId(tenantId, "tenantId");
-  assertRequiredId(clienteId, "clienteId");
-  assertRequiredId(vendedorId, "vendedorId");
-  const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
-  
-  // Validar que cliente pertence ao tenant
-  const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
-  if (cliente.length === 0) throw new Error("Cliente não encontrado");
-  
-  await dbConn.delete(clienteVendedores)
-    .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)));
+    return { success: true, data: result.length > 0 ? result[0] : undefined };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
-/**
- * Lista vendedores associados a um cliente (com validação de tenant)
- * @param tenantId - ID do tenant para validação
- */
-export async function getVendedoresByCliente(tenantId: number, clienteId: number): Promise<Array<{
+export async function removerAssociacaoClienteVendedor(tenantId: number, clienteId: number, vendedorId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+    if (!Number.isInteger(vendedorId) || vendedorId <= 0) {
+      return { success: false, error: "vendedorId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
+  
+    // Validar que cliente pertence ao tenant
+    const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
+    if (cliente.length === 0) {
+      return { success: false, error: "Cliente não encontrado" };
+    }
+  
+    await dbConn.delete(clienteVendedores)
+      .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)));
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+export async function getVendedoresByCliente(tenantId: number, clienteId: number): Promise<{ success: boolean; data?: Array<{
   vendedor: typeof vendedores.$inferSelect;
   associacao: typeof clienteVendedores.$inferSelect;
-}>> {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) return [];
-  if (!Number.isInteger(clienteId) || clienteId <= 0) return [];
-  const dbConn = await getDb();
-  if (!dbConn) return [];
+}>; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
   
-  // Validar que cliente pertence ao tenant
-  const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
-  if (cliente.length === 0) return [];
+    // Validar que cliente pertence ao tenant
+    const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
+    if (cliente.length === 0) {
+      return { success: false, error: "Cliente não encontrado" };
+    }
   
-  const result = await dbConn.select({
-    vendedor: vendedores,
-    associacao: clienteVendedores,
-  })
-    .from(clienteVendedores)
-    .innerJoin(vendedores, eq(vendedores.id, clienteVendedores.vendedorId))
-    .where(eq(clienteVendedores.clienteId, clienteId))
-    .orderBy(desc(clienteVendedores.tipo), asc(vendedores.nome));
+    const result = await dbConn.select({
+      vendedor: vendedores,
+      associacao: clienteVendedores,
+    })
+      .from(clienteVendedores)
+      .innerJoin(vendedores, eq(vendedores.id, clienteVendedores.vendedorId))
+      .where(eq(clienteVendedores.clienteId, clienteId))
+      .orderBy(desc(clienteVendedores.tipo), asc(vendedores.nome));
     
-  // Garantir que o retorno seja sempre um array
-  return ensureArray(result as Array<{
-    vendedor: typeof vendedores.$inferSelect;
-    associacao: typeof clienteVendedores.$inferSelect;
-  }>);
-}
-
-/**
- * Busca cliente por telefone no tenant; vendedor só se houver vínculo.
- */
-export async function getClienteByTelefone(tenantId: number, actor: ServiceActor, telefone: string): Promise<Cliente | null> {
-  if (!telefone?.trim()) return null;
-  assertRequiredId(tenantId, "tenantId");
-  const dbConn = await getDb();
-  if (!dbConn) return null;
-
-  const telefoneNormalizado = normalizeTelefone(telefone);
-  const base = and(eq(clientes.tenantId, tenantId), eq(clientes.telefone, telefoneNormalizado));
-
-  if (actor.role === "admin") {
-    const result = await dbConn.select().from(clientes).where(base).limit(1);
-    return result.length > 0 ? result[0] : null;
+    return { success: true, data: ensureArray(result as Array<{
+      vendedor: typeof vendedores.$inferSelect;
+      associacao: typeof clienteVendedores.$inferSelect;
+    }>) };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-
-  assertVendedorActor(actor);
-  const result = await dbConn
-    .select({ c: clientes })
-    .from(clientes)
-    .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
-    .where(and(base, eq(clienteVendedores.vendedorId, actor.vendedorId)))
-    .limit(1);
-  return result.length > 0 ? result[0].c : null;
 }
 
-/**
- * Busca clientes por nome (parcial) no tenant; vendedor só com vínculo.
- */
+export async function getClienteByTelefone(tenantId: number, actor: ServiceActor, telefone: string): Promise<{ success: boolean; data?: Cliente; error?: string }> {
+  try {
+    if (!telefone?.trim()) return { success: false, error: "Telefone obrigatório" };
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
+
+    const telefoneNormalizado = normalizeTelefone(telefone);
+    const base = and(eq(clientes.tenantId, tenantId), eq(clientes.telefone, telefoneNormalizado));
+
+    if (actor.role === "admin") {
+      const result = await dbConn.select().from(clientes).where(base).limit(1);
+      return { success: true, data: result.length > 0 ? result[0] : undefined };
+    }
+
+    const result = await dbConn
+      .select({ c: clientes })
+      .from(clientes)
+      .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
+      .where(and(base, actor.vendedorId ? eq(clienteVendedores.vendedorId, actor.vendedorId) : sql`false`))
+      .limit(1);
+    
+    return { success: true, data: result.length > 0 ? result[0].c : undefined };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export async function searchClientesByNome(
   tenantId: number,
   actor: ServiceActor,
   nome: string,
   limite: number = 10
-): Promise<Cliente[]> {
-  if (!nome?.trim()) return [];
-  assertRequiredId(tenantId, "tenantId");
-  const dbConn = await getDb();
-  if (!dbConn) return [];
+): Promise<{ success: boolean; data?: Cliente[]; error?: string }> {
+  try {
+    if (!nome?.trim()) return { success: false, error: "Nome obrigatório" };
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
 
-  const searchTerm = `%${nome.trim()}%`;
-  const nameCond = like(clientes.nome, searchTerm);
-  const tenantCond = eq(clientes.tenantId, tenantId);
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
 
-  if (actor.role === "admin") {
-    return ensureArray(
-      await dbConn
-        .select()
-        .from(clientes)
-        .where(and(tenantCond, nameCond))
-        .orderBy(asc(clientes.nome))
-        .limit(limite)
-    ) as Cliente[];
+    const searchTerm = `%${nome.trim()}%`;
+    const nameCond = like(clientes.nome, searchTerm);
+    const tenantCond = eq(clientes.tenantId, tenantId);
+
+    if (actor.role === "admin") {
+      return { success: true, data: ensureArray(
+        await dbConn
+          .select()
+          .from(clientes)
+          .where(and(tenantCond, nameCond))
+          .orderBy(asc(clientes.nome))
+          .limit(limite)
+      ) as Cliente[] };
+    }
+
+    const rows = await dbConn
+      .select({ c: clientes })
+      .from(clientes)
+      .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
+      .where(and(tenantCond, nameCond, actor.vendedorId ? eq(clienteVendedores.vendedorId, actor.vendedorId) : sql`false`))
+      .orderBy(asc(clientes.nome))
+      .limit(limite);
+    
+    return { success: true, data: rows.map((r) => r.c) as Cliente[] };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-
-  assertVendedorActor(actor);
-  const rows = await dbConn
-    .select({ c: clientes })
-    .from(clientes)
-    .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
-    .where(and(tenantCond, nameCond, eq(clienteVendedores.vendedorId, actor.vendedorId)))
-    .orderBy(asc(clientes.nome))
-    .limit(limite);
-  return rows.map((r) => r.c) as Cliente[];
 }
 
-/**
- * Relatório de clientes ativos por período
- */
 export async function getReportClientesAtivos(tenantId: number, params: {
   dataInicio: Date;
   dataFim: Date;
   limit: number;
-}): Promise<Array<{
+}): Promise<{ success: boolean; data?: Array<{
   clienteNome: string;
   quantidadePedidos: number;
-}>> {
-  assertRequiredId(tenantId, "tenantId");
-  const db = await getDb();
-  if (!db) return [];
-  
+}>; error?: string }> {
   try {
-    const result = await db
-      .select({
-        clienteNome: pedidos.clienteNome,
-        quantidadePedidos: sql<number>`COUNT(*)`.as('quantidadePedidos')
-      })
-      .from(pedidos)
-      .where(
-        and(
-          eq(pedidos.tenantId, tenantId),
-          sql`${pedidos.createdAt} >= ${params.dataInicio}`,
-          sql`${pedidos.createdAt} <= ${params.dataFim}`,
-          ne(pedidos.status, PedidoStatus.CANCELADO)
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const db = await getDb();
+    if (!db) return { success: false, error: "Database not available" };
+  
+    try {
+      const result = await db
+        .select({
+          clienteNome: pedidos.clienteNome,
+          quantidadePedidos: sql<number>`COUNT(*)`.as('quantidadePedidos')
+        })
+        .from(pedidos)
+        .where(
+          and(
+            eq(pedidos.tenantId, tenantId),
+            sql`${pedidos.createdAt} >= ${params.dataInicio}`,
+            sql`${pedidos.createdAt} <= ${params.dataFim}`,
+            ne(pedidos.status, PedidoStatus.CANCELADO)
+          )
         )
-      )
-      .groupBy(pedidos.clienteNome)
-      .orderBy(sql`COUNT(*) DESC`)
-      .limit(params.limit);
+        .groupBy(pedidos.clienteNome)
+        .orderBy(sql`COUNT(*) DESC`)
+        .limit(params.limit);
     
-    // Garantir que o retorno seja sempre um array
-    return ensureArray(result as Array<{
-      clienteNome: string;
-      quantidadePedidos: number;
-    }>);
+      return { success: true, data: ensureArray(result as Array<{
+        clienteNome: string;
+        quantidadePedidos: number;
+      }>) };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   } catch (error) {
-    console.error('Error in getReportClientesAtivos:', error);
-    return [];
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -882,66 +945,78 @@ export async function listClientesComMetricasPedidos(
   tenantId: number,
   actor: ServiceActor,
   limitRows = 500
-): Promise<LeoClientePedidoMetrics[]> {
-  assertRequiredId(tenantId, "tenantId");
-  const dbConn = await getDb();
-  if (!dbConn) return [];
+): Promise<{ success: boolean; data?: LeoClientePedidoMetrics[]; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
 
-  if (actor.role === "vendedor") {
-    assertVendedorActor(actor);
+    const dbConn = await getDb();
+    if (!dbConn) return { success: false, error: "Database not available" };
+
+    if (actor.role === "vendedor") {
+      if (!actor.vendedorId) {
+        return { success: false, error: "Vendedor ID obrigatório" };
+      }
+      
+      const rows = await dbConn
+        .select({
+          id: clientes.id,
+          nome: clientes.nome,
+          createdAt: clientes.createdAt,
+          totalPedidos: sql<number>`(SELECT COUNT(*) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id} AND pedidos.vendedor_id = ${actor.vendedorId})`.as(
+            "totalPedidos"
+          ),
+          totalGasto: sql<number>`(SELECT COALESCE(SUM(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id} AND pedidos.vendedor_id = ${actor.vendedorId})`.as(
+            "totalGasto"
+          ),
+          avgTicket: sql<number>`(SELECT COALESCE(AVG(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id} AND pedidos.vendedor_id = ${actor.vendedorId})`.as(
+            "avgTicket"
+          ),
+        })
+        .from(clientes)
+        .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
+        .where(and(eq(clientes.tenantId, tenantId), eq(clienteVendedores.vendedorId, actor.vendedorId)))
+        .limit(limitRows);
+      
+      return { success: true, data: rows.map((r) => ({
+        id: r.id,
+        nome: r.nome,
+        createdAt: r.createdAt,
+        totalPedidos: Number(r.totalPedidos ?? 0),
+        totalGasto: Number(r.totalGasto ?? 0),
+        avgTicket: Number(r.avgTicket ?? 0),
+      })) };
+    }
+
     const rows = await dbConn
       .select({
         id: clientes.id,
         nome: clientes.nome,
         createdAt: clientes.createdAt,
-        totalPedidos: sql<number>`(SELECT COUNT(*) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id} AND pedidos.vendedor_id = ${actor.vendedorId})`.as(
+        totalPedidos: sql<number>`(SELECT COUNT(*) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id})`.as(
           "totalPedidos"
         ),
-        totalGasto: sql<number>`(SELECT COALESCE(SUM(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id} AND pedidos.vendedor_id = ${actor.vendedorId})`.as(
+        totalGasto: sql<number>`(SELECT COALESCE(SUM(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id})`.as(
           "totalGasto"
         ),
-        avgTicket: sql<number>`(SELECT COALESCE(AVG(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id} AND pedidos.vendedor_id = ${actor.vendedorId})`.as(
+        avgTicket: sql<number>`(SELECT COALESCE(AVG(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id})`.as(
           "avgTicket"
         ),
       })
       .from(clientes)
-      .innerJoin(clienteVendedores, eq(clientes.id, clienteVendedores.clienteId))
-      .where(and(eq(clientes.tenantId, tenantId), eq(clienteVendedores.vendedorId, actor.vendedorId)))
+      .where(eq(clientes.tenantId, tenantId))
       .limit(limitRows);
-    return rows.map((r) => ({
+    
+    return { success: true, data: rows.map((r) => ({
       id: r.id,
       nome: r.nome,
       createdAt: r.createdAt,
       totalPedidos: Number(r.totalPedidos ?? 0),
       totalGasto: Number(r.totalGasto ?? 0),
       avgTicket: Number(r.avgTicket ?? 0),
-    }));
+    })) };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-
-  const rows = await dbConn
-    .select({
-      id: clientes.id,
-      nome: clientes.nome,
-      createdAt: clientes.createdAt,
-      totalPedidos: sql<number>`(SELECT COUNT(*) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id})`.as(
-        "totalPedidos"
-      ),
-      totalGasto: sql<number>`(SELECT COALESCE(SUM(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id})`.as(
-        "totalGasto"
-      ),
-      avgTicket: sql<number>`(SELECT COALESCE(AVG(pedidos.total), 0) FROM pedidos WHERE pedidos.cliente_id = ${clientes.id})`.as(
-        "avgTicket"
-      ),
-    })
-    .from(clientes)
-    .where(eq(clientes.tenantId, tenantId))
-    .limit(limitRows);
-  return rows.map((r) => ({
-    id: r.id,
-    nome: r.nome,
-    createdAt: r.createdAt,
-    totalPedidos: Number(r.totalPedidos ?? 0),
-    totalGasto: Number(r.totalGasto ?? 0),
-    avgTicket: Number(r.avgTicket ?? 0),
-  }));
 }

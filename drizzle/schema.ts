@@ -544,8 +544,8 @@ export const idempotencyKeys = mysqlTable(
   }),
 );
 
-export const auditLog = mysqlTable(
-  "audit_log",
+export const auditLogs = mysqlTable(
+  "audit_logs",
   {
     id: int("id").primaryKey().autoincrement(),
     tenantId: int("tenant_id").notNull(),
@@ -557,11 +557,16 @@ export const auditLog = mysqlTable(
     entityId: varchar("entity_id", { length: 64 }),
     payloadJson: text("payload_json"),
     traceId: varchar("trace_id", { length: 32 }),
+    ip: varchar("ip", { length: 45 }), // IPv4 ou IPv6
+    userAgent: text("user_agent"),
+    severity: varchar("severity", { length: 10 }).notNull().default("INFO"),
+    source: varchar("source", { length: 20 }).notNull().default("api"),
   },
   (table) => ({
     entityIdx: index("audit_entity_idx").on(table.entity),
     entityIdIdx: index("audit_entity_id_idx").on(table.entityId),
     createdAtIdx: index("audit_created_at_idx").on(table.createdAt),
+    ipIdx: index("audit_ip_idx").on(table.ip),
   }),
 );
 

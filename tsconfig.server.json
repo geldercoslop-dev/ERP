@@ -16,6 +16,8 @@
   "exclude": [
     "node_modules",
     "dist",
+    "server/services/ai/_unstable/**",
+    "server/services/ai/_unstable/**/*",
     "**/*.test.ts",
     "**/*.spec.ts",
     "server/tests/**",

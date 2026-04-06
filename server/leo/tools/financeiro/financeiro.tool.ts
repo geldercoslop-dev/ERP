@@ -68,11 +68,12 @@ export const listarContasReceberTool: LeoToolDefinition<z.infer<typeof contasRec
       pageSize: input.pageSize ?? 50,
     };
     const result = await financeService.listContasReceber(tenantId, actor, filtros);
+    const { total } = result;
     return createToolResponse(
       true,
-      `Contas a receber (${result.total} total).`,
+      `Contas a receber (${total} total).`,
       result,
-      { tool: "listar_contas_receber", total: result.total }
+      { tool: "listar_contas_receber", total }
     );
   },
 };

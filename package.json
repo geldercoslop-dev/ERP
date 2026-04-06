@@ -2,11 +2,13 @@
   "name": "vendas-app",
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.29.3",
   "license": "MIT",
   "scripts": {
     "build": "pnpm run build:client && pnpm run build:server",
     "build:server": "tsc -p tsconfig.server.json",
     "typecheck": "tsc -p tsconfig.server.json --noEmit",
+    "audit:check": "pnpm audit --audit-level=high",
     "dev": "cross-env NODE_ENV=development tsx watch --exclude dist --exclude node_modules --exclude server/_core/port.ts --exclude server/_core/**/*.log --exclude server/_core/**/*.tmp --import ./instrument.ts server/index.ts",
     "build:docker": "npm run build",
     "build:client": "vite build",
@@ -66,7 +68,7 @@
     "diagnostic": "tsx server/tools/diagnostic-cli.ts",
     "staging:gate": "node ./scripts/staging-gate.mjs",
     "generate:env": "tsx scripts/generate-env.ts",
-    "prepare": "husky"
+    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky; fi"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
@@ -206,5 +208,14 @@
     "vite": "^5.4.10",
     "vite-plugin-manus-runtime": "^0.0.57",
     "vitest": "^2.1.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "picomatch@>=4.0.0 <4.0.4": ">=4.0.4",
+      "fast-xml-parser@>=5.0.0 <5.5.7": ">=5.5.7",
+      "lodash-es@>=4.0.0 <=4.17.23": ">=4.18.0",
+      "lodash@>=4.0.0 <=4.17.23": ">=4.18.0",
+      "esbuild@<0.25.0": ">=0.25.0"
+    }
   }
 }

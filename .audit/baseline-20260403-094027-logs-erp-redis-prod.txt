@@ -1,0 +1,60 @@
+﻿1:C 03 Apr 2026 12:11:38.422 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+1:C 03 Apr 2026 12:11:38.422 * Redis version=7.4.8, bits=64, commit=00000000, modified=0, pid=1, just started
+1:C 03 Apr 2026 12:11:38.422 * Configuration loaded
+1:M 03 Apr 2026 12:11:38.432 * monotonic clock: POSIX clock_gettime
+1:M 03 Apr 2026 12:11:38.515 * Running mode=standalone, port=6379.
+1:M 03 Apr 2026 12:11:38.541 * Server initialized
+1:M 03 Apr 2026 12:11:38.601 * Reading RDB base file on AOF loading...
+1:M 03 Apr 2026 12:11:38.604 * Loading RDB produced by version 7.4.8
+1:M 03 Apr 2026 12:11:38.604 * RDB age 5379 seconds
+1:M 03 Apr 2026 12:11:38.604 * RDB memory usage when created 0.90 Mb
+1:M 03 Apr 2026 12:11:38.604 * RDB is base AOF
+1:M 03 Apr 2026 12:11:38.604 * Done loading RDB, keys loaded: 0, keys expired: 0.
+1:M 03 Apr 2026 12:11:38.605 * DB loaded from base file appendonly.aof.1.base.rdb: 0.008 seconds
+1:M 03 Apr 2026 12:11:38.606 * DB loaded from append only file: 0.008 seconds
+1:M 03 Apr 2026 12:11:38.609 * Opening AOF incr file appendonly.aof.1.incr.aof on server start
+1:M 03 Apr 2026 12:11:38.609 * Ready to accept connections tcp
+1:signal-handler (1775218398) Received SIGTERM scheduling shutdown...
+1:M 03 Apr 2026 12:13:18.782 * User requested shutdown...
+1:M 03 Apr 2026 12:13:18.782 * Calling fsync() on the AOF file.
+1:M 03 Apr 2026 12:13:18.786 * Saving the final RDB snapshot before exiting.
+1:M 03 Apr 2026 12:13:18.845 * DB saved on disk
+1:M 03 Apr 2026 12:13:18.854 # Redis is now ready to exit, bye bye...
+1:C 03 Apr 2026 12:13:31.997 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+1:C 03 Apr 2026 12:13:31.997 * Redis version=7.4.8, bits=64, commit=00000000, modified=0, pid=1, just started
+1:C 03 Apr 2026 12:13:31.997 * Configuration loaded
+1:M 03 Apr 2026 12:13:31.998 * monotonic clock: POSIX clock_gettime
+1:M 03 Apr 2026 12:13:32.000 * Running mode=standalone, port=6379.
+1:M 03 Apr 2026 12:13:32.006 * Server initialized
+1:M 03 Apr 2026 12:13:32.010 * Reading RDB base file on AOF loading...
+1:M 03 Apr 2026 12:13:32.010 * Loading RDB produced by version 7.4.8
+1:M 03 Apr 2026 12:13:32.010 * RDB age 5493 seconds
+1:M 03 Apr 2026 12:13:32.010 * RDB memory usage when created 0.90 Mb
+1:M 03 Apr 2026 12:13:32.010 * RDB is base AOF
+1:M 03 Apr 2026 12:13:32.010 * Done loading RDB, keys loaded: 0, keys expired: 0.
+1:M 03 Apr 2026 12:13:32.011 * DB loaded from base file appendonly.aof.1.base.rdb: 0.004 seconds
+1:M 03 Apr 2026 12:13:32.011 * DB loaded from append only file: 0.004 seconds
+1:M 03 Apr 2026 12:13:32.011 * Opening AOF incr file appendonly.aof.1.incr.aof on server start
+1:M 03 Apr 2026 12:13:32.011 * Ready to accept connections tcp
+1:signal-handler (1775218494) Received SIGTERM scheduling shutdown...
+1:M 03 Apr 2026 12:14:54.311 * User requested shutdown...
+1:M 03 Apr 2026 12:14:54.311 * Calling fsync() on the AOF file.
+1:M 03 Apr 2026 12:14:54.314 * Saving the final RDB snapshot before exiting.
+1:M 03 Apr 2026 12:14:54.474 * DB saved on disk
+1:M 03 Apr 2026 12:14:54.474 # Redis is now ready to exit, bye bye...
+1:C 03 Apr 2026 12:14:58.226 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+1:C 03 Apr 2026 12:14:58.226 * Redis version=7.4.8, bits=64, commit=00000000, modified=0, pid=1, just started
+1:C 03 Apr 2026 12:14:58.226 * Configuration loaded
+1:M 03 Apr 2026 12:14:58.228 * monotonic clock: POSIX clock_gettime
+1:M 03 Apr 2026 12:14:58.232 * Running mode=standalone, port=6379.
+1:M 03 Apr 2026 12:14:58.236 * Server initialized
+1:M 03 Apr 2026 12:14:58.236 * Reading RDB base file on AOF loading...
+1:M 03 Apr 2026 12:14:58.236 * Loading RDB produced by version 7.4.8
+1:M 03 Apr 2026 12:14:58.236 * RDB age 5579 seconds
+1:M 03 Apr 2026 12:14:58.236 * RDB memory usage when created 0.90 Mb
+1:M 03 Apr 2026 12:14:58.236 * RDB is base AOF
+1:M 03 Apr 2026 12:14:58.236 * Done loading RDB, keys loaded: 0, keys expired: 0.
+1:M 03 Apr 2026 12:14:58.237 * DB loaded from base file appendonly.aof.1.base.rdb: 0.000 seconds
+1:M 03 Apr 2026 12:14:58.239 * DB loaded from append only file: 0.003 seconds
+1:M 03 Apr 2026 12:14:58.239 * Opening AOF incr file appendonly.aof.1.incr.aof on server start
+1:M 03 Apr 2026 12:14:58.239 * Ready to accept connections tcp

@@ -1,0 +1,317 @@
+﻿[
+    {
+        "Id": "3ac246eb2f9be439e48b7211d0c2307ddebb4b06e8f8f6722adbfd110bc16ccd",
+        "Created": "2026-04-03T12:11:25.127737059Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "redis-server",
+            "--appendonly",
+            "yes"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 47236,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-03T12:14:56.958394193Z",
+            "FinishedAt": "2026-04-03T12:14:54.483624091Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-04-03T12:39:48.052095857Z",
+                        "End": "2026-04-03T12:39:48.518662331Z",
+                        "ExitCode": 0,
+                        "Output": "PONG\n"
+                    },
+                    {
+                        "Start": "2026-04-03T12:39:58.521224541Z",
+                        "End": "2026-04-03T12:39:58.723592016Z",
+                        "ExitCode": 0,
+                        "Output": "PONG\n"
+                    },
+                    {
+                        "Start": "2026-04-03T12:40:08.725213603Z",
+                        "End": "2026-04-03T12:40:09.135445923Z",
+                        "ExitCode": 0,
+                        "Output": "PONG\n"
+                    },
+                    {
+                        "Start": "2026-04-03T12:40:19.128380129Z",
+                        "End": "2026-04-03T12:40:19.275322125Z",
+                        "ExitCode": 0,
+                        "Output": "PONG\n"
+                    },
+                    {
+                        "Start": "2026-04-03T12:40:29.277267038Z",
+                        "End": "2026-04-03T12:40:29.638621193Z",
+                        "ExitCode": 0,
+                        "Output": "PONG\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:8b81dd37ff027bec4e516d41acfbe9fe2460070dc6d4a4570a2ac5b9d59df065",
+        "ResolvConfPath": "/var/lib/docker/containers/3ac246eb2f9be439e48b7211d0c2307ddebb4b06e8f8f6722adbfd110bc16ccd/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/3ac246eb2f9be439e48b7211d0c2307ddebb4b06e8f8f6722adbfd110bc16ccd/hostname",
+        "HostsPath": "/var/lib/docker/containers/3ac246eb2f9be439e48b7211d0c2307ddebb4b06e8f8f6722adbfd110bc16ccd/hosts",
+        "LogPath": "/var/lib/docker/containers/3ac246eb2f9be439e48b7211d0c2307ddebb4b06e8f8f6722adbfd110bc16ccd/3ac246eb2f9be439e48b7211d0c2307ddebb4b06e8f8f6722adbfd110bc16ccd-json.log",
+        "Name": "/erp-redis-prod",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "erp_redis_data_prod:/data:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "erp_vendas-network",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "on-failure",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "erp_redis_data_prod",
+                "Source": "/var/lib/docker/volumes/erp_redis_data_prod/_data",
+                "Destination": "/data",
+                "Driver": "local",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "3ac246eb2f9b",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "6379/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "APP_SECRET=erp_prod_app_secret_2026_super_long_fixed_value_at_least_64_chars_ok",
+                "DB_PORT=3306",
+                "JWT_ACCESS_SECRET=erp_prod_jwt_access_secret_2026_super_long_fixed_value_64_chars_ok",
+                "DB_HOST=db",
+                "NODE_ENV=production",
+                "DB_PASSWORD=root",
+                "ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3001",
+                "REDIS_HOST=redis",
+                "REDIS_URL=redis://redis:6379",
+                "DB_USER=root",
+                "PORT=3000",
+                "REDIS_PASSWORD=",
+                "REDIS_PORT=6379",
+                "JWT_SECRET=dev_jwt_secret_change_me_please_minimum_32_chars",
+                "JWT_REFRESH_SECRET=erp_prod_jwt_refresh_secret_2026_super_long_fixed_value_64_chars_ok",
+                "DB_NAME=erp",
+                "DATABASE_URL=mysql://root:root@db:3306/erp",
+                "SESSION_SECRET=dev_session_secret_change_me_please_minimum_32_chars",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GOSU_VERSION=1.17",
+                "REDIS_VERSION=7.4.8",
+                "REDIS_DOWNLOAD_URL=http://download.redis.io/releases/redis-7.4.8.tar.gz",
+                "REDIS_DOWNLOAD_SHA=f6773cb7d63be236c59c2917a82f1f08e47b77d89b2f0c9f53becb22b8ea4172"
+            ],
+            "Cmd": [
+                "redis-server",
+                "--appendonly",
+                "yes"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD",
+                    "redis-cli",
+                    "ping"
+                ],
+                "Interval": 10000000000,
+                "Timeout": 5000000000,
+                "StartPeriod": 20000000000,
+                "Retries": 10
+            },
+            "Image": "redis:7-alpine",
+            "Volumes": {
+                "/data": {}
+            },
+            "WorkingDir": "/data",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "com.docker.compose.config-hash": "9f88f4ad6973a54601b7f3915b3321a451816214276888f6e15fe9f1df209194",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:8b81dd37ff027bec4e516d41acfbe9fe2460070dc6d4a4570a2ac5b9d59df065",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "erp",
+                "com.docker.compose.project.config_files": "C:\\ERP\\docker-compose.prod.yml",
+                "com.docker.compose.project.working_dir": "C:\\ERP",
+                "com.docker.compose.replace": "erp-redis-prod",
+                "com.docker.compose.service": "redis",
+                "com.docker.compose.version": "5.1.0"
+            },
+            "StopTimeout": 1
+        },
+        "NetworkSettings": {
+            "SandboxID": "9fcfda25fd5562581b8c3f6bb28dbd6c55ae8e674dc5e8eef6900e28f96ba59a",
+            "SandboxKey": "/var/run/docker/netns/9fcfda25fd55",
+            "Ports": {
+                "6379/tcp": null
+            },
+            "Networks": {
+                "erp_vendas-network": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "erp-redis-prod",
+                        "redis"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "11395877feb09b26f1a782926b7a3c40c7421f5cec9d3d8c702de7276abf4a74",
+                    "EndpointID": "16a17ffb5dae39127532dde82e27bd5b03b8919b183b6c6ca5766ef87cd5b74d",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.2",
+                    "MacAddress": "7a:58:32:3a:9f:62",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "erp-redis-prod",
+                        "redis",
+                        "3ac246eb2f9b"
+                    ]
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:4bfd9eca23339865dc14fe75f6d9ae643f714924623978dd2798f1a673b08f43",
+            "size": 2483,
+            "annotations": {
+                "com.docker.official-images.bashbrew.arch": "amd64",
+                "org.opencontainers.image.base.digest": "sha256:22e0ec13c0db6b3e1ba3280e831fc50ba7bffe58e81f31670a64b1afede247bc",
+                "org.opencontainers.image.base.name": "alpine:3.21",
+                "org.opencontainers.image.created": "2026-02-23T17:34:10Z",
+                "org.opencontainers.image.revision": "9d9b74b729d555ef784db63c1941b73d1c47a6f9",
+                "org.opencontainers.image.source": "https://github.com/redis/docker-library-redis.git#9d9b74b729d555ef784db63c1941b73d1c47a6f9:7.4/alpine",
+                "org.opencontainers.image.url": "https://hub.docker.com/_/redis",
+                "org.opencontainers.image.version": "7.4.8-alpine"
+            },
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

@@ -9,11 +9,18 @@ import { getLeoInsights } from '../services/leo-insights.service.js';
 
 const router = Router();
 
-const DEFAULT_TENANT_ID = 1;
-
+/**
+ * Obtém tenantId do request ou lança erro se não disponível
+ * CRÍTICO: Não permite fallback para tenant fixo
+ */
 function tenantIdFromReq(req: Request): number {
   const id = (req as Request & { tenantId?: number }).tenantId;
-  return typeof id === 'number' && Number.isInteger(id) ? id : DEFAULT_TENANT_ID;
+  
+  if (!id || !Number.isInteger(id) || id <= 0) {
+    throw new Error('Tenant ID não encontrado ou inválido no request. Tenant é obrigatório.');
+  }
+  
+  return id;
 }
 
 /**
@@ -144,10 +151,10 @@ router.get('/insights/metrics', async (req, res) => {
         metrics: insights.metrics,
         resumo: {
           totalMetricas: insights.metrics.length,
-          positivas: insights.metrics.filter(m => m.status === 'positivo').length,
-          alertas: insights.metrics.filter(m => m.status === 'alerta').length,
-          negativas: insights.metrics.filter(m => m.status === 'negativo').length,
-          metasAtingidas: insights.metrics.filter(m => m.atingiuMeta).length
+          positivas: insights.metrics.filter(m => m.comparacao.status === 'positivo').length,
+          alertas: insights.metrics.filter(m => m.comparacao.status === 'alerta').length,
+          negativas: insights.metrics.filter(m => m.comparacao.status === 'negativo').length,
+          metasAtingidas: insights.metrics.filter(m => m.meta?.atingiuMeta).length
         }
       },
       timestamp: new Date().toISOString()

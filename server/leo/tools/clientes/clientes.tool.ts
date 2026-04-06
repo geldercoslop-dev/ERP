@@ -22,20 +22,23 @@ async function execute(input: Input, context: LeoToolContext) {
   if (input.clienteId != null) {
     const cliente = await clientesService.getClienteById(tenantId, actor, input.clienteId);
     return createToolResponse(
-      !!cliente,
-      cliente ? "Dados do cliente carregados." : "Cliente não encontrado.",
-      cliente ?? null,
+      !!cliente.success && !!cliente.data,
+      cliente.success && cliente.data ? "Dados do cliente carregados." : (cliente.error ?? "Cliente não encontrado."),
+      cliente.data ?? null,
       { tool: "detalhar_cliente" }
     );
   }
 
   if (input.nome?.trim()) {
     const clientes = await clientesService.searchClientesByNome(tenantId, actor, input.nome.trim(), 10);
+    const items = clientes.success && clientes.data ? clientes.data : [];
     return createToolResponse(
-      true,
-      `Encontrei ${clientes.length} cliente(s) com o nome "${input.nome}".`,
-      clientes,
-      { tool: "buscar_cliente", count: clientes.length }
+      clientes.success,
+      clientes.success
+        ? `Encontrei ${items.length} cliente(s) com o nome "${input.nome}".`
+        : (clientes.error ?? "Falha ao buscar clientes."),
+      items,
+      { tool: "buscar_cliente", count: items.length }
     );
   }
 
@@ -43,11 +46,12 @@ async function execute(input: Input, context: LeoToolContext) {
     page: input.page ?? 1,
     pageSize: input.pageSize ?? 20,
   });
+  const listData = list.success && list.data ? list.data : { items: [], total: 0 };
   return createToolResponse(
-    true,
-    `Listagem de clientes (${list.total} total).`,
-    list,
-    { tool: "listar_clientes", total: list.total }
+    list.success,
+    list.success ? `Listagem de clientes (${listData.total} total).` : (list.error ?? "Falha ao listar clientes."),
+    listData,
+    { tool: "listar_clientes", total: listData.total }
   );
 }
 

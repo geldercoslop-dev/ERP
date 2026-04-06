@@ -42,7 +42,7 @@ export class OrderService {
     }
 
     // Validação de cada item
-    for (const [index, item] of (payload.itens as any[]).entries()) {
+    for (const [index, item] of (payload.itens as Array<Record<string, unknown>>).entries()) {
       if (!item || typeof item !== 'object') {
         throw new Error(`Item ${index} inválido: esperado objeto`);
       }
@@ -162,7 +162,7 @@ export class OrderService {
       }
 
       // Validação de cada item se fornecidos
-      for (const [index, item] of (updateFields.itens as any[]).entries()) {
+      for (const [index, item] of (updateFields.itens as Array<Record<string, unknown>>).entries()) {
         if (!item || typeof item !== 'object') {
           throw new Error(`Item ${index} inválido: esperado objeto`);
         }

@@ -77,15 +77,15 @@ function ensureSpace(doc: jsPDF, y: number, need: number): number {
 /**
  * GERAÇÃO DE BOLETO PADRONIZADO
  */
-export async function gerarBoletoPDF(tenantId: number, boletoId: number): Promise<string> {
+export async function gerarBoletoPDF(tenantId: number, boletoId: number): Promise<{ success: boolean; data?: string; error?: string }> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new Error("Database not available");
+  if (!db_conn) return { success: false, error: "Database not available" };
 
   const result = await db_conn.select().from(db.contasReceber)
     .where(and(eq(db.contasReceber.tenantId, tenantId), eq(db.contasReceber.id, boletoId)))
     .limit(1);
     
-  if (result.length === 0) throw new Error("Boleto não encontrado");
+  if (result.length === 0) return { success: false, error: "Boleto não encontrado" };
   const b = result[0];
 
   const dadosBanco = await db.getConfig("DADOS_BANCO") || "DADOS BANCÁRIOS NÃO CONFIGURADOS";
@@ -151,7 +151,7 @@ export async function gerarBoletoPDF(tenantId: number, boletoId: number): Promis
   const splitBanco = doc.splitTextToSize(dadosBanco, 120);
   doc.text(splitBanco, margin + 40, y + 20);
 
-  return doc.output("datauristring");
+  return { success: true, data: doc.output("datauristring") };
 }
 
 /**
@@ -204,14 +204,14 @@ export async function gerarExtratoClientePDF(tenantId: number, clienteId: number
 /**
  * Gera o PDF do boleto em bytes (para ZIP / download binário).
  */
-export async function gerarBoletoPDFBytes(tenantId: number, boletoId: number): Promise<Uint8Array> {
+export async function gerarBoletoPDFBytes(tenantId: number, boletoId: number): Promise<{ success: boolean; data?: Uint8Array; error?: string }> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new Error("Database not available");
+  if (!db_conn) return { success: false, error: "Database not available" };
 
   const result = await db_conn.select().from(db.contasReceber)
     .where(and(eq(db.contasReceber.tenantId, tenantId), eq(db.contasReceber.id, boletoId)))
     .limit(1);
-  if (result.length === 0) throw new Error("Boleto não encontrado");
+  if (result.length === 0) return { success: false, error: "Boleto não encontrado" };
   const b = result[0];
 
   const dadosBanco = await db.getConfig("DADOS_BANCO") || "DADOS BANCÁRIOS NÃO CONFIGURADOS";
@@ -278,7 +278,7 @@ export async function gerarBoletoPDFBytes(tenantId: number, boletoId: number): P
   doc.text(splitBanco, margin + 40, y + 20);
 
   const ab = doc.output('arraybuffer');
-  return new Uint8Array(ab);
+  return { success: true, data: new Uint8Array(ab) };
 }
 
 /**
@@ -455,8 +455,11 @@ export async function gerarZipBoletos(tenantId: number, params: { boletoIds: num
 
   for (const [i, id] of Array.from(boletoIds.entries())) {
     const pdfBytes = await gerarBoletoPDFBytes(tenantId, id);
+    if (!pdfBytes.success || !pdfBytes.data) {
+      throw new Error(pdfBytes.error ?? `Falha ao gerar PDF do boleto ${id}`);
+    }
     const pdfName = `BOLETO_${String(i + 1).padStart(2, '0')}_ID-${id}.pdf`;
-    archive.append(Buffer.from(pdfBytes), { name: pdfName });
+    archive.append(Buffer.from(pdfBytes.data), { name: pdfName });
   }
 
   await archive.finalize();

@@ -1,8 +1,13 @@
 import { logInfo, logError } from '../../_core/logger.js';
 import { nanoid } from 'nanoid';
 import {
-  semanticMemoryExecute,
-  semanticMemoryQueryRows,
+  deleteOldSemanticMemory,
+  findRecentSimilarSemanticEvents,
+  getSemanticMemoryDailyStats,
+  querySemanticMemory,
+  saveSemanticMemoryEvent,
+  saveSemanticMemorySummary,
+  upsertSemanticMemoryPattern,
 } from '../../services/leo-semantic-memory.service.js';
 
 export type SemanticMemory = {
@@ -184,10 +189,12 @@ export class LeoSemanticMemory {
   ): Promise<SemanticPattern[]> {
     const trintaDiasAtras = new Date();
     trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-    const eventosSimilares = (await semanticMemoryQueryRows(
-      `SELECT * FROM semantic_memory_events WHERE contexto = ? AND entidade = ? AND timestamp >= ? ORDER BY timestamp DESC LIMIT 10`,
-      [evento.contexto, evento.entidade, trintaDiasAtras.toISOString()]
-    )) as Array<{ tipo: string; dados?: unknown; contexto: string; timestamp: Date | string }>;
+    const eventosSimilares = await findRecentSimilarSemanticEvents(
+      evento.contexto,
+      evento.entidade,
+      trintaDiasAtras.toISOString(),
+      10
+    );
     const padroes: SemanticPattern[] = [];
     const eventosAgrupados = eventosSimilares.reduce(
       (acc: Record<string, typeof eventosSimilares>, ev) => {
@@ -222,51 +229,12 @@ export class LeoSemanticMemory {
   }
 
   private async salvarEvento(evento: SemanticMemoryEvent): Promise<void> {
-    await semanticMemoryExecute(
-      `INSERT INTO semantic_memory_events (
-        id, tipo, contexto, entidade, entidade_id, dados,
-        timestamp, usuario, confianca, importancia
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        evento.id,
-        evento.tipo,
-        evento.contexto,
-        evento.entidade,
-        evento.entidadeId,
-        JSON.stringify(evento.dados),
-        evento.timestamp.toISOString(),
-        evento.usuario ?? 'leo',
-        evento.confianca,
-        evento.importancia,
-      ]
-    );
+    await saveSemanticMemoryEvent(evento);
   }
 
   private async atualizarPadroes(padroes: SemanticPattern[]): Promise<void> {
     for (const padrao of padroes) {
-      await semanticMemoryExecute(
-        `INSERT INTO semantic_memory_patterns (
-          id, nome, descricao, tipo, contexto, condicoes,
-          frequencia, confianca, criado_em, atualizado_em
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          nome = VALUES(nome),
-          descricao = VALUES(descricao),
-          frequencia = VALUES(frequencia),
-          atualizado_em = VALUES(atualizado_em)`,
-        [
-          padrao.id,
-          padrao.nome,
-          padrao.descricao,
-          padrao.tipo,
-          padrao.contexto,
-          JSON.stringify(padrao.condicoes),
-          padrao.frequencia,
-          padrao.confianca,
-          padrao.criadoEm.toISOString(),
-          padrao.atualizadoEm.toISOString(),
-        ]
-      );
+      await upsertSemanticMemoryPattern(padrao);
     }
   }
 
@@ -278,21 +246,10 @@ export class LeoSemanticMemory {
       const hoje = new Date();
       const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
       const fimDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
-      const eventosDia = (await semanticMemoryQueryRows(
-        `SELECT COUNT(*) as total FROM semantic_memory_events WHERE timestamp >= ? AND timestamp < ?`,
-        [inicioDia.toISOString(), fimDia.toISOString()]
-      )) as Array<{ total: number }>;
-      const padroesDia = (await semanticMemoryQueryRows(
-        `SELECT COUNT(*) as total FROM semantic_memory_patterns WHERE criado_em >= ? AND criado_em < ?`,
-        [inicioDia.toISOString(), fimDia.toISOString()]
-      )) as Array<{ total: number }>;
-      const decisoesDia = (await semanticMemoryQueryRows(
-        `SELECT COUNT(*) as total FROM semantic_memory_events WHERE tipo = 'decisao' AND timestamp >= ? AND timestamp < ?`,
-        [inicioDia.toISOString(), fimDia.toISOString()]
-      )) as Array<{ total: number }>;
-      const totalEventos = Number(eventosDia[0]?.total ?? 0);
-      const totalPadroes = Number(padroesDia[0]?.total ?? 0);
-      const totalDecisoes = Number(decisoesDia[0]?.total ?? 0);
+      const stats = await getSemanticMemoryDailyStats(inicioDia.toISOString(), fimDia.toISOString());
+      const totalEventos = stats.eventos;
+      const totalPadroes = stats.padroes;
+      const totalDecisoes = stats.decisoes;
       const eficiencia = Math.random() * 30 + 60;
       const resumo = {
         id: nanoid(),
@@ -311,23 +268,7 @@ export class LeoSemanticMemory {
         geradoPor: 'leo' as const,
         confianca: 0.8,
       };
-      await semanticMemoryExecute(
-        `INSERT INTO semantic_memory_summaries (
-          id, tipo, periodo, contexto, resumo, dados,
-          criado_em, gerado_por, confianca
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          resumo.id,
-          resumo.tipo,
-          JSON.stringify(resumo.periodo),
-          resumo.contexto,
-          resumo.resumo,
-          JSON.stringify(resumo.dados),
-          resumo.criadoEm.toISOString(),
-          resumo.geradoPor,
-          resumo.confianca,
-        ]
-      );
+      await saveSemanticMemorySummary(resumo);
       logInfo('Resumo diário gerado', {
         tipo: resumo.tipo,
         eventos: totalEventos,
@@ -344,46 +285,7 @@ export class LeoSemanticMemory {
     padroes: SemanticPattern[];
     resumos: SemanticSummary[];
   }> {
-    let whereClause = 'WHERE 1=1';
-    const params: unknown[] = [];
-    if (query.contexto) {
-      whereClause += ' AND contexto = ?';
-      params.push(query.contexto);
-    }
-    if (query.entidade) {
-      whereClause += ' AND entidade = ?';
-      params.push(query.entidade);
-    }
-    if (query.tipo) {
-      whereClause += ' AND tipo = ?';
-      params.push(query.tipo);
-    }
-    if (query.periodo) {
-      whereClause += ' AND timestamp >= ? AND timestamp <= ?';
-      params.push(query.periodo.inicio.toISOString());
-      params.push(query.periodo.fim.toISOString());
-    }
-    const lim = query.limite != null ? Math.min(500, Math.max(1, Math.floor(Number(query.limite)))) : 100;
-    const limitClause = `LIMIT ${lim}`;
-    const [eventosRaw, padroesRaw, resumosRaw] = await Promise.all([
-      semanticMemoryQueryRows(
-        `SELECT * FROM semantic_memory_events ${whereClause} ORDER BY timestamp DESC ${limitClause}`,
-        params
-      ),
-      semanticMemoryQueryRows(
-        `SELECT * FROM semantic_memory_patterns ${whereClause} ORDER BY criado_em DESC ${limitClause}`,
-        params
-      ),
-      semanticMemoryQueryRows(
-        `SELECT * FROM semantic_memory_summaries ${whereClause} ORDER BY criado_em DESC ${limitClause}`,
-        params
-      ),
-    ]);
-    return {
-      eventos: eventosRaw as SemanticMemoryEvent[],
-      padroes: padroesRaw as SemanticPattern[],
-      resumos: resumosRaw as SemanticSummary[],
-    };
+    return querySemanticMemory(query);
   }
 
   async limparMemoriaAntiga(dias: number = 90): Promise<void> {
@@ -391,11 +293,7 @@ export class LeoSemanticMemory {
     dataLimite.setDate(dataLimite.getDate() - dias);
     const iso = dataLimite.toISOString();
     try {
-      await Promise.all([
-        semanticMemoryExecute(`DELETE FROM semantic_memory_events WHERE timestamp < ?`, [iso]),
-        semanticMemoryExecute(`DELETE FROM semantic_memory_patterns WHERE criado_em < ?`, [iso]),
-        semanticMemoryExecute(`DELETE FROM semantic_memory_summaries WHERE criado_em < ?`, [iso]),
-      ]);
+      await deleteOldSemanticMemory(iso);
       logInfo('Memória semântica limpa', { dias });
     } catch (error) {
       logError('Erro ao limpar memória semântica', error as Error);

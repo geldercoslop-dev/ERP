@@ -277,9 +277,9 @@ export function generateSafetyReport(): string {
     report += `✅ Nenhuma violação detectada!\n`;
   } else {
     report += `Violações por serviço:\n`;
-    for (const [key, count] of grouped) {
+    grouped.forEach((count, key) => {
       report += `  • ${key}: ${count}x\n`;
-    }
+    });
     
     report += `\nDetalhes:\n`;
     for (const log of safetyLogs.slice(-10)) {

@@ -1,9 +1,17 @@
 /**
- * Ponte SQL legada para `server/services/ai/*`.
+ * Fachada legada do ecossistema LEO.
  *
- * Regras anti-regressão:
- * - Código novo em LEO/AI deve preferir serviços de domínio (`finance.service`, `orders.service`, `inventory.service`, …).
- * - Não importar `db/index`, `db/core` nem `drizzle/schema` diretamente em `services/ai` (ESLint).
- * - Esta fachada permanece apenas enquanto consultas analíticas forem migradas para serviços dedicados.
+ * Esta camada não expõe mais DB diretamente. Ela apenas orquestra chamadas de
+ * services já existentes para manter compatibilidade incremental do ponto de entrada.
+ * 
+ * HARDENING: Bloqueado exports de módulos instáveis _unstable
+ * HARDENING: Apenas leo-insights.service.ts é exportado (já blindado)
  */
-export * from "../db/index.js";
+
+// HARDENING: Exportação segura - apenas serviços validados e blindados
+export { getLeoInsights } from "./leo-insights.service.js";
+
+// HARDENING: Módulos instáveis removidos:
+// - sales-analytics.service.js (DELETADO)
+// - stock-analytics.service.js (DELETADO) 
+// - financial-insights.service.js (DELETADO)

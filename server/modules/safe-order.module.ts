@@ -57,7 +57,7 @@ export interface OrderResult {
   status: string;
   total: number;
   itens: OrderItem[];
-  movimentacoesEstoque: Record<string, unknown>[];
+  movimentacoesEstoque: { success: boolean; data?: Record<string, unknown>[]; error?: string };
   auditRecord: Record<string, unknown>;
 };
 
@@ -313,7 +313,7 @@ export async function cancelOrderSafe(
     return {
       success: true,
       message: `Pedido #${pedidoData.numero} cancelado com sucesso`,
-      movimentacoes: movimentacoesEstoque
+      movimentacoes: movimentacoesEstoque.data
     };
   }, 'SERIALIZABLE');
 }

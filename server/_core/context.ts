@@ -1,8 +1,8 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import cookie from "cookie";
-import * as db from "../db/index.js";
 import type { Vendedor } from "../db/index.js";
 import type { UserWithTenant, VendedorWithTenant } from "../types/schema-extended.js";
+import { resolveSessionPrincipal } from "../services/context-auth.service.js";
 
 export type SessionOrigin = "cookie" | "header" | "bearer" | "none";
 
@@ -32,26 +32,6 @@ export type TrpcContext = {
   isImpersonating: boolean;
   session: SessionInfo;
 };
-
-/** App espera role "admin" | "vendedor". Retornamos "vendedor" para não-admin (schema DB usa "user"). */
-function buildUserFromVendedor(
-  v: { id: number; nome: string | null; email: string | null; admin: number | boolean },
-  tenantId: number
-): UserWithTenant {
-  return {
-    id: v.id,
-    tenantId,
-    openId: `vendedor-${v.id}`,
-    name: v.nome ?? "Vendedor",
-    email: v.email ?? null,
-    // users.role no schema atual: "user" | "admin". Vendedor é tratado como "user".
-    role: ((typeof v.admin === "number" ? v.admin > 0 : v.admin) ? "admin" : "user") as "admin" | "user",
-    loginMethod: "local",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
-  };
-}
 
 export async function createContext(
   opts: CreateExpressContextOptions
@@ -111,51 +91,19 @@ export async function createContext(
       session.origin = "none";
     }
 
-    if (typeof token === "string" && token.startsWith("u:")) {
-      session.tokenKind = "user";
-      const userId = parseInt(token.slice(2), 10);
-      if (Number.isFinite(userId)) {
-        const u = await db.getUserById(userId);
-        if (u) {
-          user = u;
-          tenantId = (u as UserWithTenant).tenantId ?? null;
-        }
-      }
-    } else if (typeof token === "string" && token.startsWith("v:")) {
-      session.tokenKind = "vendedor";
-      const id = parseInt(token.slice(2), 10);
-      if (Number.isFinite(id)) {
-        const v = await db.getVendedorById(id);
+    const resolvedSession = await resolveSessionPrincipal(token, adminSessionToken);
+    user = resolvedSession.user;
+    vendedor = resolvedSession.vendedor;
+    tenantId = resolvedSession.tenantId;
+    isImpersonating = resolvedSession.isImpersonating;
+    session.tokenKind = resolvedSession.tokenKind;
 
-        if (v?.ativo) {
-          vendedor = v;
-          // para vendedores, usamos sempre tenantId obrigatório (schema multi-tenant)
-          tenantId = (v as VendedorWithTenant).tenantId ?? null;
-          user = buildUserFromVendedor(v, tenantId ?? 0);
-          isImpersonating = Boolean(typeof adminSessionToken === "string" && adminSessionToken.length > 0);
-        } else {
-          const cookieNames = ["session_token", "session", "auth_token"];
-          cookieNames.forEach(name => {
-            opts.res.clearCookie(name, { path: "/" });
-            opts.res.clearCookie(name, { path: "/", domain: "localhost" });
-          });
-        }
-      }
-    } else if (token === "admin-session") {
-      session.tokenKind = "admin-session";
-      const u = await db.getUserByOpenId("admin");
-      if (u) {
-        user = u;
-        tenantId = (u as UserWithTenant).tenantId ?? null;
-      }
-    } else if (token === "vendedor-session") {
-      session.tokenKind = "vendedor-session";
-      // Legado: tentar resolver vendedor por userId 2 no DB para que ctx.user.id seja vendedor.id
-      const vendedor = await db.getVendedorByUserId(2);
-      if (vendedor?.ativo) {
-        tenantId = (vendedor as VendedorWithTenant).tenantId ?? null;
-        user = buildUserFromVendedor(vendedor, tenantId ?? 0);
-      }
+    if (resolvedSession.shouldClearSession) {
+      const cookieNames = ["session_token", "session", "auth_token"];
+      cookieNames.forEach(name => {
+        opts.res.clearCookie(name, { path: "/" });
+        opts.res.clearCookie(name, { path: "/", domain: "localhost" });
+      });
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -36,11 +36,15 @@ export const clientesRouter = router({
       try {
         const tenantId = await requireTenant(ctx);
         const actor = await resolveServiceActor(ctx);
-        const { items, total } = await clientesService.listClientes(tenantId, actor, {
+        const result = await clientesService.listClientes(tenantId, actor, {
           page: Math.floor(input.offset / input.limit) + 1,
           pageSize: input.limit,
           busca: input.busca
         });
+        if (!result.success || !result.data) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error ?? "Erro ao buscar clientes" });
+        }
+        const { items, total } = result.data;
         
         const page = Math.floor(input.offset / input.limit) + 1;
         return createPaginatedResponse(
@@ -88,7 +92,7 @@ export const clientesRouter = router({
         const tenantId = await requireTenant(ctx);
         const actor = await resolveServiceActor(ctx);
         const existing = await clientesService.getClienteById(tenantId, actor, input.id);
-        if (!existing) {
+        if (!existing || (typeof existing === "object" && "success" in existing && !existing.success)) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Cliente não encontrado",
@@ -117,7 +121,7 @@ export const clientesRouter = router({
         const tenantId = await requireTenant(ctx);
         const actor = await resolveServiceActor(ctx);
         const existing = await clientesService.getClienteById(tenantId, actor, input.id);
-        if (!existing) {
+        if (!existing || (typeof existing === "object" && "success" in existing && !existing.success)) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Cliente não encontrado",
@@ -151,7 +155,7 @@ export const clientesRouter = router({
           vendedorId: ctx.user?.id || 0
         };
         const existing = await clientesService.getClienteById(tenantId, actor, input.id);
-        if (!existing) {
+        if (!existing || (typeof existing === "object" && "success" in existing && !existing.success)) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Cliente não encontrado",

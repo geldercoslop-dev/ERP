@@ -48,10 +48,12 @@ async function getMigrationsAppliedCount(db: Database): Promise<number> {
   }
 }
 
-export async function bootstrapDatabase(db: Database): Promise<void> {
+export async function bootstrapDatabase(db: Database): Promise<{ success: boolean; error?: string }> {
   // Lock em memória: garante que o bootstrap rode uma única vez por processo.
   // (Evita duplicação em imports concorrentes e testes de boot paralelos.)
-  if (bootstrapOnce) return bootstrapOnce;
+  if (bootstrapOnce) {
+    return bootstrapOnce;
+  }
   
   bootstrapOnce = (async () => {
     const startedAt = Date.now();
@@ -78,7 +80,7 @@ export async function bootstrapDatabase(db: Database): Promise<void> {
         // Validar que migrator criou a tabela
         const migrationsTableExists = await hasAnyTable(db, "__drizzle_migrations");
         if (!migrationsTableExists) {
-          throw new Error("FATAL: __drizzle_migrations não foi criada após migrate()");
+          return { success: false, error: "FATAL: __drizzle_migrations não foi criada após migrate()" };
         }
 
         const finalCount = await getMigrationsAppliedCount(db);
@@ -99,20 +101,22 @@ export async function bootstrapDatabase(db: Database): Promise<void> {
         const ms = Date.now() - startedAt;
         console.warn(`[BOOTSTRAP][DB] ⚠ migration falhou após ${ms}ms, continuando...`);
         console.warn(`[BOOTSTRAP][DB] ${errorMsg}`);
-        // NÃO re-throw: permite que servidor continue mesmo com erro de migration
+        return { success: false, error: errorMsg };
       }
+
+      return { success: true };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const ms = Date.now() - startedAt;
       console.warn(`[BOOTSTRAP][DB] ⚠ erro de contexto após ${ms}ms, continuando...`);
       console.warn(`[BOOTSTRAP][DB] ${errorMsg}`);
-      console.log('[BOOT] server liberado mesmo com erro de bootstrap');
-      // NÃO re-throw: permite que servidor continue mesmo com falha crítica
+      console.log('[BOOTSTRAP][DB] server liberado mesmo com erro de bootstrap');
+      return { success: false, error: errorMsg };
     }
   })();
   
   return bootstrapOnce;
 }
 
-let bootstrapOnce: Promise<void> | null = null;
+let bootstrapOnce: Promise<{ success: boolean; error?: string }> | null = null;
 

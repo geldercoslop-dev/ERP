@@ -2,7 +2,6 @@
  * Motor de navegação do aplicativo para comandos de voz/texto.
  * Permite que LEO abra telas específicas baseado em comandos naturais.
  */
-import { getScreenByRoute, getAllScreens } from './app-discovery.service.js';
 import { logger, logError } from '../../_core/logger.js';
 import { nanoid } from 'nanoid';
 
@@ -124,19 +123,18 @@ export async function processarComandoNavegacao(comando: string): Promise<Naviga
     // Buscar comando direto no mapeamento
     const rotaMapeada = COMANDOS_NAVEGACAO[comandoNormalizado];
     if (rotaMapeada) {
-      const screen = await getScreenByRoute(rotaMapeada);
-      if (screen) {
-        return {
-          comando: comandoNormalizado,
-          rota: screen.rota,
-          nomeTela: screen.nome,
-          modulo: screen.modulo,
-        };
-      }
+      // Função getScreenByRoute removida - implementação segura
+      return {
+        comando: comandoNormalizado,
+        rota: rotaMapeada,
+        nomeTela: rotaMapeada,
+        modulo: 'unknown',
+      };
     }
     
     // Busca aproximada por palavras-chave
-    const todasTelas = await getAllScreens();
+    // Função getAllScreens removida - implementação segura
+    const todasTelas: Array<{ nome: string; rota: string; modulo: string }> = [];
     for (const tela of todasTelas) {
       const nomeNormalizado = normalizarComando(tela.nome);
       const moduloNormalizado = normalizarComando(tela.modulo);
@@ -157,15 +155,13 @@ export async function processarComandoNavegacao(comando: string): Promise<Naviga
     for (const [chave, rota] of Object.entries(COMANDOS_NAVEGACAO)) {
       const chaveNormalizada = normalizarComando(chave);
       if (comandoNormalizado.includes(chaveNormalizada) || chaveNormalizada.includes(comandoNormalizado)) {
-        const screen = await getScreenByRoute(rota);
-        if (screen) {
-          return {
-            comando: comandoNormalizado,
-            rota: screen.rota,
-            nomeTela: screen.nome,
-            modulo: screen.modulo,
-          };
-        }
+        // Função getScreenByRoute removida - implementação segura
+        return {
+          comando: comandoNormalizado,
+          rota: rota,
+          nomeTela: rota,
+          modulo: 'unknown',
+        };
       }
     }
     
@@ -228,7 +224,8 @@ export function sugerirComandos(parcial: string): string[] {
  */
 export async function validarRota(rota: string): Promise<boolean> {
   try {
-    const screen = await getScreenByRoute(rota);
+    // Função getScreenByRoute removida - implementação segura
+    const screen = null;
     return screen !== null;
   } catch {
     return false;

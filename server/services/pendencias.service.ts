@@ -44,22 +44,27 @@ export async function listPendencias(tenantId: number, vendedorId?: number) {
 }
 
 /** Atualiza status da pendência. Se vendedorId for informado, só atualiza se a pendência for desse vendedor. */
-export async function updateStatusPendencia(tenantId: number, id: number, status: PendenciaStatusValue, vendedorId?: number) {
+export async function updateStatusPendencia(tenantId: number, id: number, status: PendenciaStatusValue, vendedorId?: number): Promise<{ success: boolean; error?: string }> {
   const dbConn = await db.getDb();
-  if (!dbConn) throw new Error("Database not available");
+  if (!dbConn) return { success: false, error: "Database not available" };
 
-  const validated = validateStatus(status, PendenciaStatusValues, "pendencia.status");
-  const updateData: { status: PendenciaStatusValue; dataResolvido?: Date } = { status: validated };
-  if (validated === PendenciaStatus.RESOLVIDO) {
-    updateData.dataResolvido = new Date();
-  }
+  try {
+    const validated = validateStatus(status, PendenciaStatusValues, "pendencia.status");
+    const updateData: { status: PendenciaStatusValue; dataResolvido?: Date } = { status: validated };
+    if (validated === PendenciaStatus.RESOLVIDO) {
+      updateData.dataResolvido = new Date();
+    }
 
-  const conditions = [eq(pendencias.tenantId, tenantId), eq(pendencias.id, id)];
-  if (vendedorId != null) {
-    conditions.push(eq(pendencias.vendedorId, vendedorId));
+    const conditions = [eq(pendencias.tenantId, tenantId), eq(pendencias.id, id)];
+    if (vendedorId != null) {
+      conditions.push(eq(pendencias.vendedorId, vendedorId));
+    }
+    
+    await dbConn.update(pendencias).set(updateData).where(and(...conditions));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-  
-  await dbConn.update(pendencias).set(updateData).where(and(...conditions));
 }
 
 /**

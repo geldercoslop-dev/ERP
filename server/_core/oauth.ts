@@ -4,13 +4,12 @@ import * as db from "../db/index.js";
 import { getSessionCookieOptions } from "./cookies.js";
 import { sdk } from "./sdk.js";
 
-function getRequiredTenantId(): number {
-  const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
-  const tenantId = Number(raw);
-  if (!Number.isFinite(tenantId) || tenantId <= 0) {
-    throw new Error("DEFAULT_TENANT_ID/TENANT_ID obrigatório para OAuth");
+export function getTenantFromRequest(req: any): number {
+  const raw = Number(process.env.TENANT_ID || "");
+  if (!Number.isFinite(raw) || raw <= 0) {
+    throw new Error("TENANT_ID obrigatório no request ou ambiente.");
   }
-  return tenantId;
+  return raw;
 }
 
 function getQueryParam(req: Request, key: string): string | undefined {
@@ -37,7 +36,10 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      const tenantId = getRequiredTenantId();
+      const tenantId = Number(process.env.TENANT_ID || "");
+      if (!Number.isFinite(tenantId) || tenantId <= 0) {
+        throw new Error("TENANT_ID obrigatório no ambiente.");
+      }
       await db.upsertUser(tenantId, {
         tenantId,
         openId: userInfo.openId,

@@ -12,14 +12,14 @@ export class PaymentService {
   /**
    * Create new payment
    */
-  async create(payload: Payload): Promise<Record<string, unknown>> {
+  async create(payload: Payload): Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }> {
     // Validate required fields
     if (!payload.tipo || typeof payload.tipo !== 'string') {
-      throw new Error('Payment type is required and must be a string');
+      return { success: false, error: 'Payment type is required and must be a string' };
     }
     
     if (!payload.valor || typeof payload.valor !== 'number') {
-      throw new Error('Payment value is required and must be a number');
+      return { success: false, error: 'Payment value is required and must be a number' };
     }
     
     // TODO: Implement actual payment creation using safe-payment.module
@@ -38,14 +38,22 @@ export class PaymentService {
       updatedAt: new Date().toISOString()
     };
     
-    return payment;
+    return { success: true, data: payment };
   }
 
   /**
    * List payments with filters
    */
-  async list(payload: Payload): Promise<Record<string, unknown>> {
-    const { page, limit, search, tipo, status, tenantId } = payload as any;
+  async list(payload: Payload): Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }> {
+    const data = payload as Record<string, unknown>;
+    
+    // Type guards para validação segura
+    const page = typeof data.page === 'number' ? data.page : 1;
+    const limit = typeof data.limit === 'number' ? data.limit : 10;
+    const search = typeof data.search === 'string' ? data.search : undefined;
+    const tipo = typeof data.tipo === 'string' ? data.tipo : undefined;
+    const status = typeof data.status === 'string' ? data.status : undefined;
+    const tenantId = typeof data.tenantId === 'number' ? data.tenantId : undefined;
     
     // TODO: Implement actual payment listing using safe-payment.module
     // For now, return mock data
@@ -100,7 +108,7 @@ export class PaymentService {
     const endIndex = startIndex + limit;
     const paginated = filtered.slice(startIndex, endIndex);
     
-    return {
+    return { success: true, data: {
       payments: paginated,
       pagination: {
         page,
@@ -108,15 +116,15 @@ export class PaymentService {
         total: filtered.length,
         pages: Math.ceil(filtered.length / limit)
       }
-    };
+    }};
   }
 
   /**
    * Update payment
    */
-  async update(payload: Payload): Promise<Record<string, unknown>> {
+  async update(payload: Payload): Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }> {
     if (!payload.id || typeof payload.id !== 'number') {
-      throw new Error('Payment ID is required and must be a number');
+      return { success: false, error: 'Payment ID is required and must be a number' };
     }
     
     // TODO: Implement actual payment update using safe-payment.module
@@ -137,6 +145,6 @@ export class PaymentService {
       updatedAt: new Date().toISOString()
     };
     
-    return payment;
+    return { success: true, data: payment };
   }
 }

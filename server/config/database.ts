@@ -233,7 +233,7 @@ export function clearPoolAfterGracefulShutdown(): void {
   globalThis.db = undefined;
 }
 
-async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Promise<void> {
+async function testPool(pool: mysql.Pool, maxRetries = 10): Promise<void> {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -260,9 +260,9 @@ async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Pr
       });
 
       if (attempt < maxRetries) {
+        const retryDelay = 1000 * Math.pow(2, attempt - 1);
         console.log(`[Database] Retrying in ${retryDelay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
-        retryDelay *= 1.5;
       }
     }
   }
@@ -273,7 +273,7 @@ async function testPool(pool: mysql.Pool, maxRetries = 3, retryDelay = 2000): Pr
   throw new Error(`Failed to connect to database after ${maxRetries} attempts: ${lastMsg} (code: ${lastCode})`);
 }
 
-export async function getConnection(maxRetries = 3): Promise<mysql.PoolConnection> {
+export async function getConnection(maxRetries = 10): Promise<mysql.PoolConnection> {
   const pool = await getConnectionPool();
   let lastError: unknown;
 

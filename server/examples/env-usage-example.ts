@@ -427,7 +427,7 @@ export function antiPatterns() {
   // Should use: env.PORT (already validated)
 
   // ❌ Unsafe defaults
-  const secret2 = process.env.JWT_SECRET || 'default_secret';  // Weak default!
+  const secret2 = process.env.JWT_SECRET;
   // Should use: env.JWT_ACCESS_SECRET (required, no unsafe defaults)
 }
 

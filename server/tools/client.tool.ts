@@ -1,4 +1,5 @@
 import { ClientService } from '../services/client.service.js';
+import { ServiceCreateResponse, ServiceList, ServicePaginated } from '../types/service-safety.js';
 
 /**
  * CAMADA TOOLS: CLIENT
@@ -37,8 +38,17 @@ export class ClientTool {
       // Delegar para service
       const result = await this.service.create(enrichedInput);
       
+      if (!result.success) {
+        console.log(`[ClientTool] Erro na criação de cliente:`, { 
+          error: result.error,
+          timestamp: new Date().toISOString() 
+        });
+        return result;
+      }
+      
+      const data = result.data as unknown as ServiceCreateResponse | undefined;
       console.log(`[ClientTool] Cliente criado com sucesso:`, { 
-        id: result.id,
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
         timestamp: new Date().toISOString() 
       });
 
@@ -73,9 +83,18 @@ export class ClientTool {
       // Delegar para service
       const result = await this.service.list(normalizedInput);
       
+      if (!result.success) {
+        console.log(`[ClientTool] Erro na listagem de clientes:`, { 
+          error: result.error,
+          timestamp: new Date().toISOString()
+        });
+        return result;
+      }
+      
+      const data = result.data as unknown as ServiceCreateResponse | undefined;
       console.log(`[ClientTool] Listagem concluída:`, { 
-        count: result.length,
-        timestamp: new Date().toISOString()
+        count: typeof data === 'object' && data !== null && 'length' in data ? (data as any).length : 0,
+        timestamp: new Date().toISOString() 
       });
 
       return result;
@@ -109,9 +128,18 @@ export class ClientTool {
       // Delegar para service
       const result = await this.service.update(enrichedInput);
       
+      if (!result.success) {
+        console.log(`[ClientTool] Erro na atualização de cliente:`, { 
+          error: result.error,
+          timestamp: new Date().toISOString()
+        });
+        return result;
+      }
+      
+      const data = result.data as unknown as ServiceCreateResponse | undefined;
       console.log(`[ClientTool] Cliente atualizado com sucesso:`, { 
-        id: result.id,
-        timestamp: new Date().toISOString()
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+        timestamp: new Date().toISOString() 
       });
 
       return result;

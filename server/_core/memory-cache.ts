@@ -5,6 +5,9 @@
  * para reduzir a latência e evitar sobrecarga no banco de dados.
  */
 
+import { logger } from './logger.js';
+import { BoundedMap } from './bounded-map.js';
+
 /**
  * Interface para itens do cache
  */
@@ -32,7 +35,7 @@ const MAX_TTL_SEC = Math.min(600, Number(process.env.CACHE_MAX_TTL_SEC) || 300);
 const MAX_ENTRIES = Math.min(20000, Math.max(500, Number(process.env.CACHE_MAX_ENTRIES) || 8000));
 
 class MemoryCache {
-  private cache = new Map<string, CacheItem<any>>();
+  private cache = new BoundedMap<string, CacheItem<any>>(MAX_ENTRIES);
   private hitCount = 0;
   private missCount = 0;
   private defaultTtl = 30; // segundos
@@ -76,39 +79,10 @@ class MemoryCache {
     const expiresAt = Date.now() + sec * 1000;
     const now = Date.now();
     
-    if (this.cache.size >= MAX_ENTRIES) {
-      this.evictForSpace();
-    }
-    
     // HARDENING: safe improvement - inclui lastAccessed para LRU
     this.cache.set(key, { value, expiresAt, lastAccessed: now });
   }
 
-  /** Remove expirados e, se necessário, as entradas menos usadas recentemente (LRU). */
-  private evictForSpace(): void {
-    const now = Date.now();
-    const entries: { key: string; expiresAt: number; lastAccessed: number }[] = [];
-    
-    // Primeiro remove expirados
-    for (const [key, item] of this.cache.entries()) {
-      if (now > item.expiresAt) {
-        this.cache.delete(key);
-      } else {
-        entries.push({ key, expiresAt: item.expiresAt, lastAccessed: item.lastAccessed });
-      }
-    }
-    
-    // Se ainda precisa remover espaço, usa LRU (least recently used)
-    const over = this.cache.size - MAX_ENTRIES + Math.floor(MAX_ENTRIES * 0.05);
-    if (over > 0) {
-      // HARDENING: safe improvement - ordena por lastAccessed (LRU) em vez de expiração
-      entries.sort((a, b) => a.lastAccessed - b.lastAccessed);
-      for (let i = 0; i < over && i < entries.length; i++) {
-        this.cache.delete(entries[i].key);
-      }
-    }
-  }
-  
   /**
    * Remove um valor do cache
    * @param key - Chave do cache
@@ -129,11 +103,16 @@ class MemoryCache {
    */
   cleanup(): void {
     const now = Date.now();
+    const toDelete: string[] = [];
+    
     for (const [key, item] of this.cache.entries()) {
       if (now > item.expiresAt) {
-        this.cache.delete(key);
+        toDelete.push(key);
       }
     }
+    
+    // Remover itens expirados
+    toDelete.forEach(key => this.cache.delete(key));
   }
   
   /**
@@ -294,7 +273,7 @@ export function initCache(options: { defaultTtl?: number; cleanupInterval?: numb
     }, options.cleanupInterval * 1000);
   }
   
-  console.log('Cache in-memory inicializado');
+  logger.info({ options }, 'Cache in-memory initialized');
 }
 
 // Exportar funções e instância

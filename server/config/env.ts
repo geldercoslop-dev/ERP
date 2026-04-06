@@ -116,6 +116,16 @@ const envSchema = z.object({
         message: 'APP_SECRET deve ter MÍNIMO 64 caracteres em produção (segurança obrigatória)',
       });
     }
+
+    // JWT_SECRET validation (legado)
+    const jwtSecret = process.env.JWT_SECRET;
+    if (jwtSecret && jwtSecret.length < 64) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_SECRET'],
+        message: 'JWT_SECRET deve ter MÍNIMO 64 caracteres em produção (segurança obrigatória)',
+      });
+    }
   }
 });
 

@@ -93,20 +93,26 @@ export async function perguntar(
   pergunta: string,
   usuario?: string,
   options?: LeoAiSessionOptions
-): Promise<RespostaLeo> {
+): Promise<{ success: boolean; data?: RespostaLeo; error?: string }> {
   if (!tenantId || tenantId <= 0) {
-    throw new Error("Tenant ID inválido ou ausente");
+    return { success: false, error: "Tenant ID inválido ou ausente" };
   }
   if (!options?.userId || options.userId <= 0) {
-    throw new Error("userId obrigatório para o LEO");
+    return { success: false, error: "userId obrigatório para o LEO" };
   }
   if (!options?.actor) {
-    throw new Error("actor obrigatório para o LEO");
+    return { success: false, error: "actor obrigatório para o LEO" };
   }
 
   const user = usuario || "Usuário";
   const sessionKey = buildLeoSessionKey(tenantId, options.userId, options.sessionId, user);
-  return leoSessionGate.run(sessionKey, () => perguntarUnqueued(tenantId, pergunta, user, options));
+  const result = await leoSessionGate.run(sessionKey, () => perguntarUnqueued(tenantId, pergunta, user, options));
+  
+  if (!result.success) {
+    return { success: false, error: result.message };
+  }
+  
+  return { success: true, data: result };
 }
 
 async function perguntarUnqueued(

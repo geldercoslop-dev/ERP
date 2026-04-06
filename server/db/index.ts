@@ -148,33 +148,33 @@ export async function ajusteRapidoEstoque(
 export async function getAllClientes(tenantId: number) {
   const cli = await import("../services/clientes.service.js");
   const res = await cli.listClientes(tenantId, ADMIN_ACTOR, { page: 1, pageSize: 100 });
-  return res.items;
+  return res.success && res.data ? res.data.items : [];
 }
 
 export async function listClientesByVendedor(tenantId: number, vendedorId: number) {
   const cli = await import("../services/clientes.service.js");
   const actor: ServiceActor = { role: "vendedor", vendedorId };
   const res = await cli.listClientes(tenantId, actor, { page: 1, pageSize: 100 });
-  return res.items;
+  return res.success && res.data ? res.data.items : [];
 }
 
 export async function searchClientes(tenantId: number, term: string) {
   const cli = await import("../services/clientes.service.js");
   const res = await cli.listClientes(tenantId, ADMIN_ACTOR, { page: 1, pageSize: 50, busca: term });
-  return res.items;
+  return res.success && res.data ? res.data.items : [];
 }
 
 export async function searchClientesByVendedor(tenantId: number, term: string, vendedorId: number) {
   const cli = await import("../services/clientes.service.js");
   const actor: ServiceActor = { role: "vendedor", vendedorId };
   const res = await cli.listClientes(tenantId, actor, { page: 1, pageSize: 50, busca: term });
-  return res.items;
+  return res.success && res.data ? res.data.items : [];
 }
 
 export async function searchClientesGlobal(tenantId: number, term: string, limit: number, actor: ServiceActor) {
   const cli = await import("../services/clientes.service.js");
   const res = await cli.listClientes(tenantId, actor, { page: 1, pageSize: Math.min(limit, 100), busca: term });
-  return res.items;
+  return res.success && res.data ? res.data.items : [];
 }
 
 export async function createCliente(tenantId: number, input: unknown, vendedorId?: number) {
@@ -183,7 +183,11 @@ export async function createCliente(tenantId: number, input: unknown, vendedorId
     typeof input === "object" && input !== null
       ? ({ ...(input as Record<string, unknown>), vendedorIdPrincipal: vendedorId } as unknown)
       : input;
-  return cli.createCliente(tenantId, data as never);
+  const result = await cli.createCliente(tenantId, data as never);
+  if (!result.success || !result.data) {
+    throw new Error(result.error ?? "Falha ao criar cliente");
+  }
+  return result.data;
 }
 
 export async function updateCliente(tenantId: number, actor: ServiceActor, id: number, patch: unknown) {

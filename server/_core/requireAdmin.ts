@@ -42,6 +42,7 @@ export async function requireAdmin(
       Number.isInteger(payload.tenantId) &&
       payload.tenantId > 0
     ) {
+      (req as Request & { adminTenantId?: number }).adminTenantId = payload.tenantId;
       next();
       return;
     }

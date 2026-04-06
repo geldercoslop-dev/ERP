@@ -2,13 +2,16 @@ import archiver from 'archiver';
 import { Response } from 'express';
 import * as db from './db/index.js';
 
-export async function gerarBackupZip(res: Response) {
+export async function gerarBackupZip(res: Response, tenantId: string) {
   try {
     // Buscar todos os dados
-    const dados = await db.gerarBackupCompleto();
+    const result = await db.gerarBackupCompleto(tenantId);
+    if (!result.success || !result.data) {
+      throw new Error(result.error ?? 'Falha ao gerar backup');
+    }
+    const dados = result.data;
     
     // Configurar headers para download
-    const dataAtual = new Date().toISOString().split('T')[0];
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', 'attachment; filename="App Gelder.zip"');
     

@@ -18,6 +18,8 @@ interface RetryConfig {
  */
 interface RequestOptions extends RequestInit {
   timeout?: number;
+  /** Timeout total da operação incluindo todas as tentativas e delays. Padrão: timeout × (maxAttempts + 1). */
+  globalTimeoutMs?: number;
   retryConfig?: Partial<RetryConfig>;
   circuitBreaker?: {
     enabled?: boolean;
@@ -95,12 +97,14 @@ function shouldRetry(
 }
 
 /**
- * Cria um AbortSignal com timeout
+ * Cria um AbortSignal com timeout.
+ * Retorna também `clear()` para cancelar o timer quando o fetch resolver antes do prazo,
+ * evitando timer ativo (leak) pós-resolução.
  */
-function createTimeoutSignal(timeout: number): AbortSignal {
+function createTimeoutSignal(timeout: number): { signal: AbortSignal; clear: () => void } {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), timeout);
-  return controller.signal;
+  const timer = setTimeout(() => controller.abort(), timeout);
+  return { signal: controller.signal, clear: () => clearTimeout(timer) };
 }
 
 /**
@@ -110,19 +114,37 @@ export async function fetchWithRetry(
   url: string,
   options: RequestOptions = {}
 ): Promise<Response> {
-  const cbEnabled = options.circuitBreaker?.enabled !== false; // Habilitado por padrão
-  
+  const perAttemptMs = options.timeout ?? 30_000;
+  const maxAttempts = options.retryConfig?.maxAttempts ?? DEFAULT_RETRY_CONFIG.maxAttempts;
+  // Teto global: impede que retries + delays somem indefinidamente.
+  const globalMs = options.globalTimeoutMs ?? perAttemptMs * (maxAttempts + 1);
+
+  let globalTimer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    globalTimer = setTimeout(
+      () => reject(new Error(`fetchWithRetry: global timeout after ${globalMs}ms`)),
+      globalMs
+    );
+  });
+
+  const cbEnabled = options.circuitBreaker?.enabled !== false;
+  let operation: Promise<Response>;
   if (cbEnabled) {
-    const cbName = options.circuitBreaker?.name || new URL(url).hostname;
+    const cbName = options.circuitBreaker?.name ?? new URL(url).hostname;
     const breaker = getCircuitBreaker(cbName, {
       failureThreshold: options.circuitBreaker?.failureThreshold,
-      resetTimeoutMs: options.circuitBreaker?.resetTimeoutMs
+      resetTimeoutMs: options.circuitBreaker?.resetTimeoutMs,
     });
-
-    return await breaker.execute(() => performFetchWithRetry(url, options));
+    operation = breaker.execute(() => performFetchWithRetry(url, options));
+  } else {
+    operation = performFetchWithRetry(url, options);
   }
 
-  return await performFetchWithRetry(url, options);
+  try {
+    return await Promise.race([operation, timeoutPromise]);
+  } finally {
+    clearTimeout(globalTimer);
+  }
 }
 
 /**
@@ -151,18 +173,21 @@ async function performFetchWithRetry(
         timeout
       }, 'HTTP request attempt');
 
-      // Criar AbortSignal com timeout
-      const signal = options.signal || createTimeoutSignal(timeout);
-      
+      // Criar AbortSignal com timeout — timer cleared via .finally() para evitar timer ativo pós-resolve
+      const timeoutCtrl = options.signal ? null : createTimeoutSignal(timeout);
+      const fetchSignal: AbortSignal = timeoutCtrl
+        ? timeoutCtrl.signal
+        : (options.signal as AbortSignal);
+
       const response = await fetch(url, {
         ...options,
-        signal,
+        signal: fetchSignal,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'ERP-Server/1.0.0',
           ...options.headers
         }
-      });
+      }).finally(() => timeoutCtrl?.clear());
 
       lastStatusCode = response.status;
       

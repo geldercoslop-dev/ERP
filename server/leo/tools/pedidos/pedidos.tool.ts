@@ -53,11 +53,12 @@ export const listarPedidosTool: LeoToolDefinition<z.infer<typeof listarInput>> =
       status: input.status,
     };
     const result = await ordersService.listPedidosExtended(tenantId, actor, params);
+    const { total } = result;
     return createToolResponse(
       true,
-      `Listagem de pedidos (${result.total} total).`,
+      `Listagem de pedidos (${total} total).`,
       result,
-      { tool: "listar_pedidos", total: result.total }
+      { tool: "listar_pedidos", total }
     );
   },
 };

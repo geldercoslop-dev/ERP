@@ -153,7 +153,10 @@ export class LeoLearningEngine {
   private async learnFromCustomers(): Promise<void> {
     try {
       const rows = await clientesService.listClientesComMetricasPedidos(DEFAULT_LEO_TENANT_ID, ADMIN_ACTOR, 500);
-      const customerData: Record<string, unknown>[] = rows.map((c) => ({
+      if (!rows.success || !rows.data) {
+        throw new Error(rows.error ?? 'Falha ao carregar métricas de clientes');
+      }
+      const customerData: Record<string, unknown>[] = rows.data.map((c) => ({
         id: c.id,
         nome: c.nome,
         dataCriacao: c.createdAt,

@@ -1,4 +1,5 @@
 import { OrderService } from '../services/order.service.js';
+import { ServiceCreateResponse } from '../types/service-safety.js';
 
 /**
  * CAMADA TOOLS: ORDER
@@ -41,12 +42,25 @@ export class OrderTool {
       // Delegar para service
       const result = await this.service.create(enrichedInput);
       
+      // Verificar se o resultado já segue o padrão ou é o retorno direto do service
+      const hasSuccess = 'success' in result;
+      const serviceResult = hasSuccess ? result as { success: boolean; data?: ServiceCreateResponse; error?: string } : { success: true, data: result as ServiceCreateResponse };
+      
+      if (!serviceResult.success) {
+        console.log(`[OrderTool] Erro na criação de pedido:`, { 
+          error: serviceResult.error,
+          timestamp: new Date().toISOString() 
+        });
+        return serviceResult;
+      }
+      
+      const data = serviceResult.data as unknown as Payload;
       console.log(`[OrderTool] Pedido criado com sucesso:`, { 
-        id: result.id,
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
         timestamp: new Date().toISOString() 
       });
 
-      return result;
+      return serviceResult;
     } catch (error) {
       console.error(`[OrderTool] Erro na criação de pedido:`, { 
         error: error instanceof Error ? error.message : String(error),

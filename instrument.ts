@@ -8,14 +8,7 @@ import dotenv from "dotenv";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, ".env") });
-// Dev: alinhar com loadEnv — secrets/DB/PORT em .env.development antes do restante do grafo
-if (process.env.NODE_ENV === "development") {
-  dotenv.config({
-    path: path.resolve(__dirname, ".env.development"),
-    override: true,
-  });
-}
-console.log("[BOOT] instrument.ts — dotenv" + (process.env.NODE_ENV === "development" ? " + .env.development" : "") + " carregado");
+console.log("[BOOT] instrument.ts — dotenv .env carregado");
 
 import * as Sentry from "@sentry/node";
 

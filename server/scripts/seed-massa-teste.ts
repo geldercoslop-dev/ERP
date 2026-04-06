@@ -23,7 +23,7 @@ async function main(): Promise<any> {
     process.exit(1);
   }
   const tenantId = tenantIdRaw;
-  const vendedores = await db.getAllVendedores();
+  const vendedores = await db.getAllVendedores(String(tenantId));
   const vendedorId = vendedores.length > 0 ? vendedores[0].id : undefined;
   if (!vendedorId) {
     console.warn(`${PREFIX} Nenhum vendedor encontrado. Rode npm run seed:admin antes. Clientes serão criados sem vínculo.`);

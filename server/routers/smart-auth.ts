@@ -10,7 +10,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import { getSessionCookieOptions } from "../_core/cookies.js";
 import * as usersService from "../services/users.service.js";
 import * as authSecurity from "../_core/auth-security.js";
-import { auditLog } from "../_core/audit-log.js";
+import { logimport { auditLog } from "../_core/audit-log.js";
 
 /**
  * Router de autenticação inteligente
@@ -96,8 +96,7 @@ export const smartAuthRouter = router({
         return {
           ok: true,
           sessionToken: sessionValue,
-          openId: user.openId || username,
-          name,
+          openId: user.openId ||           ok: true,
           role,
           userId: user.id,
           vendedorId: authConfig.table === "vendedores" ? user.id : undefined,
@@ -110,12 +109,7 @@ export const smartAuthRouter = router({
         
         // Registrar falha
         authSecurity.recordLoginFailure(username, ip);
-
-        if (error instanceof TRPCError) {
-          if (error.code === "UNAUTHORIZED") {
-            throw authSecurity.getGenericAuthError();
-          }
-          throw error;
+     throw error;
         }
 
         throw authSecurity.getGenericAuthError();

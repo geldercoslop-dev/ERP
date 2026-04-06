@@ -157,12 +157,20 @@ export const leoRouter = router({
           userId: ctx.user.id,
           actor,
         });
+        if (!resposta.success || !resposta.data) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: resposta.error ?? "Falha ao processar resposta do LEO",
+          });
+        }
+
+        const respostaData = resposta.data;
         
         return {
           prompt: input.prompt,
-          resposta: resposta.response,
-          data: resposta.data,
-          pendingConfirmation: resposta.pendingConfirmation,
+          resposta: respostaData.response,
+          data: respostaData.data,
+          pendingConfirmation: respostaData.pendingConfirmation,
           success: true,
           timestamp: new Date()
         };

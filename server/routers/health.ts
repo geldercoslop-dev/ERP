@@ -2,6 +2,7 @@ import { createClient } from "redis";
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc.js";
 import { getDb } from "../db/index.js";
+import { logger } from "../_core/logger.js";
 
 type RedisCli = ReturnType<typeof createClient>;
 
@@ -27,7 +28,7 @@ export const healthRouter = router({
       } catch (error: unknown) {
         dbError = error instanceof Error ? error.message : String(error);
         dbStatus = "error";
-        console.error("[Health] Database check failed:", { error: dbError, timestamp: new Date().toISOString() });
+        logger.error({ error: dbError, timestamp: new Date().toISOString() }, 'Database health check failed');
       }
 
       let redis: RedisCli | null = null;
@@ -62,9 +63,10 @@ export const healthRouter = router({
       }
 
       const responseTime = Date.now() - startTime;
+      const isHealthy = dbStatus === "connected" && redisStatus === "connected";
 
-      return {
-        status: dbStatus === "connected" && redisStatus === "connected" ? "healthy" as const : "unhealthy" as const,
+      const healthData = {
+        status: isHealthy ? "healthy" as const : "degraded" as const,
         backend,
         database: {
           status: dbStatus,
@@ -77,10 +79,18 @@ export const healthRouter = router({
         responseTime: `${responseTime}ms`,
         timestamp: new Date().toISOString(),
       };
+
+      // Se não está saudável, retornar erro para código 503
+      if (!isHealthy) {
+        throw new Error(`System degraded: DB=${dbStatus}, Redis=${redisStatus}`);
+      }
+
+      return healthData;
     }),
 
   ping: publicProcedure.query(() => {
-    console.log("🔥 HEALTH PROCEDURE EXECUTADO");
+    // TODO: Substituir por logger estruturado apropriado
+    // logger.info('Health ping procedure executed', { timestamp: new Date().toISOString() });
     return {
       pong: true,
       timestamp: new Date().toISOString(),

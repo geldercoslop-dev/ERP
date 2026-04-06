@@ -1,78 +1,77 @@
-version: '3.8'
-
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: vendas-app-prod
+  db:
+    image: mysql:8
+    container_name: erp-db-prod
     restart: always
-    mem_limit: 1g
-    cpus: "1.0"
-    working_dir: /app
+    deploy:
+      restart_policy:
+        condition: on-failure
     env_file:
-      - .env.production
+      - .env.production.lock
     environment:
-      NODE_ENV: production
-      PORT: 3000
-    ports:
-      - "3000:3000"
-    depends_on:
-      vendas-mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    networks:
-      - vendas-network
-    command: node dist/server/index.js
-
-  vendas-mysql:
-    image: mysql:8.0
-    container_name: vendas-mysql-prod
-    restart: always
-    mem_limit: 2g
-    cpus: "1.5"
-    env_file:
-      - .env.production
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
     volumes:
       - mysql_data_prod:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u${DB_USER} -p${DB_PASSWORD} --silent"]
+      interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 12
       start_period: 120s
     networks:
       - vendas-network
 
   redis:
     image: redis:7-alpine
-    container_name: vendas-redis-prod
+    container_name: erp-redis-prod
     restart: always
-    mem_limit: 512m
-    cpus: "0.5"
+    deploy:
+      restart_policy:
+        condition: on-failure
+    env_file:
+      - .env.production.lock
+    command: redis-server --appendonly yes
     volumes:
       - redis_data_prod:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 10
-      interval: 5s
-    command: redis-server --appendonly yes
+      start_period: 20s
+    networks:
+      - vendas-network
+
+  api:
+    image: erp-api:prod
+    container_name: erp-api-prod
+    restart: always
+    deploy:
+      restart_policy:
+        condition: on-failure
+    env_file:
+      - .env.production.lock
+    ports:
+      - "0.0.0.0:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    command: node dist/server/index.js
     networks:
       - vendas-network
 
 volumes:
   mysql_data_prod:
-    driver: local
   redis_data_prod:
-    driver: local
 
 networks:
   vendas-network:

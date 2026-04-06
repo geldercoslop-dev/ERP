@@ -67,7 +67,22 @@ export async function runParallelTransaction<T>(
   isolationLevel: 'READ_COMMITTED' | 'REPEATABLE_READ' | 'SERIALIZABLE' = 'SERIALIZABLE'
 ): Promise<T[]> {
   return runTransaction(async (tx) => {
-    const results = await Promise.all(callbacks.map(callback => callback(tx)));
+    // allSettled garante rastreabilidade individual de cada falha;
+    // se qualquer callback falhar o erro é relançado para o runTransaction
+    // executar o rollback automático da transação inteira.
+    const settled = await Promise.allSettled(callbacks.map(callback => callback(tx)));
+    const results: T[] = [];
+    const errors: string[] = [];
+    for (const outcome of settled) {
+      if (outcome.status === 'fulfilled') {
+        results.push(outcome.value);
+      } else {
+        errors.push(outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason));
+      }
+    }
+    if (errors.length > 0) {
+      throw new Error(`runParallelTransaction: ${errors.length} callback(s) falhou: ${errors.join('; ')}`);
+    }
     return results;
   }, isolationLevel);
 }

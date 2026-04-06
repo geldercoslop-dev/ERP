@@ -31,7 +31,7 @@ export class LLMConnector {
   /**
    * Envia um prompt para o modelo configurado
    */
-  public async chat(messages: LLMMessage[], options: LLMOptions = {}): Promise<string> {
+  public async chat(messages: LLMMessage[], options: LLMOptions = {}): Promise<{ success: boolean; data?: string; error?: string }> {
     const provider = options.provider || this.defaultProvider;
     
     try {
@@ -43,99 +43,117 @@ export class LLMConnector {
         case "gemini":
           return await this.callGemini(messages, options);
         default:
-          throw new Error(`Provider ${provider} não suportado`);
+          return { success: false, error: `Provider ${provider} não suportado` };
       }
     } catch (error) {
       logger.error({ message: `Erro ao chamar LLM (${provider})`, error: (error as Error)?.message } as Record<string, unknown>);
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
-  private async callOpenAI(messages: LLMMessage[], options: LLMOptions): Promise<string> {
+  private async callOpenAI(messages: LLMMessage[], options: LLMOptions): Promise<{ success: boolean; data?: string; error?: string }> {
     const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
+    if (!apiKey) {
+      return { success: false, error: "OPENAI_API_KEY não configurada" };
+    }
 
-    const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: options.model || "gpt-3.5-turbo",
-        messages,
-        temperature: options.temperature ?? 0.3,
-        max_tokens: options.maxTokens,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
+    try {
+      const response = await axios.post(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          model: options.model || "gpt-3.5-turbo",
+          messages,
+          temperature: options.temperature ?? 0.3,
+          max_tokens: options.maxTokens,
         },
-      }
-    );
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    return response.data.choices[0].message.content;
+      return { success: true, data: response.data.choices[0].message.content };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }
 
-  private async callGroq(messages: LLMMessage[], options: LLMOptions): Promise<string> {
+  private async callGroq(messages: LLMMessage[], options: LLMOptions): Promise<{ success: boolean; data?: string; error?: string }> {
     const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) throw new Error("GROQ_API_KEY não configurada");
+    if (!apiKey) {
+      return { success: false, error: "GROQ_API_KEY não configurada" };
+    }
 
-    const response = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        model: options.model || "llama3-8b-8192",
-        messages,
-        temperature: options.temperature ?? 0.1,
-        max_tokens: options.maxTokens,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
+    try {
+      const response = await axios.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          model: options.model || "llama3-8b-8192",
+          messages,
+          temperature: options.temperature ?? 0.1,
+          max_tokens: options.maxTokens,
         },
-      }
-    );
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    return response.data.choices[0].message.content;
+      return { success: true, data: response.data.choices[0].message.content };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }
 
-  private async callGemini(messages: LLMMessage[], options: LLMOptions): Promise<string> {
+  private async callGemini(messages: LLMMessage[], options: LLMOptions): Promise<{ success: boolean; data?: string; error?: string }> {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY não configurada");
+    if (!apiKey) {
+      return { success: false, error: "GEMINI_API_KEY não configurada" };
+    }
 
-    // Formata mensagens para o formato do Gemini
-    const contents = messages.map(m => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }]
-    }));
+    try {
+      // Formata mensagens para o formato do Gemini
+      const contents = messages.map(m =>({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }));
 
-    // O Gemini não suporta 'system' diretamente no array de contents da mesma forma
-    // Para simplificar, vamos concatenar o system prompt na primeira mensagem do usuário se existir
-    if (messages[0].role === "system") {
-      const systemPrompt = messages[0].content;
-      if (contents.length > 1 && contents[1].role === "user") {
-        contents[1].parts[0].text = `System: ${systemPrompt}\n\nUser: ${contents[1].parts[0].text}`;
-        contents.shift();
+      // O Gemini não suporta 'system' diretamente no array de contents da mesma forma
+      // Para simplificar, vamos concatenar o system prompt na primeira mensagem do usuário se existir
+      if (messages[0].role === "system") {
+        const systemPrompt = messages[0].content;
+        if (contents.length > 1 && contents[1].role === "user") {
+          contents[1].parts[0].text = `System: ${systemPrompt}\nUser: ${contents[1].parts[0].text}`;
+          contents.shift();
+        } else {
+          // Se só tiver o system, transforma em user
+          contents[0].role = "user";
+        }
+      }
+
+      const modelName = options.model || "gemini-pro";
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+        {
+          contents,
+          generationConfig: {
+            temperature: options.temperature ?? 0.1,
+            maxOutputTokens: options.maxTokens,
+          },
+        }
+      );
+
+      if (response.data.candidates && response.data.candidates[0].content) {
+        return { success: true, data: response.data.candidates[0].content.parts[0].text };
       } else {
-        // Se só tiver o system, transforma em user
-        contents[0].role = "user";
+        return { success: false, error: "Resposta inválida do Gemini" };
       }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
-
-    const modelName = options.model || "gemini-pro";
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-      {
-        contents,
-        generationConfig: {
-          temperature: options.temperature ?? 0.1,
-          maxOutputTokens: options.maxTokens,
-        },
-      }
-    );
-
-    if (response.data.candidates && response.data.candidates[0].content) {
-      return response.data.candidates[0].content.parts[0].text;
-    }
-    
-    throw new Error("Resposta inválida do Gemini");
   }
 }

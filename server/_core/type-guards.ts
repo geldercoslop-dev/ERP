@@ -2,6 +2,40 @@
  * Type Guards e Helpers para TypeScript
  */
 
+import { logger } from './logger.js';
+
+/**
+ * AssertNever - Guard para exaustividade de switch/case
+ * 
+ * Garante que todos os casos de um union type foram tratados
+ * Se chegar aqui, há um caso não coberto
+ * 
+ * @param value - Valor que nunca deveria chegar
+ * @param context - Contexto para debugging
+ */
+export function assertNever(value: never, context?: string): never {
+  const error = new Error(`AssertNever: Unhandled case${context ? ` in ${context}` : ''}`);
+  
+  logger.error(
+    {
+      value: JSON.stringify(value),
+      type: typeof value,
+      context,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    },
+    'TypeScript exhaustiveness check failed - missing case in switch/union'
+  );
+  
+  // Em desenvolvimento, falha rápido
+  if (process.env.NODE_ENV === 'development') {
+    throw error;
+  }
+  
+  // Em produção, loga e retorna never (força throw)
+  throw error;
+}
+
 /**
  * Verifica se um valor é um Record (objeto simples)
  */

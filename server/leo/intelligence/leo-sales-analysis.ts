@@ -1,7 +1,19 @@
 import * as ordersService from '../../services/orders.service.js';
 import { logInfo, logError } from '../../_core/logger.js';
 
-const DEFAULT_TENANT_ID = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 1);
+/**
+ * Obtém tenantId do ambiente ou lança erro se não disponível
+ * CRÍTICO: Não permite fallback para tenant fixo
+ */
+function getTenantId(): number {
+  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+  
+  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
+  }
+  
+  return tenantId;
+}
 
 export class LeoSalesAnalysis {
   private readonly name = 'SalesAnalysis';
@@ -12,7 +24,7 @@ export class LeoSalesAnalysis {
         extra: { entity: this.name, acao: 'calculateAverageTicket', vendedorId, period },
       });
 
-      if (!Number.isFinite(DEFAULT_TENANT_ID) || DEFAULT_TENANT_ID <= 0) return 0;
+      if (!Number.isFinite(getTenantId()) || getTenantId() <= 0) return 0;
 
       const daysAgo = period
         ? (() => {
@@ -28,7 +40,7 @@ export class LeoSalesAnalysis {
           })()
         : undefined;
 
-      const { sumTotal, count } = await ordersService.aggregateTicketPedidos(DEFAULT_TENANT_ID, {
+      const { sumTotal, count } = await ordersService.aggregateTicketPedidos(getTenantId(), {
         vendedorId,
         since: daysAgo,
       });
@@ -57,7 +69,7 @@ export class LeoSalesAnalysis {
         extra: { entity: this.name, acao: 'analyzeSalesGrowth', period },
       });
 
-      if (!Number.isFinite(DEFAULT_TENANT_ID) || DEFAULT_TENANT_ID <= 0) {
+      if (!Number.isFinite(getTenantId()) || getTenantId() <= 0) {
         return { percentage: 0, trend: 'stable', volume: 0 };
       }
 
@@ -69,12 +81,12 @@ export class LeoSalesAnalysis {
       previousPeriodStart.setDate(previousPeriodStart.getDate() - days);
 
       const currentTotal = await ordersService.sumPedidosTotalBetween(
-        DEFAULT_TENANT_ID,
+        getTenantId(),
         currentPeriodStart,
         new Date()
       );
       const previousTotal = await ordersService.sumPedidosTotalBetween(
-        DEFAULT_TENANT_ID,
+        getTenantId(),
         previousPeriodStart,
         currentPeriodStart
       );

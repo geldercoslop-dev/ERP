@@ -12,13 +12,21 @@ import path from "path";
 import { getProjectRoot } from "./project-root.js";
 
 console.log("[BOOT] loadEnv — início");
-console.log("[ENV] carregando apenas .env (sem override; compose/env_file tem precedência)…");
+console.log("[ENV] carregamento de .env habilitado apenas em desenvolvimento…");
 
 const root = getProjectRoot();
 const basePath = path.resolve(root, ".env");
-const base = dotenv.config({ path: basePath, override: false });
+const isProduction = process.env.NODE_ENV === "production";
 
-if (!fs.existsSync(basePath) && process.env.NODE_ENV !== "test") {
+const base = isProduction
+  ? { parsed: {} as Record<string, string> }
+  : dotenv.config({ override: false });
+
+if (isProduction) {
+  console.log("[ENV] NODE_ENV=production: usando somente variáveis injetadas pelo runtime.");
+}
+
+if (!isProduction && !fs.existsSync(basePath) && process.env.NODE_ENV !== "test") {
   console.warn(
     `[ENV] Arquivo .env não encontrado em ${basePath}. Variáveis devem vir do ambiente (ex.: env_file no Docker).`
   );

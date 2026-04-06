@@ -27,13 +27,12 @@ export type SessionPayload = {
 
 type DbUser = typeof users.$inferSelect;
 
-function getRequiredTenantId(): number {
-  const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
-  const tenantId = Number(raw);
-  if (!Number.isFinite(tenantId) || tenantId <= 0) {
-    throw new Error("DEFAULT_TENANT_ID/TENANT_ID obrigatório para sincronização OAuth");
+export function getTenantId(): number {
+  const raw = Number(process.env.TENANT_ID || "");
+  if (!Number.isFinite(raw) || raw <= 0) {
+    throw new Error("TENANT_ID obrigatório no ambiente.");
   }
-  return tenantId;
+  return raw;
 }
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
@@ -288,7 +287,10 @@ class SDKServer {
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        const tenantId = getRequiredTenantId();
+        const tenantId = Number(process.env.TENANT_ID || "");
+        if (!Number.isFinite(tenantId) || tenantId <= 0) {
+          throw new Error("TENANT_ID obrigatório no ambiente.");
+        }
         await db.upsertUser(tenantId, {
           tenantId,
           openId: userInfo.openId,
@@ -308,7 +310,13 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    const tenantId = (user as UserWithTenant).tenantId ?? getRequiredTenantId();
+    const tenantId = (user as UserWithTenant).tenantId ?? (() => {
+      const envTenantId = Number(process.env.TENANT_ID || "");
+      if (!Number.isFinite(envTenantId) || envTenantId <= 0) {
+        throw new Error("TENANT_ID obrigatório no ambiente.");
+      }
+      return envTenantId;
+    })();
     await db.upsertUser(tenantId, {
       tenantId,
       openId: user.openId,

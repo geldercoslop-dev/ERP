@@ -6,6 +6,14 @@
  * "find is not a function" causados por tipos inconsistentes.
  */
 
+export type Payload = Record<string, unknown>;
+
+export type ServiceResponse = {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+};
+
 /**
  * Garante que o retorno seja sempre um array, mesmo quando vazio ou nulo
  * @param result - O resultado a ser normalizado
@@ -26,7 +34,7 @@ export function ensureArray<T>(result: T[] | null | undefined): T[] {
  * @returns Um objeto garantido, nunca undefined ou null
  * @throws Error quando o resultado é null ou undefined
  */
-export function ensureObject<T extends Record<string, any>>(result: T | null | undefined): T {
+export function ensureObject<T extends Record<string, unknown>>(result: T | null | undefined): T {
   // Se o resultado for null ou undefined, lança erro
   if (result === null || result === undefined) {
     throw new Error(`Invalid object result: expected object, got ${result === null ? 'null' : 'undefined'}`);
@@ -39,21 +47,26 @@ export function ensureObject<T extends Record<string, any>>(result: T | null | u
  * @param result - O resultado da operação de criação
  * @returns Um objeto com pelo menos a propriedade id
  */
-export function ensureCreatedResult(result: any): { id: number } {
+export function ensureCreatedResult(result: unknown): { id: number } {
   if (!result) {
     throw new Error("Falha na operação de criação: resultado indefinido");
   }
+
+  if (typeof result !== "object") {
+    if (typeof result === 'number') {
+      return { id: result };
+    }
+    throw new Error("Falha na operação de criação: formato inválido");
+  }
+
+  const record = result as Record<string, unknown>;
   
   // Se já tiver um ID, retorna como está
-  if (result.id !== undefined && typeof result.id === 'number') {
-    return { id: result.id };
+  if (record.id !== undefined && typeof record.id === 'number') {
+    return { id: record.id };
   }
   
   // Se for um número direto, assume que é o ID
-  if (typeof result === 'number') {
-    return { id: result };
-  }
-  
   throw new Error("Falha na operação de criação: ID não encontrado");
 }
 

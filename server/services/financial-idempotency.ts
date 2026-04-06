@@ -4,7 +4,8 @@
  */
 
 import { eq, and, sql } from "drizzle-orm";
-import { getDb } from "../db/index.js";
+import { getDb } from '../db/index.js';
+import { DbResult, toDbResult } from '../_core/db-result.js';
 import { nanoid } from "nanoid";
 
 // Tabela de controle de idempotência (se não existir, criar via schema)
@@ -62,16 +63,18 @@ export async function checkOperationProcessed(
     `);
 
     if (result.length > 0) {
-      const record = result[0] as any;
+      const rawRecord = result[0] as unknown;
+      const record = rawRecord as Record<string, unknown>;
+      
       return {
         processed: true,
         record: {
-          id: record.id,
-          tenantId: record.tenant_id,
-          operationKey: record.operation_key,
-          operationType: record.operation_type,
-          processedAt: new Date(record.processed_at),
-          metadata: record.metadata ? JSON.parse(record.metadata) : undefined
+          id: typeof record.id === 'number' ? record.id.toString() : '0',
+          tenantId: typeof record.tenant_id === 'number' ? record.tenant_id : 0,
+          operationKey: typeof record.operation_key === 'string' ? record.operation_key : '',
+          operationType: typeof record.operation_type === 'string' ? record.operation_type as 'BAIXA_BOLETO' | 'CREDITO_CAIXA' : 'BAIXA_BOLETO',
+          processedAt: typeof record.processed_at === 'string' || typeof record.processed_at === 'number' ? new Date(record.processed_at) : new Date(),
+          metadata: typeof record.metadata === 'string' ? JSON.parse(record.metadata) : undefined
         }
       };
     }

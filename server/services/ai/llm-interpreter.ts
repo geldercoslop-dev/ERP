@@ -104,8 +104,12 @@ async function interpretarComLLM(texto: string): Promise<Interpretacao | null> {
       provider: (process.env.LEO_FAST_MODEL ?? "groq") as "groq" | "openai"
     });
 
+    if (!response.success || !response.data) {
+      return null;
+    }
+
     // Tenta extrair o JSON da resposta (alguns modelos podem colocar texto em volta)
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.data.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       const base = {

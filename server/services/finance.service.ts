@@ -149,9 +149,24 @@ export async function baixarPedidoDireto(
 
     const valorTotal = parseFloat(pedido.total.toString());
     const entradaValor = typeof data.entradaValor === 'number' ? data.entradaValor : valorTotal;
-    const segundaValor = typeof data.segundaValor === 'number' ? data.segundaValor : 0;
-    const boletoParcelas = Math.max(1, Math.floor(data.boletoParcelas || 1));
-    const boletoPrimeiroVenc = data.boletoPrimeiroVencimento || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    
+    if (typeof data.segundaValor !== 'number' || data.segundaValor < 0) {
+      throw new Error("segundaValor deve ser número >= 0");
+    }
+    
+    const segundaValor = data.segundaValor;
+    
+    if (typeof data.boletoParcelas !== 'number' || data.boletoParcelas <= 0) {
+      throw new Error("boletoParcelas deve ser número > 0");
+    }
+    
+    const boletoParcelas = Math.max(1, Math.floor(data.boletoParcelas));
+    
+    if (data.boletoPrimeiroVencimento === undefined) {
+      throw new Error("boletoPrimeiroVencimento é obrigatório");
+    }
+    
+    const boletoPrimeiroVenc = data.boletoPrimeiroVencimento;
 
     // 2. Atualizar status do pedido para ENTREGUE
     await tx.update(pedidos)
@@ -175,7 +190,9 @@ export async function baixarPedidoDireto(
       // Gerar boletos
       const valorParcela = (valorTotal / boletoParcelas).toFixed(2);
       for (let i = 0; i < boletoParcelas; i++) {
-        const venc = data.boletoVencimentos?.[i] || new Date(boletoPrimeiroVenc.getTime() + i * 30 * 24 * 60 * 60 * 1000);
+        const venc = data.boletoVencimentos?.[i];
+        const vencDate = venc instanceof Date ? venc : new Date(boletoPrimeiroVenc.getTime() + i * 30 * 24 * 60 * 60 * 1000);
+        
         const result = await tx.insert(boletos).values({
           tenantId,
           pedidoId: pedido.id,
@@ -184,7 +201,7 @@ export async function baixarPedidoDireto(
           vendedorId: pedido.vendedorId,
           valorOriginal: valorParcela,
           valorAberto: valorParcela,
-          dataVencimento: venc,
+          dataVencimento: vencDate,
           status: BoletoStatus.ABERTO,
         });
         const boletoId = getInsertId(result);
@@ -230,8 +247,16 @@ export async function baixarPedidoDireto(
       await atualizarCaixaMensal(tenantId, new Date().toISOString().slice(0, 7), data.segundaForma, segundaValor, tx);
     }
 
-    // 5. Comissão (valor opcional; pedidos não têm comissaoValor no schema, usar 0 se ausente)
-    const valorComissao = Number((pedido as { comissaoValor?: string }).comissaoValor) || 0;
+    // 5. Comissão (valor opcional; pedidos não têm comissaoValor no schema)
+    const pedidoComComissao = pedido as { comissaoValor?: string };
+    let valorComissao = 0;
+    
+    if (pedidoComComissao.comissaoValor !== undefined && pedidoComComissao.comissaoValor !== null) {
+      const parsed = Number(pedidoComComissao.comissaoValor);
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        valorComissao = parsed;
+      }
+    }
     
     // Auditoria Logger
     auditLog({
@@ -544,9 +569,9 @@ export async function getCaixaMensal(
 }
 
 export async function getAllCaixaMensal(tenantId: number): Promise<CaixaMensal[]> {
-  const result = await getCaixaMensal(tenantId);
+  const { items } = await getCaixaMensal(tenantId);
   // Garantir que o retorno seja sempre um array
-  return ensureArray(result.items);
+  return ensureArray(items);
 }
 
 export async function getPlanoContas(

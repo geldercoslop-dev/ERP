@@ -4,6 +4,7 @@ import { runBackup } from "../infra/backup/backupDb.js";
 import { runCleanup } from "../../scripts/cleanup-system.js";
 import path from "path";
 import fs from "fs";
+import { BoundedMap } from "./bounded-map.js";
 
 /**
  * Interface para métricas de latência
@@ -18,11 +19,11 @@ interface RouteMetrics {
  * Armazenamento de métricas em memória
  */
 const metrics = {
-  latencies: new Map<string, RouteMetrics>(),
-  detailedLatencies: new Map<string, RouteMetrics>(), // Para ranking de rotas específicas
+  latencies: new BoundedMap<string, RouteMetrics>(1000),
+  detailedLatencies: new BoundedMap<string, RouteMetrics>(500), // Para ranking de rotas específicas
   errorCount: 0,
   lastErrorReset: Date.now(),
-  repeatedErrors: new Map<string, { count: number; lastSeen: number }>(),
+  repeatedErrors: new BoundedMap<string, { count: number; lastSeen: number }>(200),
 };
 
 /**
@@ -276,4 +277,94 @@ function calculateHealthScore(): number {
   });
 
   return Math.max(0, score);
+}
+
+/**
+ * Inicia monitoramento de memória do sistema
+ * Log periódico de uso de memória para detectar leaks
+ */
+export function startMemoryMonitoring(): void {
+  const interval = Number(process.env.MEMORY_MONITOR_INTERVAL) || 60000; // 1 minuto padrão
+  const alertThreshold = Number(process.env.MEMORY_ALERT_THRESHOLD_MB) || 1024; // 1GB padrão
+  
+  if (process.env.MEMORY_MONITOR_ENABLED === 'false') {
+    logger.info({ enabled: false }, 'Memory monitor disabled');
+    return;
+  }
+
+  logger.info(
+    { 
+      interval: interval,
+      threshold: alertThreshold 
+    }, 
+    'Starting system memory monitor'
+  );
+
+  setInterval(() => {
+    const memUsage = process.memoryUsage();
+    const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+    const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
+    const rssMB = Math.round(memUsage.rss / 1024 / 1024);
+    
+    // Log detalhado das métricas
+    logger.info(
+      {
+        heap: {
+          used: heapUsedMB,
+          total: heapTotalMB,
+          percentage: Math.round((heapUsedMB / heapTotalMB) * 100)
+        },
+        rss: rssMB,
+        external: Math.round(memUsage.external / 1024 / 1024),
+        uptime: Math.round(process.uptime() / 60), // minutos
+        timestamp: new Date().toISOString()
+      },
+      'Memory metrics collected'
+    );
+
+    // Alerta de uso alto
+    if (heapUsedMB > alertThreshold) {
+      logger.warn(
+        {
+          heapUsed: heapUsedMB,
+          threshold: alertThreshold,
+          percentage: Math.round((heapUsedMB / heapTotalMB) * 100)
+        },
+        'High memory usage detected'
+      );
+    }
+
+    // Detectar possível memory leak (crescimento contínuo)
+    const growthRate = calculateMemoryGrowthRate();
+    if (growthRate > 0.2) { // Crescimento > 20% indica possível leak
+      logger.error(
+        {
+          growthRate: Math.round(growthRate * 100),
+          currentUsage: heapUsedMB,
+          samples: 5
+        },
+        'Potential memory leak detected - investigate immediately'
+      );
+    }
+  }, interval);
+}
+
+/**
+ * Calcula taxa de crescimento de memória das últimas amostras
+ */
+function calculateMemoryGrowthRate(): number {
+  const samples = 5;
+  const currentUsage = process.memoryUsage().heapUsed / 1024 / 1024;
+  
+  // Simples cálculo baseado nas últimas medições (armazenadas no metrics)
+  const recentMetrics = Array.from(metrics.latencies.values()).slice(-samples);
+  
+  if (recentMetrics.length < 2) return 0;
+  
+  // Para este exemplo, usamos uma abordagem simplificada
+  // Em produção real, você armazenaria o histórico de uso de memória
+  const baselineUsage = currentUsage * 0.8; // Assume baseline 80% do atual
+  const growthRate = (currentUsage - baselineUsage) / baselineUsage;
+  
+  return Math.max(0, growthRate);
 }

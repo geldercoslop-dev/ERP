@@ -57,7 +57,27 @@ export default tseslint.config(
       },
     },
     rules: {
+      // Proibir any completamente
       "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-implicit-any-catch": "error",
+      
+      // Proibir console.log (forçar logger)
+      "no-console": "error",
+      
+      // Forçar return types
+      "@typescript-eslint/explicit-function-return-types": "error",
+      
+      // Segurança adicional
+      "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
+      "@typescript-eslint/prefer-optional-chain": "error",
+      
+      // Prevenir regressões
+      "@typescript-eslint/ban-ts-comment": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
     },
   },
   {
@@ -102,13 +122,31 @@ export default tseslint.config(
       // Tipagem forte - sem 'any' ou tipos implícitos
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-implicit-any-catch": "error",
+      
+      // Proibir console.log (forçar logger)
+      "no-console": "error",
+      
+      // Forçar return types
+      "@typescript-eslint/explicit-function-return-types": "error",
+      
+      // Segurança adicional
+      "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
+      "@typescript-eslint/prefer-optional-chain": "error",
+      
+      // Prevenir regressões
+      "@typescript-eslint/ban-ts-comment": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
 
       // Nulabilidade explícita
-      "@typescript-eslint/strict-boolean-expressions": "warn",
+      "@typescript-eslint/strict-boolean-expressions": "error",
 
       // Boas práticas TypeScript
       "@typescript-eslint/no-unused-vars": [
-        "warn",
+        "error",
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
@@ -119,16 +157,6 @@ export default tseslint.config(
       "no-eval": "error",
       "no-implied-eval": "error",
       "no-new-func": "error",
-      "@typescript-eslint/no-non-null-assertion": "warn",
-
-      // Consistência de código
-      "@typescript-eslint/explicit-function-return-types": [
-        "warn",
-        {
-          allowExpressions: true,
-          allowTypedFunctionExpressions: true,
-        },
-      ],
     },
   },
   // ── UTILS E TIPOS CRÍTICOS ──

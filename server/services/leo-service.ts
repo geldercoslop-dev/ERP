@@ -133,7 +133,7 @@ export class LeoErpService {
       const options = {
         page: 1,
         pageSize: filtros?.limite || 50,
-        status: filtros?.status as any,
+        status: filtros?.status as string | undefined,
         clienteId: filtros?.clienteId,
         vendedorId: filtros?.vendedorId,
         dataInicio: filtros?.dataInicio,
@@ -226,10 +226,14 @@ export class LeoErpService {
         busca: filtros?.nome || filtros?.telefone,
       });
 
+      if (!resultado.success || !resultado.data) {
+        return resultado;
+      }
+
       return {
         success: true,
-        data: resultado.items,
-        total: resultado.total,
+        data: resultado.data.items,
+        total: resultado.data.total,
       };
     } catch (error) {
       console.error('[LeoErpService] Erro ao consultar clientes:', error);
@@ -396,7 +400,7 @@ export class LeoErpService {
         status: filtros?.status,
       };
 
-      let resultado: any = { items: [], total: 0 };
+      let resultado: { items: unknown[]; total: number } = { items: [], total: 0 };
 
       if (!filtros?.tipo || filtros.tipo === "RECEBER") {
         const contasReceber = await listContasReceber(tenantId, actor, options);

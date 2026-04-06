@@ -9,9 +9,9 @@ import bcrypt from 'bcryptjs';
  * Usa ADMIN_INITIAL_PASSWORD do ambiente ou gera erro
  */
 export async function ensureInitialAdmin(): Promise<void> {
-  const tenantIdRaw = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || "");
+  const tenantIdRaw = Number(process.env.TENANT_ID || "");
   if (!Number.isFinite(tenantIdRaw) || tenantIdRaw <= 0) {
-    throw new Error("DEFAULT_TENANT_ID (ou TENANT_ID) é obrigatório para inicializar admin sem hardcode.");
+    throw new Error("TENANT_ID é obrigatório para inicializar admin sem hardcode.");
   }
   const tenantId = tenantIdRaw;
   const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;

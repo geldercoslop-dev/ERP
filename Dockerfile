@@ -2,33 +2,55 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile --ignore-scripts
+ENV HUSKY=0
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
-COPY . .
-# Build de produção via script padrão (gera dist/public + dist/server)
+COPY package.json pnpm-lock.yaml ./
+
+RUN npm install -g pnpm@10.29.3
+RUN pnpm --version
+RUN echo 'dangerouslyAllowAllBuiltScripts=true' > .npmrc
+RUN pnpm install --frozen-lockfile
+
+COPY tsconfig.json tsconfig.server.json tsconfig.build.json ./
+COPY vite.config.ts ./
+COPY instrument.ts ./
+COPY client ./client
+COPY server ./server
+COPY shared ./shared
+COPY drizzle ./drizzle
+COPY scripts ./scripts
+COPY packages ./packages
+
 RUN pnpm run build
 
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Produção: instalar deps necessárias para runtime (sem scripts).
-# Observação: o backend referencia `vite` no boot (dev server/static). Portanto, não podemos limitar a --prod aqui.
-COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile --ignore-scripts
+ENV HUSKY=0
+ENV NODE_ENV=production
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
-# Copiar somente artefatos finais
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/drizzle ./drizzle
+COPY --chown=node:node package.json pnpm-lock.yaml ./
 
-# Garantir permissões para o usuário node
-RUN chown -R node:node /app
+RUN npm install -g pnpm@10.29.3
+RUN pnpm --version
+RUN echo 'dangerouslyAllowAllBuiltScripts=true' > .npmrc
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+RUN pnpm rebuild
+
+COPY --from=builder --chown=node:node /app/dist ./dist
+
+RUN mkdir -p /app/logs && chown -R node:node /app/logs
 
 USER node
 
 ENV NODE_ENV=production
 ENV PORT=3000
+
 EXPOSE 3000
 
 CMD ["node", "dist/server/index.js"]

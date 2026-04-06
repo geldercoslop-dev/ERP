@@ -39,7 +39,7 @@ export async function getAllProdutosComPrecoVigenteUNSAFE(refDate: Date = new Da
   const items = await db.select().from(produtos).where(
     eq(produtos.ativo, true)
   ).orderBy(produtos.nome);
-  const ids = items.map((p) => p.id);
+  const ids = items.map((p: any) => p.id);
   if (ids.length === 0) return [];
 
   // ❌ PROBLEMA: execute() retorna [[rows], metadata]
@@ -74,7 +74,7 @@ export async function getAllProdutosComPrecoVigenteV1(
   const items = await db.select().from(produtos).where(
     eq(produtos.ativo, true)
   ).orderBy(produtos.nome);
-  const ids = items.map((p) => p.id);
+  const ids = items.map((p: any) => p.id);
   if (ids.length === 0) return [];
 
   // ✅ Desembrulhar corretamente
@@ -129,7 +129,7 @@ export async function getAllProdutosComPrecoVigenteV2(
         .where(eq(produtos.ativo, true))
         .orderBy(asc(produtos.descricao));
 
-      const ids = items.map((p) => p.id);
+      const ids = items.map((p: any) => p.id);
       if (ids.length === 0) return [];
 
       // Variações
@@ -189,7 +189,7 @@ export async function getAllProdutosComPrecoVigenteV3(
             .where(eq(produtos.ativo, true))
             .orderBy(asc(produtos.descricao));
 
-          const ids = items.map((p) => p.id);
+          const ids = items.map((p: any) => p.id);
           if (ids.length === 0) return [];
 
           // Variações com proteção
@@ -257,7 +257,7 @@ export async function getAllProdutosComPrecoVigenteRECOMMENDED(
           .where(eq(produtos.ativo, true))
           .orderBy(asc(produtos.descricao));
 
-        const ids = items.map((p) => p.id);
+        const ids = items.map((p: any) => p.id);
         if (ids.length === 0) return [];
 
         // Variações com desembrulho correto
@@ -334,8 +334,22 @@ export async function getAllProdutosComPrecoVigenteRECOMMENDED(
 }
 
 // Placeholders para não quebrar durante compilação
-const getDb = async () => null;
-const produtos = {} as any;
+const getDb = async () => ({
+  select: () => ({
+    from: (table: any) => ({
+      where: (condition: any) => ({
+        orderBy: (order: any) => Promise.resolve([{ id: 1, nome: 'test', ativo: true, descricao: 'test', valorVenda: 100 }])
+      })
+    })
+  })
+});
+const produtos = { 
+  ativo: true, 
+  nome: '', 
+  id: 1,
+  descricao: '',
+  valorVenda: 100
+} as any;
 const sql = (template: any, ...values: any[]) => template;
 const eq = (a: any, b: any) => a;
 const asc = (col: any) => col;

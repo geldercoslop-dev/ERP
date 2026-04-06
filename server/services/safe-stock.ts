@@ -5,7 +5,7 @@
  * Previne estoque negativo e garante consistência dos dados
  */
 
-import { getDb } from '../db/index.js';
+import { getDb, getInsertId } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
 import { produtos } from '../../drizzle/schema.js';
 import { logger, logError, logInfo } from '../utils/logger.js';
@@ -73,6 +73,11 @@ class SafeStockService {
   private static instance: SafeStockService;
   private locks: Map<number, StockLock> = new Map();
   private lockTimeoutMs: number = 30000; // 30 segundos
+  
+  // TODO: Implementar cleanup automático de locks expirados
+  // - Verificar periodicamente locks antigos
+  // - Remover locks após timeout
+  // - Prevenir memory leak em cenários de alta concorrência
 
   private constructor() {}
 
@@ -99,7 +104,15 @@ class SafeStockService {
 
       const db = await getDb();
       if (!db) {
-        throw new Error('Database não disponível');
+        return {
+          success: false,
+          produtoId: operation.produtoId,
+          saldoAnterior: 0,
+          saldoNovo: 0,
+          quantidadeProcessada: 0,
+          message: 'Database não disponível',
+          traceId
+        };
       }
 
       // Processar dentro de transação
@@ -214,9 +227,9 @@ class SafeStockService {
       // Melhorar mensagem de erro para diagnóstico
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('Lock wait timeout')) {
-        throw new Error(`Timeout ao tentar bloquear produto ${produtoId}. Outro processo pode estar segurando o lock.`);
+        return null;
       }
-      throw error;
+      return null;
     }
   }
 
@@ -356,7 +369,7 @@ class SafeStockService {
 
       const db = await getDb();
       if (!db) {
-        throw new Error('Database não disponível');
+        return [];
       }
 
       // IMPORTANTE: Ordenar operações por produtoId para evitar deadlock

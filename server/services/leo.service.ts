@@ -82,6 +82,13 @@ export async function getLeoStatusSummary(
     (p) => Number(p.estoque ?? 0) < 10
   ).length;
 
+  if (!activeClientsPage.success) {
+    return { ...basicStatus, success: false, error: "Erro ao buscar clientes ativos" };
+  }
+  if (!activeClientsPage.data) {
+    return { ...basicStatus, success: false, error: "Dados de clientes indisponíveis" };
+  }
+
   return {
     ...basicStatus,
     memory: {
@@ -92,7 +99,7 @@ export async function getLeoStatusSummary(
     leoMemory: memoryStats,
     erpData: {
       recentOrders: recentOrders.count,
-      activeClients: activeClientsPage.total,
+      activeClients: activeClientsPage.data.total,
       lowStockProducts: lowStockCount,
     },
     context: context
@@ -165,7 +172,13 @@ async function handleClientQuestion(
       pageSize: 200,
       busca: question.includes("novo") ? "" : undefined,
     });
-    return `Atualmente temos ${clientes.total} clientes cadastrados no sistema.`;
+    if (!clientes.success) {
+      return "Nao consegui acessar os dados de clientes no momento.";
+    }
+    if (!clientes.data) {
+      return "Dados de clientes indisponíveis no momento.";
+    }
+    return `Atualmente temos ${clientes.data.total} clientes cadastrados no sistema.`;
   } catch {
     return "Nao consegui acessar os dados de clientes no momento.";
   }

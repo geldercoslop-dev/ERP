@@ -61,6 +61,16 @@ export interface RedisStatus {
 }
 
 function parseRedisConfigFromEnv(): RedisConfig {
+  const hostFromEnv = process.env.REDIS_HOST?.trim();
+  const portFromEnv = process.env.REDIS_PORT?.trim();
+  if (!hostFromEnv || !portFromEnv) {
+    throw new Error("REDIS_HOST e REDIS_PORT são obrigatórios");
+  }
+  const portNumber = Number(portFromEnv);
+  if (!Number.isInteger(portNumber) || portNumber <= 0) {
+    throw new Error("REDIS_PORT inválido: deve ser inteiro positivo");
+  }
+
   if (process.env.REDIS_URL?.trim()) {
     try {
       const redisUrl = new URL(process.env.REDIS_URL);
@@ -79,13 +89,13 @@ function parseRedisConfigFromEnv(): RedisConfig {
         family: 4,
       };
     } catch {
-      logWarn("REDIS_URL inválida; usando REDIS_HOST/REDIS_PORT.");
+      throw new Error("REDIS_URL inválida");
     }
   }
 
   return {
-    host: resolveRuntimeServiceHost(process.env.REDIS_HOST || "localhost", "redis"),
-    port: parseInt(process.env.REDIS_PORT || "6379"),
+    host: resolveRuntimeServiceHost(hostFromEnv, "redis"),
+    port: portNumber,
     password: process.env.REDIS_PASSWORD,
     db: parseInt(process.env.REDIS_DB || "0"),
     maxRetriesPerRequest: 3,

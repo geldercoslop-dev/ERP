@@ -1,2 +1,0 @@
-EXIT=0
-C:\ERP\dist\test\domain-status.js

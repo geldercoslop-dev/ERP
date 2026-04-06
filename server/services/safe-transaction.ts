@@ -12,6 +12,7 @@ import { ContaPagarStatus, ContaReceberStatus, PedidoStatus, PedidoStatusValues 
 import { validateStatus } from "../shared/guards/domain-guard.js";
 import { loggerInstance as logger, logError } from '../utils/logger.js';
 import { processStockOperation, StockOperation } from './safe-stock.js';
+import { logAuditAction } from './audit-log.service.js';
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
@@ -38,6 +39,9 @@ export interface PedidoOperation {
   pedidoId: number;
   acao: 'criar' | 'atualizar' | 'cancelar' | 'atualizar_status';
   dados?: Record<string, unknown>;
+  tenantId?: number;
+  actorUserId?: number;
+  actorVendedorId?: number;
 }
 
 export interface FinanceiroOperation {
@@ -83,6 +87,13 @@ const TRANSACTION_ORDER = {
 class SafeTransactionService {
   private static instance: SafeTransactionService;
   private activeTransactions: Map<string, SafeTransaction> = new Map();
+  private resourceLocks: Map<string, Promise<SafeTransaction>> = new Map();
+  private cleanupTimers: Map<string, NodeJS.Timeout> = new Map();
+  
+  // TODO: Implementar cleanup automático para prevenir memory leaks
+  // - Limpar transações concluídas após timeout
+  // - Limitar tamanho máximo do Map
+  // - Adicionar verificação periódica
 
   private constructor() {}
 
@@ -94,9 +105,34 @@ class SafeTransactionService {
   }
 
   /**
-   * Processa transação completa com ordem padronizada
+   * Processa transação com lock em memória por recurso.
+   * Impede execução concorrente sobre o mesmo pedidoId.
    */
   public async processTransaction(
+    pedidoOp?: PedidoOperation,
+    stockOps?: StockOperation[],
+    financeiroOps?: FinanceiroOperation[]
+  ): Promise<SafeTransaction> {
+    const resourceKey = pedidoOp ? `pedido:${pedidoOp.pedidoId}` : 'global';
+    const pending = this.resourceLocks.get(resourceKey);
+    const run = (): Promise<SafeTransaction> =>
+      this.executeNewTransaction(pedidoOp, stockOps, financeiroOps);
+    // Serializa: sempre executa após qualquer tx anterior do mesmo recurso (ok ou erro).
+    const chained: Promise<SafeTransaction> = pending ? pending.then(run, run) : run();
+    this.resourceLocks.set(resourceKey, chained);
+    try {
+      return await chained;
+    } finally {
+      if (this.resourceLocks.get(resourceKey) === chained) {
+        this.resourceLocks.delete(resourceKey);
+      }
+    }
+  }
+
+  /**
+   * Lógica interna de execução — chamada exclusivamente pelo lock de processTransaction.
+   */
+  private async executeNewTransaction(
     pedidoOp?: PedidoOperation,
     stockOps?: StockOperation[],
     financeiroOps?: FinanceiroOperation[]
@@ -116,8 +152,8 @@ class SafeTransactionService {
       logger.info('Iniciando transação segura', {
         transactionId,
         hasPedido: !!pedidoOp,
-        stockOpsCount: stockOps?.length || 0,
-        financeiroOpsCount: financeiroOps?.length || 0,
+        stockOpsCount: stockOps?.length ?? 0,
+        financeiroOpsCount: financeiroOps?.length ?? 0,
       });
 
       this.activeTransactions.set(transactionId, transaction);
@@ -148,10 +184,12 @@ class SafeTransactionService {
 
       return transaction;
     } finally {
-      // Limpar transação após um tempo
-      setTimeout(() => {
+      // Guardar handle para poder cancelar se cleanupOldTransactions agir antes do prazo.
+      const cleanupHandle = setTimeout(() => {
         this.activeTransactions.delete(transactionId);
-      }, 60000); // 1 minuto
+        this.cleanupTimers.delete(transactionId);
+      }, 60_000);
+      this.cleanupTimers.set(transactionId, cleanupHandle);
     }
   }
 
@@ -215,12 +253,12 @@ class SafeTransactionService {
   /**
    * Executa transação step por step
    */
-  private async executeTransaction(transaction: SafeTransaction): Promise<void> {
+  private async executeTransaction(transaction: SafeTransaction): Promise<{ success: boolean; error?: string }> {
     transaction.status = 'processing';
 
     const db = await getDb();
     if (!db) {
-      throw new Error('Database não disponível');
+      return { success: false, error: 'Database não disponível' };
     }
 
     await db.transaction(async (tx: DbTx) => {
@@ -256,6 +294,8 @@ class SafeTransactionService {
     }
 
     transaction.completedAt = new Date();
+    
+    return { success: true };
   }
 
   /**
@@ -273,7 +313,7 @@ class SafeTransactionService {
         return await this.executeFinanceiroStep(tx, step);
       
       default:
-        throw new Error(`Tipo de step desconhecido: ${step.type}`);
+        return { success: false, error: `Tipo de step desconhecido: ${step.type}` };
     }
   }
 
@@ -297,7 +337,7 @@ class SafeTransactionService {
         return await this.atualizarStatusPedido(tx, pedidoOp);
       
       default:
-        throw new Error(`Operação de pedido desconhecida: ${step.operation}`);
+        return { success: false, error: `Operação de pedido desconhecida: ${step.operation}` };
     }
   }
 
@@ -311,7 +351,7 @@ class SafeTransactionService {
     const result = await processStockOperation(stockOp);
     
     if (!result.success) {
-      throw new Error(`Falha na operação de estoque: ${result.message}`);
+      return { success: false, error: `Falha na operação de estoque: ${result.message}` };
     }
     
     return result as unknown as Record<string, unknown>;
@@ -331,7 +371,7 @@ class SafeTransactionService {
         return await this.executeContaPagarStep(tx, finOp);
       
       default:
-        throw new Error(`Tipo financeiro desconhecido: ${finOp.tipo}`);
+        return { success: false, error: `Tipo financeiro desconhecido: ${finOp.tipo}` };
     }
   }
 
@@ -349,6 +389,24 @@ class SafeTransactionService {
     } as never);
 
     const meta = readMysqlExecResult(result);
+    
+    // Auditoria de criação de pedido
+    await logAuditAction(
+      "create",
+      "pedidos",
+      { 
+        pedidoId: meta.insertId,
+        dados: pedidoOp.dados,
+        operation: 'criar_pedido'
+      },
+      {
+        tenantId: pedidoOp.tenantId || 1,
+        entityId: meta.insertId != null ? String(meta.insertId) : undefined,
+        actorUserId: pedidoOp.actorUserId,
+        actorVendedorId: pedidoOp.actorVendedorId
+      }
+    );
+    
     return {
       success: true,
       pedidoId: meta.insertId,
@@ -369,6 +427,24 @@ class SafeTransactionService {
       .where(eq(pedidos.id, pedidoOp.pedidoId));
 
     const meta = readMysqlExecResult(result);
+    
+    // Auditoria de atualização de pedido
+    await logAuditAction(
+      "update",
+      "pedidos",
+      { 
+        pedidoId: pedidoOp.pedidoId,
+        dados: pedidoOp.dados,
+        operation: 'atualizar_pedido'
+      },
+      {
+        tenantId: pedidoOp.tenantId || 1,
+        entityId: pedidoOp.pedidoId.toString(),
+        actorUserId: pedidoOp.actorUserId,
+        actorVendedorId: pedidoOp.actorVendedorId
+      }
+    );
+    
     return {
       success: true,
       pedidoId: pedidoOp.pedidoId,
@@ -392,6 +468,24 @@ class SafeTransactionService {
       .where(eq(pedidos.id, pedidoOp.pedidoId));
 
     const meta = readMysqlExecResult(result);
+    
+    // Auditoria de cancelamento de pedido
+    await logAuditAction(
+      "cancel",
+      "pedidos",
+      { 
+        pedidoId: pedidoOp.pedidoId,
+        motivo: pedidoOp.dados?.motivo,
+        operation: 'cancelar_pedido'
+      },
+      {
+        tenantId: pedidoOp.tenantId || 1,
+        entityId: pedidoOp.pedidoId.toString(),
+        actorUserId: pedidoOp.actorUserId,
+        actorVendedorId: pedidoOp.actorVendedorId
+      }
+    );
+    
     return {
       success: true,
       pedidoId: pedidoOp.pedidoId,
@@ -444,7 +538,7 @@ class SafeTransactionService {
       case 'baixar': {
         const contaId = finOp.dados.id;
         if (typeof contaId !== "number" || !Number.isInteger(contaId) || contaId <= 0) {
-          throw new Error("conta a receber: id inválido");
+          return { success: false, error: "conta a receber: id inválido" };
         }
         const updateResult = await tx.update(contasReceber).set({
             status: ContaReceberStatus.RECEBIDA,
@@ -461,7 +555,7 @@ class SafeTransactionService {
       }
       
       default:
-        throw new Error(`Operação de conta a receber desconhecida: ${finOp.acao}`);
+        return { success: false, error: `Operação de conta a receber desconhecida: ${finOp.acao}` };
     }
   }
 
@@ -487,7 +581,7 @@ class SafeTransactionService {
       case 'baixar': {
         const contaPagarId = finOp.dados.id;
         if (typeof contaPagarId !== "number" || !Number.isInteger(contaPagarId) || contaPagarId <= 0) {
-          throw new Error("conta a pagar: id inválido");
+          return { success: false, error: "conta a pagar: id inválido" };
         }
         const updateResult = await tx.update(contasPagar).set({
             status: ContaPagarStatus.PAGO,
@@ -504,7 +598,7 @@ class SafeTransactionService {
       }
       
       default:
-        throw new Error(`Operação de conta a pagar desconhecida: ${finOp.acao}`);
+        return { success: false, error: `Operação de conta a pagar desconhecida: ${finOp.acao}` };
     }
   }
 
@@ -536,6 +630,11 @@ class SafeTransactionService {
     }
 
     toDelete.forEach(id => {
+      const handle = this.cleanupTimers.get(id);
+      if (handle !== undefined) {
+        clearTimeout(handle);
+        this.cleanupTimers.delete(id);
+      }
       this.activeTransactions.delete(id);
     });
 

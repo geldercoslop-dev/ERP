@@ -28,17 +28,21 @@ export function assertVendedorActor(actor: ServiceActor): asserts actor is Servi
  * Resolve vendedor a partir do contexto tRPC (mesma regra que routers: ctx.vendedor → userId → id legado).
  * `userId` no ator é sempre o `users.id` dono da carteira (alinha a `clientes.userId`), não o id da linha em `vendedores`.
  */
-export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vendedor" | "session">): Promise<ServiceActor> {
+export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vendedor" | "session" | "tenantId">): Promise<ServiceActor> {
   if (!ctx.user) {
     throw new Error("Usuário não autenticado");
   }
   if (ctx.user.role === "admin") {
     return { role: "admin", userId: ctx.user.id };
   }
+  if (!ctx.tenantId || ctx.tenantId <= 0) {
+    throw new Error("tenantId obrigatório para resolver actor de serviço");
+  }
+  const tenantId = String(ctx.tenantId);
   const v =
     ctx.vendedor ??
-    (await db.getVendedorByUserId(ctx.user.id)) ??
-    (await db.getVendedorById(ctx.user.id));
+    (await db.getVendedorByUserId(tenantId, ctx.user.id)) ??
+    (await db.getVendedorById(tenantId, ctx.user.id));
   if (!v) {
     throw new Error("Não foi possível resolver o vendedor para este usuário");
   }

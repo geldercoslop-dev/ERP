@@ -1,4 +1,5 @@
 import { ProductService } from '../services/product.service.js';
+import { ServiceCreateResponse, ServiceList, ServicePaginated } from '../types/service-safety.js';
 
 /**
  * CAMADA TOOLS: PRODUCT
@@ -38,8 +39,17 @@ export class ProductTool {
       // Delegar para service
       const result = await this.service.create(enrichedInput);
       
+      if (!result.success) {
+        console.log(`[ProductTool] Erro na criação de produto:`, { 
+          error: result.error,
+          timestamp: new Date().toISOString() 
+        });
+        return result;
+      }
+      
+      const data = result.data as unknown as ServiceCreateResponse | undefined;
       console.log(`[ProductTool] Produto criado com sucesso:`, { 
-        id: result.id,
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
         timestamp: new Date().toISOString() 
       });
 
@@ -76,9 +86,10 @@ export class ProductTool {
       // Delegar para service
       const result = await this.service.list(normalizedInput);
       
+      const data = result.data as unknown as ServiceCreateResponse | undefined;
       console.log(`[ProductTool] Listagem concluída:`, { 
-        count: result.length,
-        timestamp: new Date().toISOString()
+        count: typeof data === 'object' && data !== null && 'items' in data && Array.isArray((data as any).items) ? (data as any).items.length : 0,
+        timestamp: new Date().toISOString() 
       });
 
       return result;
@@ -112,9 +123,10 @@ export class ProductTool {
       // Delegar para service
       const result = await this.service.update(enrichedInput);
       
+      const data = result.data as unknown as ServiceCreateResponse | undefined;
       console.log(`[ProductTool] Produto atualizado com sucesso:`, { 
-        id: result.id,
-        timestamp: new Date().toISOString()
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+        timestamp: new Date().toISOString() 
       });
 
       return result;

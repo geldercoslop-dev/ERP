@@ -12,7 +12,19 @@ export interface StockAlert {
   priority: LeoTaskPriority;
 }
 
-const DEFAULT_TENANT_ID = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 1);
+/**
+ * Obtém tenantId do ambiente ou lança erro se não disponível
+ * CRÍTICO: Não permite fallback para tenant fixo
+ */
+function getTenantId(): number {
+  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+  
+  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
+  }
+  
+  return tenantId;
+}
 
 export class LeoStockMonitor {
   private static instance: LeoStockMonitor;
@@ -29,11 +41,11 @@ export class LeoStockMonitor {
 
   async checkLowStock(): Promise<StockAlert[]> {
     try {
-      if (!Number.isFinite(DEFAULT_TENANT_ID) || DEFAULT_TENANT_ID <= 0) {
+      if (!Number.isFinite(getTenantId()) || getTenantId() <= 0) {
         throw new Error('Tenant ID inválido para estoque');
       }
 
-      const rows = await inventoryService.listProdutosBaixoEstoqueLeo(DEFAULT_TENANT_ID, 20);
+      const rows = await inventoryService.listProdutosBaixoEstoqueLeo(getTenantId(), 20);
 
       const alerts: StockAlert[] = rows.map((product) => {
         const currentStock = Number(product.estoque || 0);

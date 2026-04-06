@@ -1,0 +1,305 @@
+﻿[
+    {
+        "Id": "d1ff78b8b3619d03bad0a85219a3ca4dfe6b10444fcd2122f8a238e9b6ad1580",
+        "Created": "2026-04-03T12:11:29.409754617Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "node",
+            "dist/server/index.js"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 45793,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-03T12:11:55.95381944Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-04-03T12:39:40.904955875Z",
+                        "End": "2026-04-03T12:39:41.081029Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-04-03T12:39:51.073374425Z",
+                        "End": "2026-04-03T12:39:51.281322094Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-04-03T12:40:01.282454125Z",
+                        "End": "2026-04-03T12:40:01.507378465Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-04-03T12:40:11.509085349Z",
+                        "End": "2026-04-03T12:40:11.856738388Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-04-03T12:40:21.848491311Z",
+                        "End": "2026-04-03T12:40:22.020658389Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:f2787081ba61eda8b71f1ed5a6c7b3f72fbd5defa5673a87b3844c3ea493f886",
+        "ResolvConfPath": "/var/lib/docker/containers/d1ff78b8b3619d03bad0a85219a3ca4dfe6b10444fcd2122f8a238e9b6ad1580/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/d1ff78b8b3619d03bad0a85219a3ca4dfe6b10444fcd2122f8a238e9b6ad1580/hostname",
+        "HostsPath": "/var/lib/docker/containers/d1ff78b8b3619d03bad0a85219a3ca4dfe6b10444fcd2122f8a238e9b6ad1580/hosts",
+        "LogPath": "/var/lib/docker/containers/d1ff78b8b3619d03bad0a85219a3ca4dfe6b10444fcd2122f8a238e9b6ad1580/d1ff78b8b3619d03bad0a85219a3ca4dfe6b10444fcd2122f8a238e9b6ad1580-json.log",
+        "Name": "/erp-api-prod",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "erp_vendas-network",
+            "PortBindings": {
+                "3000/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "3000"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "on-failure",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "d1ff78b8b361",
+            "Domainname": "",
+            "User": "node",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "3000/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "DB_PASSWORD=root",
+                "JWT_REFRESH_SECRET=erp_prod_jwt_refresh_secret_2026_super_long_fixed_value_64_chars_ok",
+                "DB_PORT=3306",
+                "REDIS_URL=redis://redis:6379",
+                "APP_SECRET=erp_prod_app_secret_2026_super_long_fixed_value_at_least_64_chars_ok",
+                "REDIS_PORT=6379",
+                "NODE_ENV=production",
+                "JWT_SECRET=dev_jwt_secret_change_me_please_minimum_32_chars",
+                "DB_NAME=erp",
+                "DB_HOST=db",
+                "REDIS_PASSWORD=",
+                "JWT_ACCESS_SECRET=erp_prod_jwt_access_secret_2026_super_long_fixed_value_64_chars_ok",
+                "PORT=3000",
+                "DATABASE_URL=mysql://root:root@db:3306/erp",
+                "ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3001",
+                "DB_USER=root",
+                "REDIS_HOST=redis",
+                "SESSION_SECRET=dev_session_secret_change_me_please_minimum_32_chars",
+                "PATH=/root/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=20.20.2",
+                "YARN_VERSION=1.22.22",
+                "HUSKY=0",
+                "PNPM_HOME=/root/.local/share/pnpm"
+            ],
+            "Cmd": [
+                "node",
+                "dist/server/index.js"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "wget -qO- http://127.0.0.1:3000/health \u003e/dev/null 2\u003e\u00261 || exit 1"
+                ],
+                "Interval": 10000000000,
+                "Timeout": 5000000000,
+                "StartPeriod": 45000000000,
+                "Retries": 5
+            },
+            "Image": "erp-api:prod",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "com.docker.compose.config-hash": "4a9b38fce2f77fdbda36fd25421b804f790f2064f08fa24ab67b757364275be0",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "redis:service_healthy:false,db:service_healthy:false",
+                "com.docker.compose.image": "sha256:f2787081ba61eda8b71f1ed5a6c7b3f72fbd5defa5673a87b3844c3ea493f886",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "erp",
+                "com.docker.compose.project.config_files": "C:\\ERP\\docker-compose.prod.yml",
+                "com.docker.compose.project.working_dir": "C:\\ERP",
+                "com.docker.compose.replace": "erp-api-prod",
+                "com.docker.compose.service": "api",
+                "com.docker.compose.version": "5.1.0"
+            },
+            "StopTimeout": 1
+        },
+        "NetworkSettings": {
+            "SandboxID": "7c1cd225d1ee2a65355176f68c11ef219fdf865de2ece28434c0ebb191e2ae64",
+            "SandboxKey": "/var/run/docker/netns/7c1cd225d1ee",
+            "Ports": {
+                "3000/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "3000"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "3000"
+                    }
+                ]
+            },
+            "Networks": {
+                "erp_vendas-network": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "erp-api-prod",
+                        "api"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "11395877feb09b26f1a782926b7a3c40c7421f5cec9d3d8c702de7276abf4a74",
+                    "EndpointID": "17238c5e662f8c3c9b295ef3ea240f96f4fc2fb5e4b0ebe067fab8381d4b2d33",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.4",
+                    "MacAddress": "32:ee:92:1a:fd:e2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "erp-api-prod",
+                        "api",
+                        "d1ff78b8b361"
+                    ]
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:f2787081ba61eda8b71f1ed5a6c7b3f72fbd5defa5673a87b3844c3ea493f886",
+            "size": 2924,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

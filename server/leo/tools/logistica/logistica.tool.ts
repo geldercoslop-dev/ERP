@@ -30,9 +30,10 @@ export const verCargasTool: LeoToolDefinition<z.infer<typeof verCargasInput>> = 
       pageSize: input.pageSize ?? 50,
     };
     const result = await listCargas(tenantId, filtros);
-    return createToolResponse(true, `Cargas (${result.total} total).`, result, {
+    const { total } = result;
+    return createToolResponse(true, `Cargas (${total} total).`, result, {
       tool: "ver_cargas",
-      total: result.total,
+      total,
     });
   },
 };
@@ -66,7 +67,11 @@ export const verPedidosEntregaTool: LeoToolDefinition<z.infer<typeof verPedidosE
     }
     const result = await getPedidosParaCarga(tenantId, filtros);
     const payload = Array.isArray(result) ? result : result;
-    const count = Array.isArray(result) ? result.length : result.total;
+    const count = Array.isArray(result)
+      ? result.length
+      : (typeof result === "object" && result !== null && "total" in result && typeof (result as { total?: unknown }).total === "number"
+          ? ((result as { total: number }).total)
+          : 0);
     return createToolResponse(true, `${count} pedido(s) para carga.`, payload, {
       tool: "ver_pedidos_entrega",
       count,

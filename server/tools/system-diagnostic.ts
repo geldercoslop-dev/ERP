@@ -5,8 +5,11 @@
  * LEO nunca acessa DB direto.
  */
 
-import { getDb, insertAuditLog } from '../db/index.js';
 import { logger, systemLogger } from '../_core/logger.js';
+import {
+  checkDiagnosticDatabaseHealth,
+  registerDiagnosticAudit,
+} from '../services/system-diagnostic.service.js';
 
 function getDiagnosticTenantId(): number | null {
   const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
@@ -138,40 +141,18 @@ class SystemDiagnostic {
    * Verifica saúde do banco de dados
    */
   private async checkDatabaseHealth(): Promise<DiagnosticResult['databaseHealth']> {
-    const startTime = Date.now();
-    let status: 'connected' | 'disconnected' | 'slow' = 'connected';
-    let connectionTime: number | undefined;
-
     try {
-      const db = await getDb();
-      if (!db) {
-        status = 'disconnected';
-        throw new Error('Database connection failed');
+      const result = await checkDiagnosticDatabaseHealth(this.slowQueries);
+      
+      if (!result.success) {
+        console.error('Erro no diagnóstico do banco', result.error);
+        return {
+          status: 'disconnected',
+          slowQueries: this.slowQueries
+        };
       }
-
-      connectionTime = Date.now() - startTime;
-
-      // Testar query simples
-      const queryStart = Date.now();
-      await db.execute('SELECT 1 as test');
-      const queryTime = Date.now() - queryStart;
-
-      // Verificar queries lentas recentes
-      const recentSlowQueries = this.slowQueries.filter(
-        q => Date.now() - q.timestamp.getTime() < 300000 // últimos 5 minutos
-      );
-
-      if (queryTime > 1000) {
-        status = 'slow';
-      }
-
-      return {
-        status,
-        connectionTime,
-        avgQueryTime: queryTime,
-        slowQueries: recentSlowQueries
-      };
-
+      
+      return result.data as DiagnosticResult['databaseHealth'];
     } catch (error) {
       console.error('Erro no diagnóstico do banco', (error as Error).message);
       
@@ -181,18 +162,16 @@ class SystemDiagnostic {
         if (!tenantId) {
           return {
             status: 'disconnected',
-            connectionTime,
             slowQueries: this.slowQueries
           };
         }
-        await insertAuditLog({
-          tenantId,
-          action: 'update_status',
-          entity: 'system_diagnostic',
-          payloadJson: JSON.stringify({
-            error: (error as Error).message,
-            timestamp: new Date().toISOString()
-          })
+        await registerDiagnosticAudit(tenantId, {
+          timestamp: new Date(),
+          systemHealth: await this.checkSystemHealth(),
+          databaseHealth: { status: 'disconnected', slowQueries: this.slowQueries },
+          routeHealth: await this.checkRouteHealth(),
+          queueHealth: await this.checkQueueHealth(),
+          serviceHealth: await this.checkServiceHealth(),
         });
       } catch (auditError) {
         console.error(`Erro ao registrar diagnóstico no audit_log: ${(auditError as Error).message}`);
@@ -200,7 +179,6 @@ class SystemDiagnostic {
 
       return {
         status: 'disconnected',
-        connectionTime,
         slowQueries: this.slowQueries
       };
     }
@@ -313,29 +291,7 @@ class SystemDiagnostic {
       if (!tenantId) {
         return;
       }
-      await insertAuditLog({
-        tenantId,
-        action: 'update_status',
-        entity: 'system_diagnostic',
-        payloadJson: JSON.stringify({
-          timestamp: result.timestamp.toISOString(),
-          systemHealth: result.systemHealth,
-          databaseHealth: {
-            status: result.databaseHealth.status,
-            connectionTime: result.databaseHealth.connectionTime,
-            slowQueriesCount: result.databaseHealth.slowQueries.length
-          },
-          routeHealth: {
-            errorRate: result.routeHealth.errorRate,
-            errorsCount: result.routeHealth.errors.length
-          },
-          queueHealth: result.queueHealth,
-          serviceHealth: Object.keys(result.serviceHealth).reduce((acc, key) => {
-            acc[key] = result.serviceHealth[key].status;
-            return acc;
-          }, {} as Record<string, string>)
-        })
-      });
+      await registerDiagnosticAudit(tenantId, result);
     } catch (error) {
       console.error(`Erro ao registrar diagnóstico no audit_log: ${(error as Error).message}`);
     }

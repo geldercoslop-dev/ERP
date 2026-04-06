@@ -1,8 +1,5 @@
-import { sql } from 'drizzle-orm';
-import { getDb } from '../db/index.js';
-import { getConnectionPool } from '../config/database.js';
 import { systemLogger } from './logger.js';
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from './service-entry-guard.js';
+import { validateBootDatabaseConnection } from '../services/boot-validation.service.js';
 import { parseEnv } from '../services/env.schema.js';
 
 export interface BootValidationResult {
@@ -17,7 +14,7 @@ export interface BootCheck {
   status: 'pass' | 'fail' | 'warn';
   duration: number;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -146,33 +143,9 @@ export class BootValidator {
     const startTime = Date.now();
 
     try {
-      const pool = await getConnectionPool();
-      const conn = await pool.getConnection();
-      await conn.query('SELECT 1 AS pool_test');
-      conn.release();
-
-      const db = await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
-        return await getDb();
-      });
-      await db.execute(sql`SELECT 1 AS test`);
-
-      try {
-        await db.execute(sql`SELECT version FROM schema_version LIMIT 1`);
-      } catch {
-        this.warnings.push('schema_version table not found - may need migration');
-      }
-
-      const missingTables: string[] = [];
-      try {
-        await db.execute(sql`SELECT 1 FROM users LIMIT 1`);
-      } catch {
-        missingTables.push('users');
-      }
-      try {
-        await db.execute(sql`SELECT 1 FROM tenants LIMIT 1`);
-      } catch {
-        missingTables.push('tenants');
-      }
+      const diagnostics = await validateBootDatabaseConnection();
+      this.warnings.push(...diagnostics.warnings);
+      const missingTables = diagnostics.missingTables;
 
       if (missingTables.length > 0) {
         this.warnings.push(`Missing critical tables: ${missingTables.join(', ')}`);

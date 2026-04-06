@@ -1,6 +1,6 @@
 import { eq, and, desc, asc, sql, inArray, ne, gte, lt } from "drizzle-orm";
 import { clientes, vendedores } from "../../drizzle/schema.js";
-import { getDb, getInsertId, pedidos, itensPedido, contasReceber, produtos, insertAuditLog, clienteVendedores, counters, idempotencyKeys, pendencias } from "../db/index.js";
+import { getDb, pedidos, itensPedido, contasReceber, produtos, insertAuditLog, clienteVendedores, counters, idempotencyKeys, pendencias, getInsertId } from "../db/index.js";
 import type { Pedido, ItemPedido, Produto } from "../db/index.js";
 import type { InsertPedido, InsertItemPedido } from "../db/index.js";
 import { nanoid } from "nanoid";
@@ -444,7 +444,7 @@ export async function createPedidoSafe(
       updatedAt: new Date(),
     });
 
-    const pedidoId = getInsertId(pedidoInsert as unknown as Record<string, unknown>);
+    const pedidoId = getInsertId(pedidoInsert);
     if (!pedidoId) throw new Error('Falha ao criar pedido');
 
     // Criar conta provisória no Contas a Receber (30 dias)

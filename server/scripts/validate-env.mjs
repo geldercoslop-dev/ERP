@@ -6,22 +6,10 @@ const root = process.cwd();
 const basePath = path.resolve(root, ".env");
 dotenv.config({ path: basePath });
 
-const nodeEnv = process.env.NODE_ENV || "development";
-const modePath = path.resolve(root, `.env.${nodeEnv}`);
-dotenv.config({ path: modePath, override: true });
-
-// Alinhado a server/_core/loadEnv.ts: fallback só em produção
-if (
-  nodeEnv === "production" &&
-  (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === "")
-) {
-  dotenv.config({ path: path.resolve(root, ".env.production"), override: true });
-}
-
 const checks = [
-  ["JWT_ACCESS_SECRET", 64],
-  ["JWT_REFRESH_SECRET", 64],
-  ["APP_SECRET", 64],
+  ["JWT_SECRET", 32],
+  ["JWT_ACCESS_SECRET", 32],
+  ["JWT_REFRESH_SECRET", 32],
 ];
 
 const issues = [];
@@ -33,9 +21,11 @@ for (const [name, min] of checks) {
   }
 }
 
-if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === "") {
-  issues.push("DATABASE_URL is required");
-}
+if (!process.env.DB_HOST || process.env.DB_HOST.trim() === "") issues.push("DB_HOST is required");
+if (!process.env.DB_PORT || process.env.DB_PORT.trim() === "") issues.push("DB_PORT is required");
+if (!process.env.DB_USER || process.env.DB_USER.trim() === "") issues.push("DB_USER is required");
+if (!process.env.DB_PASSWORD || process.env.DB_PASSWORD.trim() === "") issues.push("DB_PASSWORD is required");
+if (!process.env.DB_NAME || process.env.DB_NAME.trim() === "") issues.push("DB_NAME is required");
 
 if (!process.env.REDIS_HOST || process.env.REDIS_HOST.trim() === "") {
   issues.push("REDIS_HOST is required");

@@ -237,7 +237,6 @@ export class JWTSecurity {
         logger.warn('JWT token expired', {
           error: {
             message: error.message,
-            stack: error.stack,
           },
           metadata: {
             expiredAt: new Date(Date.now()).toISOString(),
@@ -255,7 +254,6 @@ export class JWTSecurity {
         logger.warn('JWT token validation failed', {
           error: {
             message: error.message,
-            stack: error.stack,
           },
         });
         

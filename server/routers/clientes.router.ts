@@ -51,9 +51,13 @@ export const clientesRouter = router({
             page,
             pageSize,
           });
-          
-          items = result.items;
-          total = result.total;
+
+          if (!result.success || !result.data) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error ?? "Falha ao listar clientes" });
+          }
+
+          items = result.data.items;
+          total = result.data.total;
           
           const metadata = createPaginationMetadata(page, pageSize, total);
           
@@ -71,11 +75,14 @@ export const clientesRouter = router({
     .query(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
       const actor = await resolveServiceActor(ctx);
-      const { items } = await clientesService.listClientes(tenantId, actor, {
+      const result = await clientesService.listClientes(tenantId, actor, {
         busca: input.term,
         pageSize: 50,
       });
-      return items;
+      if (!result.success || !result.data) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error ?? "Falha ao buscar clientes" });
+      }
+      return result.data.items;
     }),
   
   create: adminProcedure
@@ -117,11 +124,14 @@ export const clientesRouter = router({
         role: ctx.user.role === 'admin' ? 'admin' : 'vendedor' as 'admin' | 'vendedor',
         vendedorId: ctx.user.id
       };
-      const { items } = await clientesService.listClientes(tenantId, actor, {
+      const result = await clientesService.listClientes(tenantId, actor, {
         busca: input.term,
         pageSize: input.limit ?? 50,
       });
-      return items;
+      if (!result.success || !result.data) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error ?? "Falha ao buscar clientes" });
+      }
+      return result.data.items;
     }),
 
   getHistorico: protectedProcedure
@@ -162,7 +172,7 @@ export const clientesRouter = router({
       const vendedor = await getVendedorFromContext(ctx) as { id: number } | null;
       if (!vendedor) throw new TRPCError({ code: "BAD_REQUEST", message: "Vendedor não identificado." });
       await clientesService.associarClienteVendedor(tenantId, input.clienteId, vendedor.id as number, input.tipo === "PRINCIPAL");
-      return { ok: true };
+      return { success: true };
     }),
   
   update: protectedProcedure

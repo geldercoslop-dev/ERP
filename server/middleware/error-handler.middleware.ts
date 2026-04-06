@@ -38,7 +38,6 @@ export function globalErrorHandler(
   // Log error
   console.error('[GlobalErrorHandler] Error:', {
     message: error.message,
-    stack: error.stack,
     url: req.url,
     method: req.method,
     body: req.body,

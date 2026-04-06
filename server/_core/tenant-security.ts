@@ -3,17 +3,11 @@
  * Validação robusta de ownership de tenant para prevenir bypass
  */
 
-import { getDb } from '../db/core.js';
-import { users } from '../../drizzle/schema.js';
-import { eq, and } from 'drizzle-orm';
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from './service-entry-guard.js';
-import type { UserWithTenant } from '../types/schema-extended.js';
-
-export interface TenantValidationResult {
-  valid: boolean;
-  tenantId?: number;
-  reason?: string;
-}
+import {
+  type SecureTenantContext,
+  type TenantValidationResult,
+  validateTenantOwnershipByUserId,
+} from '../services/tenant-validation.service.js';
 
 /**
  * Valida se o userId realmente pertence ao tenantId informado
@@ -39,45 +33,7 @@ export async function validateTenantOwnership(
   }
 
   try {
-    // 2. Buscar usuário no banco com seu tenant
-    return await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
-      const db = await getDb();
-      const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!userRecord || userRecord.length === 0) {
-      return {
-        valid: false,
-        reason: `Usuário ${userId} não encontrado no banco`
-      };
-    }
-
-    const user = userRecord[0];
-    const userTenantId = (user as UserWithTenant).tenantId;
-
-    // 3. Verificar se tenant do usuário bate com o informado
-     // NOTE: users table has no tenantId column (schema design)
-     // Multi-tenant validation is now done at service layer via vendedores context
-     if (false) {
-      return {
-        valid: false,
-        reason: `Tenant mismatch: Usuário ${userId} pertence ao tenant ${userTenantId}, mas informado ${tenantId}`
-      };
-    }
-
-    // 4. Verificar se o tenant existe e está ativo
-     // NOTE: Cannot check tenants via users table - no tenantId column exists
-     // Accept tenantId as valid if user exists (SCHEMA LIMITATION)
-
-    // 5. Validação bem-sucedida
-      return {
-        valid: true,
-        tenantId: tenantId
-      };
-    });
+    return await validateTenantOwnershipByUserId(userId, tenantId);
   } catch (error) {
     console.error('Erro na validação de tenant:', error);
     return {
@@ -125,7 +81,7 @@ export async function securityMiddleware(
   userId: number | undefined,
   tenantId: number | undefined,
   userRole?: string
-): Promise<{ valid: boolean; reason?: string; secureContext?: any }> {
+): Promise<{ valid: boolean; reason?: string; secureContext?: SecureTenantContext }> {
   // Validação completa
   const validation = await validateSecureContext(userId, tenantId, userRole);
   

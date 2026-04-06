@@ -1,5 +1,6 @@
 import { eq, and, desc, asc, sql } from "drizzle-orm";
-import { getDb, getInsertId, promocoes, promocoesItens, insertAuditLog } from "../db/index.js";
+import { getDb, promocoes, promocoesItens, insertAuditLog, getInsertId } from "../db/index.js";
+import { DbResult, toDbResult } from '../_core/db-result.js';
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -112,7 +113,7 @@ export async function createPromocao(tenantId: number, data: CreatePromocaoInput
     updatedAt: new Date(),
   });
 
-  const promocaoId = getInsertId(res as unknown as Record<string, unknown>);
+  const promocaoId = getInsertId(res);
 
   // Registrar auditoria
   await insertAuditLog({
@@ -258,7 +259,7 @@ export async function addPromocaoItem(tenantId: number, promocaoId: number, item
     createdAt: new Date(),
   } as typeof promocoesItens.$inferInsert);
 
-  const itemId = getInsertId(result as unknown as Record<string, unknown>);
+  const itemId = getInsertId(result);
 
   // Registrar auditoria
   await insertAuditLog({

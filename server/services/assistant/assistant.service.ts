@@ -12,6 +12,14 @@ export type SugestaoSistema = {
   data: Date;
 };
 
+function parseTenantId(tenantId: string): number {
+  const parsed = Number(tenantId);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error("TENANT_ID_REQUIRED: tenantId deve ser inteiro positivo");
+  }
+  return parsed;
+}
+
 function escolher<T>(arr: T[]): T | null {
   if (arr.length === 0) {
     return null;
@@ -142,18 +150,20 @@ const VARIACOES_DATA_COMERCIAL = [
  * Gera sugestões do sistema a partir dos dados do banco.
  * Tom amigável, conversacional; muitas variações para não repetir.
  */
-export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
-  const conn = await db.getDb();
-  if (!conn) return [];
+export async function gerarSugestoesSistema(tenantId: string): Promise<{ success: boolean; data?: SugestaoSistema[]; error?: string }> {
+  try {
+    const tenantIdNum = parseTenantId(tenantId);
+    const conn = await db.getDb();
+    if (!conn) return { success: false, error: "Database connection failed" };
 
-  const sugestoes: SugestaoSistema[] = [];
-  const hoje = new Date();
+    const sugestoes: SugestaoSistema[] = [];
+    const hoje = new Date();
 
   // 1) Estoque parado: produto com saldo > 0 e sem movimentação (venda) há 30 dias
   const produtosComEstoque = await conn
     .select({ id: db.produtos.id, descricao: db.produtos.descricao, estoque: db.produtos.estoque })
     .from(db.produtos)
-    .where(db.and(db.sql`${db.produtos.estoque} > 0`, db.eq(db.produtos.ativo, true)));
+    .where(db.and(db.eq(db.produtos.tenantId, tenantIdNum), db.sql`${db.produtos.estoque} > 0`, db.eq(db.produtos.ativo, true)));
   const ultimaVendaPorProduto = await conn
     .select({
       produtoId: db.itensPedido.produtoId,
@@ -161,7 +171,7 @@ export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
     })
     .from(db.itensPedido)
     .innerJoin(db.pedidos, db.eq(db.pedidos.id, db.itensPedido.pedidoId))
-    .where(ne(db.pedidos.status, PedidoStatus.CANCELADO))
+    .where(db.and(db.eq(db.pedidos.tenantId, tenantIdNum), db.eq(db.itensPedido.tenantId, tenantIdNum), ne(db.pedidos.status, PedidoStatus.CANCELADO)))
     .groupBy(db.itensPedido.produtoId);
   const ultimaPorId = new Map<number, Date>();
   for (const r of ultimaVendaPorProduto as Array<{ produtoId: number | null; ultimaData: Date }>) {
@@ -188,6 +198,7 @@ export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
     .from(db.pedidos)
     .where(
       db.and(
+        db.eq(db.pedidos.tenantId, tenantIdNum),
         inArray(db.pedidos.status, [PedidoStatus.GERADO, PedidoStatus.PENDENTE_ESTOQUE]),
         db.sql`${db.pedidos.createdAt} < DATE_SUB(NOW(), INTERVAL 20 DAY)`
       )
@@ -208,6 +219,7 @@ export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
     .from(db.contasReceber)
     .where(
       db.and(
+        db.eq(db.contasReceber.tenantId, tenantIdNum),
         db.eq(db.contasReceber.status, ContaReceberStatus.RECEBIDA),
         db.sql`DATE(${db.contasReceber.dataRecebimento}) = CURDATE()`
       )
@@ -217,6 +229,7 @@ export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
     .from(db.contasPagar)
     .where(
       db.and(
+        db.eq(db.contasPagar.tenantId, tenantIdNum),
         db.eq(db.contasPagar.status, ContaPagarStatus.PAGO),
         db.sql`DATE(${db.contasPagar.dataPagamento}) = CURDATE()`
       )
@@ -238,6 +251,7 @@ export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
     .from(db.contasReceber)
     .where(
       db.and(
+        db.eq(db.contasReceber.tenantId, tenantIdNum),
         db.eq(db.contasReceber.status, ContaReceberStatus.PENDENTE),
         db.sql`DATE(${db.contasReceber.dataVencimento}) = CURDATE()`
       )
@@ -256,11 +270,11 @@ export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
   const [pedidosHoje] = await conn
     .select({ c: db.sql<number>`COUNT(*)` })
     .from(db.pedidos)
-    .where(db.sql`DATE(${db.pedidos.createdAt}) = CURDATE()`);
+    .where(db.and(db.eq(db.pedidos.tenantId, tenantIdNum), db.sql`DATE(${db.pedidos.createdAt}) = CURDATE()`));
   const [pedidosUltimos7] = await conn
     .select({ c: db.sql<number>`COUNT(*)` })
     .from(db.pedidos)
-    .where(db.sql`${db.pedidos.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`);
+    .where(db.and(db.eq(db.pedidos.tenantId, tenantIdNum), db.sql`${db.pedidos.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`));
   const countHoje = Number((pedidosHoje as unknown as Array<{ c: string | number }> | undefined)?.[0]?.c ?? 0);
   const count7 = Number((pedidosUltimos7 as unknown as Array<{ c: string | number }> | undefined)?.[0]?.c ?? 0);
   const mediaSemanal = count7 / 7;
@@ -286,5 +300,11 @@ export async function gerarSugestoesSistema(): Promise<SugestaoSistema[]> {
     }
   }
 
-  return sugestoes;
+  return { success: true, data: sugestoes };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error) 
+    };
+  }
 }

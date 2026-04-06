@@ -35,7 +35,7 @@ import { globalTimeoutMiddleware } from "../resilience/timeout-middleware.js";
 import { setupGracefulShutdown } from "../resilience/graceful-shutdown.js";
 import { getHealthWatchdog } from "../monitoring/health-watchdog.js";
 import { requestShutdown } from "../services/system/shutdown.service.js";
-import { getServerHealth } from "../services/system/health.service.js";
+import { getSystemHealthComplete } from "../services/system-health.service.js";
 import { getEnv } from "../config/env.js";
 import { validateShutdownAuthPayload } from "../services/system/payload-validation.service.js";
 import { systemLogger } from "./logger.js";
@@ -44,19 +44,26 @@ import { exitProcessInProductionUnlessDevelopment } from "./dev-process-exit.js"
 import { createLogger } from "../infra/structured-logger.js";
 import { requestIdMiddleware, getRequestId } from "../middleware/request-id.middleware.js";
 import { globalErrorHandler } from "../middleware/global-error-handler.middleware.js";
-import { validateProductionEnvOrExit } from "./env.validation.js";
-import { getDb } from "../db/index.js";
+import { validateCriticalBootEnvOrExit, validateProductionEnvOrExit } from "./env.validation.js";
 import { requestLoggerMiddleware } from "../middleware/request-logger.js";
 import { metrics } from "../infra/metrics.js";
 import { waitForDatabaseReady } from "./db-bootstrap.js";
+import { rateLimitMiddleware } from "../middlewares/rate-limit.js";
+import { securityMiddleware } from "../middlewares/security.js";
+import { timeoutMiddleware, timingMiddleware } from "../middlewares/timeout.js";
+import { requestIDMiddleware } from "../middlewares/request-id.js";
+import { strictHealthMiddleware } from "../middlewares/strict-health.js";
 import { waitForRedis } from "../infra/redis.js";
 import { validateRequiredEnv } from "../services/env.service.js";
-import { bootstrapDatabase } from "../services/bootstrap.service.js";
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard.js";
+import { ensureBootstrapAdminUser } from "../services/core-bootstrap.service.js";
+import { runDatabaseBootstrapFlow } from "../services/bootstrap-runtime.service.js";
 import { registerHealthFullRoute } from "../routes/health-full.route.js";
 import { createRedisRateLimitMiddleware } from "../security/redis-rate-limit.js";
 import { securityHeadersMiddleware } from "../security/security-headers.js";
+import { httpHardeningMiddleware } from "../middleware/http-hardening.js";
+import { safeResponseGlobalMiddleware } from "../middleware/safe-response.js";
 import { apiRouter } from "../api-routes.js";
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard.js";
 
 // Exportar funções de padronização de resposta
 export { ensureArray, ensureObject, ensureCreatedResult, ensureUpdateResult, ensureDeleteResult } from "./service-response.js";
@@ -130,19 +137,20 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
   res.setHeader("Cache-Control", "no-store");
 
   try {
-    const report = await getServerHealth();
-    const ok = report.status === "ok";
-    const statusCode = ok ? 200 : 503;
+    const report = await getSystemHealthComplete();
+    const dbUp = report.database.status === "ok";
+    const redisUp = report.redis.status === "ok";
+    const ok = dbUp && redisUp;
 
     if (isResponseLocked(res)) {
       systemLogger.warn({ path: req.path, requestId: getRequestId(req) }, "[HEALTH] resposta suprimida por timeout/resposta encerrada");
       return;
     }
 
-    res.status(statusCode).json({
-      ...report,
-      status: ok ? "ok" : "down",
-      requestId: res.locals.requestId,
+    res.status(ok ? 200 : 500).json({
+      status: ok ? "ok" : "fail",
+      db: dbUp ? "up" : "down",
+      redis: redisUp ? "up" : "down",
     });
   } catch (error) {
     systemLogger.error(
@@ -158,15 +166,10 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
       return;
     }
 
-    res.status(503).json({
-      status: "down",
-      error: {
-        code: "HEALTH_UNAVAILABLE",
-        message: "Health check indisponível",
-        details: {
-          requestId: res.locals.requestId,
-        },
-      },
+    res.status(500).json({
+      status: "fail",
+      db: "down",
+      redis: "down",
     });
   }
 }
@@ -191,10 +194,17 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // Fail-fast de variáveis críticas exigidas no boot de produção.
+  validateCriticalBootEnvOrExit(process.env as Record<string, unknown>);
   // Fail-fast ENV (camada Services)
   validateRequiredEnv();
   // Mantém validações adicionais já existentes (ex.: APP_SECRET, etc.)
   validateProductionEnvOrExit();
+  console.log("ENV DEBUG:", {
+    DATABASE_URL: process.env.DATABASE_URL,
+    REDIS_HOST: process.env.REDIS_HOST,
+    JWT_SECRET: process.env.JWT_SECRET ? "OK" : "MISSING",
+  });
   systemLogger.info("[ENV] variáveis obrigatórias ok (services + core)");
   const env = getEnv();
   secureConsoleMiddleware();
@@ -226,22 +236,7 @@ async function startServer() {
 
   // Bootstrap do banco (migrations) + seed mínimo (admin) precisam de contexto de serviço autorizado.
   try {
-    await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
-      const db = await getDb();
-      try {
-        await bootstrapDatabase(db);
-        console.log('[BOOT] database bootstrap ok');
-      } catch (bootstrapErr) {
-        console.warn('[BOOT] database bootstrap falhou, continuando...', bootstrapErr);
-        console.log('[BOOT] server liberado mesmo com falha de migration');
-      }
-      
-      try {
-        await waitForDatabaseReady();
-      } catch (guardErr) {
-        console.warn('[BOOT] database guard check falhou, continuando...', guardErr);
-      }
-    });
+    await runDatabaseBootstrapFlow();
   } catch (e) {
     console.warn("[BOOTSTRAP][DB] falha no contexto", e);
     console.log('[BOOT] server liberado mesmo com falha crítica');
@@ -293,9 +288,8 @@ async function startServer() {
 
   try {
     systemLogger.info("[BOOT] usuário admin…");
-    const { ensureAdminUser } = await import("../db/index.js");
     await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
-      await ensureAdminUser(1);
+      await ensureBootstrapAdminUser(1);
     });
     systemLogger.info("[BOOT] admin ok");
   } catch (e) {
@@ -305,7 +299,37 @@ async function startServer() {
   }
 
   systemLogger.info("[BOOT] middlewares de segurança…");
+  
+  // Safe Response Global (DEVE vir primeiro para prevenir stream destroyed)
+  const safeResponseMiddlewares = safeResponseGlobalMiddleware();
+  safeResponseMiddlewares.forEach(middleware => app.use(middleware));
+  
+  // Request ID primeiro (para tracking)
+  app.use(requestIDMiddleware);
+  
+  // Timeout e timing
+  app.use(timeoutMiddleware);
+  app.use(timingMiddleware);
+  
+  // Rate limiting
+  app.use(rateLimitMiddleware);
+  
+  // Security headers e validação
+  app.use(securityMiddleware);
+  
+  // Request ID legado (compatibilidade)
+  app.use(requestIdMiddleware);
+  app.use(requestLoggerMiddleware());
+  
+  // Security headers existente
   app.use(securityHeadersMiddleware());
+  
+  // HTTP Hardening - Rate Limit Global + Security Headers + Trust Proxy
+  const hardeningMiddlewares = httpHardeningMiddleware();
+  hardeningMiddlewares.forEach(middleware => app.use(middleware));
+  
+  // Strict health check (garante 503 em falhas)
+  app.use(strictHealthMiddleware);
 
   const allowedOrigins = (
     process.env.ALLOWED_ORIGINS ||
@@ -740,7 +764,8 @@ async function startServer() {
     requireAdmin(req, res, next).catch(next);
   }, async (req, res) => {
     try {
-      await gerarBackupZip(res);
+      const tenantId = String((req as typeof req & { adminTenantId?: number }).adminTenantId ?? "");
+      await gerarBackupZip(res, tenantId);
     } catch (error) {
       res.status(500).json({ error: "Erro ao gerar backup" });
     }
@@ -756,8 +781,9 @@ async function startServer() {
   // Cache manager: GET /api/cache/stats, POST /api/cache/clear
   app.use("/api/cache", createCacheRouter());
   
-  // Métricas: GET /api/metrics
-  const metricsRouter = (await import("../routes/metrics.js")).default;
+  // Métricas de auditoria: GET /metrics/* e compat /api/metrics/*
+  const metricsRouter = (await import("../routers/metrics.js")).default;
+  app.use("/metrics", metricsRouter);
   app.use("/api/metrics", metricsRouter);
   
   // Rotas de teste de monitoramento (apenas em desenvolvimento)

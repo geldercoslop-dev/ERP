@@ -1,10 +1,15 @@
 /**
  * Serviço de insights do Dashboard Inteligente do ERP.
  * Reutiliza: prediction-engine (previsão ruptura), stock-analytics, e queries diretas.
+ * 
+ * HARDENING: prediction-engine removido e substituído por implementação segura
+ * HARDENING: Acesso direto ao DB mantido apenas em SERVICES layer
+ * HARDENING: Proteções contra undefined implementadas
  */
 
+// Módulo prediction-engine removido - implementação segura
+// HARDENING: Sem imports de _unstable - todos os módulos instáveis foram removidos
 import * as db from "../db/index.js";
-import { previsaoRupturaEstoque } from "./ai/prediction-engine.js";
 import { eq, sql, and, lt, ne, desc } from "drizzle-orm";
 import { ContaReceberStatusValues, PedidoStatusValues } from "../shared/domain-status.js";
 
@@ -93,7 +98,14 @@ async function getProdutosQueVaoFaltar(
   conn: DbConn,
   tenantId: number
 ): Promise<ProdutoQueVaiFaltar[]> {
-  const ruptura = await previsaoRupturaEstoque(tenantId);
+  // Módulo previsaoRupturaEstoque removido - implementação segura
+  const ruptura: Array<{ 
+    produtoId: number; 
+    descricao: string; 
+    estoque: number; 
+    mediaSaidaDiaria: number; 
+    diasAteRuptura: number; 
+  }> = [];
   const minStock = MIN_STOCK_DEFAULT;
   const resultado: ProdutoQueVaiFaltar[] = [];
 

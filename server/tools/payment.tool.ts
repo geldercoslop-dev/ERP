@@ -29,6 +29,14 @@ export class PaymentTool {
     const result = await this.service.create(enriched);
     console.log(`[PaymentTool] Payment created:`, result);
     
+    if (!result.success) {
+      console.log(`[PaymentTool] Erro na criação de pagamento:`, { 
+        error: result.error,
+        timestamp: new Date().toISOString() 
+      });
+      return result;
+    }
+    
     return result;
   }
 

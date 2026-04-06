@@ -97,7 +97,7 @@ function recordCacheOperation(
   if (level === LogLevel.WARNING) {
     logWarning(ErrorType.INVALID_CACHE_VALUE, message, { service, method });
   } else if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_CACHE === 'true') {
-    console.log(`[${level}] ${message}`);
+    logInfo(message, { service, method });
   }
 }
 

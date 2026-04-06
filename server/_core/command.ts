@@ -3,10 +3,9 @@
  * Reserva a chave na mesma transação do handler; evita duplicidade mesmo com concorrência.
  */
 import { nanoid } from "nanoid";
-import * as db from "../db/index.js";
 import type { Database } from "../db/index.js";
 import type { InProgressResponse } from "../../shared/idempotency.js";
-import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard.js";
+import { executeIdempotentCommandInService } from "../services/idempotency-command.service.js";
 
 export type { InProgressResponse };
 
@@ -42,61 +41,16 @@ export async function executeCommand<T extends CommandResult>(
 ): Promise<T | InProgressResponse> {
   const traceId = nanoid(10);
   const { commandName, idempotencyKey } = options;
-  const key = idempotencyKey?.trim() || null;
 
-  return await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
-    const conn = await db.getDb();
-    if (!conn) throw new Error("Database not available");
-
-    return await (conn as unknown as {
-      transaction: <R>(fn: (tx: Database) => Promise<R>) => Promise<R>;
-    }).transaction(
-      async (tx: Database) => {
-        if (key) {
-          const reserve = await db.reserveIdempotencyKey(tx, commandName, key);
-          if (!reserve.reserved) {
-            const r = reserve as unknown as { resultJson: string | null; traceId: string | null };
-            const resultJson = r.resultJson ?? null;
-            const storedTraceId = r.traceId ?? null;
-
-            if (resultJson != null) {
-              try {
-                const parsed = JSON.parse(resultJson) as T;
-                return {
-                  ...parsed,
-                  traceId: parsed.traceId ?? storedTraceId ?? traceId,
-                };
-              } catch {
-                // JSON inválido: deixa seguir e reexecutar
-              }
-            }
-
-            const inProgress: InProgressResponse = {
-              ok: false,
-              inProgress: true,
-              traceId: storedTraceId ?? traceId,
-              message: IN_PROGRESS_MESSAGE,
-            };
-            return inProgress;
-          }
-        }
-
-        const result = await handler(tx);
-        const resultForStorage = { ...result, traceId: result.traceId ?? traceId };
-
-        if (key) {
-          await db.updateIdempotencyResult(
-            tx,
-            commandName,
-            key,
-            JSON.stringify(resultForStorage),
-            resultForStorage.traceId
-          );
-        }
-        return resultForStorage;
-      }
-    );
-  });
+  return executeIdempotentCommandInService<T>(
+    {
+      commandName,
+      idempotencyKey,
+      traceId,
+      inProgressMessage: IN_PROGRESS_MESSAGE,
+    },
+    handler
+  );
 }
 
 /** Retorno padronizado para commands. */
