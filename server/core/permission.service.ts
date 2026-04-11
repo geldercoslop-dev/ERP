@@ -1,3 +1,4 @@
+import { ValidationError } from '../_core/errors/typed-errors.js';
 export type Role = "admin" | "user";
 export type PermissionAction = "READ" | "WRITE" | "DELETE";
 
@@ -15,6 +16,6 @@ export function checkPermission(user: PermissionUser, action: PermissionAction):
   const allowedActions = ROLE_PERMISSIONS[user.role];
 
   if (!allowedActions.includes(action)) {
-    throw new Error("FORBIDDEN");
+    throw new ValidationError("FORBIDDEN");
   }
 }

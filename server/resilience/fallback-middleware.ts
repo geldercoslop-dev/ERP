@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('fallback-middleware');
@@ -92,7 +93,7 @@ export class CacheFallback<T> implements FallbackStrategy<T> {
   async execute(): Promise<T> {
     const cached = await this.cacheGet(this.cacheKey);
     if (cached === null) {
-      throw new Error('Cache miss');
+      throw new InfrastructureError('Cache miss');
     }
     return cached;
   }

@@ -1,8 +1,22 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+#!/bin/sh
 
+echo "Validando arquitetura..."
+
+node scripts/enforce-architecture.cjs
+node scripts/enforce-leo-isolation.cjs
+
+echo "Rodando TypeScript..."
 pnpm exec tsc -p tsconfig.server.json --noEmit
+
+if [ $? -ne 0 ]; then
+  echo "TSC falhou"
+  exit 1
+fi
+
+echo "Verificações adicionais..."
 pnpm run verify:drizzle
 pnpm run verify:any
 pnpm run verify:arch
 pnpm run verify:env
+
+echo "Commit liberado"

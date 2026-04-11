@@ -7,6 +7,7 @@
  */
 
 import { Queue, Job } from "bullmq";
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 /**
  * Opções do construtor `Queue` (equivalente a `QueueOptions` do pacote).
@@ -155,7 +156,7 @@ class QueueManager {
     try {
       const redisClient = getRedisClient();
       if (!redisClient) {
-        throw new Error('Cliente Redis não disponível');
+        throw new InfrastructureError('Cliente Redis não disponível');
       }
 
       // Configurações padrão para todas as filas
@@ -308,7 +309,7 @@ class QueueManager {
     try {
       const queue = this.getQueue(queueName);
       if (!queue) {
-        throw new Error(`Fila ${queueName} não encontrada`);
+        throw new InfrastructureError(`Fila ${queueName} não encontrada`);
       }
 
       const payload = data.payload as QueuePayload;
@@ -391,7 +392,7 @@ class QueueManager {
     try {
       const queue = this.getQueue(queueName);
       if (!queue) {
-        throw new Error(`Fila ${queueName} não encontrada`);
+        throw new InfrastructureError(`Fila ${queueName} não encontrada`);
       }
 
       const q = queue as { getWaitingCount?: () => Promise<number>; getActiveCount?: () => Promise<number>; getCompletedCount?: () => Promise<number>; getFailedCount?: () => Promise<number>; getDelayedCount?: () => Promise<number>; isPaused?: () => Promise<boolean> };
@@ -444,7 +445,7 @@ class QueueManager {
     try {
       const queue = this.getQueue(queueName);
       if (!queue) {
-        throw new Error(`Fila ${queueName} não encontrada`);
+        throw new InfrastructureError(`Fila ${queueName} não encontrada`);
       }
 
       await queue.pause();
@@ -463,7 +464,7 @@ class QueueManager {
     try {
       const queue = this.getQueue(queueName);
       if (!queue) {
-        throw new Error(`Fila ${queueName} não encontrada`);
+        throw new InfrastructureError(`Fila ${queueName} não encontrada`);
       }
 
       await queue.resume();
@@ -482,7 +483,7 @@ class QueueManager {
     try {
       const queue = this.getQueue(queueName);
       if (!queue) {
-        throw new Error(`Fila ${queueName} não encontrada`);
+        throw new InfrastructureError(`Fila ${queueName} não encontrada`);
       }
 
       if (queue && typeof queue.drain === 'function') {

@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { ValidationError } from '../_core/errors/typed-errors.js';
 import { authenticateToken } from "./jwt-auth-middleware.js";
 import type { JWTPayload } from "../security/jwt-auth.js";
 
@@ -19,6 +20,10 @@ function hasValidUserShape(user: unknown): user is JWTPayload {
 
 export function requireAuthContext(req: Request, res: Response, next: NextFunction): void {
   const finalize = () => {
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
     if (!hasValidUserShape(req.user)) {
       res.status(401).json({
         error: "Unauthorized",
@@ -29,6 +34,10 @@ export function requireAuthContext(req: Request, res: Response, next: NextFuncti
     }
     next();
   };
+
+  if (!req.user) {
+    throw new ValidationError("Usuário não autenticado");
+  }
 
   if (hasValidUserShape(req.user)) {
     finalize();

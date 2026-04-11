@@ -6,6 +6,7 @@
  */
 
 import { redisManager } from '../infra/redis.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { queueManager } from './queue.js';
 import { workerManager } from './worker-simple.js';
 import { logInfo, logError, logWarn } from '../_core/logger.js';
@@ -108,7 +109,7 @@ class QueueSystemBootstrap {
       const redisTest = await redisManager.testConnection();
       
       if (!redisTest.success) {
-        throw new Error(`Redis não conectado: ${redisTest.message}`);
+        throw new InfrastructureError(`Redis não conectado: ${redisTest.message}`);
       }
 
       this.status.redis = {

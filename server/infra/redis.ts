@@ -6,6 +6,7 @@
  */
 
 import { EventEmitter } from "events";
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { Redis } from "ioredis";
 import { logInfo, logError, logWarn } from "../utils/logger.js";
 import { recordRedis } from "./metrics.js";
@@ -64,11 +65,11 @@ function parseRedisConfigFromEnv(): RedisConfig {
   const hostFromEnv = process.env.REDIS_HOST?.trim();
   const portFromEnv = process.env.REDIS_PORT?.trim();
   if (!hostFromEnv || !portFromEnv) {
-    throw new Error("REDIS_HOST e REDIS_PORT são obrigatórios");
+    throw new InfrastructureError("REDIS_HOST e REDIS_PORT são obrigatórios");
   }
   const portNumber = Number(portFromEnv);
   if (!Number.isInteger(portNumber) || portNumber <= 0) {
-    throw new Error("REDIS_PORT inválido: deve ser inteiro positivo");
+    throw new InfrastructureError("REDIS_PORT inválido: deve ser inteiro positivo");
   }
 
   if (process.env.REDIS_URL?.trim()) {
@@ -89,7 +90,7 @@ function parseRedisConfigFromEnv(): RedisConfig {
         family: 4,
       };
     } catch {
-      throw new Error("REDIS_URL inválida");
+      throw new InfrastructureError("REDIS_URL inválida");
     }
   }
 
@@ -262,7 +263,7 @@ class RedisManager {
     try {
       const client = this.getClient();
       if (!client) {
-        throw new Error('Cliente Redis não disponível');
+        throw new InfrastructureError('Cliente Redis não disponível');
       }
 
       const [info, ping] = await Promise.all([

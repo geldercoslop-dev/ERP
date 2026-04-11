@@ -5,6 +5,7 @@
 
 
 import type { JWTPayload } from '../security/jwt-auth.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 import express, { Request, Response } from 'express';
 
 interface Produto {
@@ -55,6 +56,10 @@ router.get('/stock/check/:produtoId', async (req: Request, res: Response) => {
     
     if (!produtoId) {
       return res.status(400).json({ success: false, message: 'ID do produto inválido' });
+    }
+
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
     }
 
     const tenantId = Number(req.user?.tenantId ?? req.query.tenantId);

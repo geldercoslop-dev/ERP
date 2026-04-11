@@ -1,4 +1,5 @@
 import cookie from "cookie";
+import { ValidationError } from './_core/errors/typed-errors.js';
 import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
@@ -99,13 +100,13 @@ async function getBcrypt(): Promise<{
     const bcryptImported = await import("bcryptjs");
     const candidate = (bcryptImported as { default?: unknown }).default ?? bcryptImported;
     if (!isBcryptModuleLike(candidate)) {
-      throw new Error("Funções bcrypt não encontradas no módulo importado");
+      throw new ValidationError("Funções bcrypt não encontradas no módulo importado");
     }
     const bcryptModule = candidate;
     
     // Verificar se as funções necessárias estão disponíveis
     if (typeof bcryptModule.hash !== 'function' || typeof bcryptModule.compare !== 'function') {
-      throw new Error("Funções bcrypt não encontradas no módulo importado");
+      throw new ValidationError("Funções bcrypt não encontradas no módulo importado");
     }
     
     // Testar as funções com um valor simples
@@ -115,13 +116,13 @@ async function getBcrypt(): Promise<{
       const testHash = await bcryptModule.hash(testValue, 1); // Usar rounds=1 para teste rápido
       
       if (!testHash || typeof testHash !== 'string' || !testHash.startsWith('$2')) {
-        throw new Error(`Hash inválido gerado: ${testHash}`);
+        throw new ValidationError(`Hash inválido gerado: ${testHash}`);
       }
       
       const testCompare = await bcryptModule.compare(testValue, testHash);
       
       if (!testCompare) {
-        throw new Error("Comparação de teste falhou");
+        throw new ValidationError("Comparação de teste falhou");
       }
       
       console.log("[getBcrypt] bcryptjs carregado e testado com sucesso");
@@ -152,12 +153,12 @@ async function getBcrypt(): Promise<{
     } catch (testError) {
       console.error("[getBcrypt] Teste de bcrypt falhou:", testError);
       const msg = testError instanceof Error ? testError.message : String(testError);
-      throw new Error(`Teste de bcrypt falhou: ${msg}`);
+      throw new ValidationError(`Teste de bcrypt falhou: ${msg}`);
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     // Bcrypt é obrigatório: sem fallback inseguro.
-    throw new Error(`bcryptjs obrigatório e indisponível: ${msg}`);
+    throw new ValidationError(`bcryptjs obrigatório e indisponível: ${msg}`);
   }
 }
 

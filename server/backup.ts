@@ -1,13 +1,14 @@
 import archiver from 'archiver';
 import { Response } from 'express';
 import * as db from './db/index.js';
+import { ValidationError } from './_core/errors/typed-errors.js';
 
 export async function gerarBackupZip(res: Response, tenantId: string) {
   try {
     // Buscar todos os dados
     const result = await db.gerarBackupCompleto(tenantId);
     if (!result.success || !result.data) {
-      throw new Error(result.error ?? 'Falha ao gerar backup');
+      throw new ValidationError(result.error ?? 'Falha ao gerar backup');
     }
     const dados = result.data;
     

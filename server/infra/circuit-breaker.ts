@@ -6,6 +6,7 @@
  */
 
 import { logError, logWarn, logInfo } from '../_core/logger.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 export enum CircuitBreakerStatus {
   CLOSED = 'CLOSED',
@@ -81,7 +82,7 @@ export class CircuitBreaker {
         if (this.fallbackFn) {
           return this.fallbackFn() as Promise<T>;
         }
-        throw new Error(`Circuit breaker OPEN para ${this.serviceName}`);
+        throw new InfrastructureError(`Circuit breaker OPEN para ${this.serviceName}`);
       }
 
       // Transição para HALF_OPEN

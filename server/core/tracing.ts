@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { ValidationError } from '../_core/errors/typed-errors.js';
 import { randomUUID } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { context, propagation, trace } from "@opentelemetry/api";
@@ -51,6 +52,10 @@ export function traceMiddleware(req: Request, _res: Response, next: NextFunction
 
   let tenantId: number | null = null;
   // Narrowing seguro para RequestWithTenant
+  if (!req.user) {
+    throw new ValidationError("Usuário não autenticado");
+  }
+
   if ('user' in req && req.user && typeof (req as RequestWithTenant).user?.tenantId === "number" && Number.isInteger((req as RequestWithTenant).user?.tenantId) && (req as RequestWithTenant).user?.tenantId > 0) {
     tenantId = (req as RequestWithTenant).user?.tenantId;
   }

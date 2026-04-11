@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createLogger } from './structured-logger.js';
 import { trace as otelTrace, Span, SpanStatusCode, SpanKind, context, Context } from '@opentelemetry/api';
@@ -201,7 +202,7 @@ export class Tracer {
       logger.warn('Attempted to finish non-existent span', {
         metadata: { spanId },
       });
-      throw new Error(`Span ${spanId} not found`);
+      throw new InfrastructureError(`Span ${spanId} not found`);
     }
     
     span.endTime = Date.now();

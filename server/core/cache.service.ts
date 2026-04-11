@@ -1,4 +1,5 @@
 import { redisManager } from "../infra/redis.js";
+import { ValidationError } from '../_core/errors/typed-errors.js';
 import { createLogger } from "../infra/structured-logger.js";
 
 type CacheKey = string;
@@ -7,13 +8,13 @@ const logger = createLogger("cache-service");
 
 function assertTenantId(tenantId: number): void {
   if (!Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new Error("TENANT_REQUIRED");
+    throw new ValidationError("TENANT_REQUIRED");
   }
 }
 
 function assertCacheKey(key: string): void {
   if (!key || key.trim().length === 0) {
-    throw new Error("CACHE_KEY_REQUIRED");
+    throw new ValidationError("CACHE_KEY_REQUIRED");
   }
 }
 
@@ -48,7 +49,7 @@ export async function setCache<T>(tenantId: number, key: CacheKey, value: T, ttl
   assertCacheKey(key);
 
   if (!Number.isInteger(ttl) || ttl <= 0) {
-    throw new Error("CACHE_TTL_REQUIRED");
+    throw new ValidationError("CACHE_TTL_REQUIRED");
   }
 
   const client = redisManager.getClient();

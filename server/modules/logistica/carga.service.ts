@@ -3,6 +3,7 @@
  * Encapsula criação, listagem e atualização de cargas (sem alterar regras de negócio do ERP).
  */
 import * as logisticsService from "../../services/logistica.service.js";
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 export type CargaStatus = "ABERTA" | "EM_ROTA" | "ENTREGUE";
 
@@ -43,7 +44,7 @@ export async function finalizarCarga(tenantId: number, cargaId: number): Promise
 
 export async function gerarRelatorioViagemPDF(tenantId: number, cargaId: number): Promise<unknown> {
   // This function might not exist in the service yet, return placeholder
-  throw new Error('Função não implementada no serviço de logística');
+  throw new ValidationError('Função não implementada no serviço de logística');
 }
 
 export async function atualizarOrdemEntrega(tenantId: number, cargaId: number, itens: { pedidoCargaId: number; ordemEntrega: number }[]): Promise<unknown> {

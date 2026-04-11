@@ -3,6 +3,7 @@
  * Gera dump em backups/ com timestamp; não sobrescreve; aplica retenção (últimos 30).
  */
 import path from "path";
+import { InfrastructureError } from '../../_core/errors/typed-errors.js';
 import fs from "fs";
 import { spawn } from "child_process";
 import { randomBytes } from "crypto";
@@ -23,7 +24,7 @@ function getDbConfig(): { host: string; port: number; user: string; password: st
       const url = new URL(process.env.DATABASE_URL);
       const database = url.pathname.replace(/^\//, "").trim();
       if (!url.hostname || !url.username || url.password === undefined || !database) {
-        throw new Error("DATABASE_URL incompleta.");
+        throw new InfrastructureError("DATABASE_URL incompleta.");
       }
       return {
         host: url.hostname,
@@ -34,7 +35,7 @@ function getDbConfig(): { host: string; port: number; user: string; password: st
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`[backupDb] DATABASE_URL inválida: ${msg}. Defina DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME.`);
+      throw new InfrastructureError(`[backupDb] DATABASE_URL inválida: ${msg}. Defina DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME.`);
     }
   }
   const host = process.env.DB_HOST?.trim();
@@ -42,7 +43,7 @@ function getDbConfig(): { host: string; port: number; user: string; password: st
   const password = process.env.DB_PASSWORD;
   const database = process.env.DB_NAME?.trim();
   if (!host || !user || password === undefined || !database) {
-    throw new Error(
+    throw new InfrastructureError(
       "[backupDb] Credenciais obrigatórias. Defina DATABASE_URL ou todas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME."
     );
   }

@@ -1,4 +1,5 @@
 import { createLogger } from '../infra/structured-logger.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 const logger = createLogger('retry-middleware');
 
@@ -248,7 +249,7 @@ export async function retryWithCircuitBreaker<T>(
   return withRetry(
     async () => {
       if (circuitBreaker.isOpen()) {
-        throw new Error('Circuit breaker is open');
+        throw new InfrastructureError('Circuit breaker is open');
       }
       
       try {

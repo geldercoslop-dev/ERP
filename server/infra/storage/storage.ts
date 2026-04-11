@@ -2,6 +2,7 @@
 // Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
 
 import { ENV } from '../../_core/env.js';
+import { InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 
@@ -10,7 +11,7 @@ function getStorageConfig(): StorageConfig {
   const apiKey = ENV.forgeApiKey;
 
   if (!baseUrl || !apiKey) {
-    throw new Error(
+    throw new InfrastructureError(
       "Storage proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
     );
   }
@@ -85,7 +86,7 @@ export async function storagePut(
 
   if (!response.ok) {
     const message = await response.text().catch(() => response.statusText);
-    throw new Error(
+    throw new InfrastructureError(
       `Storage upload failed (${response.status} ${response.statusText}): ${message}`
     );
   }

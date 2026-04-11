@@ -7,6 +7,7 @@ import { instrumentMySQL } from "../infra/mysql-instrumentation.js";
 import { parseEnv } from "../services/env.schema.js";
 import { executeWithResilience } from "../resilience/query-wrapper.js";
 import { resolveRuntimeServiceHost } from "./runtime-host-resolver.js";
+import { InfrastructureError } from "../_core/errors/typed-errors.js";
 
 /**
  * Pool MySQL — única fonte de conexão.
@@ -21,7 +22,7 @@ let _pool: mysql.Pool | null = null;
 export function requireDatabaseUrl(): string {
   const raw = parseEnv().DATABASE_URL.trim();
   if (!raw) {
-    throw new Error(
+    throw new InfrastructureError(
       "DATABASE_URL é obrigatório. Ex.: mysql://usuario:senha@host:3306/nome_do_banco"
     );
   }
@@ -33,14 +34,14 @@ function parseUrlToPoolOptions(urlString: string): mysql.PoolOptions {
   try {
     u = new URL(urlString);
   } catch {
-    throw new Error("DATABASE_URL inválido: não é uma URL válida.");
+    throw new InfrastructureError("DATABASE_URL inválido: não é uma URL válida.");
   }
   if (u.protocol !== "mysql:" && u.protocol !== "mysql2:") {
-    throw new Error("DATABASE_URL deve usar o protocolo mysql://");
+    throw new InfrastructureError("DATABASE_URL deve usar o protocolo mysql://");
   }
   const database = u.pathname.replace(/^\//, "").split("/")[0];
   if (!database) {
-    throw new Error("DATABASE_URL deve incluir o nome do banco no path (ex.: .../vendas_app).");
+    throw new InfrastructureError("DATABASE_URL deve incluir o nome do banco no path (ex.: .../vendas_app).");
   }
   // HARDENING: safe improvement - reduzir connectionLimit para ~20 para produção
   const connectionLimit = Math.max(
@@ -222,7 +223,7 @@ export async function getConnectionPool(): Promise<mysql.Pool> {
     _pool = null;
     globalThis.db = undefined;
     const msg = error instanceof Error ? error.message : String(error);
-    throw new Error(`Database connection pool failed: ${msg}`);
+    throw new InfrastructureError(`Database connection pool failed: ${msg}`);
   }
 }
 
@@ -271,7 +272,7 @@ async function testPool(pool: mysql.Pool, maxRetries = 10): Promise<void> {
   const lastMsg = lastError instanceof Error ? lastError.message : String(lastError ?? "");
   const lastCode = lastError && typeof lastError === "object" && "code" in lastError ? (lastError as { code?: string }).code : undefined;
   
-  throw new Error(`Failed to connect to database after ${maxRetries} attempts: ${lastMsg} (code: ${lastCode})`);
+  throw new InfrastructureError(`Failed to connect to database after ${maxRetries} attempts: ${lastMsg} (code: ${lastCode})`);
 }
 
 export async function getConnection(maxRetries = 10): Promise<mysql.PoolConnection> {
@@ -295,7 +296,7 @@ export async function getConnection(maxRetries = 10): Promise<mysql.PoolConnecti
   }
 
   const lastMsg = lastError instanceof Error ? lastError.message : String(lastError ?? "");
-  throw new Error(`Failed to get database connection after ${maxRetries} attempts: ${lastMsg}`);
+  throw new InfrastructureError(`Failed to get database connection after ${maxRetries} attempts: ${lastMsg}`);
 }
 
 export async function executeQuery(

@@ -1,4 +1,5 @@
 import { createLogger } from '../infra/structured-logger.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 const logger = createLogger('resilience-test');
 
@@ -56,16 +57,16 @@ export class DatabaseFailureSimulator {
     switch (this.currentFailureType) {
       case 'timeout':
         await new Promise(resolve => setTimeout(resolve, 6000)); // Timeout
-        throw new Error('Database timeout simulated');
+        throw new InfrastructureError('Database timeout simulated');
         
       case 'connection':
-        throw new Error('ECONNREFUSED: Database connection refused');
+        throw new InfrastructureError('ECONNREFUSED: Database connection refused');
         
       case 'query':
-        throw new Error('ER_QUERY_TIMEOUT: Query execution timeout');
+        throw new InfrastructureError('ER_QUERY_TIMEOUT: Query execution timeout');
         
       default:
-        throw new Error('Unknown database failure simulated');
+        throw new InfrastructureError('Unknown database failure simulated');
     }
   }
 }
@@ -106,7 +107,7 @@ export class ExternalApiFailureSimulator {
         },
       });
       
-      throw new Error('External API failure simulated');
+      throw new InfrastructureError('External API failure simulated');
     }
     
     return await operation();
@@ -308,7 +309,7 @@ export class ResilienceTest {
       // Tentar operação principal (vai falhar)
       await this.dbSimulator.execute(
         async () => {
-          throw new Error('Primary operation failed');
+          throw new InfrastructureError('Primary operation failed');
         },
         'fallback_test'
       );
@@ -354,7 +355,7 @@ export class ResilienceTest {
     
     try {
       // Simular falha para testar logging
-      throw new Error('Test failure for logging');
+      throw new InfrastructureError('Test failure for logging');
       
     } catch (error) {
       // Verificar se falha foi registrada

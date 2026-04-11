@@ -37,7 +37,11 @@ export async function enviarNotificacoesInteligentes(req: RequestWithTenant, tar
   if (estoqueTask?.resumo) linhas.push(`📦 ${estoqueTask.resumo}`);
 
   try {
-    const tenantId = req.user?.tenantId;
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
+    const tenantId = req.user.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
@@ -48,7 +52,11 @@ export async function enviarNotificacoesInteligentes(req: RequestWithTenant, tar
   }
 
   try {
-    const tenantId = req.user?.tenantId;
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
+    const tenantId = req.user.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
@@ -61,7 +69,11 @@ export async function enviarNotificacoesInteligentes(req: RequestWithTenant, tar
   }
 
   try {
-    const tenantId = req.user?.tenantId;
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
+    const tenantId = req.user.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
@@ -74,7 +86,11 @@ export async function enviarNotificacoesInteligentes(req: RequestWithTenant, tar
   }
 
   try {
-    const tenantId = req.user?.tenantId;
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
+    const tenantId = req.user.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }

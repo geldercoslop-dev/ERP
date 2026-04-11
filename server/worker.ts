@@ -1,6 +1,7 @@
 import "./_core/loadEnv.js";
 
 import { queueService } from "./_core/queue-service.js";
+import { ValidationError } from './_core/errors/typed-errors.js';
 import { systemLogger } from "./_core/logger.js";
 import { waitForRedis } from "./infra/redis.js";
 
@@ -11,7 +12,7 @@ async function startWorker(): Promise<void> {
 
     const redisReady = await waitForRedis(timeoutMs);
     if (!redisReady) {
-      throw new Error("Redis não ficou pronto a tempo para o worker");
+      throw new ValidationError("Redis não ficou pronto a tempo para o worker");
     }
 
     await queueService.initialize();

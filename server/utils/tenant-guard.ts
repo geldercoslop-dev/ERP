@@ -6,6 +6,8 @@
  * ou receber tenantId como parâmetro nominado (não implícito via payload)
  */
 
+import { ValidationError } from '../_core/errors/typed-errors.js';
+
 /**
  * Valida e retorna tenantId se válido, senão lança erro.
  * 
@@ -15,7 +17,7 @@
  */
 export function assertTenant(tenantId: string | number | undefined): string | number {
   if (!tenantId) {
-    throw new Error(
+    throw new ValidationError(
       "Tenant obrigatório: operação requer tenantId válido. " +
       "Não há fallback padrão. Verifique o contexto de requisição."
     );
