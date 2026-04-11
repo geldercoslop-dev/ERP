@@ -49,3 +49,5 @@ Thumbs.db
 
 # Port file gerado pelo servidor (opcional)
 # server/_core/port.ts
+*.tar
+secrets_scan.txt
