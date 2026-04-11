@@ -51,3 +51,5 @@ Thumbs.db
 # server/_core/port.ts
 *.tar
 secrets_scan.txt
+*.tar
+secrets_scan.txt
