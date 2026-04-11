@@ -102,8 +102,8 @@ export const memoryCache = new SimpleMemoryCache(30000); // 30 segundos
 
 // Funções helper para cache específico
 export const cacheKeys = {
-  produtos: (filters: any = {}) => `produtos:list:${JSON.stringify(filters)}`,
-  clientes: (filters: any = {}) => `clientes:list:${JSON.stringify(filters)}`,
+  produtos: (filters: Record<string, unknown> = {}) => `produtos:list:${JSON.stringify(filters)}`,
+  clientes: (filters: Record<string, unknown> = {}) => `clientes:list:${JSON.stringify(filters)}`,
   produtoById: (id: number) => `produto:${id}`,
   clienteById: (id: number) => `cliente:${id}`,
 };

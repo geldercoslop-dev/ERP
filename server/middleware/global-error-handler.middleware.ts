@@ -43,4 +43,5 @@ export function globalErrorHandler(
       details: { requestId },
     },
   });
+  return;
 }

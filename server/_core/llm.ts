@@ -1,4 +1,5 @@
 import { ENV } from "./env.js";
+import { ValidationError, InfrastructureError } from './errors/typed-errors.js';
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -133,7 +134,7 @@ const normalizeContentPart = (
     return part;
   }
 
-  throw new Error("Unsupported message content part");
+  throw new ValidationError("Unsupported message content part");
 };
 
 const normalizeMessage = (message: Message) => {
@@ -182,13 +183,13 @@ const normalizeToolChoice = (
 
   if (toolChoice === "required") {
     if (!tools || tools.length === 0) {
-      throw new Error(
+      throw new ValidationError(
         "tool_choice 'required' was provided but no tools were configured"
       );
     }
 
     if (tools.length > 1) {
-      throw new Error(
+      throw new ValidationError(
         "tool_choice 'required' needs a single tool or specify the tool name explicitly"
       );
     }
@@ -216,7 +217,7 @@ const resolveApiUrl = () =>
 
 const assertApiKey = () => {
   if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+    throw new InfrastructureError("OPENAI_API_KEY is not configured");
   }
 };
 
@@ -241,7 +242,7 @@ const normalizeResponseFormat = ({
       explicitFormat.type === "json_schema" &&
       !explicitFormat.json_schema?.schema
     ) {
-      throw new Error(
+      throw new ValidationError(
         "responseFormat json_schema requires a defined schema object"
       );
     }
@@ -252,7 +253,7 @@ const normalizeResponseFormat = ({
   if (!schema) return undefined;
 
   if (!schema.name || !schema.schema) {
-    throw new Error("outputSchema requires both name and schema");
+    throw new ValidationError("outputSchema requires both name and schema");
   }
 
   return {
@@ -323,7 +324,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
+    throw new InfrastructureError(
       `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
     );
   }

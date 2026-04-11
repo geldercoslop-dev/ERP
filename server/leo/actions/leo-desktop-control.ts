@@ -45,7 +45,7 @@ export class LeoDesktopControl {
   /**
    * Obtém instância do robotjs (stub seguro)
    */
-  private async getRobot(): Promise<any> {
+  private async getRobot(): Promise<typeof desktopStub> {
     // Verificar flag global antes de retornar instância
     if (LEO_DESKTOP_AUTOMATION === false) {
       console.log('[LeoDesktopControl] Desktop automation desabilitada via flag LEO_DESKTOP_AUTOMATION');

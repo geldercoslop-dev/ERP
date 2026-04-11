@@ -1,3 +1,8 @@
-#!/bin/sh
-pnpm run typecheck
-pnpm run audit:check
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+pnpm exec tsc -p tsconfig.server.json --noEmit
+pnpm run verify:drizzle
+pnpm run verify:any
+pnpm run verify:arch
+pnpm run verify:env

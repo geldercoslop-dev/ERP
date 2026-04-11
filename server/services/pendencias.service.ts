@@ -3,6 +3,7 @@ import { eq, and, inArray, asc, sql } from "drizzle-orm";
 import { pendencias, pedidos, vendedores, produtos, cores } from "../../drizzle/schema.js";
 import { PendenciaStatus, PendenciaStatusValues, type PendenciaStatusValue } from "../shared/domain-status.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
+import { assertDbConnection } from "../_core/errors/assertions.js";
 
 /**
  * Serviço de pendências do ERP.
@@ -12,7 +13,7 @@ import { validateStatus } from "../shared/guards/domain-guard.js";
 /** Lista pendências. Se vendedorId for informado, retorna apenas as do vendedor. */
 export async function listPendencias(tenantId: number, vendedorId?: number) {
   const dbConn = await db.getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
 
   const statusFilter = inArray(pendencias.status, [PendenciaStatus.PENDENTE, PendenciaStatus.COMPRADO]);
   const conditions = [eq(pendencias.tenantId, tenantId), statusFilter];
@@ -46,7 +47,7 @@ export async function listPendencias(tenantId: number, vendedorId?: number) {
 /** Atualiza status da pendência. Se vendedorId for informado, só atualiza se a pendência for desse vendedor. */
 export async function updateStatusPendencia(tenantId: number, id: number, status: PendenciaStatusValue, vendedorId?: number): Promise<{ success: boolean; error?: string }> {
   const dbConn = await db.getDb();
-  if (!dbConn) return { success: false, error: "Database not available" };
+  assertDbConnection(dbConn);
 
   try {
     const validated = validateStatus(status, PendenciaStatusValues, "pendencia.status");
@@ -72,7 +73,7 @@ export async function updateStatusPendencia(tenantId: number, id: number, status
  */
 export async function getPendenciasResumo(tenantId: number, vendedorId?: number) {
   const dbConn = await db.getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
 
   const conditions = [
     eq(pendencias.tenantId, tenantId),
@@ -104,7 +105,7 @@ export async function getPendenciasResumo(tenantId: number, vendedorId?: number)
  */
 export async function getPendenciasByProduto(tenantId: number, produtoId: number, vendedorId?: number) {
   const dbConn = await db.getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
 
   const conditions = [
     eq(pendencias.tenantId, tenantId),

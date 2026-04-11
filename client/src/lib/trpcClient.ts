@@ -8,6 +8,7 @@ import type { AppRouter } from "../../../server/routers";
 import { authenticatedFetch, shouldSuppress401Redirect } from "./security/apiClient";
 import { GRS_API_NETWORK_ERROR } from "./api/events";
 import { GRS_API_ORIGIN } from "./apiOrigin";
+import { InfrastructureError } from "./errors/typed-errors.js";
 
 /** Entrada JSON de procedures (objeto). Para void use `null` explicitamente. */
 export type Payload = Record<string, unknown>;
@@ -56,17 +57,17 @@ function safeParseTrpc(json: unknown): unknown {
   let row: unknown;
   if (Array.isArray(json)) {
     if (json.length === 0) {
-      throw new Error("Invalid TRPC response format");
+      throw new InfrastructureError("Invalid TRPC response format");
     }
     row = json[0];
   } else if (isPlainObject(json) && "0" in json) {
     row = json["0"];
   } else {
-    throw new Error("Invalid TRPC response format");
+    throw new InfrastructureError("Invalid TRPC response format");
   }
 
   if (!isPlainObject(row)) {
-    throw new Error("Invalid TRPC response format");
+    throw new InfrastructureError("Invalid TRPC response format");
   }
 
   if ("error" in row && row.error !== undefined) {
@@ -111,7 +112,7 @@ function parseTrpcResponseBody(
     parsed = JSON.parse(text);
   } catch {
     logTrpcError(procedure, input, text.slice(0, 200));
-    throw new Error(`Resposta tRPC inválida (não JSON): ${text.slice(0, 160)}`);
+    throw new InfrastructureError(`Resposta tRPC inválida (não JSON): ${text.slice(0, 160)}`);
   }
 
   if (
@@ -133,7 +134,7 @@ function parseTrpcResponseBody(
   } catch (e) {
     logTrpcError(procedure, input, parsed);
     if (e instanceof Error) throw e;
-    throw new Error("Invalid TRPC response format");
+    throw new InfrastructureError("Invalid TRPC response format");
   }
 }
 
@@ -176,7 +177,7 @@ export async function trpcCall(procedure: string, input?: TrpcCallInput): Promis
   } catch (e: unknown) {
     if (e instanceof Error && e.name === "AbortError") {
       logTrpcError(procedure, input, { reason: "timeout", ms: TRPC_CALL_TIMEOUT_MS });
-      throw new Error(`Requisição tRPC excedeu ${TRPC_CALL_TIMEOUT_MS / 1000}s`);
+      throw new InfrastructureError(`Requisição tRPC excedeu ${TRPC_CALL_TIMEOUT_MS / 1000}s`);
     }
     logTrpcError(procedure, input, { reason: "network", error: String(e) });
     throw e instanceof Error ? e : new Error(String(e));
@@ -207,7 +208,7 @@ export async function trpcCall(procedure: string, input?: TrpcCallInput): Promis
       return parseTrpcResponseBody(text, procedure, input);
     } catch (e) {
       if (e instanceof Error) throw e;
-      throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+      throw new InfrastructureError(`HTTP ${res.status}: ${text.slice(0, 200)}`);
     }
   }
 

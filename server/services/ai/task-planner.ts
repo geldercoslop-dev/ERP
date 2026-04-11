@@ -129,10 +129,10 @@ export async function executePlan(plan: TaskPlan, ctx: PlanContext): Promise<Exe
   }
 
   const allOk = stepResults.every((r) => r.success);
-  const anyOk: boolean = stepResults.some((r) => r.success);
+  const hasAnySuccess: boolean = stepResults.some((r) => r.success);
 
   return {
-    success: anyOk,
+    success: hasAnySuccess,
     message: allOk ? lastMessage : "Algumas etapas falharam; resultado parcial consolidado.",
     steps: stepResults,
     data: outputs.length > 0 ? (outputs.length === 1 ? outputs[0] : outputs) : undefined,

@@ -8,6 +8,7 @@
  * CORS: em produção defina ALLOWED_ORIGINS (separado por vírgula), ex: https://app.seudominio.com
  */
 import "./loadEnv.js";
+import { InfrastructureError } from './errors/typed-errors.js';
 
 // Forçar stdin para detecção de SIGINT no Windows
 process.stdin.resume();
@@ -35,7 +36,6 @@ import { globalTimeoutMiddleware } from "../resilience/timeout-middleware.js";
 import { setupGracefulShutdown } from "../resilience/graceful-shutdown.js";
 import { getHealthWatchdog } from "../monitoring/health-watchdog.js";
 import { requestShutdown } from "../services/system/shutdown.service.js";
-import { getSystemHealthComplete } from "../services/system-health.service.js";
 import { getEnv } from "../config/env.js";
 import { validateShutdownAuthPayload } from "../services/system/payload-validation.service.js";
 import { systemLogger } from "./logger.js";
@@ -44,7 +44,6 @@ import { exitProcessInProductionUnlessDevelopment } from "./dev-process-exit.js"
 import { createLogger } from "../infra/structured-logger.js";
 import { requestIdMiddleware, getRequestId } from "../middleware/request-id.middleware.js";
 import { globalErrorHandler } from "../middleware/global-error-handler.middleware.js";
-import { validateCriticalBootEnvOrExit, validateProductionEnvOrExit } from "./env.validation.js";
 import { requestLoggerMiddleware } from "../middleware/request-logger.js";
 import { metrics } from "../infra/metrics.js";
 import { waitForDatabaseReady } from "./db-bootstrap.js";
@@ -53,17 +52,16 @@ import { securityMiddleware } from "../middlewares/security.js";
 import { timeoutMiddleware, timingMiddleware } from "../middlewares/timeout.js";
 import { requestIDMiddleware } from "../middlewares/request-id.js";
 import { strictHealthMiddleware } from "../middlewares/strict-health.js";
-import { waitForRedis } from "../infra/redis.js";
+import { getRedisClient, waitForRedis } from "../infra/redis.js";
 import { validateRequiredEnv } from "../services/env.service.js";
-import { ensureBootstrapAdminUser } from "../services/core-bootstrap.service.js";
+import { ensureBootstrapAdminUser, ensureBootstrapK6User } from "../services/core-bootstrap.service.js";
 import { runDatabaseBootstrapFlow } from "../services/bootstrap-runtime.service.js";
-import { registerHealthFullRoute } from "../routes/health-full.route.js";
 import { createRedisRateLimitMiddleware } from "../security/redis-rate-limit.js";
 import { securityHeadersMiddleware } from "../security/security-headers.js";
 import { httpHardeningMiddleware } from "../middleware/http-hardening.js";
-import { safeResponseGlobalMiddleware } from "../middleware/safe-response.js";
 import { apiRouter } from "../api-routes.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard.js";
+import { getDb } from "../db/index.js";
 
 // Exportar funções de padronização de resposta
 export { ensureArray, ensureObject, ensureCreatedResult, ensureUpdateResult, ensureDeleteResult } from "./service-response.js";
@@ -137,9 +135,25 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
   res.setHeader("Cache-Control", "no-store");
 
   try {
-    const report = await getSystemHealthComplete();
-    const dbUp = report.database.status === "ok";
-    const redisUp = report.redis.status === "ok";
+    let dbUp = false;
+    let redisUp = false;
+
+    try {
+      const db = await getDb();
+      await db.execute("SELECT 1");
+      dbUp = true;
+    } catch {
+      dbUp = false;
+    }
+
+    try {
+      const redis = getRedisClient();
+      const pong = redis ? await redis.ping() : "";
+      redisUp = pong === "PONG";
+    } catch {
+      redisUp = false;
+    }
+
     const ok = dbUp && redisUp;
 
     if (isResponseLocked(res)) {
@@ -147,11 +161,12 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
       return;
     }
 
-    res.status(ok ? 200 : 500).json({
-      status: ok ? "ok" : "fail",
-      db: dbUp ? "up" : "down",
-      redis: redisUp ? "up" : "down",
+    res.status(ok ? 200 : 503).json({
+      status: ok ? "ok" : "error",
+      db: dbUp ? "ok" : "error",
+      redis: redisUp ? "ok" : "error",
     });
+    return;
   } catch (error) {
     systemLogger.error(
       {
@@ -166,11 +181,12 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
       return;
     }
 
-    res.status(500).json({
-      status: "fail",
-      db: "down",
-      redis: "down",
+    res.status(503).json({
+      status: "error",
+      db: "error",
+      redis: "error",
     });
+    return;
   }
 }
 
@@ -190,16 +206,12 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
       return port;
     }
   }
-  throw new Error(`No available port found starting from ${startPort}`);
+  throw new InfrastructureError(`No available port found starting from ${startPort}`);
 }
 
-async function startServer() {
-  // Fail-fast de variáveis críticas exigidas no boot de produção.
-  validateCriticalBootEnvOrExit(process.env as Record<string, unknown>);
-  // Fail-fast ENV (camada Services)
+export async function startServer() {
+  // Fail-fast ENV centralizado
   validateRequiredEnv();
-  // Mantém validações adicionais já existentes (ex.: APP_SECRET, etc.)
-  validateProductionEnvOrExit();
   console.log("ENV DEBUG:", {
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_HOST: process.env.REDIS_HOST,
@@ -216,10 +228,12 @@ async function startServer() {
 
   // Anti-crash: logar e encerrar de forma controlada
   process.on("uncaughtException", (err) => {
+    console.error("[FATAL]", err);
     systemLogger.error({ err }, "[FATAL] uncaughtException");
     process.exit(1);
   });
   process.on("unhandledRejection", (reason: unknown) => {
+    console.error("[FATAL]", reason);
     systemLogger.error({ reason }, "[FATAL] unhandledRejection");
     process.exit(1);
   });
@@ -290,6 +304,9 @@ async function startServer() {
     systemLogger.info("[BOOT] usuário admin…");
     await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
       await ensureBootstrapAdminUser(1);
+      if (process.env.K6_MODE === 'true') {
+        await ensureBootstrapK6User(1);
+      }
     });
     systemLogger.info("[BOOT] admin ok");
   } catch (e) {
@@ -299,10 +316,6 @@ async function startServer() {
   }
 
   systemLogger.info("[BOOT] middlewares de segurança…");
-  
-  // Safe Response Global (DEVE vir primeiro para prevenir stream destroyed)
-  const safeResponseMiddlewares = safeResponseGlobalMiddleware();
-  safeResponseMiddlewares.forEach(middleware => app.use(middleware));
   
   // Request ID primeiro (para tracking)
   app.use(requestIDMiddleware);
@@ -374,9 +387,6 @@ async function startServer() {
     }
     next();
   });
-
-  /** GET /api/health/full — DB + Redis + checagem leve de segredos de auth (antes do x-app-secret). */
-  registerHealthFullRoute(app);
 
   // Observabilidade HTTP/metrics: centralizada em `requestLoggerMiddleware` + `infra/metrics`.
 
@@ -637,8 +647,6 @@ async function startServer() {
       return !(
         base === "/api/health" ||
         base === "/api/health/" ||
-        base === "/api/health/full" ||
-        base === "/api/health/full/" ||
         base === "/ping" ||
         base === "/metrics"
       );
@@ -668,9 +676,7 @@ async function startServer() {
       const base = (req.originalUrl ?? req.url ?? "").split("?")[0];
       return !(
         base === "/api/health" ||
-        base === "/api/health/" ||
-        base === "/api/health/full" ||
-        base === "/api/health/full/"
+        base === "/api/health/"
       );
     },
     onBlocked: (req) => {
@@ -721,12 +727,10 @@ async function startServer() {
 
   // Health check avançado - implementado via tRPC em /api/trpc/health.*
 
+  // Health check: único endpoint canônico /api/health
   app.get("/api/health", async (req, res) => {
     await sendUnifiedHealthResponse(req, res);
-  });
-
-  app.get("/health", async (req, res) => {
-    await sendUnifiedHealthResponse(req, res);
+    return;
   });
 
   // Métricas simples (uptime + requests), sem expor payloads sensíveis
@@ -735,6 +739,7 @@ async function startServer() {
       uptime: process.uptime(),
       requests: metrics.getRequestStats(5),
     });
+    return;
   });
 
   // Debug: eco dos headers de sessão (apenas DEV) — cookie, x-session-token, authorization
@@ -745,6 +750,7 @@ async function startServer() {
         xSessionToken: req.headers["x-session-token"] ?? null,
         authorization: req.headers.authorization ?? null,
       });
+      return;
     });
   }
 
@@ -752,9 +758,10 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     app.get("/api/debug-sentry", (req, res) => {
       if (process.env.SENTRY_DSN) {
-        throw new Error("Teste Sentry: este erro foi gerado de propósito.");
+        throw new InfrastructureError("Teste Sentry: este erro foi gerado de propósito.");
       }
       res.status(200).json({ ok: true, message: "Sentry não configurado (SENTRY_DSN ausente)." });
+      return;
     });
   }
 
@@ -766,8 +773,10 @@ async function startServer() {
     try {
       const tenantId = String((req as typeof req & { adminTenantId?: number }).adminTenantId ?? "");
       await gerarBackupZip(res, tenantId);
+      return;
     } catch (error) {
       res.status(500).json({ error: "Erro ao gerar backup" });
+      return;
     }
   });
   // Dashboard inteligente: GET /api/dashboard/insights

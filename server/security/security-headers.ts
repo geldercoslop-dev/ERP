@@ -64,16 +64,16 @@ export function securityHeadersMiddleware() {
     referrerPolicy: { policy: "strict-origin-when-cross-origin" as const },
     
     // X-Content-Type-Options
-    xContentTypeOptions: true as any,
+    xContentTypeOptions: true,
     
     // X-Download-Options
-    xDownloadOptions: true as any,
+    xDownloadOptions: true,
     
     // X-Permitted-Cross-Domain-Policies
-    xPermittedCrossDomainPolicies: true as any,
+    xPermittedCrossDomainPolicies: true,
     
     // X-XSS-Protection
-    xXssProtection: true as any,
+    xXssProtection: true,
   });
 }
 

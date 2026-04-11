@@ -9,12 +9,14 @@ import { getDb, getInsertId } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
 import { produtos } from '../../drizzle/schema.js';
 import { logger, logError, logInfo } from '../utils/logger.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
 type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export interface StockOperation {
+  tenantId: number;
   produtoId: number;
   quantidade: number;
   tipo: 'entrada' | 'saida';
@@ -118,7 +120,7 @@ class SafeStockService {
       // Processar dentro de transação
       const result = await db.transaction(async (tx: DbTx) => {
         // 1. Bloquear o produto para evitar concorrência
-        const produto = await this.lockProduct(tx, operation.produtoId);
+        const produto = await this.lockProduct(tx, operation.tenantId, operation.produtoId);
         
         if (!produto) {
           throw new StockError(
@@ -140,6 +142,7 @@ class SafeStockService {
 
         // 4. Executar update atômico
         const updateResult = await this.executeAtomicUpdate(tx,
+          operation.tenantId,
           operation.produtoId,
           saldoAnterior,
           operation.quantidade,
@@ -207,15 +210,15 @@ class SafeStockService {
   /**
    * Bloqueia produto para operação (SELECT FOR UPDATE)
    */
-  private async lockProduct(tx: DbTx, produtoId: number): Promise<Record<string, unknown> | null> {
+  private async lockProduct(tx: DbTx, tenantId: number, produtoId: number): Promise<Record<string, unknown> | null> {
     try {
       // Usar prepared statement para maior segurança e controle
       const runner = tx as unknown as {
         execute: (q: string, p?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
       };
       const [rows] = await runner.execute(
-        "SELECT * FROM produtos WHERE id = ? FOR UPDATE WAIT 5",
-        [produtoId]
+        "SELECT * FROM produtos WHERE tenant_id = ? AND id = ? FOR UPDATE WAIT 5",
+        [tenantId, produtoId]
       );
       
       if (!rows || !Array.isArray(rows) || rows.length === 0) {
@@ -274,6 +277,7 @@ class SafeStockService {
    */
   private async executeAtomicUpdate(
     tx: DbTx,
+    tenantId: number,
     produtoId: number,
     saldoAnterior: number,
     quantidade: number,
@@ -285,7 +289,7 @@ class SafeStockService {
       // Primeiro obter o estoque atual
       const produtoAtual = await tx.select({ estoque: produtos.estoque })
         .from(produtos)
-        .where(eq(produtos.id, produtoId))
+        .where(sql`${produtos.tenantId} = ${tenantId} AND ${produtos.id} = ${produtoId}`)
         .limit(1);
       
       if (produtoAtual.length === 0) {
@@ -306,7 +310,7 @@ class SafeStockService {
             estoque: novoEstoque,
             updatedAt: new Date()
           })
-          .where(eq(produtos.id, produtoId));
+          .where(sql`${produtos.tenantId} = ${tenantId} AND ${produtos.id} = ${produtoId}`);
       } else {
         // Para saída, verifica se ainda tem estoque suficiente
         if (estoqueAtual < quantidade) {
@@ -323,7 +327,7 @@ class SafeStockService {
             estoque: novoEstoque,
             updatedAt: new Date()
           })
-          .where(eq(produtos.id, produtoId));
+          .where(sql`${produtos.tenantId} = ${tenantId} AND ${produtos.id} = ${produtoId}`);
       }
 
       const r0 = Array.isArray(result) ? result[0] : result;
@@ -369,7 +373,7 @@ class SafeStockService {
 
       const db = await getDb();
       if (!db) {
-        return [];
+        throw new InfrastructureError('Banco de dados indisponível para operações de estoque');
       }
 
       // IMPORTANTE: Ordenar operações por produtoId para evitar deadlock
@@ -441,7 +445,7 @@ class SafeStockService {
     traceId: string
   ): Promise<StockOperationResult> {
     // Bloquear produto
-    const produto = await this.lockProduct(tx, operation.produtoId);
+    const produto = await this.lockProduct(tx, operation.tenantId, operation.produtoId);
     
     if (!produto) {
       throw new StockError(
@@ -461,6 +465,7 @@ class SafeStockService {
     // Executar update
     const updateResult = await this.executeAtomicUpdate(
       tx,
+      operation.tenantId,
       operation.produtoId,
       saldoAnterior,
       operation.quantidade,
@@ -493,7 +498,7 @@ class SafeStockService {
   /**
    * Verifica saldo atual de um produto
    */
-  public async checkStock(produtoId: number): Promise<{
+  public async checkStock(tenantId: number, produtoId: number): Promise<{
     produtoId: number;
     saldo: number;
     disponivel: boolean;
@@ -505,7 +510,7 @@ class SafeStockService {
       const produtosData = await db
         .select({ id: produtos.id, estoque: produtos.estoque })
         .from(produtos)
-        .where(eq(produtos.id, produtoId))
+        .where(sql`${produtos.tenantId} = ${tenantId} AND ${produtos.id} = ${produtoId}`)
         .limit(1);
 
       if (produtosData.length === 0) return null;
@@ -564,10 +569,10 @@ export async function processBatchStockOperations(
   return safeStockService.processBatchStockOperations(operations);
 }
 
-export async function checkStock(produtoId: number): Promise<{
+export async function checkStock(tenantId: number, produtoId: number): Promise<{
   produtoId: number;
   saldo: number;
   disponivel: boolean;
 } | null> {
-  return safeStockService.checkStock(produtoId);
+  return safeStockService.checkStock(tenantId, produtoId);
 }

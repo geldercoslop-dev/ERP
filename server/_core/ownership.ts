@@ -43,7 +43,7 @@ export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vended
   if (!tenantId || tenantId <= 0) {
     throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
   }
-  const vByPk = await db.getVendedorById(String(tenantId), ctx.user.id);
+  const vByPk = await db.getVendedorById(ctx.user.id);
   if (vByPk?.userId != null && vByPk.userId > 0) {
     return vByPk.userId;
   }
@@ -78,7 +78,7 @@ export async function assertOwnership(
       if (!ctx.tenantId || ctx.tenantId <= 0) {
         throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
       }
-      const pedido = await db.getPedidoById(String(ctx.tenantId), entityId);
+      const pedido = await db.getPedidoById(entityId);
       if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
       const pedidoTenantId = getOptionalNumberField(pedido, "tenantId");
       if (ctx.tenantId != null && pedidoTenantId != null && pedidoTenantId !== ctx.tenantId) {
@@ -99,7 +99,7 @@ export async function assertOwnership(
       if (!ctx.tenantId || ctx.tenantId <= 0) {
         throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
       }
-      const conta = await db.getContaReceberById(String(ctx.tenantId), entityId);
+      const conta = await db.getContaReceberById(entityId);
       if (!conta) throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada." });
       const vendedorId = getOptionalNumberField(conta, "vendedorId");
       if (vendedorId == null || vendedorId !== ctx.user.id) {

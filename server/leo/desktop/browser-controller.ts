@@ -5,6 +5,7 @@
  */
 
 import { spawn } from 'child_process';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 export interface BrowserAction {
   action: string;
@@ -14,7 +15,7 @@ export interface BrowserAction {
 export interface BrowserResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
   error?: string;
   executionTime?: number;
 }
@@ -44,7 +45,7 @@ export class BrowserController {
             data: { count }
           };
         default:
-          throw new Error(`Unknown browser action: ${action}`);
+          throw new ValidationError(`Unknown browser action: ${action}`);
       }
     } catch (error) {
       return {
@@ -105,7 +106,7 @@ export class BrowserController {
       });
 
     } catch (error) {
-      throw new Error(`Failed to open browser ${browser}: ${error}`);
+      throw new InfrastructureError(`Failed to open browser ${browser}: ${error}`);
     }
   }
 
@@ -114,7 +115,7 @@ export class BrowserController {
    */
   private async navigateURL(url: string, browser: string = 'chrome'): Promise<BrowserResult> {
     if (!url) {
-      throw new Error('URL is required');
+      throw new ValidationError('URL is required');
     }
 
     // Validação básica de URL
@@ -165,7 +166,7 @@ export class BrowserController {
       });
 
     } catch (error) {
-      throw new Error(`Failed to navigate to ${url}: ${error}`);
+      throw new InfrastructureError(`Failed to navigate to ${url}: ${error}`);
     }
   }
 
@@ -215,7 +216,7 @@ export class BrowserController {
         };
       }
       
-      throw new Error(`Failed to close browser ${browser}: ${error}`);
+      throw new InfrastructureError(`Failed to close browser ${browser}: ${error}`);
     }
   }
 
@@ -245,7 +246,12 @@ export class BrowserController {
   async getOpenTabsCount(browser: string = 'chrome'): Promise<number> {
     try {
       const result = await this.getOpenTabs(browser);
-      return result.data?.count || 0;
+      const data = result.data;
+      if (data && typeof data === 'object' && 'count' in data) {
+        const count = (data as { count?: unknown }).count;
+        return typeof count === 'number' ? count : 0;
+      }
+      return 0;
     } catch (error) {
       return 0;
     }

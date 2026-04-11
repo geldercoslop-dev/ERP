@@ -1,9 +1,28 @@
+// Type guard para validar payload JWT
+function isJWTPayload(data: unknown): data is JWTPayload {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as Record<string, unknown>)["userId"] === "number" &&
+    typeof (data as Record<string, unknown>)["tenantId"] === "number"
+  );
+}
 import jwt from "jsonwebtoken";
 import type { Algorithm, JwtPayload, SignOptions, VerifyOptions } from "jsonwebtoken";
+import type { Request, Response, NextFunction } from 'express';
 import { createLogger } from '../infra/structured-logger.js';
 import { parseEnv } from '../services/env.schema.js';
+import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 
 const logger = createLogger('jwt-security');
+
+// Interfaces para type safety
+type AuthenticatedRequest = Request;
+
+interface DecodedToken {
+  header: { alg: string };
+  payload: JwtPayload;
+}
 
 export interface JWTPayload {
   userId: number;
@@ -45,7 +64,7 @@ export class JWTSecurity {
     };
     const match = expiry.match(/^(\d+)([smhdw])$/);
     if (!match) {
-      throw new Error(`Invalid expiry format: ${expiry}`);
+      throw new ValidationError(`Invalid expiry format: ${expiry}`);
     }
     const [, value, unit] = match;
     return parseInt(value, 10) * units[unit]!;
@@ -101,7 +120,7 @@ export class JWTSecurity {
     try {
       const secret = parseEnv().JWT_ACCESS_SECRET;
       if (!secret || !this.validateSecret(secret)) {
-        throw new Error('JWT_ACCESS_SECRET is invalid or missing');
+        throw new ValidationError('JWT_ACCESS_SECRET is invalid or missing');
       }
       
       const jwtPayload: JWTPayload = {
@@ -132,7 +151,7 @@ export class JWTSecurity {
       return token;
     } catch (error) {
       logger.error('Error generating JWT token', error as Error);
-      throw new Error('Failed to generate token');
+      throw new InfrastructureError('Failed to generate token');
     }
   }
   
@@ -143,7 +162,7 @@ export class JWTSecurity {
     try {
       const secret = parseEnv().JWT_REFRESH_SECRET;
       if (!secret || !this.validateSecret(secret)) {
-        throw new Error('JWT refresh secret is invalid or missing');
+        throw new ValidationError('JWT refresh secret is invalid or missing');
       }
       
       const refreshPayload = {
@@ -159,7 +178,7 @@ export class JWTSecurity {
       } satisfies SignOptions);
     } catch (error) {
       logger.error('Error generating refresh token', error as Error);
-      throw new Error('Failed to generate refresh token');
+      throw new InfrastructureError('Failed to generate refresh token');
     }
   }
   
@@ -187,49 +206,35 @@ export class JWTSecurity {
         clockTolerance: 30, // 30 segundos de tolerância
       };
 
-      const decoded = jwt.verify(token, secret, verifyOptions);
-      if (typeof decoded === "string" || decoded === null) {
+      const decoded: unknown = jwt.verify(token, secret, verifyOptions);
+      if (!isJWTPayload(decoded)) {
         return { valid: false, error: "Invalid token payload" };
       }
 
-      const p = decoded as JwtPayload & Partial<JWTPayload>;
-      
-      // Validações adicionais do payload
-      if (typeof p.userId !== "number" || typeof p.tenantId !== "number") {
-        return {
-          valid: false,
-          error: 'Invalid token payload structure',
-        };
-      }
-      
       // Verifica se o token não expirou em breve (próximos 5 minutos)
       const now = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = (typeof p.exp === "number" ? p.exp : 0) - now;
-      
+      const timeUntilExpiry = (typeof decoded.exp === "number" ? decoded.exp : 0) - now;
+
       if (timeUntilExpiry < 300) { // 5 minutos
         logger.warn('Token expiring soon', {
           metadata: {
-            userId: p.userId,
-            tenantId: p.tenantId,
-            expiresAt: new Date(((typeof p.exp === "number" ? p.exp : 0) || 0) * 1000).toISOString(),
+            userId: decoded.userId,
+            tenantId: decoded.tenantId,
+            expiresAt: new Date(((typeof decoded.exp === "number" ? decoded.exp : 0) || 0) * 1000).toISOString(),
             timeUntilExpiry,
           },
         });
       }
-      
-      const safePayload: JWTPayload = {
-        userId: p.userId,
-        tenantId: p.tenantId,
-        vendedorId: typeof p.vendedorId === "number" ? p.vendedorId : undefined,
-        role: typeof p.role === "string" ? p.role : "user",
-        iat: typeof p.iat === "number" ? p.iat : undefined,
-        exp: typeof p.exp === "number" ? p.exp : undefined,
-        jti: typeof p.jti === "string" ? p.jti : undefined,
-      };
 
+      if (!isJWTPayload(decoded)) {
+        throw new ValidationError("Invalid token payload");
+      }
+
+      const payload: JWTPayload = decoded;
+      
       return {
         valid: true,
-        payload: safePayload,
+        payload: payload,
       };
       
     } catch (error) {
@@ -287,7 +292,7 @@ export class JWTSecurity {
       const decoded = jwt.verify(token, secret, {
         algorithms: [this.ALGORITHM],
         issuer: process.env.JWT_ISSUER || 'erp-system',
-      } as any) as any;
+      }) as JwtPayload & { type: string };
       
       // Verifica se é um refresh token
       if (decoded.type !== 'refresh') {
@@ -297,9 +302,15 @@ export class JWTSecurity {
         };
       }
       
+      if (!isJWTPayload(decoded)) {
+        throw new ValidationError("Invalid token payload");
+      }
+
+      const payload: JWTPayload = decoded;
+      
       return {
         valid: true,
-        payload: decoded,
+        payload: payload,
       };
       
     } catch (error) {
@@ -350,7 +361,7 @@ export class JWTSecurity {
     expiresIn: number | null;
   } {
     try {
-      const decoded = jwt.decode(token, { complete: true } as any) as any;
+      const decoded = jwt.decode(token, { complete: true }) as DecodedToken;
       
       return {
         hasJTI: !!decoded?.payload?.jti,
@@ -376,7 +387,7 @@ export function jwtValidationMiddleware(options: {
   optional?: boolean;
   refresh?: boolean;
 } = {}) {
-  return (req: any, res: any, next: any) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const authHeader = req.headers.authorization;
       
@@ -415,16 +426,16 @@ export function jwtValidationMiddleware(options: {
       }
       
       // Adiciona payload ao request
-      req.user = {
+      (req as any).user = {
         id: validation.payload!.userId,
         role: validation.payload!.role,
       };
       
-      req.tenantId = validation.payload!.tenantId;
-      req.vendedorId = validation.payload!.vendedorId;
+      (req as any).tenantId = validation.payload!.tenantId;
+      (req as any).vendedorId = validation.payload!.vendedorId;
       
       // Adiciona informações do token
-      req.tokenInfo = {
+      (req as any).tokenInfo = {
         jti: validation.payload!.jti,
         exp: validation.payload!.exp,
         iat: validation.payload!.iat,
@@ -446,7 +457,7 @@ export function jwtValidationMiddleware(options: {
  * Middleware para renovar token
  */
 export function jwtRefreshMiddleware() {
-  return async (req: any, res: any, next: any) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { refreshToken } = req.body;
       

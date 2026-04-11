@@ -9,7 +9,7 @@ import type { TransactionConnection } from '../types/transaction.types.js';
 import { insertAuditLog } from '../services/audit-service.js';
 import { getPool } from '../db/index.js';
 import * as db from '../db/index.js';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql } from '../db/index.js';
 
 export type PaymentData = {
   tenantId: number; // MANDATORY: Multi-tenant isolation

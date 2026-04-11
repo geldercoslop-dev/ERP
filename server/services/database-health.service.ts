@@ -1,6 +1,8 @@
 import { performance } from "perf_hooks";
 import { sql } from "drizzle-orm";
 import { getDb } from "../db/index.js";
+import { assertNoDirectDbAccess } from "../leo/security/leo-db-guard.js";
+import { safeDbCall } from "./safe-db-call.js";
 
 type StatusRow = { Variable_name?: string; Value?: string | number };
 
@@ -16,23 +18,26 @@ function unpackExecuteRows(result: unknown): StatusRow[] {
     const rows = (result as { rows?: StatusRow[] }).rows;
     return Array.isArray(rows) ? rows : [];
   }
-  return [];
+  return []; // Ausência legítima - sem status rows disponíveis
 }
 
-export async function pingDatabase(): Promise<{
+export async function pingDatabase(context: string = "SYSTEM"): Promise<{
   ok: boolean;
   latencyMs: number;
   threadsConnected?: number;
 }> {
   const start = performance.now();
-  const db = await getDb();
+  const db = await safeDbCall(context, async () => {
+    assertNoDirectDbAccess(context);
+    return getDb();
+  });
   if (!db) return { ok: false, latencyMs: -1 };
   try {
-    await db.execute(sql`SELECT 1`);
+    await safeDbCall(context, () => db.execute(sql`SELECT 1`));
     const latencyMs = performance.now() - start;
     let threadsConnected: number | undefined;
     try {
-      const raw = await db.execute(sql`SHOW STATUS LIKE 'Threads_connected'`);
+      const raw = await safeDbCall(context, () => db.execute(sql`SHOW STATUS LIKE 'Threads_connected'`));
       const rows = unpackExecuteRows(raw);
       const v = rows[0]?.Value;
       if (v !== undefined) threadsConnected = Number(v);

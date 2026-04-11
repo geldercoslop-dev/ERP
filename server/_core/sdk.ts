@@ -4,10 +4,10 @@ import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
-import type { users } from "../../drizzle/schema.js";
-import * as db from "../db/index.js";
-import type { UserWithTenant } from "../types/schema-extended.js";
 import { ENV } from "./env.js";
+import * as db from "../db/index.js";
+import type { RequestWithTenant } from "../types/request-with-tenant.js";
+import { ValidationError } from "./errors/typed-errors.js";
 import type {
   ExchangeTokenRequest,
   ExchangeTokenResponse,
@@ -25,15 +25,8 @@ export type SessionPayload = {
   name: string;
 };
 
-type DbUser = typeof users.$inferSelect;
+type DbUser = typeof db.users.$inferSelect;
 
-export function getTenantId(): number {
-  const raw = Number(process.env.TENANT_ID || "");
-  if (!Number.isFinite(raw) || raw <= 0) {
-    throw new Error("TENANT_ID obrigatório no ambiente.");
-  }
-  return raw;
-}
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
@@ -287,10 +280,10 @@ class SDKServer {
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        const tenantId = Number(process.env.TENANT_ID || "");
-        if (!Number.isFinite(tenantId) || tenantId <= 0) {
-          throw new Error("TENANT_ID obrigatório no ambiente.");
-        }
+        const tenantId = (req as RequestWithTenant).user.tenantId;
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
         await db.upsertUser(tenantId, {
           tenantId,
           openId: userInfo.openId,
@@ -310,13 +303,10 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    const tenantId = (user as UserWithTenant).tenantId ?? (() => {
-      const envTenantId = Number(process.env.TENANT_ID || "");
-      if (!Number.isFinite(envTenantId) || envTenantId <= 0) {
-        throw new Error("TENANT_ID obrigatório no ambiente.");
-      }
-      return envTenantId;
-    })();
+    const tenantId = (user as DbUser & { tenantId: number }).tenantId;
+    if (!tenantId || !Number.isFinite(tenantId) || tenantId <= 0) {
+      throw new ValidationError("User sem tenantId válido.");
+    }
     await db.upsertUser(tenantId, {
       tenantId,
       openId: user.openId,

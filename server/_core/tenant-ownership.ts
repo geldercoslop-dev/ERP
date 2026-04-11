@@ -7,6 +7,7 @@ import { getUserById, getVendedorById, getVendedorByUserId } from "../db/core.js
 import type { SecureRole, SecureToolContext } from "./secure-context.js";
 import { securityLogger } from "./logger.js";
 import type { UserWithTenant, VendedorWithTenant } from "../types/schema-extended.js";
+import { InfrastructureError } from "./errors/typed-errors.js";
 
 const SECURITY_PREFIX = "SECURITY:";
 
@@ -65,11 +66,11 @@ export async function validateTenantOwnership(
 ): Promise<ResolvedLeoToolIdentity> {
   if (!Number.isInteger(userId) || userId <= 0) {
     logInvalidAttempt("userId inválido", { userId, claimedTenantId });
-    throw new Error(`${SECURITY_PREFIX} userId inválido`);
+    throw new InfrastructureError(`${SECURITY_PREFIX} userId inválido`);
   }
   if (!Number.isInteger(claimedTenantId) || claimedTenantId <= 0) {
     logInvalidAttempt("tenantId inválido", { userId, claimedTenantId });
-    throw new Error(`${SECURITY_PREFIX} tenantId inválido`);
+    throw new InfrastructureError(`${SECURITY_PREFIX} tenantId inválido`);
   }
 
   const user = await getUserById(userId);
@@ -81,19 +82,19 @@ export async function validateTenantOwnership(
         claimedTenantId,
         dbTenantId: userTenantId,
       });
-      throw new Error(`${SECURITY_PREFIX} tenantId não pertence ao usuário autenticado`);
+      throw new InfrastructureError(`${SECURITY_PREFIX} tenantId não pertence ao usuário autenticado`);
     }
 
     if (user.role === "admin") {
       if (options?.claimedVendedorId != null) {
-        const v = await getVendedorById(String(claimedTenantId), options.claimedVendedorId);
+        const v = await getVendedorById(options.claimedVendedorId);
         const vTenantId = v ? (v as VendedorWithTenant).tenantId : undefined;
         if (!v || vTenantId == null || vTenantId !== userTenantId) {
           logInvalidAttempt("vendedorId inconsistente para admin", {
             userId,
             claimedVendedorId: options.claimedVendedorId,
           });
-          throw new Error(`${SECURITY_PREFIX} vendedorId inválido para o tenant`);
+          throw new InfrastructureError(`${SECURITY_PREFIX} vendedorId inválido para o tenant`);
         }
       }
       return {
@@ -104,7 +105,7 @@ export async function validateTenantOwnership(
       };
     }
 
-    const vByUser = await getVendedorByUserId(String(claimedTenantId), user.id);
+    const vByUser = await getVendedorByUserId(user.id);
     const vByUserTenantId = vByUser ? (vByUser as VendedorWithTenant).tenantId : undefined;
     if (vByUser && vByUserTenantId != null && vByUserTenantId === userTenantId) {
       if (options?.claimedVendedorId != null && options.claimedVendedorId !== vByUser.id) {
@@ -113,7 +114,7 @@ export async function validateTenantOwnership(
           claimedVendedorId: options.claimedVendedorId,
           resolvedVendedorId: vByUser.id,
         });
-        throw new Error(`${SECURITY_PREFIX} vendedorId não pertence ao usuário`);
+        throw new InfrastructureError(`${SECURITY_PREFIX} vendedorId não pertence ao usuário`);
       }
       return {
         tenantId: userTenantId,
@@ -132,7 +133,7 @@ export async function validateTenantOwnership(
     };
   }
 
-  const vById = await getVendedorById(String(claimedTenantId), userId);
+  const vById = await getVendedorById(userId);
   const vByIdTenantId = vById ? (vById as VendedorWithTenant).tenantId : undefined;
   if (vById && vByIdTenantId != null && vByIdTenantId === claimedTenantId) {
     if (options?.claimedVendedorId != null && options.claimedVendedorId !== vById.id) {
@@ -141,7 +142,7 @@ export async function validateTenantOwnership(
         claimedVendedorId: options.claimedVendedorId,
         resolvedVendedorId: vById.id,
       });
-      throw new Error(`${SECURITY_PREFIX} vendedorId não pertence ao contexto`);
+      throw new InfrastructureError(`${SECURITY_PREFIX} vendedorId não pertence ao contexto`);
     }
     const uid = vById.userId != null && vById.userId > 0 ? vById.userId : vById.id;
     return {
@@ -157,7 +158,7 @@ export async function validateTenantOwnership(
     userId,
     claimedTenantId,
   });
-  throw new Error(`${SECURITY_PREFIX} usuário não encontrado ou não pertence ao tenant`);
+  throw new InfrastructureError(`${SECURITY_PREFIX} usuário não encontrado ou não pertence ao tenant`);
 }
 
 /**
@@ -172,7 +173,7 @@ export function parseClaimedToolContext(raw: unknown): {
 } {
   if (raw == null || typeof raw !== "object") {
     logInvalidAttempt("contexto ausente ou não objeto", {});
-    throw new Error(`${SECURITY_PREFIX} contexto de execução ausente`);
+    throw new InfrastructureError(`${SECURITY_PREFIX} contexto de execução ausente`);
   }
   const o = raw as Record<string, unknown>;
   const userId = Number(o.userId);
@@ -189,11 +190,11 @@ export function parseClaimedToolContext(raw: unknown): {
 
   if (!Number.isInteger(userId) || userId <= 0) {
     logInvalidAttempt("userId ausente ou inválido no contexto", { tenantId });
-    throw new Error(`${SECURITY_PREFIX} userId obrigatório e válido no contexto`);
+    throw new InfrastructureError(`${SECURITY_PREFIX} userId obrigatório e válido no contexto`);
   }
   if (!Number.isInteger(tenantId) || tenantId <= 0) {
     logInvalidAttempt("tenantId ausente ou inválido no contexto", { userId });
-    throw new Error(`${SECURITY_PREFIX} tenantId obrigatório e válido no contexto`);
+    throw new InfrastructureError(`${SECURITY_PREFIX} tenantId obrigatório e válido no contexto`);
   }
 
   return { userId, tenantId, claimedVendedorId, ignoredClientRole };

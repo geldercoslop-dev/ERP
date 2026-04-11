@@ -14,8 +14,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "downlevelIteration": true,
-    "ignoreDeprecations": "6.0",
-    "incremental": true,
+        "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
     "module": "ESNext",
@@ -27,6 +26,7 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
-    "types": ["node", "vite/client"]
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "./server/types"]
   }
 }

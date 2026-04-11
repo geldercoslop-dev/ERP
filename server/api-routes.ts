@@ -27,22 +27,6 @@ apiRouter.use('/orders', orderRoutes);
 apiRouter.use('/payments', paymentRoutes);
 
 /**
- * Health check endpoint
- */
-apiRouter.get('/health', async (req, res) => {
-  const { checkDatabasePoolHealth } = await import("./config/database.js");
-  const isDbHealthy = await checkDatabasePoolHealth();
-  
-  res.status(isDbHealthy ? 200 : 503).json({
-    success: isDbHealthy,
-    status: isDbHealthy ? 'UP' : 'DOWN',
-    message: isDbHealthy ? 'API and Database are running' : 'Database connection error',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
-});
-
-/**
  * API info endpoint
  */
 apiRouter.get('/info', (req, res) => {

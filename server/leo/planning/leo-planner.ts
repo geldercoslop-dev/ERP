@@ -8,6 +8,7 @@
 import { leoMemory } from '../memory/leo-memory.js';
 import { LeoTaskStatus, LeoTaskPriority } from "../../../shared/types/index.js";
 import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
 async function insertLeoActionLog(params: InsertLeoActionLogParams): Promise<void> {
@@ -160,7 +161,7 @@ class LeoPlanner {
 
       // Validar plano
       if (!this.validatePlan(plan)) {
-        throw new Error('Plano gerado inválido');
+        throw new ValidationError('Plano gerado inválido');
       }
 
       // Salvar plano
@@ -1161,7 +1162,7 @@ class LeoPlanner {
       const decision = await this.analyzeDecision(task, context || {});
       
       if (decision.action === 'reject') {
-        throw new Error(`Tarefa rejeitada: ${decision.reason}`);
+        throw new InfrastructureError(`Tarefa rejeitada: ${decision.reason}`);
       }
       
       // Criar plano

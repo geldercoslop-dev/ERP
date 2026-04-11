@@ -10,6 +10,7 @@ import { eq, sql, and } from 'drizzle-orm';
 import { produtos, itensPedido } from '../../drizzle/schema.js';
 import { executeQuery } from '../config/database.js';
 import { isRecord } from '../_core/type-guards.js';
+import { assertTenantId } from '../_core/errors/assertions.js';
 
 type ProdutoRowLock = {
   id: number;
@@ -82,7 +83,7 @@ export async function updateStockSafe(
   quantidade: number,
   operacao: StockOperation
 ): Promise<{ success: boolean; data?: StockMovement; error?: string }> {
-  if (!tenantId) return { success: false, error: "tenantId is required" };
+  assertTenantId(tenantId);
   
   try {
     const out = await runStockTransaction(async (tx) => {
@@ -263,7 +264,7 @@ export async function updateMultipleStockSafe(
   tenantId: number, // Adicionado para multi-tenant
   operacoes: Array<{ produtoId: number; quantidade: number; motivo: string }>
 ): Promise<{ success: boolean; data?: StockMovement[]; error?: string }> {
-  if (!tenantId) return { success: false, error: "tenantId is required" };
+  assertTenantId(tenantId);
   
   try {
     return await runStockTransaction(async (tx) => {
@@ -339,7 +340,7 @@ export async function reserveStockForOrder(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; data?: StockMovement[]; error?: string }> {
-  if (!tenantId) return { success: false, error: "tenantId is required" };
+  assertTenantId(tenantId);
   
   try {
     return await runStockTransaction(async (tx) => {
@@ -420,7 +421,7 @@ export async function releaseStockForOrder(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; data?: StockMovement[]; error?: string }> {
-  if (!tenantId) return { success: false, error: "tenantId is required" };
+  assertTenantId(tenantId);
   
   try {
     return await runStockTransaction(async (tx) => {
@@ -507,7 +508,7 @@ export async function getStockMovements(
       FROM stock_movements 
       WHERE tenantId = ?
     `;
-    const params: any[] = [tenantId];
+    const params: Array<number | Date | string> = [tenantId];
 
     if (filters.produtoId) {
       query += ` AND produtoId = ?`;
@@ -542,7 +543,19 @@ export async function getStockMovements(
     }
 
     const [result] = await dbConnection.execute(query);
-    const movements = Array.isArray(result) ? result.map((row: any) => ({
+    type MovementRow = {
+      id: number;
+      produtoId: number;
+      descricao: string;
+      quantidade: number;
+      tipo: 'entrada' | 'saida';
+      estoqueAnterior: number;
+      estoqueNovo: number;
+      motivo: string;
+      usuario: string;
+      timestamp: string | Date;
+    };
+    const movements = Array.isArray(result) ? (result as MovementRow[]).map((row) => ({
       id: row.id,
       produtoId: row.produtoId,
       descricao: row.descricao,
@@ -581,7 +594,7 @@ export async function reconstituteStockFromMovements(
       FROM stock_movements 
       WHERE tenantId = ? AND produtoId = ?
     `;
-    const params: any[] = [tenantId, produtoId];
+    const params: Array<number | Date> = [tenantId, produtoId];
 
     if (dataReferencia) {
       query += ` AND timestamp <= ?`;
@@ -614,7 +627,7 @@ export async function validateStockIntegrity(
     }
 
     let produtoFilter = "";
-    const params: any[] = [tenantId];
+    const params: number[] = [tenantId];
     
     if (produtoId) {
       produtoFilter = " AND p.id = ?";
@@ -635,13 +648,19 @@ export async function validateStockIntegrity(
     `;
 
     const [result] = await dbConnection.execute(query);
-    const discrepancies = Array.isArray(result) ? result.map((row: any) => ({
+    type IntegrityRow = {
+      produtoId: number;
+      descricao: string;
+      estoqueAtual: number;
+      saldoMovimentos: number;
+    };
+    const discrepancies = Array.isArray(result) ? (result as IntegrityRow[]).map((row) => ({
       produtoId: row.produtoId,
       descricao: row.descricao,
       estoqueAtual: typeof row.estoqueAtual === 'number' ? row.estoqueAtual : 0,
       saldoMovimentos: typeof row.saldoMovimentos === 'number' ? row.saldoMovimentos : 0,
       diferenca: (typeof row.estoqueAtual === 'number' ? row.estoqueAtual : 0) - (typeof row.saldoMovimentos === 'number' ? row.saldoMovimentos : 0),
-    })).filter((item: any) => Math.abs(item.diferenca) > 0.01) : [];
+    })).filter((item) => Math.abs(item.diferenca) > 0.01) : [];
 
     return { success: true, data: discrepancies };
   } catch (error) {

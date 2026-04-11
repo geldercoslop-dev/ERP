@@ -154,7 +154,7 @@ export function useApiMultiple<T extends Record<string, unknown>>(
       for (const [key, response] of results) {
         (next[key as keyof T] as UseApiState<any>) = {
           data: response.ok ? response.data : null,
-          error: response.ok ? null : response.error,
+          error: response.ok ? null : response.error || null,
           loading: false,
         };
       }

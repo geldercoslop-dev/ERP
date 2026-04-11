@@ -1,7 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
-import * as db from "../db/index.js";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc.js";
 import type { Carga, NewCarga, PedidoCarga, NewPedidoCarga } from "../../shared/types/index.js";
 import { requireTenant } from "../_core/tenant.js";
@@ -242,28 +240,7 @@ export const logisticaRouter = router({
           });
         }
         
-        // Buscar pedidos da carga usando o serviço (TODO: Criar getPedidosCarga no serviço se não existir)
-        const dbConn = await db.getDb();
-        if (!dbConn) throw new Error("Database not available");
-
-        const pedidosCargaRows = await dbConn
-          .select({
-            pedido: db.pedidos,
-            pedidoCarga: db.pedidosCarga,
-          })
-          .from(db.pedidosCarga)
-          .innerJoin(db.pedidos, eq(db.pedidos.id, db.pedidosCarga.pedidoId))
-          .innerJoin(db.cargas, eq(db.cargas.id, db.pedidosCarga.cargaId))
-          .where(and(eq(db.pedidosCarga.cargaId, input.cargaId), eq(db.cargas.tenantId, tenantId)));
-        
-        // Buscar dados completos dos pedidos
-        const relatorio = pedidosCargaRows.map(row => ({
-          pedido: row.pedido.numero,
-          cliente: row.pedido.clienteNome,
-          valor: row.pedido.total,
-          bairro: row.pedido.clienteBairro || "N/A",
-          entregue: row.pedidoCarga.entregue,
-        }));
+        const relatorio = await logisticaService.getRelatorioEntrega(tenantId, input.cargaId);
         
         return {
           success: true,

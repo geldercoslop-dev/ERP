@@ -7,6 +7,7 @@
 import { createSafeService } from './service-safety.js';
 import { logInfo, logWarning, logError, logCritical, ErrorType } from './service-logger.js';
 import { nanoid } from 'nanoid';
+import { InfrastructureError } from './errors/typed-errors.js';
 
 /**
  * Mapa de serviços protegidos para evitar dupla proteção
@@ -143,7 +144,7 @@ export function protectServiceModule<T extends Record<string, any>>(moduleName: 
                       method: key,
                       traceId
                     });
-                    throw new Error(errorMessage);
+                    throw new InfrastructureError(errorMessage);
                   }
                   if (key.includes('update') || key.includes('delete')) {
                     return { success: true };

@@ -1,6 +1,6 @@
 import cookie from 'cookie';
 import { Request, Response, NextFunction } from 'express';
-import * as db from '../db/index.js';
+import * as usersService from '../services/users.service.js';
 import type { User, Vendedor } from '../db/core.js';
 import { jwtAuth, JWTPayload } from '../security/jwt-auth.js';
 import { systemLogger } from '../_core/logger.js';
@@ -55,7 +55,7 @@ async function resolveSessionTokenToPayload(token: string): Promise<JWTPayload |
   if (token.startsWith('u:')) {
     const userId = parseInt(token.slice(2), 10);
     if (!Number.isFinite(userId)) return null;
-    const u = await db.getUserById(userId);
+    const u = await usersService.getUserById(userId);
     return u ? mapUserToJwtPayload(u) : null;
   }
   if (token.startsWith('v:')) {
@@ -63,12 +63,12 @@ async function resolveSessionTokenToPayload(token: string): Promise<JWTPayload |
     const tenantId = Number(parts[1]);
     const id = Number(parts[2]);
     if (!Number.isInteger(tenantId) || tenantId <= 0 || !Number.isInteger(id) || id <= 0) return null;
-    const v = await db.getVendedorById(String(tenantId), id);
+    const v = await usersService.getVendedorById(id);
     if (!v?.ativo) return null;
     return mapVendedorToJwtPayload(v, tenantId);
   }
   if (token === 'admin-session') {
-    const u = await db.getUserByOpenId('admin');
+    const u = await usersService.getUserByOpenIdGlobal('admin');
     return u ? mapUserToJwtPayload(u) : null;
   }
   if (token === 'vendedor-session') {

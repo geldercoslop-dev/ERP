@@ -2,9 +2,8 @@
  * Motor de pendências e lista de compras do LEO.
  * Usa as pendências de pedidos existentes no ERP.
  */
-import * as db from "../../db/index.js";
-
 import * as db from "../../../db/index.js";
+import { InfrastructureError } from "../../../_core/errors/typed-errors.js";
 export async function listarPendenciasEstoque(vendedorId?: number): Promise<
   { produtoId: number; descricao: string; marca: string | null; quantidade: number; qtdPedidos: number }[]
 > {
@@ -27,7 +26,7 @@ export async function listarPendenciasEstoque(vendedorId?: number): Promise<
     }));
   } catch (e: unknown) {
     console.error("[LEO pendencias-engine] Erro ao listar pendências:", (e as Error)?.message ?? e);
-    return [];
+    throw new InfrastructureError('Falha ao listar pendências', { cause: e });
   }
 }
 
@@ -68,6 +67,6 @@ export async function gerarListaCompras(vendedorId?: number): Promise<
     return Array.from(agregado.values());
   } catch (e: unknown) {
     console.error("[LEO pendencias-engine] Erro ao gerar lista de compras:", (e as Error)?.message ?? e);
-    return [];
+    throw new InfrastructureError('Falha ao gerar lista de compras', { cause: e });
   }
 }

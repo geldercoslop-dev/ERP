@@ -201,7 +201,7 @@ class LeoSupervisor {
       }
 
       // Calcular tempo médio de execução
-      this.metrics.averageExecutionTime = this.executionTimes.reduce((a: any, b: any) => a + b, 0) / this.executionTimes.length;
+      this.metrics.averageExecutionTime = this.executionTimes.reduce((a, b) => a + b, 0) / this.executionTimes.length;
 
       // Verificar se excedeu tempo máximo de execução
       if (executionTime > this.limits.maxExecutionTime) {
@@ -382,7 +382,7 @@ class LeoSupervisor {
 
     // Limpar timestamps antigos (manter apenas último minuto)
     const oneMinuteAgo = now - 60000;
-    this.actionTimestamps = this.actionTimestamps.filter((timestamp: any) => timestamp > oneMinuteAgo);
+    this.actionTimestamps = this.actionTimestamps.filter((timestamp: number) => timestamp > oneMinuteAgo);
     
     this.status.currentActionsPerMinute = this.actionTimestamps.length;
     this.metrics.actionsLastMinute = this.status.currentActionsPerMinute;

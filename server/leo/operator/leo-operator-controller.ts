@@ -168,7 +168,12 @@ export class LeoOperatorMode {
   /**
    * Get configuration
    */
-  getConfig(): any {
+  getConfig(): {
+    currentMode: LeoModeType;
+    permissions: OperatorPermissions;
+    sessionStartTime: Date;
+    context: LeoContext | null;
+  } {
     return {
       currentMode: this.currentMode,
       permissions: MODE_PERMISSIONS[this.currentMode],

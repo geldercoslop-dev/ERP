@@ -1,0 +1,22 @@
+C:\ERP\server\_core\queue-service.ts:33: export class QueueService {
+C:\ERP\server\_core\sdk.ts:38: class OAuthService {
+C:\ERP\server\_core\session.service.ts:14: export class SessionService {
+C:\ERP\server\examples\env-usage-example.ts:23: export class UserAuthService {
+C:\ERP\server\infra\monitoring-integration.ts:93: export class ExampleService {
+C:\ERP\server\services\async-operations.ts:71: class AsyncOperationsService {
+C:\ERP\server\services\audit-log.service.ts:179: export class AuditLogService {
+C:\ERP\server\services\client.service.ts:13: export class ClientService {
+C:\ERP\server\services\external-apis.ts:76: export class FreteService {
+C:\ERP\server\services\external-apis.ts:112: export class CepService {
+C:\ERP\server\services\external-apis.ts:165: export class ClimaService {
+C:\ERP\server\services\external-apis.ts:216: export class RastreamentoService {
+C:\ERP\server\services\leo-service.ts:47: export class LeoErpService {
+C:\ERP\server\services\leoAction.service.ts:119: export class LeoActionService {
+C:\ERP\server\services\metrics.service.ts:67: export class MetricsService {
+C:\ERP\server\services\order.service.ts:13: export class OrderService {
+C:\ERP\server\services\payment.service.ts:11: export class PaymentService {
+C:\ERP\server\services\product.service.ts:13: export class ProductService {
+C:\ERP\server\services\safe-stock.ts:72: class SafeStockService {
+C:\ERP\server\services\safe-transaction.ts:87: class SafeTransactionService {
+C:\ERP\server\services\system-monitor.ts:253: export class SystemMonitorService {
+C:\ERP\server\types\service-guard.ts:164: * class ProductService {

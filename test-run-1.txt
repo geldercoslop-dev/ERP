@@ -1,0 +1,2625 @@
+
+> vendas-app@1.0.0 test C:\ERP
+> vitest run
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/ERP[39m
+
+[90mstdout[2m | server/tests/audit-validation.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+
+[90mstdout[2m | tests/resilience-integration.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒøí´©Å auth for agents: https://vestauth.com
+
+[90mstdout[2m | server/tests/audit-hardening-validation.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+
+[90mstdout[2m | server/tests/database-consistency.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒøí´©Å auth for agents: https://vestauth.com
+
+[90mstdout[2m | tests/integration/ownership.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  override existing env vars with { override: true }
+
+[90mstdout[2m | tests/architecture-guard.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  write to custom object with { processEnv: myObject }
+
+[90mstdout[2m | server/services/core-business-real.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  override existing env vars with { override: true }
+
+[90mstdout[2m | tests/bootstrap.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+[90mstdout[2m | tests/database.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+
+[90mstdout[2m | tests/health.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+ [31mÔØ»[39m server/tests/audit-hardening-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | server/tests/audit-hardening-simple.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+
+[90mstdout[2m | tests/bootstrap.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | tests/architecture-guard.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+[90mstdout[2m | tests/observability.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  override existing env vars with { override: true }
+
+ [32mÔ£ô[39m tests/architecture-guard.spec.ts [2m([22m[2m19 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+[90mstdout[2m | tests/bootstrap.spec.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/bootstrap.spec.ts [2m([22m[2m17 tests[22m[2m)[22m[90m 32[2mms[22m[39m
+[90mstdout[2m | tests/database.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/database.spec.ts [2m([22m[2m19 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+[90mstdout[2m | tests/health.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/health.spec.ts [2m([22m[2m24 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+[90mstdout[2m | server/tests/audit-hardening.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+[90mstdout[2m | server/tests/http-hardening-validation.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+
+[90mstdout[2m | server/tests/schema-consistency.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜí´©Å secrets for agents: https://dotenvx.com/as2
+
+ [31mÔØ»[39m server/tests/audit-hardening.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | tests/auth-security.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒøá´©Å  run anywhere with `dotenvx run -- yourcommand`
+
+[90mstdout[2m | tests/routers/validation.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+
+[90mstdout[2m | server/tests/schema-consistency.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (1) from .env -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+
+[90mstdout[2m | server/tests/http-hardening-validation.test.ts
+[22m[39m­ƒöì INICIANDO VALIDA├ç├âO - HTTP HARDENING
+
+============================================================
+TESTE 1 ÔÇö RATE LIMIT GLOBAL
+============================================================
+­ƒôí Enviando 10 requisi├º├Áes r├ípidas para testar rate limit...
+
+ [31mÔØ»[39m server/tests/http-hardening-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | server/tests/schema-consistency.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | testRateLimit (C:\ERP\server\tests\http-hardening-validation.test.ts:67:15)
+[22m[39m   ÔÜá´©Å  Rate limit headers n├úo detectados (pode estar OK se n├úo excedeu)
+
+[90mstdout[2m | testRateLimit (C:\ERP\server\tests\http-hardening-validation.test.ts:79:15)
+[22m[39m   Ôä╣´©Å  Nenhuma requisi├º├úo bloqueada (comportamento normal)
+
+[90mstdout[2m | testHardening (C:\ERP\server\tests\http-hardening-validation.test.ts:85:11)
+[22m[39m
+============================================================
+
+[90mstdout[2m | testHardening (C:\ERP\server\tests\http-hardening-validation.test.ts:86:11)
+[22m[39mTESTE 2 ÔÇö SECURITY HEADERS
+
+stderr | server/tests/schema-consistency.test.ts > Schema Consistency Tests
+ÔØî Falha ao conectar ao banco: Unknown database 'erp'
+
+[90mstdout[2m | server/tests/schema-consistency.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/schema-consistency.test.ts [2m([22m[2m66 tests[22m[2m | [22m[33m66 skipped[39m[2m)[22m[90m 137[2mms[22m[39m
+[90mstdout[2m | server/tests/production-blindagem.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒñû agentic secret storage: https://dotenvx.com/as2
+
+[90mstdout[2m | tests/routers/validation.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/routers/validation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 56[2mms[22m[39m
+[90mstdout[2m | tests/env.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+
+[90mstdout[2m | tests/services/orders.service.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  load multiple .env files with { path: ['.env.local', '.env'] }
+
+[90mstdout[2m | tests/env.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/env.spec.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒøí´©Å auth for agents: https://vestauth.com
+
+{"level":50,"time":1775483294374,"timestamp":"2026-04-06T13:48:14.372Z","level":"ERROR","message":"­ƒÜ¿ HIGH ERROR RATE DETECTED","module":"error-rate-monitor","metadata":{"errorCount":4,"threshold":3,"windowMs":1000,"windowSeconds":1,"context":"ALERT","severity":"CRITICAL"}}
+[90mstdout[2m | tests/resilience-integration.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | tests/observability.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+{"level":50,"time":1775483294387,"timestamp":"2026-04-06T13:48:14.387Z","level":"ERROR","message":"­ƒÜ¿ HIGH ERROR RATE DETECTED","module":"error-rate-monitor","metadata":{"errorCount":4,"threshold":3,"windowMs":1000,"windowSeconds":1,"context":"ALERT","severity":"CRITICAL"}}
+{"level":40,"time":1775483295393,"service":"erp-server","message":"[CB:timeout-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":40,"time":1775483295399,"timestamp":"2026-04-06T13:48:15.398Z","level":"WARN","message":"Query timeout (1000ms)","module":"query-wrapper","metadata":{"serviceName":"timeout-test","attempt":1,"error":"Query timeout (1000ms)"}}
+{"level":50,"time":1775483295396,"service":"erp-server","msg":"[CB:timeout-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+ [31mÔØ»[39m tests/integration/ownership.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31mÔØ»[39m server/tests/audit-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+{"level":40,"time":1775483295517,"service":"erp-server","message":"[CB:circuit-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775483295518,"timestamp":"2026-04-06T13:48:15.518Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"circuit-test","maxRetries":1,"error":"Service unavailable","circuitBreakerStatus":"OPEN"}}
+{"level":50,"time":1775483295518,"service":"erp-server","msg":"[CB:circuit-test] Circuit ABERTO! Pr├│xima tentativa em 1s"}
+{"level":40,"time":1775483295518,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775483295519,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775483295520,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775483295520,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775483295520,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775483295520,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775483295521,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775483295522,"service":"erp-server","message":"[CB:open-circuit-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775483295522,"service":"erp-server","msg":"[CB:open-circuit-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775483295522,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295522,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295522,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295523,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295523,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295523,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295523,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295523,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775483295524,"service":"erp-server","msg":"[CB:half-open-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295524,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295519,"timestamp":"2026-04-06T13:48:15.519Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295517,\"nextAttemptTime\":1775483296518,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295520,"timestamp":"2026-04-06T13:48:15.520Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295517,\"nextAttemptTime\":1775483296518,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295520,"timestamp":"2026-04-06T13:48:15.520Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295517,\"nextAttemptTime\":1775483296518,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295520,"timestamp":"2026-04-06T13:48:15.520Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295517,\"nextAttemptTime\":1775483296518,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295520,"timestamp":"2026-04-06T13:48:15.520Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295517,\"nextAttemptTime\":1775483296518,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295521,"timestamp":"2026-04-06T13:48:15.521Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295517,\"nextAttemptTime\":1775483296518,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295521,"timestamp":"2026-04-06T13:48:15.521Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295517,\"nextAttemptTime\":1775483296518,\"averageResponseTime\":0}"}}
+{"level":50,"time":1775483295522,"timestamp":"2026-04-06T13:48:15.522Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775483295522,"timestamp":"2026-04-06T13:48:15.522Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295522,"timestamp":"2026-04-06T13:48:15.522Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295523,"timestamp":"2026-04-06T13:48:15.523Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295523,"timestamp":"2026-04-06T13:48:15.523Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295523,"timestamp":"2026-04-06T13:48:15.523Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295523,"timestamp":"2026-04-06T13:48:15.523Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295523,"timestamp":"2026-04-06T13:48:15.523Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295523,"timestamp":"2026-04-06T13:48:15.523Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295522,\"nextAttemptTime\":1775483325522,\"averageResponseTime\":0}"}}
+{"level":50,"time":1775483295524,"timestamp":"2026-04-06T13:48:15.524Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"half-open-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775483295524,"timestamp":"2026-04-06T13:48:15.524Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295524,\"nextAttemptTime\":1775483295674,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295524,"timestamp":"2026-04-06T13:48:15.524Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295524,\"nextAttemptTime\":1775483295674,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295524,"timestamp":"2026-04-06T13:48:15.524Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295524,\"nextAttemptTime\":1775483295674,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295524,"timestamp":"2026-04-06T13:48:15.524Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295524,\"nextAttemptTime\":1775483295674,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295524,"timestamp":"2026-04-06T13:48:15.524Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295524,\"nextAttemptTime\":1775483295674,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295524,"timestamp":"2026-04-06T13:48:15.524Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295524,\"nextAttemptTime\":1775483295674,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295525,"timestamp":"2026-04-06T13:48:15.525Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295524,\"nextAttemptTime\":1775483295674,\"averageResponseTime\":0}"}}
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'root'[39m,
+  envDbName: [32m'erp'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:15.570Z'
+}
+
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 1000ms...
+
+[90mstdout[2m | server/services/core-business-real.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/services/core-business-real.test.ts[2m > [22m[2mCORE: neg├│cio real (DB)
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'root'[39m,
+  envDbName: [32m'erp'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+stderr | server/services/core-business-real.test.ts > CORE: neg├│cio real (DB)
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:15.711Z'
+}
+
+[90mstdout[2m | server/services/core-business-real.test.ts[2m > [22m[2mCORE: neg├│cio real (DB)
+[22m[39m[Database] Retrying in 1000ms...
+
+{"level":50,"time":1775483295734,"service":"erp-server","msg":"[CB:half-open-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":50,"time":1775483295734,"timestamp":"2026-04-06T13:48:15.734Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"half-open-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775483295734,"service":"erp-server","message":"[CB:half-open-test] Falha em HALF_OPEN, reabrindo circuit"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775483295739,"service":"erp-server","msg":"[CB:half-to-closed-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775483295739,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":50,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295739,\"nextAttemptTime\":1775483295889,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295739,\"nextAttemptTime\":1775483295889,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295739,\"nextAttemptTime\":1775483295889,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295739,\"nextAttemptTime\":1775483295889,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295739,\"nextAttemptTime\":1775483295889,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295739,\"nextAttemptTime\":1775483295889,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483295739,"timestamp":"2026-04-06T13:48:15.739Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483295739,\"nextAttemptTime\":1775483295889,\"averageResponseTime\":0}"}}
+[90mstdout[2m | server/tests/database-consistency.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/database-consistency.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 15[2mms[22m[39m
+[90mstdout[2m | server/tests/audit-hardening-simple.test.ts
+[22m[39m­ƒöì INICIANDO VALIDA├ç├âO DE HARDENING - AuditLogService
+
+============================================================
+CASO 1 ÔÇö PAYLOAD GRANDE (>6000 chars)
+============================================================
+­ƒôï Payload grande deve ser truncado
+DB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'root'[39m,
+  envDbName: [32m'erp'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+ [31mÔØ»[39m server/tests/audit-hardening-simple.test.ts [2m([22m[2m0 test[22m[2m)[22m
+{"level":40,"time":1775483295952,"service":"erp-server","message":"[CB:retry-test] Taxa de falha 100% >= limiar 80%, abrindo circuit"}
+{"level":40,"time":1775483295953,"timestamp":"2026-04-06T13:48:15.953Z","level":"WARN","message":"Query failed, retrying in 10ms","module":"query-wrapper","metadata":{"serviceName":"retry-test","attempt":1,"maxRetries":3,"error":"Transient failure"}}
+{"level":50,"time":1775483295953,"service":"erp-server","msg":"[CB:retry-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":50,"time":1775483295969,"service":"erp-server","msg":"[CB:retry-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775483295969,"timestamp":"2026-04-06T13:48:15.969Z","level":"WARN","message":"Query failed, retrying in 20ms","module":"query-wrapper","metadata":{"serviceName":"retry-test","attempt":2,"maxRetries":3,"error":"Transient failure"}}
+{"level":40,"time":1775483295969,"service":"erp-server","message":"[CB:retry-test] Falha em HALF_OPEN, reabrindo circuit"}
+{"level":40,"time":1775483295998,"service":"erp-server","message":"[CB:backoff-test] Taxa de falha 100% >= limiar 80%, abrindo circuit"}
+{"level":40,"time":1775483295998,"timestamp":"2026-04-06T13:48:15.998Z","level":"WARN","message":"Query failed, retrying in 50ms","module":"query-wrapper","metadata":{"serviceName":"backoff-test","attempt":1,"maxRetries":3,"error":"Failure"}}
+{"level":50,"time":1775483295998,"service":"erp-server","msg":"[CB:backoff-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":50,"time":1775483296063,"service":"erp-server","msg":"[CB:backoff-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775483296064,"timestamp":"2026-04-06T13:48:16.064Z","level":"WARN","message":"Query failed, retrying in 100ms","module":"query-wrapper","metadata":{"serviceName":"backoff-test","attempt":2,"maxRetries":3,"error":"Failure"}}
+{"level":40,"time":1775483296064,"service":"erp-server","message":"[CB:backoff-test] Falha em HALF_OPEN, reabrindo circuit"}
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m[INFO] [INFO] [naeRk1irpp]: Iniciando prote├º├úo de servi├ºos...
+[INFO] [INFO] [jb3sbZPDmH]: Prote├º├úo in-place de servi├ºos desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [Ldx3GnJtYi]: Iniciando monitor de servi├ºos
+[INFO] [INFO] [ijE4wpUyzb]: Prote├º├úo de servi├ºos aplicada com sucesso
+
+[90mstdout[2m | tests/auth-security.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | tests/auth-security.test.ts[2m > [22m[2mAutentica├º├úo Segura[2m > [22m[2mdeve criar sess├úo v├ílida
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'test'[39m,
+  envDbName: [32m'test'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m[INFO] [INFO] [nJlRUPJ-U0]: Iniciando prote├º├úo de servi├ºos...
+[INFO] [INFO] [eb8kFTp5T7]: Prote├º├úo in-place de servi├ºos desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [72wfo1UV0E]: Iniciando monitor de servi├ºos
+[INFO] [INFO] [tzfM30exeR]: Prote├º├úo de servi├ºos aplicada com sucesso
+
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve criar sess├úo v├ílida
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:16.127Z'
+}
+
+[90mstdout[2m | tests/auth-security.test.ts[2m > [22m[2mAutentica├º├úo Segura[2m > [22m[2mdeve criar sess├úo v├ílida
+[22m[39m[Database] Retrying in 1000ms...
+
+[90mstdout[2m | tests/services/finance.service.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒøí´©Å auth for agents: https://vestauth.com
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜí´©Å secrets for agents: https://dotenvx.com/as2
+
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m[BOOT] loadEnv ÔÇö in├¡cio
+[ENV] carregamento de .env habilitado apenas em desenvolvimentoÔÇª
+[dotenv@17.3.1] injecting env (1) from .env -- tip: ­ƒøá´©Å  run anywhere with `dotenvx run -- yourcommand`
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m[BOOT] loadEnv ÔÇö in├¡cio
+[ENV] carregamento de .env habilitado apenas em desenvolvimentoÔÇª
+[dotenv@17.3.1] injecting env (1) from .env -- tip: ­ƒøá´©Å  run anywhere with `dotenvx run -- yourcommand`
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+
+{"level":40,"time":1775483296275,"service":"erp-server","message":"[CB:order-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":40,"time":1775483296275,"timestamp":"2026-04-06T13:48:16.275Z","level":"WARN","message":"Query timeout (100ms)","module":"query-wrapper","metadata":{"serviceName":"order-test","attempt":1,"error":"Query timeout (100ms)"}}
+{"level":50,"time":1775483296275,"service":"erp-server","msg":"[CB:order-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775483296276,"service":"erp-server","message":"[CB:cascade-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775483296276,"service":"erp-server","msg":"[CB:cascade-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775483296276,"timestamp":"2026-04-06T13:48:16.276Z","level":"WARN","message":"Query failed, retrying in 1000ms","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"maxRetries":2,"error":"Persistent failure"}}
+[90mstdout[2m | server/tests/http-hardening-static-validation.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  override existing env vars with { override: true }
+
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒñû agentic secret storage: https://dotenvx.com/as2
+
+[90mstdout[2m | server/tests/http-hardening-static-validation.test.ts
+[22m[39m­ƒöì VALIDA├ç├âO - HTTP HARDENING (MODO EST├üTICO)
+
+============================================================
+MIDDLEWARES APLICADOS
+============================================================
+­ƒôï Lista de middlewares configurados:
+   1. trust-proxy
+   2. rate-limit-global
+   3. security-helmet
+
+============================================================
+CONFIGURA├ç├òES IMPLEMENTADAS
+============================================================
+
+1. Rate Limit Global:
+   Ô£ô window: 15 minutos
+   Ô£ô max: 100 requisi├º├Áes/IP
+   Ô£ô skip: health checks
+   Ô£ô headers: X-RateLimit-*
+
+2. Security Headers (Helmet):
+   Ô£ô csp: b├ísico
+   Ô£ô xssFilter: ativo
+   Ô£ô noSniff: ativo
+   Ô£ô frameguard: deny
+   Ô£ô hsts: produ├º├úo apenas
+
+3. Trust Proxy:
+   Ô£ô trustProxy: true
+   Ô£ô ipPriority: cf-connecting-ip ÔåÆ x-forwarded-for ÔåÆ remoteAddress
+
+============================================================
+VALIDA├ç├âO DE IMPORTA├ç├âO
+============================================================
+Ô£à httpHardeningMiddleware exportado com sucesso
+Ô£à GLOBAL_RATE_LIMIT configurado
+Ô£à SECURITY_HEADERS configurado
+Ô£à extractRealIP dispon├¡vel
+
+Ô£à Todas as fun├º├Áes exportadas corretamente
+
+============================================================
+­ƒÄë VALIDA├ç├âO EST├üTICA CONCLU├ìDA
+============================================================
+
+­ƒôï RESUMO DA IMPLEMENTA├ç├âO:
+   Ô£à Rate limit global: 100 req / 15 min por IP
+   Ô£à Security headers: CSP, XSS, Clickjacking protection
+   Ô£à Trust proxy: para Cloudflare IP real
+   Ô£à Middleware integrado no servidor principal
+
+­ƒöº PARA VALIDAR COM SERVIDOR RODANDO:
+   1. Iniciar servidor: pnpm run dev
+   2. Testar com curl: curl -I http://127.0.0.1:PORT/api/health
+   3. Verificar headers de seguran├ºa
+   4. Testar rate limit com spam de requisi├º├Áes
+   5. Monitorar logs para IP capturado
+
+­ƒôí MIDDLEWARES APLICADOS:
+trust-proxy, rate-limit-global, security-helmet
+
+ [31mÔØ»[39m server/tests/http-hardening-static-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 2000ms...
+
+{"level":50,"time":1775483296602,"timestamp":"2026-04-06T13:48:16.602Z","level":"ERROR","message":"­ƒÜ¿ HIGH ERROR RATE DETECTED","module":"error-rate-monitor","metadata":{"errorCount":4,"threshold":3,"windowMs":1000,"windowSeconds":1,"context":"ALERT","severity":"CRITICAL"}}
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:16.598Z'
+}
+
+[90mstdout[2m | tests/observability.spec.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/observability.spec.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 2250[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Observability[2m > [22mErrorRateMonitor[2m > [22mshould clear alert when errors decrease [33m1116[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Observability[2m > [22mErrorRateMonitor[2m > [22mshould remove errors outside window [33m1102[2mms[22m[39m
+[90mstdout[2m | server/services/core-business-real.test.ts[2m > [22m[2mCORE: neg├│cio real (DB)
+[22m[39m[Database] Retrying in 2000ms...
+
+stderr | server/services/core-business-real.test.ts > CORE: neg├│cio real (DB)
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:16.745Z'
+}
+
+[90mstdout[2m | tests/auth-security.test.ts[2m > [22m[2mAutentica├º├úo Segura[2m > [22m[2mdeve criar sess├úo v├ílida
+[22m[39m[Database] Retrying in 2000ms...
+
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve criar sess├úo v├ílida
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:17.161Z'
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒñû agentic secret storage: https://dotenvx.com/as2
+
+{"level":40,"time":1775483297286,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775483297286,"timestamp":"2026-04-06T13:48:17.286Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":2,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483296276,\"nextAttemptTime\":1775483326276,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483297286,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775483297286,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775483297286,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775483297288,"service":"erp-server","message":"[CB:metrics-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775483297288,"service":"erp-server","msg":"[CB:metrics-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775483297289,"service":"erp-server","message":"[CB:metrics-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483297289,"service":"erp-server","message":"[CB:metrics-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483297286,"timestamp":"2026-04-06T13:48:17.286Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483296276,\"nextAttemptTime\":1775483326276,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483297286,"timestamp":"2026-04-06T13:48:17.286Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483296276,\"nextAttemptTime\":1775483326276,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483297287,"timestamp":"2026-04-06T13:48:17.287Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483296276,\"nextAttemptTime\":1775483326276,\"averageResponseTime\":0}"}}
+{"level":50,"time":1775483297289,"timestamp":"2026-04-06T13:48:17.289Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"metrics-test","maxRetries":1,"error":"Test failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775483297289,"timestamp":"2026-04-06T13:48:17.289Z","level":"WARN","message":"Circuit breaker aberto para metrics-test","module":"query-wrapper","metadata":{"serviceName":"metrics-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483297288,\"nextAttemptTime\":1775483327288,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483297289,"timestamp":"2026-04-06T13:48:17.289Z","level":"WARN","message":"Circuit breaker aberto para metrics-test","module":"query-wrapper","metadata":{"serviceName":"metrics-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483297288,\"nextAttemptTime\":1775483327288,\"averageResponseTime\":0}"}}
+[90mstdout[2m | tests/resilience-integration.spec.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/resilience-integration.spec.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 2917[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Resilience Integration[2m > [22mTimeout Protection[2m > [22mshould timeout if operation exceeds timeoutMs [33m1026[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Resilience Integration[2m > [22mIntegration: All Three Layers[2m > [22mshould handle cascading failures gracefully [33m1011[2mms[22m[39m
+[90mstdout[2m | server/tests/multitenant/tenant-auth.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  write to custom object with { processEnv: myObject }
+
+[90mstdout[2m | tests/services/orders.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/services/orders.service.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+[90mstdout[2m | server/tests/multitenant/tenant-auth.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/multitenant/tenant-auth.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts[2m > [22m[2mIsolamento de Dados entre Tenants (Servi├ºos)
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'root'[39m,
+  envDbName: [32m'erp'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+stderr | server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:17.702Z'
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts[2m > [22m[2mIsolamento de Dados entre Tenants (Servi├ºos)
+[22m[39m[Database] Retrying in 1000ms...
+
+[90mstdout[2m | tests/services/safe-stock.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜí´©Å secrets for agents: https://dotenvx.com/as2
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒøí´©Å auth for agents: https://vestauth.com
+
+[90mstdout[2m | tests/services/clientes.service.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+
+[90mstdout[2m | server/tests/production-blindagem.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+{"level":50,"time":1775483298426,"service":"erp-server","module":"security","tenantId":1,"userId":1,"ip":"127.0.0.1","path":"/leo.ping","method":"GET","userAgent":"node","timestamp":"2026-04-06T13:48:18.424Z","severity":"CRITICAL","msg":"[LEO Rate Limit] user 1 tenant 1 IP 127.0.0.1"}
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 4000ms...
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:18.657Z'
+}
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts[2m > [22m[2mP0.7 Security - TENANT leak
+[22m[39m[TENANT-LEAK] server interno ativo em http://127.0.0.1:49238
+
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts[2m > [22m[2mIsolamento de Dados entre Tenants (Servi├ºos)
+[22m[39m[Database] Retrying in 2000ms...
+
+stderr | server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:18.735Z'
+}
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts[2m > [22m[2mP0.7 Security - TENANT leak[2m > [22m[2mhttp: bloqueia token do tenant A tentando recurso do tenant B
+[22m[39m[TENANT-MIDDLEWARE] Request received: {
+  hasUser: [33mtrue[39m,
+  user: {
+    userId: [33m111[39m,
+    tenantId: [33m1001[39m,
+    role: [32m'user'[39m,
+    iat: [33m1775483298[39m,
+    exp: [33m1775485098[39m
+  },
+  userTenantId: [33m1001[39m,
+  userTenantIdType: [32m'number'[39m,
+  headers: {
+    authorization: [32m'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2...'[39m
+  }
+}
+[TENANT-MIDDLEWARE] Processing tenantId: {
+  originalTenantId: [33m1001[39m,
+  parsedTenantId: [33m1001[39m,
+  isFinite: [33mtrue[39m,
+  isPositive: [33mtrue[39m
+}
+[TENANT-MIDDLEWARE] SUCCESS - Tenant set: { tenantId: [33m1001[39m, nextCalled: [33mtrue[39m }
+
+[90mstdout[2m | server/services/core-business-real.test.ts[2m > [22m[2mCORE: neg├│cio real (DB)
+[22m[39m[Database] Retrying in 4000ms...
+
+stderr | server/services/core-business-real.test.ts > CORE: neg├│cio real (DB)
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:18.767Z'
+}
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts[2m > [22m[2mP0.7 Security - TENANT leak[2m > [22m[2mhttp: bloqueia token do tenant A tentando recurso do tenant B
+[22m[39m[TENANT-LEAK:HTTP-CROSS] {
+  status: [33m403[39m,
+  body: {
+    success: [33mfalse[39m,
+    error: [32m'Access denied: tenant isolation'[39m,
+    tenantContext: [33m1001[39m,
+    requestedTenant: [33m1002[39m
+  }
+}
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/security/tenant-leak.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 253[2mms[22m[39m
+[90mstdout[2m | tests/auth-security.test.ts[2m > [22m[2mAutentica├º├úo Segura[2m > [22m[2mdeve criar sess├úo v├ílida
+[22m[39m[Database] Retrying in 4000ms...
+
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve criar sess├úo v├ílida
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:19.197Z'
+}
+
+[90mstdout[2m | server/tests/http-integration.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+[90mstdout[2m | server/tests/http-integration.test.ts
+[22m[39m[BOOT] loadEnv ÔÇö in├¡cio
+[ENV] carregamento de .env habilitado apenas em desenvolvimentoÔÇª
+[dotenv@17.3.1] injecting env (1) from .env -- tip: ­ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+
+[90mstdout[2m | tests/services/finance.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/services/finance.service.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts[2m > [22m[2mIsolamento vendedor A vs B (clientes.service)
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'root'[39m,
+  envDbName: [32m'erp'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+stderr | server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:20.340Z'
+}
+
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts[2m > [22m[2mIsolamento vendedor A vs B (clientes.service)
+[22m[39m[Database] Retrying in 1000ms...
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts[2m > [22m[2mIsolamento financeiro vendedor A vs B (finance.service)
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'root'[39m,
+  envDbName: [32m'erp'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+stderr | server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:20.410Z'
+}
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts[2m > [22m[2mIsolamento financeiro vendedor A vs B (finance.service)
+[22m[39m[Database] Retrying in 1000ms...
+
+[90mstdout[2m | server/tests/production-blindagem.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/production-blindagem.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 2253[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Sentry (smoke)[2m > [22mSDK exportado: captureException existe quando @sentry/node carrega [33m2115[2mms[22m[39m
+stderr | server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:20.756Z'
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts[2m > [22m[2mIsolamento de Dados entre Tenants (Servi├ºos)
+[22m[39m[Database] Retrying in 4000ms...
+
+[90mstdout[2m | tests/core/command.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  specify custom .env file path with { path: '/custom/path/.env' }
+
+[90mstdout[2m | tests/core/command.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/core/command.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+[90mstdout[2m | server/tests/enterprise-production.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  specify custom .env file path with { path: '/custom/path/.env' }
+
+{"level":40,"time":1775483301087,"service":"erp-server","message":"[CB:database-query] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":40,"time":1775483301089,"timestamp":"2026-04-06T13:48:21.089Z","level":"WARN","message":"Query timeout (10000ms)","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"error":"Circuit breaker timeout (5000ms)"}}
+{"level":50,"time":1775483301088,"service":"erp-server","msg":"[CB:database-query] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775483301099,"service":"erp-server","message":"[CB:database-query] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483301105,"service":"erp-server","message":"[CB:database-query] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483301109,"service":"erp-server","message":"[CB:database-query] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775483301100,"timestamp":"2026-04-06T13:48:21.100Z","level":"WARN","message":"Circuit breaker aberto para database-query","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483301086,\"nextAttemptTime\":1775483331088,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483301105,"timestamp":"2026-04-06T13:48:21.105Z","level":"WARN","message":"Circuit breaker aberto para database-query","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483301086,\"nextAttemptTime\":1775483331088,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775483301111,"timestamp":"2026-04-06T13:48:21.111Z","level":"WARN","message":"Circuit breaker aberto para database-query","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775483301086,\"nextAttemptTime\":1775483331088,\"averageResponseTime\":0}"}}
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve criar sess├úo v├ílida
+[SessionService] Erro ao limpar sess├Áes antigas: Error: Circuit breaker timeout (5000ms)
+    at Timeout._onTimeout (C:\ERP\server\infra\circuit-breaker.ts:100:26)
+    at listOnTimeout (node:internal/timers:605:17)
+    at processTimers (node:internal/timers:541:7)
+[SessionService] Erro ao criar sess├úo: Error: Circuit breaker OPEN para database-query
+    at CircuitBreaker.fire (C:\ERP\server\infra\circuit-breaker.ts:84:15)
+    at Module.executeWithResilience (C:\ERP\server\resilience\query-wrapper.ts:63:43)
+    at Module.executeQuery (C:\ERP\server\config\database.ts:306:10)
+    at SessionService.createSession (C:\ERP\server\_core\session.service.ts:32:13)
+    at C:\ERP\tests\auth-security.test.ts:59:28
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve rejeitar token inv├ílido
+[SessionService] Erro ao validar sess├úo: Error: Circuit breaker OPEN para database-query
+    at CircuitBreaker.fire (C:\ERP\server\infra\circuit-breaker.ts:84:15)
+    at Module.executeWithResilience (C:\ERP\server\resilience\query-wrapper.ts:63:43)
+    at Module.executeQuery (C:\ERP\server\config\database.ts:306:10)
+    at SessionService.validateSession (C:\ERP\server\_core\session.service.ts:56:31)
+    at C:\ERP\tests\auth-security.test.ts:84:42
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+
+stderr | tests/auth-security.test.ts > Backdoor Removido > deve garantir que admin-session n├úo ├® mais aceito
+[SessionService] Erro ao validar sess├úo: Error: Circuit breaker OPEN para database-query
+    at CircuitBreaker.fire (C:\ERP\server\infra\circuit-breaker.ts:84:15)
+    at Module.executeWithResilience (C:\ERP\server\resilience\query-wrapper.ts:63:43)
+    at Module.executeQuery (C:\ERP\server\config\database.ts:306:10)
+    at SessionService.validateSession (C:\ERP\server\_core\session.service.ts:56:31)
+    at C:\ERP\tests\auth-security.test.ts:103:42
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+
+stderr | tests/auth-security.test.ts > Configura├º├úo de Ambiente > deve exigir ADMIN_INITIAL_PASSWORD
+[ensureInitialAdmin] ADMIN_INITIAL_PASSWORD n├úo definido nas vari├íveis de ambiente
+[ensureInitialAdmin] Defina a vari├ível: export ADMIN_INITIAL_PASSWORD="sua_senha_segura"
+
+{"level":50,"time":1775483301152,"timestamp":"2026-04-06T13:48:21.152Z","level":"ERROR","message":"Query error: Unknown database 'erp'","module":"slow-query","error":{"message":"Unknown database 'erp'"},"query":"[object Object]","duration":10.758299999999508,"metadata":{"stack":"Error: Unknown database 'erp'\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29)\n    at MySqlSelectBase.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/select.ts:1145:25)\n    at MySqlSelectBase.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15)","code":"ER_BAD_DB_ERROR","errno":1049,"sqlState":"42000","sqlMessage":"Unknown database 'erp'"}}
+stderr | tests/auth-security.test.ts > Configura├º├úo de Ambiente > deve aceitar senha hash v├ílida
+[ensureInitialAdmin] Erro ao garantir admin inicial: DrizzleQueryError: Failed query: select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where `users`.`open_id` = ? limit ?
+params: admin,1
+    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:18)
+    at Module.getUserByOpenId (C:\ERP\server\db\core.ts:186:15)
+    at Module.ensureInitialAdmin (C:\ERP\server\_core\admin-init.ts:27:27)
+    at C:\ERP\tests\auth-security.test.ts:134:7
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15) {
+  query: 'select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where `users`.`open_id` = ? limit ?',
+  params: [ 'admin', 1 ],
+  cause: Error: Unknown database 'erp'
+      at PromisePool.query (C:\ERP\node_modules\.pnpm\mysql2@3.17.1\node_modules\mysql2\lib\promise\pool.js:36:22)
+      at C:\ERP\server\middleware\slow-query-logger.ts:133:36
+      at monitorQuery (C:\ERP\server\middleware\slow-query-logger.ts:26:10)
+      at PromisePool.connection.query (C:\ERP\server\middleware\slow-query-logger.ts:133:14)
+      at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24
+      at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)
+      at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29)
+      at MySqlSelectBase.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/select.ts:1145:25)
+      at MySqlSelectBase.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15) {
+    code: 'ER_BAD_DB_ERROR',
+    errno: 1049,
+    sql: undefined,
+    sqlState: '42000',
+    sqlMessage: "Unknown database 'erp'"
+  }
+}
+
+[90mstdout[2m | tests/auth-security.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/auth-security.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 5151[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Autentica├º├úo Segura[2m > [22mdeve criar sess├úo v├ílida [33m5088[2mms[22m[39m
+[90mstdout[2m | server/tests/enterprise-production.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts[2m > [22m[2mIsolamento vendedor A vs B (clientes.service)
+[22m[39m[Database] Retrying in 2000ms...
+
+stderr | server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:21.359Z'
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'test'[39m,
+  envDbName: [32m'test'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m­ƒº╣ Limpeza autom├ítica de mem├│ria iniciada (executa a cada 30 minutos)
+
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m­ƒº╣ Limpeza autom├ítica de mem├│ria iniciada (executa a cada 30 minutos)
+
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:21.424Z'
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39m[Database] Retrying in 1000ms...
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts[2m > [22m[2mIsolamento financeiro vendedor A vs B (finance.service)
+[22m[39m[Database] Retrying in 2000ms...
+
+stderr | server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:21.439Z'
+}
+
+[90mstdout[2m | tests/client/frontend-security.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒøá´©Å  run anywhere with `dotenvx run -- yourcommand`
+
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m[LEO Events STUB] Initialized in stub mode
+
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m[LEO Events STUB] Initialized in stub mode
+
+[90mstdout[2m | tests/client/frontend-security.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/client/frontend-security.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+[90mstdout[2m | server/tests/leo-session-gate.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+
+[90mstdout[2m | tests/services/safe-stock.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/services/safe-stock.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+[90mstdout[2m | server/tests/leo-session-gate.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts[2m > [22m[2mLEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22m[2mgetPedidoByNumeroForActor: sem registro retorna null
+[22m[39mDB CONFIG: {
+  host: [32m'localhost'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'erp'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'test'[39m,
+  envDbName: [32m'test'[39m
+}
+[Database] Creating connection pool to MySQL at localhost:3306
+
+[90mstdout[2m | server/tests/leo-session-gate.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/leo-session-gate.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 76[2mms[22m[39m
+stderr | server/tests/security/leo-pedidos-isolation.test.ts > LEO / pedidos ÔÇö isolamento e permiss├Áes > getPedidoByNumeroForActor: sem registro retorna null
+[Database] Connection test failed (attempt 1/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:21.843Z'
+}
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts[2m > [22m[2mLEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22m[2mgetPedidoByNumeroForActor: sem registro retorna null
+[22m[39m[Database] Retrying in 1000ms...
+
+[90mstdout[2m | tests/services/clientes.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m tests/services/clientes.service.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[90m 55[2mms[22m[39m
+[31m   [31m├ù[31m ClientesService[2m > [22mcreateCliente[2m > [22mdeve criar um cliente com sucesso[90m 40[2mms[22m[31m[39m
+[31m     ÔåÆ expected { success: true, data: { id: 99 } } to deeply equal { id: 99 }[39m
+[31m   [31m├ù[31m ClientesService[2m > [22mcreateCliente[2m > [22mdeve lan├ºar erro quando tenantId n├úo ├® fornecido[90m 6[2mms[22m[31m[39m
+[31m     ÔåÆ promise resolved "{ success: false, ÔÇª(1) }" instead of rejecting[39m
+[31m   [31m├ù[31m ClientesService[2m > [22mgetClienteById[2m > [22mdeve retornar null quando cliente n├úo encontrado[90m 4[2mms[22m[31m[39m
+[31m     ÔåÆ expected { success: false, ÔÇª(1) } to be null[39m
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+
+[90mstdout[2m | server/tests/security/leo-rce.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+[90mstdout[2m | server/tests/security/leo-lockdown-bypass.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ­ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+
+{"level":40,"time":1775483302416,"service":"erp-server","message":"A├º├úo bloqueada por regra: LEO NUNCA pode executar comandos shell diretamente"}
+{"level":50,"time":1775483302421,"service":"erp-server","error":"[object Object]","msg":"A├º├úo bloqueada pelo sandbox: LEO NUNCA pode executar comandos shell diretamente"}
+{"level":40,"time":1775483302424,"service":"erp-server","message":"A├º├úo bloqueada por regra: LEO NUNCA pode executar comandos shell diretamente"}
+[90mstdout[2m | server/tests/security/leo-rce.test.ts[2m > [22m[2mP0.7 Security - LEO RCE[2m > [22m[2mbloqueia payload { type:'shell', command:'ls' }
+[22m[39m[LEO-RCE] payload= { type: [32m'shell'[39m, command: [32m'ls'[39m } result= {
+  success: [33mfalse[39m,
+  error: [32m'A├º├úo bloqueada: LEO NUNCA pode executar comandos shell diretamente'[39m,
+  warnings: [90mundefined[39m
+}
+
+[90mstdout[2m | server/tests/security/leo-rce.test.ts[2m > [22m[2mP0.7 Security - LEO RCE[2m > [22m[2mbloqueia tentativa de bypass com powershell
+[22m[39m[LEO-RCE-BYPASS] result= {
+  allowed: [33mfalse[39m,
+  reason: [32m'LEO NUNCA pode executar comandos shell diretamente'[39m,
+  requiresConfirmation: [33mfalse[39m,
+  riskLevel: [32m'critical'[39m
+}
+
+[90mstdout[2m | server/tests/security/leo-rce.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/security/leo-rce.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39m[Database] Retrying in 2000ms...
+
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:22.441Z'
+}
+
+[90mstdout[2m | server/tests/enterprise-production.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/enterprise-production.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1301[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Enterprise ÔÇö Sentry[2m > [22m@sentry/node exp├Áe captureException [33m1278[2mms[22m[39m
+[90mstdout[2m | tests/error-monitor-simple.spec.ts
+[22m[39m[dotenv@17.3.1] injecting env (28) from .env.test -- tip: ÔÜÖ´©Å  specify custom .env file path with { path: '/custom/path/.env' }
+
+[90mstdout[2m | tests/error-monitor-simple.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+stderr | tests/error-monitor-simple.spec.ts > ErrorRateMonitor Simple Test > should exist and be importable
+Import error: Error: Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?
+    at loadAndTransform (file:///C:/ERP/node_modules/.pnpm/vite@5.4.21_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17)
+    at async ViteNodeServer._transformRequest (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/server.mjs:542:16)
+    at async ViteNodeServer._fetchModule (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/server.mjs:504:17)
+    at async Proxy.fetch (file:///C:/ERP/node_modules/.pnpm/vitest@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vitest/dist/chunks/resolveConfig.rBxzbVsl.js:6617:22)
+    at async EventEmitter.onMessage (file:///C:/ERP/node_modules/.pnpm/vitest@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vitest/dist/chunks/index.68735LiX.js:91:20)
+
+[90mstdout[2m | tests/error-monitor-simple.spec.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m tests/error-monitor-simple.spec.ts [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[90m 12[2mms[22m[39m
+[31m   [31m├ù[31m ErrorRateMonitor Simple Test[2m > [22mshould exist and be importable[90m 6[2mms[22m[31m[39m
+[31m     ÔåÆ Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?[39m
+[31m   [31m├ù[31m ErrorRateMonitor Simple Test[2m > [22mshould create instance with default config[90m 3[2mms[22m[31m[39m
+[31m     ÔåÆ Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?[39m
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 8000ms...
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 4/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:22.691Z'
+}
+
+stderr | server/services/core-business-real.test.ts > CORE: neg├│cio real (DB)
+[Database] Connection test failed (attempt 4/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:22.786Z'
+}
+
+[90mstdout[2m | server/services/core-business-real.test.ts[2m > [22m[2mCORE: neg├│cio real (DB)
+[22m[39m[Database] Retrying in 8000ms...
+
+stderr | server/tests/security/leo-pedidos-isolation.test.ts > LEO / pedidos ÔÇö isolamento e permiss├Áes > getPedidoByNumeroForActor: sem registro retorna null
+[Database] Connection test failed (attempt 2/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:22.857Z'
+}
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts[2m > [22m[2mLEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22m[2mgetPedidoByNumeroForActor: sem registro retorna null
+[22m[39m[Database] Retrying in 2000ms...
+
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts[2m > [22m[2mIsolamento vendedor A vs B (clientes.service)
+[22m[39m[Database] Retrying in 4000ms...
+
+stderr | server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:23.381Z'
+}
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts[2m > [22m[2mIsolamento financeiro vendedor A vs B (finance.service)
+[22m[39m[Database] Retrying in 4000ms...
+
+stderr | server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:23.463Z'
+}
+
+stderr | tests/internal-status-endpoint.spec.ts
+
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ           ÔØî ERRO CR├ìTICO: ENVIRONMENT INV├üLIDO             Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+
+­ƒôï VARI├üVEIS INV├üLIDAS OU FALTANDO:
+
+  1. NODE_ENV
+     ÔööÔöÇ Invalid option: expected one of "development"|"production"
+
+­ƒôû SOLU├ç├âO:
+  1. Copie .env.example para .env
+     $ cp .env.example .env
+
+  2. Configure todas as vari├íveis obrigat├│rias:
+     - DATABASE_URL (mysql://user:pass@host:3306/db)
+     - JWT_ACCESS_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - JWT_REFRESH_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - APP_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - REDIS_HOST e REDIS_PORT
+
+  3. Reinicie o servidor
+
+­ƒöÉ NOTA DE SEGURAN├çA (PRODU├ç├âO):
+  Em NODE_ENV=production, JWT secrets devem ter M├ìNIMO 64 caracteres
+  Use: openssl rand -base64 32 | head -c 64
+
+
+stderr | server/tests/security.test.ts
+
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ           ÔØî ERRO CR├ìTICO: ENVIRONMENT INV├üLIDO             Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+
+­ƒôï VARI├üVEIS INV├üLIDAS OU FALTANDO:
+
+  1. NODE_ENV
+     ÔööÔöÇ Invalid option: expected one of "development"|"production"
+
+­ƒôû SOLU├ç├âO:
+  1. Copie .env.example para .env
+     $ cp .env.example .env
+
+  2. Configure todas as vari├íveis obrigat├│rias:
+     - DATABASE_URL (mysql://user:pass@host:3306/db)
+     - JWT_ACCESS_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - JWT_REFRESH_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - APP_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - REDIS_HOST e REDIS_PORT
+
+  3. Reinicie o servidor
+
+­ƒöÉ NOTA DE SEGURAN├çA (PRODU├ç├âO):
+  Em NODE_ENV=production, JWT secrets devem ter M├ìNIMO 64 caracteres
+  Use: openssl rand -base64 32 | head -c 64
+
+
+ [31mÔØ»[39m tests/internal-status-endpoint.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31mÔØ»[39m server/tests/security.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39m[Database] Retrying in 4000ms...
+
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:24.458Z'
+}
+
+ [32mÔ£ô[39m server/tests/security/leo-lockdown-bypass.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+[90mstdout[2m | server/tests/security/leo-lockdown-bypass.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+Ô£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts[2m > [22m[2mIsolamento de Dados entre Tenants (Servi├ºos)
+[22m[39m[Database] Retrying in 8000ms...
+
+stderr | server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+[Database] Connection test failed (attempt 4/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:24.771Z'
+}
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts[2m > [22m[2mLEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22m[2mgetPedidoByNumeroForActor: sem registro retorna null
+[22m[39m[Database] Retrying in 4000ms...
+
+stderr | server/tests/security/leo-pedidos-isolation.test.ts > LEO / pedidos ÔÇö isolamento e permiss├Áes > getPedidoByNumeroForActor: sem registro retorna null
+[Database] Connection test failed (attempt 3/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:24.878Z'
+}
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts
+[22m[39mROUTES REGISTERED {
+  clients: [32m'/api/clients'[39m,
+  orders: [32m'/api/orders'[39m,
+  payments: [32m'/api/payments'[39m
+}
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ NODE_ENV=test
+­ƒº¬ TENANT_ID=1
+­ƒº¬ DATABASE_URL=mysql://root:root@localhost:3306/erp
+­ƒº¬ REDIS_DISABLED=false
+Ô£à TEST MODE ACTIVATED
+Ô£à DATABASE: DEFAULT
+Ô£à SKIP_DB_TESTS: false (use real DB)
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts[2m > [22m[2mP0.7 Security - AUTH bypass
+[22m[39m[AUTH-BYPASS] server interno ativo em http://127.0.0.1:49274
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts[2m > [22m[2mP0.7 Security - AUTH bypass[2m > [22m[2mnega endpoint protegido sem token
+[22m[39m[AUTH-BYPASS:NO-TOKEN] {
+  status: [33m401[39m,
+  body: {
+    success: [33mfalse[39m,
+    error: [32m'No authorization header'[39m,
+    message: [32m'Authorization token is required'[39m
+  }
+}
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts[2m > [22m[2mP0.7 Security - AUTH bypass[2m > [22m[2mnega endpoint protegido com bearer inv├ílido
+[22m[39m[AUTH-BYPASS:INVALID-TOKEN] {
+  status: [33m401[39m,
+  body: {
+    success: [33mfalse[39m,
+    error: [32m'Invalid or expired token'[39m,
+    message: [32m'Authentication failed'[39m
+  }
+}
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/security/auth-bypass.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 106[2mms[22m[39m
+[90mstdout[2m | server/services/core-business-real.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/services/core-business-real.test.ts [2m([22m[2m6 tests[22m[2m | [22m[33m6 skipped[39m[2m)[22m[33m 10057[2mms[22m[39m
+[90mstdout[2m | server/tests/http-integration.test.ts
+[22m[39m­ƒº╣ Limpeza autom├ítica de mem├│ria iniciada (executa a cada 30 minutos)
+
+[90mstdout[2m | server/tests/http-integration.test.ts
+[22m[39m[LEO Events STUB] Initialized in stub mode
+
+stderr | server/tests/http-integration.test.ts
+
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ           ÔØî ERRO CR├ìTICO: ENVIRONMENT INV├üLIDO             Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+
+­ƒôï VARI├üVEIS INV├üLIDAS OU FALTANDO:
+
+  1. NODE_ENV
+     ÔööÔöÇ Invalid option: expected one of "development"|"production"
+
+­ƒôû SOLU├ç├âO:
+  1. Copie .env.example para .env
+     $ cp .env.example .env
+
+  2. Configure todas as vari├íveis obrigat├│rias:
+     - DATABASE_URL (mysql://user:pass@host:3306/db)
+     - JWT_ACCESS_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - JWT_REFRESH_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - APP_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - REDIS_HOST e REDIS_PORT
+
+  3. Reinicie o servidor
+
+­ƒöÉ NOTA DE SEGURAN├çA (PRODU├ç├âO):
+  Em NODE_ENV=production, JWT secrets devem ter M├ìNIMO 64 caracteres
+  Use: openssl rand -base64 32 | head -c 64
+
+
+ [31mÔØ»[39m server/tests/http-integration.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31mÔØ»[39m server/tests/security/leo-pedidos-isolation.test.ts [2m([22m[2m6 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 5066[2mms[22m[39m
+[31m   [31m├ù[31m LEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22mgetPedidoByNumeroForActor: sem registro retorna null[33m 5054[2mms[22m[31m[39m
+[31m     ÔåÆ Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts[2m > [22m[2mIsolamento vendedor A vs B (clientes.service)
+[22m[39m[Database] Retrying in 8000ms...
+
+stderr | server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+[Database] Connection test failed (attempt 4/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:27.395Z'
+}
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts[2m > [22m[2mIsolamento financeiro vendedor A vs B (finance.service)
+[22m[39m[Database] Retrying in 8000ms...
+
+stderr | server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+[Database] Connection test failed (attempt 4/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:27.474Z'
+}
+
+{"level":50,"time":1775483307658,"timestamp":"2026-04-06T13:48:27.657Z","level":"ERROR","message":"Query error: Unknown database 'erp'","module":"slow-query","error":{"message":"Unknown database 'erp'"},"query":"[object Object]","duration":8.068699999999808,"metadata":{"stack":"Error: Unknown database 'erp'\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)\n    at QueryPromise.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/delete.ts:200:25)\n    at QueryPromise.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15)","code":"ER_BAD_DB_ERROR","errno":1049,"sqlState":"42000","sqlMessage":"Unknown database 'erp'"}}
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/multitenant/tenant-isolation.test.ts [2m([22m[2m6 tests[22m[2m | [22m[33m6 skipped[39m[2m)[22m[33m 10090[2mms[22m[39m
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39m[Database] Retrying in 8000ms...
+
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+[Database] Connection test failed (attempt 4/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:28.467Z'
+}
+
+{"level":50,"time":1775483310327,"timestamp":"2026-04-06T13:48:30.326Z","level":"ERROR","message":"Query error: Unknown database 'erp'","module":"slow-query","error":{"message":"Unknown database 'erp'"},"query":"[object Object]","duration":10.270500000000538,"metadata":{"stack":"Error: Unknown database 'erp'\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)\n    at QueryPromise.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/delete.ts:200:25)\n    at QueryPromise.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15)","code":"ER_BAD_DB_ERROR","errno":1049,"sqlState":"42000","sqlMessage":"Unknown database 'erp'"}}
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/security/vendedor-cliente-isolation.service.test.ts [2m([22m[2m3 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[33m 10110[2mms[22m[39m
+{"level":50,"time":1775483310393,"timestamp":"2026-04-06T13:48:30.393Z","level":"ERROR","message":"Query error: Unknown database 'erp'","module":"slow-query","error":{"message":"Unknown database 'erp'"},"query":"[object Object]","duration":9.636000000000422,"metadata":{"stack":"Error: Unknown database 'erp'\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)\n    at QueryPromise.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/delete.ts:200:25)\n    at QueryPromise.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15)","code":"ER_BAD_DB_ERROR","errno":1049,"sqlState":"42000","sqlMessage":"Unknown database 'erp'"}}
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/security/vendedor-finance-isolation.service.test.ts [2m([22m[2m4 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m[33m 10095[2mms[22m[39m
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 16000ms...
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 5/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:30.714Z'
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39m[Database] Retrying in 16000ms...
+
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+[Database] Connection test failed (attempt 5/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:36.480Z'
+}
+
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 32000ms...
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 6/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:46.722Z'
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39m[Database] Retrying in 32000ms...
+
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+[Database] Connection test failed (attempt 6/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:48:52.506Z'
+}
+
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 64000ms...
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 7/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:49:18.743Z'
+}
+
+{"level":50,"time":1775483361423,"timestamp":"2026-04-06T13:49:21.423Z","level":"ERROR","message":"Query error: Unknown database 'erp'","module":"slow-query","error":{"message":"Unknown database 'erp'"},"query":"[object Object]","duration":12.391300000002957,"metadata":{"stack":"Error: Unknown database 'erp'\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)\n    at QueryPromise.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/insert.ts:323:25)\n    at QueryPromise.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15)","code":"ER_BAD_DB_ERROR","errno":1049,"sqlState":"42000","sqlMessage":"Unknown database 'erp'"}}
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > createProduto deve vincular o tenantId corretamente
+Erro ao criar produto: DrizzleQueryError: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 1775483361402,50
+    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16)
+    at Module.createProduto (C:\ERP\server\services\inventory.service.ts:75:20)
+    at C:\ERP\server\tests\multitenant\tenant-service.test.ts:51:18
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+  query: 'insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)',
+  params: [ 2001, 'Prod T1 1775483361402', 50 ],
+  cause: Error: Unknown database 'erp'
+      at PromisePool.query (C:\ERP\node_modules\.pnpm\mysql2@3.17.1\node_modules\mysql2\lib\promise\pool.js:36:22)
+      at C:\ERP\server\middleware\slow-query-logger.ts:133:36
+      at monitorQuery (C:\ERP\server\middleware\slow-query-logger.ts:26:10)
+      at PromisePool.connection.query (C:\ERP\server\middleware\slow-query-logger.ts:133:14)
+      at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+      at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)
+      at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)
+      at QueryPromise.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/insert.ts:323:25)
+      at QueryPromise.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15) {
+    code: 'ER_BAD_DB_ERROR',
+    errno: 1049,
+    sql: undefined,
+    sqlState: '42000',
+    sqlMessage: "Unknown database 'erp'"
+  }
+}
+
+{"level":50,"time":1775483361435,"timestamp":"2026-04-06T13:49:21.435Z","level":"ERROR","message":"Query error: Unknown database 'erp'","module":"slow-query","error":{"message":"Unknown database 'erp'"},"query":"[object Object]","duration":8.035600000002887,"metadata":{"stack":"Error: Unknown database 'erp'\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)\n    at QueryPromise.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/insert.ts:323:25)\n    at QueryPromise.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)","code":"ER_BAD_DB_ERROR","errno":1049,"sqlState":"42000","sqlMessage":"Unknown database 'erp'"}}
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > updateEstoqueProduto deve falhar se o produto n├úo pertencer ao tenant
+Erro ao criar produto: DrizzleQueryError: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 para Estoque,10
+    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16)
+    at Module.createProduto (C:\ERP\server\services\inventory.service.ts:75:20)
+    at C:\ERP\server\tests\multitenant\tenant-service.test.ts:70:18
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts
+[22m[39mÔ£à TEST MODE CLEANUP
+­ƒº¬ Finalizando ambiente de testes
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+  query: 'insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)',
+  params: [ 2001, 'Prod T1 para Estoque', 10 ],
+  cause: Error: Unknown database 'erp'
+      at PromisePool.query (C:\ERP\node_modules\.pnpm\mysql2@3.17.1\node_modules\mysql2\lib\promise\pool.js:36:22)
+
+      at C:\ERP\server\middleware\slow-query-logger.ts:133:36
+      at monitorQuery (C:\ERP\server\middleware\slow-query-logger.ts:26:10)
+      at PromisePool.connection.query (C:\ERP\server\middleware\slow-query-logger.ts:133:14)
+      at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+      at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)
+      at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)
+      at QueryPromise.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/insert.ts:323:25)
+      at QueryPromise.then (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5) {
+    code: 'ER_BAD_DB_ERROR',
+    errno: 1049,
+    sql: undefined,
+    sqlState: '42000',
+    sqlMessage: "Unknown database 'erp'"
+  }
+}
+
+ [31mÔØ»[39m server/tests/multitenant/tenant-service.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 60100[2mms[22m[39m
+[31m   [31m├ù[31m Valida├º├úo Direta de Filtros em Servi├ºos[2m > [22mupsertUser deve respeitar o tenantId fornecido[33m 60060[2mms[22m[31m[39m
+[31m     ÔåÆ Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[31m   [31m├ù[31m Valida├º├úo Direta de Filtros em Servi├ºos[2m > [22mcreateProduto deve vincular o tenantId corretamente[90m 27[2mms[22m[31m[39m
+[31m     ÔåÆ Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 1775483361402,50[39m
+[31m   [31m├ù[31m Valida├º├úo Direta de Filtros em Servi├ºos[2m > [22mupdateEstoqueProduto deve falhar se o produto n├úo pertencer ao tenant[90m 10[2mms[22m[31m[39m
+[31m     ÔåÆ Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 para Estoque,10[39m
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 128000ms...
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 8/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:50:22.766Z'
+}
+
+[90mstdout[2m | tests/integration/pedidos-heavy.integration.test.ts
+[22m[39m[Database] Retrying in 256000ms...
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 9/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:52:30.780Z'
+}
+
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+[Database] Connection test failed (attempt 10/10): {
+  message: "Unknown database 'erp'",
+  code: 'ER_BAD_DB_ERROR',
+  errno: 1049,
+  sqlState: '42000',
+  fatal: undefined,
+  stack: "Error: Unknown database 'erp'\n" +
+    '    at Packet.asError (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packets\\packet.js:739:17)\n' +
+    '    at ClientHandshake.execute (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\commands\\command.js:29:26)\n' +
+    '    at PoolConnection.handlePacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:508:34)\n' +
+    '    at PacketParser.onPacket (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n' +
+    '    at PacketParser.executeStart (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n' +
+    '    at Socket.<anonymous> (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n' +
+    '    at Socket.emit (node:events:508:28)\n' +
+    '    at addChunk (node:internal/streams/readable:563:12)\n' +
+    '    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n' +
+    '    at Socket.Readable.push (node:internal/streams/readable:394:5)',
+  timestamp: '2026-04-06T13:56:46.804Z'
+}
+[Database] Failed to create connection pool: Error: Failed to connect to database after 10 attempts: Unknown database 'erp' (code: ER_BAD_DB_ERROR)
+    at testPool (C:\ERP\server\config\database.ts:273:9)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at Module.getConnectionPool (C:\ERP\server\config\database.ts:198:5)
+    at Module.getDb (C:\ERP\server\db\core.ts:79:12)
+    at C:\ERP\tests\integration\pedidos-heavy.integration.test.ts:42:16
+    at VitestExecutor.runModule (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/client.mjs:399:5)
+    at VitestExecutor.directRequest (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/client.mjs:381:5)
+    at VitestExecutor.cachedRequest (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/client.mjs:206:14)
+    at VitestExecutor.executeId (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/client.mjs:173:12)
+    at collectTests (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:851:7)
+
+[pedidos-heavy] MySQL indispon├¡vel ÔÇö su├¡te ignorada.
+
+
+ [31mÔØ»[39m tests/integration/pedidos-heavy.integration.test.ts [2m([22m[2m0 test[22m[2m)[22m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Suites 16 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/internal-status-endpoint.spec.ts [ tests/internal-status-endpoint.spec.ts ]
+ FAIL  server/tests/http-integration.test.ts [ server/tests/http-integration.test.ts ]
+ FAIL  server/tests/security.test.ts [ server/tests/security.test.ts ]
+Error: process.exit unexpectedly called with "1"
+ ÔØ» Module.exitProcessInProductionUnlessDevelopment server/_core/dev-process-exit.ts:6:13
+      4| export function exitProcessInProductionUnlessDevelopment(code: number ÔÇª
+      5|   if (process.env.NODE_ENV !== "development") {
+      6|     process.exit(code);
+       |             ^
+      7|   }
+      8|   console.error("ÔØî ERRO CAPTURADO EM DEV - N├âO ENCERRANDO");
+ ÔØ» validateEnv server/config/env.ts:208:5
+ ÔØ» getEnv server/config/env.ts:220:17
+ ÔØ» server/config/env.ts:428:20
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/28]ÔÄ»
+
+ FAIL  tests/integration/ownership.test.ts [ tests/integration/ownership.test.ts ]
+ReferenceError: INTEGRATION_DB_READY is not defined
+ ÔØ» tests/integration/ownership.test.ts:55:18
+     53| const actorAdmin: ServiceActor = { role: "admin", userId: 9999 };
+     54| 
+     55| describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REÔÇª
+       |                  ^
+     56|   beforeAllWithServiceContext(async () => {
+     57|     const conn = await getDb();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/28]ÔÄ»
+
+ FAIL  tests/integration/pedidos-heavy.integration.test.ts [ tests/integration/pedidos-heavy.integration.test.ts ]
+ReferenceError: INTEGRATION_DB_READY is not defined
+ ÔØ» tests/integration/pedidos-heavy.integration.test.ts:67:18
+     65| const pedidosCriados = new Set<number>();
+     66| 
+     67| describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS ÔÇö integra├º├úo pesada + ÔÇª
+       |                  ^
+     68|   beforeAllWithServiceContext(async () => {
+     69|     const conn = await getDb();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/28]ÔÄ»
+
+ FAIL  server/tests/audit-hardening-simple.test.ts [ server/tests/audit-hardening-simple.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/audit-hardening-simple.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/28]ÔÄ»
+
+ FAIL  server/tests/audit-hardening-validation.test.ts [ server/tests/audit-hardening-validation.test.ts ]
+ FAIL  server/tests/audit-hardening.test.ts [ server/tests/audit-hardening.test.ts ]
+Error: Failed to load url @jest/globals (resolved id: @jest/globals) in C:/ERP/server/tests/audit-hardening-validation.test.ts. Does the file exist?
+ ÔØ» loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/28]ÔÄ»
+
+ FAIL  server/tests/audit-validation.test.ts [ server/tests/audit-validation.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/audit-validation.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/28]ÔÄ»
+
+ FAIL  server/tests/http-hardening-static-validation.test.ts [ server/tests/http-hardening-static-validation.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/http-hardening-static-validation.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/28]ÔÄ»
+
+ FAIL  server/tests/http-hardening-validation.test.ts [ server/tests/http-hardening-validation.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/http-hardening-validation.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/28]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests
+Error: process.exit unexpectedly called with "1"
+ ÔØ» server/tests/schema-consistency.test.ts:67:15
+     65|     } catch (err: any) {
+     66|       console.error('ÔØî Falha ao conectar ao banco:', err.message);
+     67|       process.exit(1);
+       |               ^
+     68|     }
+     69|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[9/28]ÔÄ»
+
+ FAIL  server/services/core-business-real.test.ts > CORE: neg├│cio real (DB)
+ FAIL  server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+ FAIL  server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+ FAIL  server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+Error: Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[10/28]ÔÄ»
+
+ FAIL  server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+Error: Failed query: delete from `cliente_vendedores` where (`cliente_vendedores`.`cliente_id` = ? and `cliente_vendedores`.`vendedor_id` = ?)
+params: ,
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16
+ ÔØ» server/tests/security/vendedor-cliente-isolation.service.test.ts:59:5
+     57|     const db = await getDb();
+     58|     if (!db) return;
+     59|     await db.delete(clienteVendedores).where(
+       |     ^
+     60|       and(eq(clienteVendedores.clienteId, clienteSoloId), eq(clienteVeÔÇª
+     61|     );
+
+Caused by: Error: Unknown database 'erp'
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27
+ ÔØ» QueryPromise.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/delete.ts:200:25
+ ÔØ» QueryPromise.then node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_BAD_DB_ERROR', errno: 1049, sql: undefined, sqlState: '42000', sqlMessage: 'Unknown database \'erp\'' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[11/28]ÔÄ»
+
+ FAIL  server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+Error: Failed query: delete from `contas_receber` where (`contas_receber`.`tenant_id` = ? and `contas_receber`.`id` = ?)
+params: 9191,
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16
+ ÔØ» server/tests/security/vendedor-finance-isolation.service.test.ts:63:5
+     61|     const db = await getDb();
+     62|     if (!db) return;
+     63|     await db.delete(contasReceber).where(and(eq(contasReceber.tenantIdÔÇª
+       |     ^
+     64|     await db.delete(vendedores).where(eq(vendedores.id, vendedorAId));
+     65|     await db.delete(vendedores).where(eq(vendedores.id, vendedorBId));
+
+Caused by: Error: Unknown database 'erp'
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27
+ ÔØ» QueryPromise.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/delete.ts:200:25
+ ÔØ» QueryPromise.then node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_BAD_DB_ERROR', errno: 1049, sql: undefined, sqlState: '42000', sqlMessage: 'Unknown database \'erp\'' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[12/28]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+Error: Failed query: delete from `pedidos` where `pedidos`.`tenant_id` = ?
+params: 1001
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16
+ ÔØ» server/tests/multitenant/tenant-isolation.test.ts:67:7
+     65|     if (db) {
+     66|       // Limpeza final
+     67|       await db.delete(pedidos).where(eq(pedidos.tenantId, TENANT_A));
+       |       ^
+     68|       await db.delete(produtos).where(eq(produtos.tenantId, TENANT_A));
+     69|       await db.delete(clientes).where(eq(clientes.tenantId, TENANT_A));
+
+Caused by: Error: Unknown database 'erp'
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27
+ ÔØ» QueryPromise.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/delete.ts:200:25
+ ÔØ» QueryPromise.then node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_BAD_DB_ERROR', errno: 1049, sql: undefined, sqlState: '42000', sqlMessage: 'Unknown database \'erp\'' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[13/28]ÔÄ»
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 9 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/error-monitor-simple.spec.ts > ErrorRateMonitor Simple Test > should exist and be importable
+ FAIL  tests/error-monitor-simple.spec.ts > ErrorRateMonitor Simple Test > should create instance with default config
+Error: Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?
+ ÔØ» loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[14/28]ÔÄ»
+
+ FAIL  tests/services/clientes.service.test.ts > ClientesService > createCliente > deve criar um cliente com sucesso
+AssertionError: expected { success: true, data: { id: 99 } } to deeply equal { id: 99 }
+
+- Expected
++ Received
+
+  Object {
++   "data": Object {
+      "id": 99,
++   },
++   "success": true,
+  }
+
+ ÔØ» tests/services/clientes.service.test.ts:45:22
+     43|       const result = await clientesService.createCliente(1, clienteDatÔÇª
+     44| 
+     45|       expect(result).toEqual({ id: 99 });
+       |                      ^
+     46|       expect(mockDb.insert).toHaveBeenCalled();
+     47|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[15/28]ÔÄ»
+
+ FAIL  tests/services/clientes.service.test.ts > ClientesService > createCliente > deve lan├ºar erro quando tenantId n├úo ├® fornecido
+AssertionError: promise resolved "{ success: false, ÔÇª(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "error": "tenantId obrigat├│rio",
++   "success": false,
++ }
+
+ ÔØ» tests/services/clientes.service.test.ts:55:7
+     53|           telefone: "11999999999",
+     54|         })
+     55|       ).rejects.toThrow(/tenantId obrigat├│rio/);
+       |       ^
+     56|     });
+     57|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[16/28]ÔÄ»
+
+ FAIL  tests/services/clientes.service.test.ts > ClientesService > getClienteById > deve retornar null quando cliente n├úo encontrado
+AssertionError: expected { success: false, ÔÇª(1) } to be null
+
+- Expected: 
+null
+
++ Received: 
+Object {
+  "error": "Cliente n├úo encontrado",
+  "success": false,
+}
+
+ ÔØ» tests/services/clientes.service.test.ts:70:22
+     68| 
+     69|       const result = await clientesService.getClienteById(1, ADMIN_ACTÔÇª
+     70|       expect(result).toBeNull();
+       |                      ^
+     71|     });
+     72|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[17/28]ÔÄ»
+
+ FAIL  server/tests/security/leo-pedidos-isolation.test.ts > LEO / pedidos ÔÇö isolamento e permiss├Áes > getPedidoByNumeroForActor: sem registro retorna null
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[18/28]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+Error: Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[19/28]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > createProduto deve vincular o tenantId corretamente
+Error: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 1775483361402,50
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16
+ ÔØ» Module.createProduto server/services/inventory.service.ts:75:20
+     73|     if (!dbConn) throw new Error("Database not available");
+     74|     
+     75|     const result = await dbConn.insert(produtos).values({
+       |                    ^
+     76|       ...data,
+     77|       tenantId,
+ ÔØ» server/tests/multitenant/tenant-service.test.ts:51:18
+
+Caused by: Error: Unknown database 'erp'
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27
+ ÔØ» QueryPromise.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/insert.ts:323:25
+ ÔØ» QueryPromise.then node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_BAD_DB_ERROR', errno: 1049, sql: undefined, sqlState: '42000', sqlMessage: 'Unknown database \'erp\'' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[20/28]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > updateEstoqueProduto deve falhar se o produto n├úo pertencer ao tenant
+Error: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 para Estoque,10
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16
+ ÔØ» Module.createProduto server/services/inventory.service.ts:75:20
+     73|     if (!dbConn) throw new Error("Database not available");
+     74|     
+     75|     const result = await dbConn.insert(produtos).values({
+       |                    ^
+     76|       ...data,
+     77|       tenantId,
+ ÔØ» server/tests/multitenant/tenant-service.test.ts:70:18
+
+Caused by: Error: Unknown database 'erp'
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27
+ ÔØ» QueryPromise.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/query-builders/insert.ts:323:25
+ ÔØ» QueryPromise.then node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/query-promise.ts:31:15
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_BAD_DB_ERROR', errno: 1049, sql: undefined, sqlState: '42000', sqlMessage: 'Unknown database \'erp\'' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[21/28]ÔÄ»
+
+[2m Test Files [22m [1m[31m20 failed[39m[22m[2m | [22m[1m[32m23 passed[39m[22m[90m (43)[39m
+[2m      Tests [22m [1m[31m9 failed[39m[22m[2m | [22m[1m[32m196 passed[39m[22m[2m | [22m[33m85 skipped[39m[90m (290)[39m
+[2m   Start at [22m 10:48:09
+[2m   Duration [22m 516.99s[2m (transform 8.10s, setup 5.96s, collect 83.44s, tests 120.32s, environment 17ms, prepare 10.47s)[22m
+
+ÔÇëELIFECYCLEÔÇë Test failed. See above for more details.

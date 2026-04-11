@@ -5,6 +5,8 @@
  * Evita uso de 'any' e garante validação robusta
  */
 
+import { ValidationError } from './errors/typed-errors.js';
+
 /**
  * Type guard para strings
  */
@@ -117,12 +119,12 @@ export function validatePayload<T extends Record<string, unknown>>(
   requiredKeys: (keyof T)[]
 ): T {
   if (!isObject(payload)) {
-    throw new Error('Payload deve ser um objeto');
+    throw new ValidationError('Payload deve ser um objeto');
   }
 
   const missing = requiredKeys.filter(key => !(key in payload));
   if (missing.length > 0) {
-    throw new Error(`Campos obrigatórios faltando: ${missing.join(', ')}`);
+    throw new ValidationError(`Campos obrigatórios faltando: ${missing.join(', ')}`);
   }
 
   return payload as T;
@@ -133,7 +135,7 @@ export function validatePayload<T extends Record<string, unknown>>(
  */
 export function validateMotivo(motivo: unknown): string {
   if (!isNonEmptyString(motivo)) {
-    throw new Error('Motivo inválido: deve ser uma string não vazia');
+    throw new ValidationError('Motivo inválido: deve ser uma string não vazia');
   }
   return motivo.trim();
 }
@@ -143,7 +145,7 @@ export function validateMotivo(motivo: unknown): string {
  */
 export function validateMetadata(metadata: unknown): Record<string, unknown> {
   if (!isObject(metadata)) {
-    throw new Error('Metadata inválido: deve ser um objeto');
+    throw new ValidationError('Metadata inválido: deve ser um objeto');
   }
   return metadata;
 }
@@ -153,7 +155,7 @@ export function validateMetadata(metadata: unknown): Record<string, unknown> {
  */
 export function validateId(id: unknown): number {
   if (!isPositiveInteger(id)) {
-    throw new Error('ID inválido: deve ser um número inteiro positivo');
+    throw new ValidationError('ID inválido: deve ser um número inteiro positivo');
   }
   return id;
 }
@@ -171,7 +173,7 @@ export function isPositiveInteger(value: unknown): value is number {
 export function validateTenantId(tenantId: unknown): number {
   const id = validateId(tenantId);
   if (id > 999999) {
-    throw new Error('Tenant ID inválido: valor muito alto');
+    throw new ValidationError('Tenant ID inválido: valor muito alto');
   }
   return id;
 }
@@ -185,7 +187,7 @@ export function validatePagination(params: unknown): {
   offset: number;
 } {
   if (!isObject(params)) {
-    throw new Error('Parâmetros de paginação inválidos');
+    throw new ValidationError('Parâmetros de paginação inválidos');
   }
 
   const page = isNumber(params.page) ? Math.max(1, params.page) : 1;
@@ -237,18 +239,18 @@ export function sanitizeString(value: unknown): string {
  */
 export function validateFileName(fileName: unknown): string {
   if (!isNonEmptyString(fileName)) {
-    throw new Error('Nome de arquivo inválido');
+    throw new ValidationError('Nome de arquivo inválido');
   }
 
   const sanitized = sanitizeString(fileName);
   const invalidChars = /[<>:"/\\|?*]/;
   
   if (invalidChars.test(sanitized)) {
-    throw new Error('Nome de arquivo contém caracteres inválidos');
+    throw new ValidationError('Nome de arquivo contém caracteres inválidos');
   }
 
   if (sanitized.length > 255) {
-    throw new Error('Nome de arquivo muito longo (máximo 255 caracteres)');
+    throw new ValidationError('Nome de arquivo muito longo (máximo 255 caracteres)');
   }
 
   return sanitized;

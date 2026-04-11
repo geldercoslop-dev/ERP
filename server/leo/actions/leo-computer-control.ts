@@ -8,6 +8,7 @@
 import { spawn, exec, ChildProcess } from 'child_process';
 import { promisify } from 'util';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
+import { InfrastructureError } from '../../_core/errors/typed-errors.js';
 import { resolve, join } from 'path';
 import { existsSync } from 'fs';
 import { leoDesktopSandbox, type DesktopAction } from '../security/leo-desktop-sandbox.js';
@@ -59,7 +60,7 @@ export class LeoComputerControl {
       const fullPath = this.resolveScriptPath(scriptPath);
       
       if (!existsSync(fullPath)) {
-        throw new Error(`Script não encontrado: ${fullPath}`);
+        throw new InfrastructureError(`Script não encontrado: ${fullPath}`);
       }
 
       console.log(`[LeoComputerControl] Executando script via sandbox: ${fullPath}`);
@@ -185,7 +186,7 @@ export class LeoComputerControl {
       const fullPath = resolve(filePath);
       
       if (!existsSync(fullPath)) {
-        throw new Error(`Arquivo/pasta não encontrado: ${fullPath}`);
+        throw new InfrastructureError(`Arquivo/pasta não encontrado: ${fullPath}`);
       }
 
       console.log(`[LeoComputerControl] Abrindo: ${fullPath}`);
@@ -241,7 +242,7 @@ export class LeoComputerControl {
       const fullPath = resolve(dirPath);
       
       if (!existsSync(fullPath)) {
-        throw new Error(`Diretório não encontrado: ${fullPath}`);
+        throw new InfrastructureError(`Diretório não encontrado: ${fullPath}`);
       }
 
       console.log(`[LeoComputerControl] Listando arquivos em: ${fullPath}`);

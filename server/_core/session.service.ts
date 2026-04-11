@@ -3,6 +3,7 @@
 
 import { nanoid } from "nanoid";
 import { executeQuery } from "../config/database.js";
+import { InfrastructureError } from "./errors/typed-errors.js";
 
 interface SessionData {
   userId: number;
@@ -37,7 +38,7 @@ export class SessionService {
       return sessionToken;
     } catch (error) {
       console.error('[SessionService] Erro ao criar sessão:', error);
-      throw new Error('Falha ao criar sessão');
+      throw new InfrastructureError('Falha ao criar sessão');
     }
   }
 
@@ -170,8 +171,8 @@ export class SessionService {
       const rowList = (rows as Array<{ token: string; createdAt: Date; expiresAt: Date }>) ?? [];
       return rowList;
     } catch (error) {
-      console.error('[SessionService] Erro ao listar sessões:', error);
-      return [];
+      console.error('[SessionService] Erro ao listar sessões do usuário:', error);
+      throw new InfrastructureError('Falha ao listar sessões do usuário');
     }
   }
 }

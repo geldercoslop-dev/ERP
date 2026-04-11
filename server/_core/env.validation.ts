@@ -1,4 +1,5 @@
 import { createLogger } from "../infra/structured-logger.js";
+import { ENV_SECRET_MIN_LENGTH } from "./env-validator.js";
 import { parseEnv } from "../services/env.schema.js";
 
 const logger = createLogger("env-validation");
@@ -33,14 +34,17 @@ export function validateProductionEnv(): ValidationIssue[] {
   })();
 
   if (base) {
-    if (!isLongEnough(base.JWT_SECRET, 32)) {
-      issues.push({ key: "JWT_SECRET", message: "must be at least 32 chars" });
+    if (!isLongEnough(base.APP_SECRET, ENV_SECRET_MIN_LENGTH)) {
+      issues.push({ key: "APP_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
     }
-    if (!isLongEnough(base.JWT_ACCESS_SECRET, 10)) {
-      issues.push({ key: "JWT_ACCESS_SECRET", message: "must be at least 10 chars" });
+    if (!isLongEnough(base.JWT_SECRET, ENV_SECRET_MIN_LENGTH)) {
+      issues.push({ key: "JWT_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
     }
-    if (!isLongEnough(base.JWT_REFRESH_SECRET, 10)) {
-      issues.push({ key: "JWT_REFRESH_SECRET", message: "must be at least 10 chars" });
+    if (!isLongEnough(base.JWT_ACCESS_SECRET, ENV_SECRET_MIN_LENGTH)) {
+      issues.push({ key: "JWT_ACCESS_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
+    }
+    if (!isLongEnough(base.JWT_REFRESH_SECRET, ENV_SECRET_MIN_LENGTH)) {
+      issues.push({ key: "JWT_REFRESH_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
     }
     if (!isRequired(base.DB_HOST)) issues.push({ key: "DB_HOST", message: "is required" });
     if (!isRequired(base.DB_PORT)) issues.push({ key: "DB_PORT", message: "is required" });
@@ -50,10 +54,6 @@ export function validateProductionEnv(): ValidationIssue[] {
     if (!isRequired(base.REDIS_URL)) {
       issues.push({ key: "REDIS_URL", message: "is required" });
     }
-  }
-
-  if (process.env.NODE_ENV === "production" && !isLongEnough(process.env.APP_SECRET, 64)) {
-    issues.push({ key: "APP_SECRET", message: "must be at least 64 chars in production" });
   }
 
   if (!isRequired(process.env.REDIS_HOST)) {
@@ -78,14 +78,14 @@ export function validateCriticalBootEnvOrExit(env: Env): void {
   const dbHost = getTrimmedString(env, "DB_HOST");
   const redisHost = getTrimmedString(env, "REDIS_HOST");
 
-  if (appSecret.length < 64) {
-    issues.push({ key: "APP_SECRET", message: "must be at least 64 chars" });
+  if (appSecret.length < ENV_SECRET_MIN_LENGTH) {
+    issues.push({ key: "APP_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
   }
-  if (jwtAccessSecret.length < 64) {
-    issues.push({ key: "JWT_ACCESS_SECRET", message: "must be at least 64 chars" });
+  if (jwtAccessSecret.length < ENV_SECRET_MIN_LENGTH) {
+    issues.push({ key: "JWT_ACCESS_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
   }
-  if (jwtRefreshSecret.length < 64) {
-    issues.push({ key: "JWT_REFRESH_SECRET", message: "must be at least 64 chars" });
+  if (jwtRefreshSecret.length < ENV_SECRET_MIN_LENGTH) {
+    issues.push({ key: "JWT_REFRESH_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
   }
   if (dbHost.length === 0) {
     issues.push({ key: "DB_HOST", message: "is required" });

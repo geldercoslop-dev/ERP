@@ -92,6 +92,7 @@ export function createTimeoutMiddleware(config: TimeoutConfig = DEFAULT_TIMEOUT_
         } else {
           sendTimeoutResponse(res, config);
         }
+        return;
       }
       
       // Tentar destruir request se possível
@@ -106,20 +107,6 @@ export function createTimeoutMiddleware(config: TimeoutConfig = DEFAULT_TIMEOUT_
         );
       }
     }, config.timeoutMs);
-    
-    // Override do res.end para limpar timer
-    const originalEnd = res.end;
-    res.end = function(this: Response, ...args: any[]): Response {
-      clearTimeoutResources(req);
-      return (originalEnd as any).apply(this, args);
-    } as any;
-    
-    // Override do res.json para limpar timer
-    const originalJson = res.json;
-    res.json = function(this: Response, body?: any): Response {
-      clearTimeoutResources(req);
-      return originalJson.call(this, body);
-    };
     
     // Listener para quando o request terminar
     res.on('finish', () => {
@@ -152,10 +139,9 @@ export function createTimingMiddleware() {
   return (req: Request, res: Response, next: NextFunction): void => {
     const startTime = Date.now();
     
-    // Adicionar header de timing
+    // Apenas log no finish; headers não podem ser mutados após envio
     res.on('finish', () => {
       const duration = Date.now() - startTime;
-      res.setHeader('X-Response-Time', `${duration}ms`);
       
       // Log de requests lentos (>5s)
       if (duration > 5000) {

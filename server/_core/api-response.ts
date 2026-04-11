@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const ApiResponseSchema = z.object({
   success: z.boolean(),
-  data: z.any().nullable(),
+  data: z.unknown().nullable(),
   error: z.object({
     code: z.string().optional(),
     message: z.string(),
@@ -47,8 +47,8 @@ export type ApiResponse<T = unknown> = z.infer<typeof ApiResponseSchema> & {
 export class ApiResponseBuilder<T = unknown> {
   private response: Partial<ApiResponse<T>> = {
     success: true,
-    data: null,
-    error: null
+    data: undefined,
+    error: undefined
   };
 
   private meta: {
@@ -110,7 +110,7 @@ export class ApiResponseBuilder<T = unknown> {
   /**
    * Define paginação
    */
-  pagination(pagination: {
+  pagination(pagination: Record<string, unknown> | {
     page: number;
     pageSize: number;
     total: number;
@@ -125,7 +125,7 @@ export class ApiResponseBuilder<T = unknown> {
   /**
    * Define performance
    */
-  performance(performance: {
+  performance(performance: Record<string, unknown> | {
     duration: number;
     queryCount?: number;
     cacheHits?: number;
@@ -148,8 +148,8 @@ export class ApiResponseBuilder<T = unknown> {
   build(): ApiResponse<T> {
     const finalResponse: ApiResponse<T> = {
       success: this.response.success ?? true,
-      data: this.response.data ?? null,
-      error: this.response.error ?? null,
+      data: this.response.data,
+      error: this.response.error || null,
       meta: Object.keys(this.meta).length > 0 ? this.meta : undefined
     };
 
@@ -165,12 +165,12 @@ export const createApiResponse = {
   /**
    * Resposta de sucesso com dados
    */
-  success: <T = any>(
+  success: <T = unknown>(
     data: T,
     options: {
       requestId?: string;
-      pagination?: any;
-      performance?: any;
+      pagination?: Record<string, unknown>;
+      performance?: Record<string, unknown>;
     } = {}
   ): ApiResponse<T> => {
     return new ApiResponseBuilder<T>()
@@ -189,7 +189,7 @@ export const createApiResponse = {
     message: string,
     options: {
       code?: string;
-      details?: any;
+      details?: unknown;
       requestId?: string;
       route?: string;
     } = {}
@@ -224,7 +224,7 @@ export const createApiResponse = {
   /**
    * Resposta paginada
    */
-  paginated: <T = any>(
+  paginated: <T = unknown>(
     data: T[],
     pagination: {
       page: number;
@@ -236,7 +236,7 @@ export const createApiResponse = {
     },
     options: {
       requestId?: string;
-      performance?: any;
+      performance?: Record<string, unknown>;
     } = {}
   ): ApiResponse<T[]> => {
     return new ApiResponseBuilder<T[]>()
@@ -276,7 +276,7 @@ export const createApiResponse = {
    */
   notFound: (
     resource: string,
-    id?: any,
+    id?: unknown,
     options: {
       requestId?: string;
       route?: string;
@@ -445,7 +445,7 @@ export function withStandardResponse<TInput, TOutput>(
 /**
  * Tipos auxiliares para respostas comuns
  */
-export type SuccessResponse<T = any> = {
+export type SuccessResponse<T = unknown> = {
   success: true;
   data: T;
   meta?: {

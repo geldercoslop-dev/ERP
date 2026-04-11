@@ -15,6 +15,16 @@ export type CotacaoMoeda = {
   variacao?: string;
 };
 
+interface AwesomeApiResponse {
+  [key: string]: {
+    code: string;
+    name: string;
+    bid: string;
+    ask: string;
+    pctChange?: string;
+  };
+}
+
 /**
  * Cotação de moedas (USD-BRL, EUR-BRL, etc.).
  */
@@ -26,7 +36,7 @@ export async function cotacaoMoeda(
     try {
       const res = await fetch(`${BASE}/${par}`, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) return { ok: false, erro: "Serviço de cotações indisponível." };
-      const data = (await res.json()) as Record<string, any>;
+      const data = (await res.json()) as AwesomeApiResponse;
       const key = Object.keys(data)[0];
       if (!key) return { ok: false, erro: "Resposta inválida." };
       const item = data[key];
@@ -41,8 +51,8 @@ export async function cotacaoMoeda(
           variacao: item.pctChange,
         },
       };
-    } catch (e: any) {
-      const msg = e?.name === "AbortError" ? "Timeout ao consultar cotação." : e?.message ?? "Erro ao consultar cotação.";
+    } catch (e: unknown) {
+      const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao consultar cotação." : e instanceof Error ? e.message : "Erro ao consultar cotação.";
       return { ok: false, erro: msg };
     }
   });

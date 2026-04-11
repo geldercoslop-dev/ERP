@@ -46,6 +46,12 @@ export interface DesktopAutomationConfig {
   };
 }
 
+function hasEnabledFlag(value: unknown): value is { enabled: boolean } {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { enabled?: unknown };
+  return typeof candidate.enabled === 'boolean';
+}
+
 export const DEFAULT_DESKTOP_CONFIG: DesktopAutomationConfig = {
   robotjs: {
     enabled: false, // Requires manual installation
@@ -125,8 +131,8 @@ export class DesktopAutomationManager {
         require.resolve(lib.module);
         this.availableLibraries.add(lib.name);
         const libConfig = this.config[lib.name as keyof DesktopAutomationConfig];
-        if (libConfig && typeof libConfig === 'object' && 'enabled' in libConfig) {
-          (libConfig as any).enabled = true;
+        if (hasEnabledFlag(libConfig)) {
+          libConfig.enabled = true;
         }
         
         logInfo(`Desktop automation library available: ${lib.name}`, {
@@ -177,8 +183,9 @@ export class DesktopAutomationManager {
    */
   setLibraryEnabled(library: string, enabled: boolean): void {
     if (library in this.config) {
-      const libConfig = (this.config as any)[library];
-      if (libConfig && typeof libConfig === 'object') {
+      const configRecord = this.config as unknown as Record<string, unknown>;
+      const libConfig = configRecord[library];
+      if (hasEnabledFlag(libConfig)) {
         libConfig.enabled = enabled;
       }
       
@@ -262,7 +269,7 @@ export class DesktopAutomationManager {
   } {
     const availableLibraries = this.getAvailableLibraries();
     const enabledLibraries = Object.entries(this.config)
-      .filter(([key, value]) => typeof value === 'object' && (value as any).enabled)
+      .filter(([_key, value]) => hasEnabledFlag(value) && value.enabled)
       .map(([key]) => key);
 
     const validation = this.validateSettings();

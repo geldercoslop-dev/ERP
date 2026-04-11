@@ -1,5 +1,6 @@
 import { ClientService } from '../services/client.service.js';
 import { ServiceCreateResponse, ServiceList, ServicePaginated } from '../types/service-safety.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 /**
  * CAMADA TOOLS: CLIENT
@@ -202,7 +203,7 @@ export class ClientTool {
 
     // Validar ID obrigatório
     if (!('id' in enriched) || typeof enriched.id !== 'number') {
-      throw new Error('ID é obrigatório para atualização');
+      throw new ValidationError('ID é obrigatório para atualização');
     }
 
     // Normalizar email se presente

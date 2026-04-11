@@ -6,6 +6,7 @@
 
 import { GroqProvider, createGroqProvider, type GroqConfig } from './groq-provider.js';
 import { GeminiProvider, createGeminiProvider, type GeminiConfig } from './gemini-provider.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 export type AIProvider = GroqProvider | GeminiProvider;
 
@@ -24,7 +25,7 @@ export function createAIProvider(type: 'groq' | 'gemini', config?: Partial<GroqC
     case 'gemini':
       return createGeminiProvider(config as Partial<GeminiConfig>);
     default:
-      throw new Error(`Unsupported provider type: ${type}`);
+      throw new ValidationError(`Unsupported provider type: ${type}`);
   }
 }
 
@@ -42,7 +43,7 @@ export function getProviderByName(name: string): AIProvider {
     return createGeminiProvider();
   }
   
-  throw new Error(`Unknown provider: ${name}`);
+  throw new ValidationError(`Unknown provider: ${name}`);
 }
 
 /**

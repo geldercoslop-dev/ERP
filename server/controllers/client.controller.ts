@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ClientTool } from '../tools/client.tool.js';
 import { ClientService } from '../services/client.service.js';
+import { RequestWithTenant } from '../middleware/tenant.middleware.js';
 
 type Payload = Record<string, unknown>;
 
@@ -22,7 +23,17 @@ class ClientController {
   static async create(req: Request, res: Response): Promise<void> {
     try {
       const payload: Payload = req.body;
-      const tenantId = (req as any).tenantId; // From tenant middleware
+      const reqWithTenant = req as RequestWithTenant;
+      const tenantId = reqWithTenant.tenantId;
+      
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: 'Tenant ID required',
+          message: 'Tenant ID is required for client creation'
+        });
+        return;
+      }
       
       // Enrich with tenantId
       payload.tenantId = tenantId;
@@ -53,10 +64,10 @@ class ClientController {
   static async list(req: Request, res: Response): Promise<void> {
     try {
       const payload: Payload = {
-        page: parseInt(req.query.page as string) || 1,
-        limit: parseInt(req.query.limit as string) || 50,
-        search: req.query.search as string,
-        tenantId: (req as any).tenantId
+        page: typeof req.query.page === 'string' ? parseInt(req.query.page) : 1,
+        limit: typeof req.query.limit === 'string' ? parseInt(req.query.limit) : 50,
+        search: typeof req.query.search === 'string' ? req.query.search : undefined,
+        tenantId: (req as RequestWithTenant).tenantId
       };
       
       const result = await ClientController.clientTool.list(payload);
@@ -85,7 +96,8 @@ class ClientController {
   static async getById(req: Request, res: Response): Promise<void> {
     try {
       const id = parseInt(req.params.id);
-      const tenantId = (req as any).tenantId;
+      const reqWithTenant = req as RequestWithTenant;
+      const tenantId = reqWithTenant.tenantId;
       
       if (isNaN(id)) {
         res.status(400).json({
@@ -100,7 +112,7 @@ class ClientController {
       const result = await ClientController.clientTool.list(payload);
       
       // Find client in results
-      const client = Array.isArray(result) ? result.find(c => (c as any).id === id) : null;
+      const client = Array.isArray(result) ? result.find(c => typeof c === 'object' && c !== null && 'id' in c && (c as { id: number }).id === id) : null;
       
       if (!client) {
         res.status(404).json({
@@ -135,7 +147,8 @@ class ClientController {
   static async update(req: Request, res: Response): Promise<void> {
     try {
       const id = parseInt(req.params.id);
-      const tenantId = (req as any).tenantId;
+      const reqWithTenant = req as RequestWithTenant;
+      const tenantId = reqWithTenant.tenantId;
       
       if (isNaN(id)) {
         res.status(400).json({
@@ -178,7 +191,8 @@ class ClientController {
   static async delete(req: Request, res: Response): Promise<void> {
     try {
       const id = parseInt(req.params.id);
-      const tenantId = (req as any).tenantId;
+      const reqWithTenant = req as RequestWithTenant;
+      const tenantId = reqWithTenant.tenantId;
       
       if (isNaN(id)) {
         res.status(400).json({

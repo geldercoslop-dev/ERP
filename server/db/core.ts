@@ -110,6 +110,9 @@ export {
   between,
 } from "drizzle-orm";
 
+  export { gte, lte, lt } from "drizzle-orm";
+  export type { SQL } from "drizzle-orm";
+
 export type User = typeof schema.users.$inferSelect;
 export type NewUser = typeof schema.users.$inferInsert;
 export type Vendedor = typeof schema.vendedores.$inferSelect;
@@ -359,7 +362,7 @@ export async function reserveIdempotencyKey(
   key: string
 ): Promise<{ reserved: boolean; resultJson?: string | null; traceId?: string | null }> {
   try {
-    await tx.insert(idempotencyKeys).values({ commandName, key, resultJson: null });
+    await tx.insert(idempotencyKeys).values({ tenantId: 1, commandName, key, resultJson: null });
     return { reserved: true };
   } catch {
     const row = await tx

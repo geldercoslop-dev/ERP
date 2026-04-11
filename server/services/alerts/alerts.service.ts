@@ -6,6 +6,7 @@ import * as db from "../../db/index.js";
 import { inArray } from "drizzle-orm";
 import { CargaStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard.js";
+import { assertTenantId, assertDbConnection } from "../../_core/errors/assertions.js";
 
 export type AlertaOperacional = {
   tipo: string;
@@ -22,11 +23,13 @@ const ESTOQUE_MINIMO_ALERTA = 5;
  * Respeita vendedor quando informado (apenas pedidos/cargas do vendedor); admin vê todos.
  */
 export async function gerarAlertasOperacionais(
+  tenantId: number,
   vendedorId?: number | null
 ): Promise<AlertaOperacional[]> {
   return await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
+    assertTenantId(tenantId);
     const conn = await db.getDb();
-    if (!conn) return [];
+    assertDbConnection(conn);
 
   const alertas: AlertaOperacional[] = [];
   const pedidoWhereVendedor =
@@ -43,11 +46,13 @@ export async function gerarAlertasOperacionais(
     .where(
       pedidoWhereVendedor
         ? db.and(
+            db.eq(db.pedidos.tenantId, tenantId),
             inArray(db.pedidos.status, [PedidoStatus.GERADO, PedidoStatus.PENDENTE_ESTOQUE]),
             db.sql`${db.pedidos.createdAt} < DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
             pedidoWhereVendedor
           )
         : db.and(
+            db.eq(db.pedidos.tenantId, tenantId),
             inArray(db.pedidos.status, [PedidoStatus.GERADO, PedidoStatus.PENDENTE_ESTOQUE]),
             db.sql`${db.pedidos.createdAt} < DATE_SUB(NOW(), INTERVAL 24 HOUR)`
           )
@@ -71,6 +76,7 @@ export async function gerarAlertasOperacionais(
     .from(db.cargas)
     .where(
       db.and(
+        db.eq(db.cargas.tenantId, tenantId),
         db.eq(db.cargas.status, CargaStatus.ABERTA),
         db.sql`${db.cargas.createdAt} < DATE_SUB(NOW(), INTERVAL 12 HOUR)`
       )
@@ -95,11 +101,13 @@ export async function gerarAlertasOperacionais(
     .where(
       pedidoWhereVendedor
         ? db.and(
+            db.eq(db.pedidos.tenantId, tenantId),
             db.eq(db.pedidos.status, PedidoStatus.EM_ROTA),
             db.sql`${db.pedidos.updatedAt} < DATE_SUB(NOW(), INTERVAL 48 HOUR)`,
             pedidoWhereVendedor
           )
         : db.and(
+            db.eq(db.pedidos.tenantId, tenantId),
             db.eq(db.pedidos.status, PedidoStatus.EM_ROTA),
             db.sql`${db.pedidos.updatedAt} < DATE_SUB(NOW(), INTERVAL 48 HOUR)`
           )
@@ -125,11 +133,15 @@ export async function gerarAlertasOperacionais(
     .where(
       pedidoWhereVendedor
         ? db.and(
+            db.eq(db.pedidos.tenantId, tenantId),
+            db.eq(db.contasReceber.tenantId, tenantId),
             db.eq(db.pedidos.status, PedidoStatus.ENTREGUE),
             db.eq(db.contasReceber.status, ContaReceberStatus.PENDENTE),
             pedidoWhereVendedor
           )
         : db.and(
+            db.eq(db.pedidos.tenantId, tenantId),
+            db.eq(db.contasReceber.tenantId, tenantId),
             db.eq(db.pedidos.status, PedidoStatus.ENTREGUE),
             db.eq(db.contasReceber.status, ContaReceberStatus.PENDENTE)
           )
@@ -156,6 +168,7 @@ export async function gerarAlertasOperacionais(
     .from(db.produtos)
     .where(
       db.and(
+        db.eq(db.produtos.tenantId, tenantId),
         db.eq(db.produtos.ativo, true),
         db.sql`${db.produtos.estoque} <= ${ESTOQUE_MINIMO_ALERTA}`
       )

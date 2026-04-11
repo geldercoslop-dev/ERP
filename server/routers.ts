@@ -2,15 +2,15 @@ import cookie from "cookie";
 import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
-import { healthRouter } from "./routers/health.js";
 import { publicProcedure, protectedProcedure, requireRole, router } from "./_core/trpc.js";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { SQL } from "drizzle-orm";
+import type { SQL } from "./db/index.js";
 import * as db from "./db/index.js";
 import * as pdf from "./pdf.js";
 import { roundToTwo, sumWithPrecision, subtractWithPrecision, multiplyWithPrecision } from "./utils/financialUtils.js";
 import { nanoid } from "nanoid";
+import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./_core/service-entry-guard.js";
 import { assertOwnership, resolveOwnerUserId } from "./_core/ownership.js";
 import { executeCommand, commandResult } from "./_core/command.js";
 import { isInProgress } from "../shared/idempotency.js";
@@ -35,6 +35,33 @@ import {
 } from "./services/orders.service.js";
 import * as logisticaService from "./services/logistica.service.js";
 import { buscarRegistros } from "./services/audit-service.js";
+
+type ExpressRequest = import("express").Request;
+type BcryptModuleLike = {
+  hash: (data: string, saltOrRounds: string | number) => Promise<string>;
+  compare: (data: string, encrypted: string) => Promise<boolean>;
+};
+
+function toExpressRequest(value: unknown): ExpressRequest {
+  return value as ExpressRequest;
+}
+
+function isBcryptModuleLike(value: unknown): value is BcryptModuleLike {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { hash?: unknown; compare?: unknown };
+  return typeof candidate.hash === "function" && typeof candidate.compare === "function";
+}
+
+function hasStockErrorCode(error: unknown): error is { code?: string; message?: string } {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: unknown; message?: unknown };
+  return typeof candidate.code === "string" || typeof candidate.message === "string";
+}
+
+type PedidoStatus = "GERADO" | "IMPRESSO" | "EM_ROTA" | "ENTREGUE" | "CANCELADO";
+type PedidoCargaItem = { id: number };
+type RowWithVendedorId = { vendedorId: number };
+type CounterSelectRow = { seq: number | null };
 
 /**
  * Gerenciador de bcrypt robusto com fallback seguro e cache
@@ -70,7 +97,11 @@ async function getBcrypt(): Promise<{
     
     // Importar bcryptjs de forma dinâmica
     const bcryptImported = await import("bcryptjs");
-    const bcryptModule: any = (bcryptImported as any).default ?? bcryptImported;
+    const candidate = (bcryptImported as { default?: unknown }).default ?? bcryptImported;
+    if (!isBcryptModuleLike(candidate)) {
+      throw new Error("Funções bcrypt não encontradas no módulo importado");
+    }
+    const bcryptModule = candidate;
     
     // Verificar se as funções necessárias estão disponíveis
     if (typeof bcryptModule.hash !== 'function' || typeof bcryptModule.compare !== 'function') {
@@ -161,7 +192,6 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 export const appRouter = router({
   system: systemRouter,
-  health: healthRouter,
   leo: leoRouter,
   api: router({
     clients: router({
@@ -200,7 +230,7 @@ export const appRouter = router({
   }),
   
   auth: router({
-    me: publicProcedure.query(({ ctx }) => {
+    me: protectedProcedure.query(({ ctx }) => {
       if (!ctx.user) return null;
       const role = ctx.user.role === "admin" ? "admin" : "vendedor";
       return {
@@ -220,7 +250,7 @@ export const appRouter = router({
      * - user atual (se autenticado)
      * - origem efetiva (cookie/header/bearer/none) e tipo do token
      */
-    sessionInfo: publicProcedure.query(({ ctx }) => {
+    sessionInfo: protectedProcedure.query(({ ctx }) => {
       const user = ctx.user
         ? {
             id: ctx.user.id,
@@ -237,6 +267,7 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ username: z.string().min(1), password: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
+        return runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
         const username = input.username.trim().toLowerCase();
         const password = input.password;
         const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
@@ -295,7 +326,7 @@ export const appRouter = router({
           };
         }
 
-        const vendedor = await db.getVendedorByUserId(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), user.id);
+        const vendedor = await db.getVendedorByUserId(user.id);
         if (!vendedor) {
           audit(false);
           throw new TRPCError({
@@ -309,7 +340,7 @@ export const appRouter = router({
             try {
               const match = await bcrypt.compare(password, vendedor.senha);
               if (match) {
-                const sessionValue = `v:${vendedor.id}`;
+                const sessionValue = `v:${user.tenantId}:${vendedor.id}`;
                 ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
                 ctx.res.cookie("session", sessionValue, cookieOptions);
                 await db.touchLastSignedIn(user.id);
@@ -340,6 +371,7 @@ export const appRouter = router({
 
         audit(false);
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos" });
+        });
       }),
 
     /** Admin only: troca sessão para vendedor (impersonate). Guarda token admin em cookie por 10 min. */
@@ -356,7 +388,9 @@ export const appRouter = router({
           const adminOpts = { ...getSessionCookieOptions(ctx.req), maxAge: ADMIN_SESSION_MAX_AGE_MS, path: "/" };
           ctx.res.cookie(ADMIN_SESSION_COOKIE, currentToken, adminOpts);
         }
-        const sessionValue = `v:${vendedor.id}`;
+        const tenantId = ctx.user.tenantId ?? ctx.tenantId ?? 0;
+        if (!tenantId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Tenant inválido para impersonation" });
+        const sessionValue = `v:${tenantId}:${vendedor.id}`;
         ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
         ctx.res.cookie("session", sessionValue, cookieOptions);
         const traceId = nanoid(10);
@@ -565,12 +599,12 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { id, senha, ...rest } = input;
         const bcrypt = await getBcrypt();
-        let data: Partial<db.InsertVendedor> = rest as any;
+        let data: Partial<db.InsertVendedor> = rest as Partial<db.InsertVendedor>;
         
         if (senha) {
           if (bcrypt) {
             try {
-              data = { ...(rest as any), senha: await bcrypt.hash(senha, 10) };
+              data = { ...rest, senha: await bcrypt.hash(senha, 10) } as Partial<db.InsertVendedor>;
             } catch (error) {
               console.error("[vendedores.update] Erro ao gerar hash com bcrypt:", error);
               throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao gerar hash de senha (bcrypt obrigatório)" });
@@ -673,7 +707,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
         // Validação real fica em server/routes/produtos.ts (Zod)
-        return await produtosRoutes.createProduto({ body: input, tenantId } as any);
+        return await produtosRoutes.createProduto(toExpressRequest({ body: input, tenantId }));
       }),
 
     update: adminProcedure
@@ -697,7 +731,7 @@ export const appRouter = router({
         
         try {
           // Usar a função updateProduto com verificação de versão
-          const patch: any = {
+          const patch: Record<string, unknown> = {
             ...data,
             custo: Number(data.custo).toFixed(2),
             valorVenda: Number(data.valorVenda).toFixed(2),
@@ -722,7 +756,7 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await produtosRoutes.deleteProduto({ params: { id: input.id.toString() }, tenantId } as any);
+        return await produtosRoutes.deleteProduto(toExpressRequest({ params: { id: input.id.toString() }, tenantId }));
       }),
 
     buscar: protectedProcedure
@@ -770,9 +804,9 @@ export const appRouter = router({
           const tenantId = await requireTenant(ctx);
           await db.updateEstoqueProduto(tenantId, input.id, qtd, audit);
           return { message: "Estoque atualizado" };
-        } catch (e: any) {
-          if (e?.code === "ESTOQUE_NEGATIVO" || e?.code === "ESTOQUE_INSUFICIENTE") {
-            throw new TRPCError({ code: "BAD_REQUEST", message: e?.message ?? "Estoque insuficiente para esta operação." });
+        } catch (e: unknown) {
+          if (hasStockErrorCode(e) && (e.code === "ESTOQUE_NEGATIVO" || e.code === "ESTOQUE_INSUFICIENTE")) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: e.message ?? "Estoque insuficiente para esta operação." });
           }
           throw e;
         }
@@ -780,34 +814,34 @@ export const appRouter = router({
 
     estoqueBaixo: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      return await produtosRoutes.verificarEstoqueBaixo({ tenantId } as any);
+      return await produtosRoutes.verificarEstoqueBaixo(toExpressRequest({ tenantId }));
     }),
   }),
 
   // ===== PROMOÇÕES =====
   promocoes: router({
     list: protectedProcedure.query(async () => {
-      return await promocoesRoutes.listar({} as any);
+      return await promocoesRoutes.listar(toExpressRequest({}));
     }),
     detalhes: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
-        return await promocoesRoutes.detalhes({ params: { id: String(input.id) } } as any);
+        return await promocoesRoutes.detalhes(toExpressRequest({ params: { id: String(input.id) } }));
       }),
     create: adminProcedure
       .input(z.any())
       .mutation(async ({ input }) => {
-        return await promocoesRoutes.criar({ body: input } as any);
+        return await promocoesRoutes.criar(toExpressRequest({ body: input }));
       }),
     update: adminProcedure
       .input(z.object({ id: z.number(), data: z.any() }))
       .mutation(async ({ input }) => {
-        return await promocoesRoutes.atualizar({ params: { id: String(input.id) }, body: input.data } as any);
+        return await promocoesRoutes.atualizar(toExpressRequest({ params: { id: String(input.id) }, body: input.data }));
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        return await promocoesRoutes.remover({ params: { id: String(input.id) } } as any);
+        return await promocoesRoutes.remover(toExpressRequest({ params: { id: String(input.id) } }));
       }),
   }),
 
@@ -842,7 +876,7 @@ export const appRouter = router({
           observacao: input.observacao,
           parcelas: input.parcelas?.map(p => ({ ...p, dataVencimento: new Date(p.dataVencimento) })),
           itens: input.itens,
-          createdBy: (ctx.user as any)?.id,
+          createdBy: ctx.user?.id,
         });
         return { ok: true };
       }),
@@ -885,13 +919,17 @@ export const appRouter = router({
     }),
     create: adminProcedure
       .input(z.object({ nome: z.string().min(1), idempotencyKey: z.string().max(64).optional() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { idempotencyKey, ...data } = input;
+        const tenantId = await requireTenant(ctx);
         const result = await executeCommand(
           { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },
           async (tx) => {
-            const res = await (tx as any).insert(db.gruposPrecificacao).values(data);
-            const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;
+            const res = await tx.insert(db.gruposPrecificacao).values({
+              nome: data.nome,
+              tenantId,
+            });
+            const id = db.getInsertId(res);
             return { ...commandResult(true, ["Grupo criado"]), id };
           }
         );
@@ -972,10 +1010,14 @@ export const appRouter = router({
         const actor = await resolveServiceActor(ctx);
         const page = input?.page ?? 1;
         const pageSize = Math.min(input?.pageSize ?? 50, 100);
-        const { items, total } = await cachedClientes.listClientes(tenantId, actor, {
+        const listResult = await cachedClientes.listClientes(tenantId, actor, {
           page,
           pageSize,
         });
+        if (!listResult.success || !listResult.data) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: listResult.error ?? "Falha ao listar clientes" });
+        }
+        const { items, total } = listResult.data;
         return {
           items,
           total,
@@ -1478,10 +1520,10 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), input.id);
+        const pedido = await db.getPedidoById(input.id);
         if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-        const atual = pedido.status as any;
-        const proximo = input.status as any;
+        const atual = pedido.status as PedidoStatus;
+        const proximo = input.status as PedidoStatus;
         if (atual === 'ENTREGUE' && proximo !== 'ENTREGUE') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Pedido ENTREGUE não pode voltar status.' });
         }
@@ -1497,7 +1539,7 @@ export const appRouter = router({
         const result = await executeCommand(
           { commandName: "pedidos.updateStatus", idempotencyKey: input.idempotencyKey ?? undefined },
           async (tx) => {
-            await (tx as any).update(db.pedidos).set({ status: proximo }).where(db.eq(db.pedidos.id, input.id));
+            await tx.update(db.pedidos).set({ status: proximo }).where(db.eq(db.pedidos.id, input.id));
             return { ...commandResult(true, ["Status atualizado"]), success: true };
           }
         );
@@ -1528,7 +1570,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), input.id);
+        const pedido = await db.getPedidoById(input.id);
         if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
         try {
           const actor = await resolveServiceActor(ctx);
@@ -1545,7 +1587,7 @@ export const appRouter = router({
                   segundaForma: input.segundaForma,
                   segundaValor: input.segundaValor,
                   boletoParcelas: input.boletoParcelas,
-                  boletoVencimentos: (input as any).boletoVencimentos,
+                  boletoVencimentos: input.boletoVencimentos,
                   boletoPrimeiroVencimento: input.boletoPrimeiroVencimento,
                 },
                 actor
@@ -1720,7 +1762,7 @@ export const appRouter = router({
               const isAdmin = ctx.user?.role === "admin";
               let vendedor: db.Vendedor | null = ctx.vendedor ?? null;
               if (!vendedor && isAdmin && input.vendedorId) {
-                vendedor = await db.getVendedorById(String((ctx as { tenantId?: string | number | null }).tenantId ?? ""), input.vendedorId);
+                vendedor = await db.getVendedorById(input.vendedorId);
               }
               if (!vendedor && !isAdmin) {
                 vendedor = await getVendedorFromContext(ctx);
@@ -1749,7 +1791,7 @@ export const appRouter = router({
             const { nomeNorm, sobrenomeNorm } = db.normalizeNomeSobrenome(input.cliente.nome);
             const nn = nomeNorm.slice(0, 120);
             const sn = sobrenomeNorm.slice(0, 120);
-            const existing = await (tx as any).select({ id: db.clientes.id }).from(db.clientes)
+            const existing = await tx.select({ id: db.clientes.id }).from(db.clientes)
               .where(db.and(
                 db.eq(db.clientes.tenantId, vendedor.tenantId),
                 db.eq(db.clientes.telefoneNorm, telefoneNorm),
@@ -1761,7 +1803,7 @@ export const appRouter = router({
               clienteId = existing[0].id;
             } else {
               const tel = input.cliente.telefone === '' || input.cliente.telefone == null ? null : (input.cliente.telefone || null);
-              const created = await (tx as any).insert(db.clientes).values({
+              const created = await tx.insert(db.clientes).values({
                 tenantId: vendedor.tenantId,
                 nome: input.cliente.nome,
                 telefone: tel,
@@ -1778,8 +1820,8 @@ export const appRouter = router({
                 condominio: input.cliente.condominio || null,
                 bloco: input.cliente.bloco || null,
                 apartamento: input.cliente.apartamento || null,
-              } as any);
-              clienteId = (created as any)[0]?.insertId;
+              });
+              clienteId = db.getInsertId(created);
             }
           }
 
@@ -1795,33 +1837,33 @@ export const appRouter = router({
           // 2) Número do pedido (travado para não duplicar, por tenant)
           const tenantIdForCounter = vendedor.tenantId;
           const readCounterForUpdate = async () => {
-            const [rows]: any = await (tx as any).execute(db.sql`
+            const [rows] = (await tx.execute(db.sql`
               SELECT seq FROM counters
               WHERE tenant_id = ${tenantIdForCounter} AND name = 'pedidos'
               FOR UPDATE
-            `);
+            `)) as unknown as [CounterSelectRow[]];
             return rows;
           };
 
-          let counterRows: any = await readCounterForUpdate();
+          let counterRows = await readCounterForUpdate();
           const currentSeq = Number(counterRows?.[0]?.seq ?? 0);
 
           let numero: number;
           if (!counterRows || counterRows.length === 0) {
             numero = 1;
             try {
-              await (tx as any).insert(db.counters).values({ tenantId: tenantIdForCounter, name: 'pedidos', seq: 1, free: null } as any);
+              await tx.insert(db.counters).values({ tenantId: tenantIdForCounter, name: 'pedidos', seq: 1, free: null });
             } catch (e) {
               if (!isDuplicateKeyError(e)) throw e;
               // Duas transações viram fila vazia: FOR UPDATE não trava linha inexistente; a outra inseriu primeiro.
               counterRows = await readCounterForUpdate();
               const seq = Number(counterRows?.[0]?.seq ?? 0);
               numero = seq + 1;
-              await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
+              await tx.update(db.counters).set({ seq: numero }).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
             }
           } else {
             numero = currentSeq + 1;
-            await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
+            await tx.update(db.counters).set({ seq: numero }).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
           }
           markPhase("counterMs", tMark);
           tMark = Date.now();
@@ -1886,7 +1928,13 @@ export const appRouter = router({
 
           // 4) Estoque: verificar se algum item de catálogo tem estoque insuficiente (FOR UPDATE).
           // Se tiver: salvar pedido como PENDENTE_ESTOQUE, criar pendências, NÃO mexer no estoque. Idempotência mantida.
-          const catalogIds = Array.from(new Set(input.itens.filter((x: any) => x.tipo === 'CATALOGO' && x.produtoId).map((x: any) => x.produtoId))) as number[];
+          const catalogIds = Array.from(
+            new Set(
+              input.itens
+                .filter((x): x is (typeof input.itens)[number] & { produtoId: number } => x.tipo === 'CATALOGO' && typeof x.produtoId === 'number')
+                .map((x) => x.produtoId)
+            )
+          );
           const estoquePorProduto: Record<number, number> = {};
           if (catalogIds.length > 0) {
             const rows = await tx
@@ -1912,7 +1960,7 @@ export const appRouter = router({
           const statusPedido = itensComFalta.size > 0 ? 'PENDENTE_ESTOQUE' : 'GERADO';
 
           // 5) Pedido (com status GERADO ou PENDENTE_ESTOQUE)
-          const pedidoInsert = await (tx as any).insert(db.pedidos).values({
+          const pedidoInsert = await tx.insert(db.pedidos).values({
             tenantId: vendedor.tenantId,
             numero,
             vendedorId: vendedor.id,
@@ -1929,16 +1977,16 @@ export const appRouter = router({
             clienteCondominio: input.cliente.condominio || null,
             clienteBloco: input.cliente.bloco || null,
             clienteApartamento: input.cliente.apartamento || null,
-            subtotal: roundToTwo(input.subtotal) as any,
-            desconto: roundToTwo(input.desconto) as any,
-            frete: roundToTwo(input.frete) as any,
-            total: roundToTwo(input.total) as any,
+            subtotal: roundToTwo(input.subtotal).toFixed(2),
+            desconto: roundToTwo(input.desconto).toFixed(2),
+            frete: roundToTwo(input.frete).toFixed(2),
+            total: roundToTwo(input.total).toFixed(2),
             status: statusPedido,
             formaPagamento: pagamentoPlanejado,
             observacoes: input.observacoes || null,
-          } as any);
+          } as unknown as never);
 
-          const pedidoId = (pedidoInsert as any)[0]?.insertId;
+          const pedidoId = db.getInsertId(pedidoInsert);
           if (!pedidoId) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Falha ao criar pedido.' });
           markPhase("pedidoInsertMs", tMark);
           tMark = Date.now();
@@ -1951,7 +1999,7 @@ export const appRouter = router({
               if (statusPedido === 'PENDENTE_ESTOQUE' && falta) {
                 gerouPendencia = true;
                 const qtdPendente = estoqueAtual > 0 ? i.quantidade - estoqueAtual : i.quantidade;
-                await (tx as any).insert(db.pendencias).values({
+                await tx.insert(db.pendencias).values({
                   tenantId: vendedor.tenantId,
                   pedidoId,
                   vendedorId: vendedor.id,
@@ -1959,12 +2007,12 @@ export const appRouter = router({
                   corId: i.corId || null,
                   quantidade: qtdPendente,
                   status: 'PENDENTE',
-                } as any);
+                });
               }
               if (statusPedido === 'GERADO' && !falta) {
                 const novoEstoque = estoqueAtual - i.quantidade;
-                await (tx as any).update(db.produtos)
-                  .set({ estoque: novoEstoque } as any)
+                await tx.update(db.produtos)
+                  .set({ estoque: novoEstoque })
                   .where(
                     db.and(
                       db.eq(db.produtos.tenantId, vendedor.tenantId),
@@ -2006,24 +2054,24 @@ export const appRouter = router({
             custo: i.custo,
             prazoGarantia: i.prazoGarantia,
           }));
-          await (tx as any).insert(db.itensPedido).values(itensPedidoRows as any);
+          await tx.insert(db.itensPedido).values(itensPedidoRows as unknown as never);
           markPhase("itensBatchInsertMs", tMark);
           tMark = Date.now();
 
           // 7) Contas a Receber (provisório) — o real será gerado/ajustado na baixa (carga/entrega)
           const venc = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-          await (tx as any).insert(db.contasReceber).values({
+          await tx.insert(db.contasReceber).values({
             tenantId: vendedor.tenantId,
             pedidoNumero: numero,
             clienteNome: input.cliente.nome,
             vendedorId: vendedor.id,
             descricao: `Fiado - Pedido #${numero}`,
-            valor: roundToTwo(input.total) as any,
+            valor: roundToTwo(input.total).toFixed(2),
             dataVencimento: venc,
             status: 'PENDENTE',
             formaPagamento: null,
             observacoes: 'Gerada automaticamente no pedido. Será substituída/ajustada na baixa.',
-          } as any);
+          } as unknown as never);
           markPhase("contaReceberMs", tMark);
 
               return { ok: true, traceId: nanoid(10), pedidoId, numero, clienteId, gerouPendencia, pendenteEstoque: statusPedido === 'PENDENTE_ESTOQUE' };
@@ -2171,7 +2219,7 @@ export const appRouter = router({
           segundaForma: input.segundaForma,
           segundaValor: input.segundaValor,
           boletoParcelas: input.boletoParcelas,
-          boletoVencimentos: (input as any).boletoVencimentos,
+          boletoVencimentos: input.boletoVencimentos,
           boletoPrimeiroVencimento: input.boletoPrimeiroVencimento,
         });
 
@@ -2316,14 +2364,14 @@ pendencias: router({
         if (ctx.user.role !== "admin") {
           const carga = await db.getCargaById(tenantId, input.cargaId);
           if (!carga) throw new TRPCError({ code: "NOT_FOUND", message: "Carga não encontrada." });
-          const pedidosIds = (carga as any).pedidos?.map((p: any) => p.id) ?? [];
+          const pedidosIds = ((carga as { pedidos?: PedidoCargaItem[] }).pedidos ?? []).map((p) => p.id);
           if (pedidosIds.length === 0) throw new TRPCError({ code: "FORBIDDEN", message: "Carga sem pedidos." });
           const vendedor = await getVendedorFromContext(ctx);
           if (!vendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
           const db_conn = await db.getDb();
           if (!db_conn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível." });
           const rows = await db_conn.select({ vendedorId: db.pedidos.vendedorId }).from(db.pedidos).where(db.inArray(db.pedidos.id, pedidosIds));
-          const todosDoVendedor = rows.every((r: any) => r.vendedorId === vendedor.id);
+          const todosDoVendedor = (rows as RowWithVendedorId[]).every((r) => r.vendedorId === vendedor.id);
           if (!todosDoVendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Carga contém pedidos de outro vendedor." });
         }
         return await pdf.gerarBoletosCargaPDF(tenantId, input.cargaId, input.pedidoNumero);
@@ -2477,7 +2525,7 @@ pendencias: router({
         const result = await executeCommand(
           { commandName: "planoContas.update", idempotencyKey: idempotencyKey ?? undefined },
           async (tx) => {
-            await (tx as any).update(db.planoContas).set({ nome: data.nome, tipo: data.tipo } as any).where(db.eq(db.planoContas.id, data.id));
+            await tx.update(db.planoContas).set({ nome: data.nome, tipo: data.tipo }).where(db.eq(db.planoContas.id, data.id));
             return commandResult(true, ["Plano de contas atualizado"]);
           }
         );
@@ -2490,7 +2538,7 @@ pendencias: router({
         const result = await executeCommand(
           { commandName: "planoContas.delete", idempotencyKey: input.idempotencyKey ?? undefined },
           async (tx) => {
-            await (tx as any).delete(db.planoContas).where(db.eq(db.planoContas.id, input.id));
+            await tx.delete(db.planoContas).where(db.eq(db.planoContas.id, input.id));
             return commandResult(true, ["Plano de contas excluído"]);
           }
         );

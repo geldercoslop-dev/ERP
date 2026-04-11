@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import type { JwtPayload, SignOptions } from "jsonwebtoken";
 import { systemLogger } from '../_core/logger.js';
 import { parseEnv } from '../services/env.schema.js';
+import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 
 export interface JWTPayload {
   userId: number;
@@ -39,12 +40,10 @@ class JWTAuth {
     const access = JWT_ACCESS_SECRET.trim();
     const refresh = JWT_REFRESH_SECRET.trim();
     if (!access || !refresh) {
-      throw new Error(
-        'JWT_ACCESS_SECRET e JWT_REFRESH_SECRET são obrigatórios (sem valor padrão).'
-      );
+      throw new ValidationError('JWT_ACCESS_SECRET e JWT_REFRESH_SECRET são obrigatórios (sem valor padrão).');
     }
     if (access === refresh) {
-      throw new Error('JWT_ACCESS_SECRET e JWT_REFRESH_SECRET devem ser diferentes.');
+      throw new ValidationError('JWT_ACCESS_SECRET e JWT_REFRESH_SECRET devem ser diferentes.');
     }
     this.accessTokenSecret = access;
     this.refreshTokenSecret = refresh;
@@ -157,11 +156,11 @@ class JWTAuth {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       if (errorMessage.includes('expired')) {
-        throw new Error('Access token expired');
+        throw new ValidationError('Access token expired');
       } else if (errorMessage.includes('invalid') || errorMessage.includes('malformed')) {
-        throw new Error('Invalid access token');
+        throw new ValidationError('Invalid access token');
       } else {
-        throw new Error('Token verification failed');
+        throw new InfrastructureError('Token verification failed');
       }
     }
   }
@@ -215,11 +214,11 @@ class JWTAuth {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       if (errorMessage.includes('expired')) {
-        throw new Error('Refresh token expired');
+        throw new ValidationError('Refresh token expired');
       } else if (errorMessage.includes('invalid') || errorMessage.includes('malformed')) {
-        throw new Error('Invalid refresh token');
+        throw new ValidationError('Invalid refresh token');
       } else {
-        throw new Error('Refresh token verification failed');
+        throw new InfrastructureError('Refresh token verification failed');
       }
     }
   }
@@ -245,7 +244,7 @@ class JWTAuth {
    */
   shouldRefreshToken(token: string): boolean {
     try {
-      const decoded = jwt.decode(token) as any;
+      const decoded = jwt.decode(token) as { exp?: number } | null;
       if (!decoded || !decoded.exp) {
         return false;
       }
@@ -281,7 +280,7 @@ class JWTAuth {
 
     const match = expiry.match(/^(\d+)([smhdw])$/);
     if (!match) {
-      throw new Error(`Invalid expiry format: ${expiry}`);
+      throw new ValidationError(`Invalid expiry format: ${expiry}`);
     }
 
     const [, value, unit] = match;
@@ -291,9 +290,14 @@ class JWTAuth {
   /**
    * Obtém informações do token sem verificar assinatura (para debugging)
    */
-  decodeToken(token: string): any {
+  decodeToken(token: string): JwtPayload | RefreshTokenPayload | null {
     try {
-      return jwt.decode(token);
+      const decoded = jwt.decode(token);
+      // jwt.decode pode retornar string, null ou object
+      if (typeof decoded === 'string' || decoded === null) {
+        return null;
+      }
+      return decoded as JwtPayload | RefreshTokenPayload;
     } catch (error) {
       return null;
     }

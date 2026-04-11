@@ -8,6 +8,8 @@
 
 import * as ordersService from "../../services/orders.service.js";
 import * as inventoryService from "../../services/inventory.service.js";
+import { ValidationError } from '../../_core/errors/typed-errors.js';
+import type { RequestWithTenant } from "../../types/request-with-tenant.js";
 
 // HARDENING: finance-engine.js foi removido (módulo instável _unstable)
 // HARDENING: Implementação substituída por valores fixos seguros
@@ -25,20 +27,23 @@ export type TarefaResult = {
  * Obtém tenantId do contexto ou lança erro se não disponível
  * CRÍTICO: Não permite fallback para tenant fixo
  */
-function getTenantId(): number {
-  // Em ambiente real, isso viria do contexto da requisição ou sistema
-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
-  
-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new Error('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
-  }
-  
-  return tenantId;
-}
+// function getTenantId(): number {
+//   // Em ambiente real, isso viria do contexto da requisição ou sistema
+//   const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+//   
+//   if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+//     throw new Error('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
+//   }
+//   
+//   return tenantId;
+// }
 
-async function verificarVendasDoDia(): Promise<TarefaResult> {
+async function verificarVendasDoDia(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    const tenantId = getTenantId();
+    const tenantId = req.user?.tenantId;
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const fim = new Date(hoje);
@@ -52,9 +57,12 @@ async function verificarVendasDoDia(): Promise<TarefaResult> {
   }
 }
 
-async function verificarEstoqueBaixo(): Promise<TarefaResult> {
+async function verificarEstoqueBaixo(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    const tenantId = getTenantId();
+    const tenantId = req.user?.tenantId;
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
     const count = await inventoryService.countProdutosAtivosEstoqueAte(tenantId, 5);
     return {
       nome: "estoque_baixo",
@@ -66,9 +74,12 @@ async function verificarEstoqueBaixo(): Promise<TarefaResult> {
   }
 }
 
-async function verificarBoletosVencidos(): Promise<TarefaResult> {
+async function verificarBoletosVencidos(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    const tenantId = getTenantId();
+    const tenantId = req.user?.tenantId;
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
     // Módulo financeEngine removido - implementação segura
     const { total = 0, quantidade = 0 } = { total: 0, quantidade: 0 };
     return {
@@ -81,9 +92,12 @@ async function verificarBoletosVencidos(): Promise<TarefaResult> {
   }
 }
 
-async function verificarPedidosParados(): Promise<TarefaResult> {
+async function verificarPedidosParados(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    const tenantId = getTenantId();
+    const tenantId = req.user?.tenantId;
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
     const limite = new Date();
     limite.setDate(limite.getDate() - 3);
     const qtd = await ordersService.countPedidosParadosGeradoConferido(tenantId, limite);
@@ -97,20 +111,20 @@ async function verificarPedidosParados(): Promise<TarefaResult> {
   }
 }
 
-export async function executarTarefas(): Promise<TarefaResult[]> {
+export async function executarTarefas(req: RequestWithTenant): Promise<TarefaResult[]> {
   const results: TarefaResult[] = [];
-  results.push(await verificarVendasDoDia());
-  results.push(await verificarEstoqueBaixo());
-  results.push(await verificarBoletosVencidos());
-  results.push(await verificarPedidosParados());
+  results.push(await verificarVendasDoDia(req));
+  results.push(await verificarEstoqueBaixo(req));
+  results.push(await verificarBoletosVencidos(req));
+  results.push(await verificarPedidosParados(req));
   return results;
 }
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
-export function startScheduler(): void {
+export function startScheduler(req: RequestWithTenant): void {
   if (intervalId != null) return;
-  executarTarefas()
+  executarTarefas(req)
     .then((r) => {
       if (process.env.NODE_ENV !== "production") {
         console.log("[LEO scheduler] Primeira execução:", r.map((x) => x.resumo ?? x.erro).join("; "));
@@ -118,14 +132,14 @@ export function startScheduler(): void {
     })
     .catch((e) => console.error("[LEO scheduler] Erro na primeira execução:", e));
   intervalId = setInterval(() => {
-    executarTarefas()
+    executarTarefas(req)
       .then(async (results) => {
         const alertas = results.filter((r) => r.ok && r.resumo && !r.resumo.startsWith("Nenhum"));
         if (alertas.length > 0 && process.env.NODE_ENV !== "production") {
           console.log("[LEO scheduler]", alertas.map((a) => a.resumo).join("; "));
         }
         const { enviarNotificacoesInteligentes } = await import("../utils/leo-notifier.js");
-        await enviarNotificacoesInteligentes(results).catch(() => {});
+        await enviarNotificacoesInteligentes(req, results).catch(() => {});
       })
       .catch((e) => console.error("[LEO scheduler]", (e as Error)?.message ?? e));
   }, INTERVAL_MS);

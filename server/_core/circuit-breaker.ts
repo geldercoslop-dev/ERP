@@ -1,4 +1,5 @@
 import { systemLogger } from "./logger.js";
+import { InfrastructureError } from './errors/typed-errors.js';
 
 export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
 
@@ -29,7 +30,7 @@ export class CircuitBreaker {
 
     if (this.state === "OPEN") {
       const remainingTime = Math.ceil((this.lastFailureTime + this.options.resetTimeoutMs - Date.now()) / 1000);
-      throw new Error(`[CircuitBreaker: ${this.options.name}] Circuito aberto. Bloqueando requisição. Tente novamente em ${remainingTime}s.`);
+      throw new InfrastructureError(`[CircuitBreaker: ${this.options.name}] Circuito aberto. Bloqueando requisição. Tente novamente em ${remainingTime}s.`);
     }
 
     try {

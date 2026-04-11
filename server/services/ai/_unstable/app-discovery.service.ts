@@ -7,6 +7,7 @@ import * as path from 'path';
 import { nanoid } from 'nanoid';
 import * as db from '../../../db/index.js';
 import { logInfo, logError } from '../../../_core/logger.js';
+import { InfrastructureError } from '../../../_core/errors/typed-errors.js';
 import { eq, and } from 'drizzle-orm';
 
 // Tipo principal de resultado do discovery
@@ -250,7 +251,7 @@ export async function discoverApps(query: string): Promise<AppDiscoveryResult[]>
       .sort((a, b) => b.confidence - a.confidence);
   } catch (error: unknown) {
     console.error('[AppDiscovery] Erro ao buscar apps:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao buscar aplicações', { cause: error });
   }
 }
 

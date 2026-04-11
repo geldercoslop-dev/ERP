@@ -8,6 +8,7 @@
  * HARDENING: Proteções contra undefined implementadas
  * HARDENING: Falsos positivos eliminados - validação inline rigorosa
  */
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 // HARDENING: Tipos locais definidos para manter compatibilidade
 // HARDENING: Nenhum import de módulos _unstable - todos removidos
@@ -229,7 +230,7 @@ export async function getLeoInsights(tenantId: number): Promise<LeoInsights> {
     const metricsResult = await gerarMetrics(salesAnalytics, stockAnalytics, financialInsights, previsaoCompleta);
     
     if (!metricsResult.success) {
-      throw new Error(`Erro ao gerar métricas: ${metricsResult.error}`);
+      throw new InfrastructureError(`Erro ao gerar métricas: ${metricsResult.error}`);
     }
     
     const metrics = metricsResult.data || [];

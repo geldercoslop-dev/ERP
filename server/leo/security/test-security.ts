@@ -11,7 +11,7 @@ interface TestResult {
   testName: string;
   passed: boolean;
   reason: string;
-  details?: any;
+  details?: unknown;
 }
 
 class SecurityTester {

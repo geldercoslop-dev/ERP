@@ -10,7 +10,7 @@ import { LEO_DESKTOP_AUTOMATION } from '../../config/leo.js';
 interface ActionResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 interface MousePosition {

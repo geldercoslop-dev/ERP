@@ -13,7 +13,7 @@ export class AttackTester {
     payload: string;
     blocked: boolean;
     status?: number;
-    response?: any;
+    response?: unknown;
     error?: string;
   }> = [];
 
@@ -544,7 +544,7 @@ export function createAttackTestRoutes() {
   const express = require('express');
   const router = express.Router();
 
-  router.post('/run', async (req: any, res: any) => {
+  router.post('/run', async (req: unknown, res: unknown) => {
     if (process.env.NODE_ENV !== 'development') {
       return res.status(403).json({
         error: 'Forbidden',
@@ -571,7 +571,7 @@ export function createAttackTestRoutes() {
     }
   });
 
-  router.get('/report', (req: any, res: any) => {
+  router.get('/report', (req: unknown, res: unknown) => {
     if (process.env.NODE_ENV !== 'development') {
       return res.status(403).json({
         error: 'Forbidden',

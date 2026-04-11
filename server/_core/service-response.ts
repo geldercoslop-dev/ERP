@@ -6,6 +6,8 @@
  * "find is not a function" causados por tipos inconsistentes.
  */
 
+import { InfrastructureError } from './errors/typed-errors.js';
+
 export type Payload = Record<string, unknown>;
 
 export type ServiceResponse = {
@@ -18,12 +20,12 @@ export type ServiceResponse = {
  * Garante que o retorno seja sempre um array, mesmo quando vazio ou nulo
  * @param result - O resultado a ser normalizado
  * @returns Um array garantido, nunca undefined ou null
- * @throws Error quando o resultado é null, undefined ou não é um array
+ * @throws InfrastructureError quando o resultado é null, undefined ou não é um array
  */
 export function ensureArray<T>(result: T[] | null | undefined): T[] {
   // Se o resultado for null, undefined ou não for um array, lança erro
   if (!result || !Array.isArray(result)) {
-    throw new Error(`Invalid array result: expected array, got ${result === null ? 'null' : result === undefined ? 'undefined' : typeof result}`);
+    throw new InfrastructureError(`Invalid array result: expected array, got ${result === null ? 'null' : result === undefined ? 'undefined' : typeof result}`);
   }
   return result;
 }
@@ -32,12 +34,12 @@ export function ensureArray<T>(result: T[] | null | undefined): T[] {
  * Garante que o retorno seja sempre um objeto, mesmo quando vazio ou nulo
  * @param result - O resultado a ser normalizado
  * @returns Um objeto garantido, nunca undefined ou null
- * @throws Error quando o resultado é null ou undefined
+ * @throws InfrastructureError quando o resultado é null ou undefined
  */
 export function ensureObject<T extends Record<string, unknown>>(result: T | null | undefined): T {
   // Se o resultado for null ou undefined, lança erro
   if (result === null || result === undefined) {
-    throw new Error(`Invalid object result: expected object, got ${result === null ? 'null' : 'undefined'}`);
+    throw new InfrastructureError(`Invalid object result: expected object, got ${result === null ? 'null' : 'undefined'}`);
   }
   return result;
 }
@@ -49,14 +51,14 @@ export function ensureObject<T extends Record<string, unknown>>(result: T | null
  */
 export function ensureCreatedResult(result: unknown): { id: number } {
   if (!result) {
-    throw new Error("Falha na operação de criação: resultado indefinido");
+    throw new InfrastructureError("Falha na operação de criação: resultado indefinido");
   }
 
   if (typeof result !== "object") {
     if (typeof result === 'number') {
       return { id: result };
     }
-    throw new Error("Falha na operação de criação: formato inválido");
+    throw new InfrastructureError("Falha na operação de criação: formato inválido");
   }
 
   const record = result as Record<string, unknown>;
@@ -67,7 +69,7 @@ export function ensureCreatedResult(result: unknown): { id: number } {
   }
   
   // Se for um número direto, assume que é o ID
-  throw new Error("Falha na operação de criação: ID não encontrado");
+  throw new InfrastructureError("Falha na operação de criação: ID não encontrado");
 }
 
 /**

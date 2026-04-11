@@ -1,19 +1,21 @@
 /**
  * Motor financeiro do LEO: boletos, contas a pagar/receber, recebimentos por vendedor, inadimplência por cliente.
  */
-import * as db from "../../db/index.js";
-import * as financeService from "../../finance.service.js";
 import * as db from "../../../db/index.js";
+import * as financeService from "../../finance.service.js";
 import * as usersService from "../../users.service.js";
 import { BoletoStatus, ContaPagarStatus, ContaReceberStatus } from "../../../shared/domain-status.js";
+import { ADMIN_ACTOR } from "../../../_core/service-actor.js";
 import { inArray } from "drizzle-orm";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
+import { ValidationError } from "../../../_core/errors/typed-errors.js";
 
 export type Periodo = { inicio: Date; fim: Date };
 
 function parseTenantId(tenantId: string): number {
   const parsed = Number(tenantId);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error("TENANT_ID_REQUIRED: tenantId deve ser inteiro positivo");
+    throw new ValidationError("TENANT_ID_REQUIRED: tenantId deve ser inteiro positivo");
   }
   return parsed;
 }
@@ -31,7 +33,7 @@ function periodoSemana(): Periodo {
 export async function boletosVencidos(tenantId: string): Promise<{ total: number; quantidade: number }> {
   const tenantIdNum = parseTenantId(tenantId);
   const conn = await db.getDb();
-  if (!conn) return { total: 0, quantidade: 0 };
+  assertDbConnection(conn);
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const rows = await conn
@@ -54,7 +56,7 @@ export async function boletosVencidos(tenantId: string): Promise<{ total: number
 export async function boletosAVencer(tenantId: string, dias = 30): Promise<{ total: number; quantidade: number }> {
   const tenantIdNum = parseTenantId(tenantId);
   const conn = await db.getDb();
-  if (!conn) return { total: 0, quantidade: 0 };
+  assertDbConnection(conn);
   const hoje = new Date();
   const limite = new Date(hoje);
   limite.setDate(limite.getDate() + dias);
@@ -98,7 +100,7 @@ export async function recebimentosPorVendedor(
 ): Promise<{ vendedorId: number; vendedorNome: string; total: number }[]> {
   const tenantIdNum = parseTenantId(tenantId);
   const conn = await db.getDb();
-  if (!conn) return [];
+  assertDbConnection(conn);
   const rows = await conn
     .select({
       vendedorId: db.contasReceber.vendedorId,
@@ -115,11 +117,12 @@ export async function recebimentosPorVendedor(
     )
     .groupBy(db.contasReceber.vendedorId);
   const vendedoresResult = await usersService.listVendedores?.(tenantIdNum) || { vendedores: [], total: 0, page: 1, limit: 50 };
-  const vendedores = vendedoresResult.vendedores || [];
-  const nomes = new Map(vendedores.map((v: Record<string, unknown>) => [(v.id as number) ?? 0, (v.nome as string) ?? ""]));
+  const vendedoresPayload = vendedoresResult as { vendedores?: Array<{ id?: number | null; nome?: string | null }> };
+  const vendedores = vendedoresPayload.vendedores ?? [];
+  const nomes = new Map(vendedores.map((v) => [v.id ?? 0, String(v.nome ?? "")]));
   return (rows as { vendedorId: number | null; total: string }[]).map((r) => ({
     vendedorId: r.vendedorId ?? 0,
-    vendedorNome: nomes.get(r.vendedorId ?? 0) ?? "N/A",
+    vendedorNome: String(nomes.get(r.vendedorId ?? 0) ?? "N/A"),
     total: Number(r.total ?? 0),
   }));
 }
@@ -130,7 +133,7 @@ export async function inadimplenciaPorCliente(tenantId: string): Promise<
 > {
   const tenantIdNum = parseTenantId(tenantId);
   const conn = await db.getDb();
-  if (!conn) return [];
+  assertDbConnection(conn);
   const rows = await conn
     .select({
       clienteNome: db.contasReceber.clienteNome,
@@ -172,7 +175,7 @@ export async function boletosPorCliente(
 ): Promise<{ id: number; numeroPedido: number; valorAberto: number; dataVencimento: Date; status: string }[]> {
   const tenantIdNum = parseTenantId(tenantId);
   const conn = await db.getDb();
-  if (!conn) return [];
+  assertDbConnection(conn);
   const term = `%${nomeCliente.trim()}%`;
   const clientesRows = await conn
     .select({ id: db.clientes.id })
@@ -198,7 +201,7 @@ export async function boletosPorCliente(
 export async function recebimentosNoPeriodo(periodo: Periodo, tenantId: string): Promise<{ total: number }> {
   const tenantIdNum = parseTenantId(tenantId);
   const conn = await db.getDb();
-  if (!conn) return { total: 0 };
+  assertDbConnection(conn);
   const [r] = await conn
     .select({
       total: db.sql<string>`COALESCE(SUM(${db.contasReceber.valor}), 0)`,

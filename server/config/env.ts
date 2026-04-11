@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ENV_SECRET_MIN_LENGTH } from '../_core/env-validator.js';
 import { exitProcessInProductionUnlessDevelopment } from '../_core/dev-process-exit.js';
 
 /**
@@ -9,7 +10,7 @@ const envSchema = z.object({
   // Node.js
   NODE_ENV: z.enum(['development', 'production']).default('development'),
   PORT: z.string().transform(Number).default(() => 3000),
-  APP_SECRET: z.string().min(8, 'APP_SECRET é obrigatório (mínimo 8 caracteres)'),
+  APP_SECRET: z.string().min(ENV_SECRET_MIN_LENGTH, `APP_SECRET é obrigatório (mínimo ${ENV_SECRET_MIN_LENGTH} caracteres)`),
 
   // Database — DATABASE_URL obrigatório (mysql://user:pass@host:port/db)
   DATABASE_URL: z.string().min(1, 'DATABASE_URL é obrigatório'),
@@ -24,8 +25,8 @@ const envSchema = z.object({
   DATABASE_SSL: z.string().transform(val => val === 'true').default(() => false),
 
   // JWT — access + refresh (validação será refinada por environment)
-  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET deve ter pelo menos 32 caracteres'),
-  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET deve ter pelo menos 32 caracteres'),
+  JWT_ACCESS_SECRET: z.string().min(ENV_SECRET_MIN_LENGTH, `JWT_ACCESS_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`),
+  JWT_REFRESH_SECRET: z.string().min(ENV_SECRET_MIN_LENGTH, `JWT_REFRESH_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`),
   JWT_ISSUER: z.string().default('erp-system'),
   JWT_AUDIENCE: z.string().default('erp-users'),
   JWT_EXPIRES_IN: z.string().default('15m'),
@@ -87,45 +88,39 @@ const envSchema = z.object({
   LEO_RATE_WINDOW: z.string().transform(Number).default(() => 60000),
 }).superRefine((data, ctx) => {
   // ============================================================================
-  // PRODUCTION SECURITY CONSTRAINTS (fail-fast for 64+ char secrets)
+  // SECURITY CONSTRAINTS (fail-fast for 128+ char secrets)
   // ============================================================================
-  if (data.NODE_ENV === 'production') {
-    // JWT_ACCESS_SECRET validation
-    if (data.JWT_ACCESS_SECRET.length < 64) {
+  if (data.JWT_ACCESS_SECRET.length < ENV_SECRET_MIN_LENGTH) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['JWT_ACCESS_SECRET'],
-        message: 'JWT_ACCESS_SECRET deve ter MÍNIMO 64 caracteres em produção (segurança obrigatória)',
+        message: `JWT_ACCESS_SECRET deve ter MÍNIMO ${ENV_SECRET_MIN_LENGTH} caracteres`,
       });
-    }
+  }
 
-    // JWT_REFRESH_SECRET validation
-    if (data.JWT_REFRESH_SECRET.length < 64) {
+  if (data.JWT_REFRESH_SECRET.length < ENV_SECRET_MIN_LENGTH) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['JWT_REFRESH_SECRET'],
-        message: 'JWT_REFRESH_SECRET deve ter MÍNIMO 64 caracteres em produção (segurança obrigatória)',
+        message: `JWT_REFRESH_SECRET deve ter MÍNIMO ${ENV_SECRET_MIN_LENGTH} caracteres`,
       });
-    }
+  }
 
-    // APP_SECRET validation
-    if (data.APP_SECRET.length < 64) {
+  if (data.APP_SECRET.length < ENV_SECRET_MIN_LENGTH) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['APP_SECRET'],
-        message: 'APP_SECRET deve ter MÍNIMO 64 caracteres em produção (segurança obrigatória)',
+        message: `APP_SECRET deve ter MÍNIMO ${ENV_SECRET_MIN_LENGTH} caracteres`,
       });
-    }
+  }
 
-    // JWT_SECRET validation (legado)
-    const jwtSecret = process.env.JWT_SECRET;
-    if (jwtSecret && jwtSecret.length < 64) {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (jwtSecret && jwtSecret.length < ENV_SECRET_MIN_LENGTH) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['JWT_SECRET'],
-        message: 'JWT_SECRET deve ter MÍNIMO 64 caracteres em produção (segurança obrigatória)',
+        message: `JWT_SECRET deve ter MÍNIMO ${ENV_SECRET_MIN_LENGTH} caracteres`,
       });
-    }
   }
 });
 
@@ -141,10 +136,10 @@ export type EnvConfig = z.infer<typeof envSchema> & Env;
  * Valida e carrega as variáveis de ambiente
  * Implementa padrão fail-fast com erros detalhados
  * 
- * Validações de segurança (produção):
- * - JWT_ACCESS_SECRET: mínimo 64 caracteres
- * - JWT_REFRESH_SECRET: mínimo 64 caracteres  
- * - APP_SECRET: mínimo 64 caracteres
+ * Validações de segurança:
+ * - JWT_ACCESS_SECRET: mínimo 128 caracteres
+ * - JWT_REFRESH_SECRET: mínimo 128 caracteres
+ * - APP_SECRET: mínimo 128 caracteres
  */
 export function validateEnv(): EnvConfig {
   try {
@@ -193,19 +188,19 @@ export function validateEnv(): EnvConfig {
     console.error('');
     console.error('  2. Configure todas as variáveis obrigatórias:');
     console.error('     - DATABASE_URL (mysql://user:pass@host:3306/db)');
-    console.error('     - JWT_ACCESS_SECRET (mínimo 32 chars, recomendado 64 em prod)');
-    console.error('     - JWT_REFRESH_SECRET (mínimo 32 chars, recomendado 64 em prod)');
-    console.error('     - APP_SECRET (mínimo 32 chars, recomendado 64 em prod)');
+    console.error(`     - JWT_ACCESS_SECRET (mínimo ${ENV_SECRET_MIN_LENGTH} chars)`);
+    console.error(`     - JWT_REFRESH_SECRET (mínimo ${ENV_SECRET_MIN_LENGTH} chars)`);
+    console.error(`     - APP_SECRET (mínimo ${ENV_SECRET_MIN_LENGTH} chars)`);
     console.error('     - REDIS_HOST e REDIS_PORT');
     console.error('');
     console.error('  3. Reinicie o servidor');
     console.error('');
-    console.error('🔐 NOTA DE SEGURANÇA (PRODUÇÃO):');
-    console.error('  Em NODE_ENV=production, JWT secrets devem ter MÍNIMO 64 caracteres');
-    console.error('  Use: openssl rand -base64 32 | head -c 64');
+    console.error('🔐 NOTA DE SEGURANÇA:');
+    console.error(`  Os secrets devem ter MÍNIMO ${ENV_SECRET_MIN_LENGTH} caracteres`);
+    console.error('  Use: openssl rand -base64 128 | head -c 128');
     console.error('');
 
-    exitProcessInProductionUnlessDevelopment(1);
+    process.exit(1);
     throw error;
   }
 }

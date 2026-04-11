@@ -6,6 +6,8 @@
  */
 
 import { nanoid } from 'nanoid';
+import { loggerInstance as logger } from '../utils/logger.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { getDb } from '../db/index.js';
 import { auditLogs as auditLog } from '../../drizzle/schema.js';
 import { eq, sql, and, desc, like, gte, lte, type SQL } from 'drizzle-orm';
@@ -69,8 +71,8 @@ export async function buscarRegistros(
       const dbConnection = await getDb();
       if (!dbConnection) {
         console.error('[Audit] Conexão com banco não disponível');
-        return [];
-    }
+        throw new InfrastructureError('Conexão com banco não disponível para auditoria');
+      }
 
     // Aplicar filtros
     const conditions: SQL[] = [];
@@ -162,7 +164,7 @@ export async function buscarRegistros(
     });
   } catch (error: unknown) {
     console.error('[Audit] Erro ao buscar registros:', error);
-    return [];
+    throw new InfrastructureError('Falha ao buscar registros de auditoria', { cause: error });
   }
 }
 

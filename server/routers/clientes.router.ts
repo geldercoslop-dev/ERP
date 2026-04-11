@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 // --- Core ---
 import { protectedProcedure, adminProcedure, router } from "../_core/trpc.js";
 import { assertOwnership } from "../_core/ownership.js";
-import { requireTenant } from "../_core/tenant.js";
+import { assertTenantId } from "../_core/errors/assertions.js";
 import { resolveServiceActor } from "../_core/service-actor.js";
 
 // --- DB e serviços ---
@@ -18,7 +18,7 @@ async function getVendedorFromContext(ctx: { user: { id: number; role: string } 
   if (ctx.vendedor) return ctx.vendedor;
   if (!ctx.user || ctx.user.role === "admin") return null;
   const tenantId = ctx.tenantId;
-  if (!tenantId) return null;
+  assertTenantId(tenantId);
   const usersService = await import("../services/users.service.js");
   return (await usersService.getVendedorById(ctx.user.id, tenantId)) ?? null;
 }
@@ -42,7 +42,8 @@ export const clientesRouter = router({
       return await withCache(
         () => cacheKey,
         async () => {
-          const tenantId = await requireTenant(ctx);
+          const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
           let items: Record<string, unknown>[];
           let total: number;
 
@@ -73,7 +74,8 @@ export const clientesRouter = router({
   search: protectedProcedure
     .input(z.object({ term: z.string() }))
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       const actor = await resolveServiceActor(ctx);
       const result = await clientesService.listClientes(tenantId, actor, {
         busca: input.term,
@@ -104,7 +106,8 @@ export const clientesRouter = router({
       vendedorIdPrincipal: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       const vendedorId = ctx.user.role === "admin"
         ? input.vendedorIdPrincipal
         : (await getVendedorFromContext(ctx))?.id as number;
@@ -118,7 +121,8 @@ export const clientesRouter = router({
   buscaGlobal: protectedProcedure
     .input(z.object({ term: z.string(), limit: z.number().min(1).max(100).optional() }))
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       const actor = {
         id: ctx.user.id,
         role: ctx.user.role === 'admin' ? 'admin' : 'vendedor' as 'admin' | 'vendedor',
@@ -137,38 +141,28 @@ export const clientesRouter = router({
   getHistorico: protectedProcedure
     .input(z.object({ clienteId: z.number().int().positive(), limit: z.number().int().min(1).max(100).optional() }))
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       await assertOwnership(ctx, "cliente", input.clienteId);
-      const db = await import("../db/index.js");
-      const db_conn = await db.getDb();
-      if (!db_conn) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco indisponível." });
-      const limit = input.limit ?? 20;
-      return await db_conn
-        .select({
-          id: db.pedidos.id,
-          numero: db.pedidos.numero,
-          total: db.pedidos.total,
-          status: db.pedidos.status,
-          createdAt: db.pedidos.createdAt,
-          dataEntrega: db.pedidos.dataEntrega,
-        })
-        .from(db.pedidos)
-        .where(db.eq(db.pedidos.clienteId, input.clienteId))
-        .orderBy(db.desc(db.pedidos.createdAt))
-        .limit(limit) ?? [];
+      const actor = await resolveServiceActor(ctx);
+      const result = await clientesService.getHistoricoCliente(tenantId, actor, input.clienteId, input.limit ?? 20);
+      if (!result.success) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error ?? "Falha ao buscar histórico" });
+      return result.data ?? [];
     }),
 
   getVendedorPrincipal: protectedProcedure
     .input(z.object({ clienteId: z.number() }))
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       return await clientesService.getVendedorPrincipalDoCliente(tenantId, input.clienteId) ?? null;
     }),
 
   vinculate: protectedProcedure
     .input(z.object({ clienteId: z.number(), tipo: z.enum(["PRINCIPAL", "SECUNDARIO"]).optional() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       const vendedor = await getVendedorFromContext(ctx) as { id: number } | null;
       if (!vendedor) throw new TRPCError({ code: "BAD_REQUEST", message: "Vendedor não identificado." });
       await clientesService.associarClienteVendedor(tenantId, input.clienteId, vendedor.id as number, input.tipo === "PRINCIPAL");
@@ -191,7 +185,8 @@ export const clientesRouter = router({
       referencia: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       const actor = await resolveServiceActor(ctx);
       const { id, ...data } = input;
       return await clientesService.updateCliente(tenantId, actor, id, data);
@@ -200,7 +195,8 @@ export const clientesRouter = router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+          assertTenantId(tenantId);
       const actor = await resolveServiceActor(ctx);
       return await clientesService.deleteCliente(tenantId, actor, input.id);
     }),

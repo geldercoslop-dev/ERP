@@ -1,19 +1,17 @@
 import * as configuracoesService from "../../services/configuracoes.service.js";
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 const PREFIX = "leo_memory_";
-function getDefaultTenantId(): number {
-  const tenantId = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
-  if (!tenantId || tenantId <= 0) {
-    throw new Error("Tenant ID obrigatório para memória do LEO");
-  }
-  return tenantId;
-}
+
 
 function key(tenantId: number, usuario: string, chave: string): string {
   return `${PREFIX}${tenantId}_${usuario}_${chave}`;
 }
 
-export async function getMemoria(usuario: string, chave: string, tenantId: number = getDefaultTenantId()): Promise<string | null> {
+export async function getMemoria(usuario: string, chave: string, tenantId: number): Promise<string | null> {
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId obrigatório no contexto");
+  }
   try {
     const valor = await configuracoesService.getConfig(key(tenantId, usuario, chave));
     return valor ?? null;
@@ -22,7 +20,11 @@ export async function getMemoria(usuario: string, chave: string, tenantId: numbe
   }
 }
 
-export async function setMemoria(usuario: string, chave: string, valor: string, tenantId: number = getDefaultTenantId()): Promise<void> {
+
+export async function setMemoria(usuario: string, chave: string, valor: string, tenantId: number): Promise<void> {
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId obrigatório no contexto");
+  }
   try {
     await configuracoesService.setConfig(key(tenantId, usuario, chave), valor);
   } catch (e) {
@@ -31,7 +33,11 @@ export async function setMemoria(usuario: string, chave: string, valor: string, 
   }
 }
 
-export async function listarChavesMemoria(usuario: string, tenantId: number = getDefaultTenantId()): Promise<string[]> {
+
+export async function listarChavesMemoria(usuario: string, tenantId: number): Promise<string[]> {
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId obrigatório no contexto");
+  }
   try {
     const pattern = `${PREFIX}${tenantId}_${usuario}_%`;
     const chaves = await configuracoesService.listConfigKeysLike(pattern);
@@ -43,7 +49,11 @@ export async function listarChavesMemoria(usuario: string, tenantId: number = ge
   }
 }
 
-export async function removerMemoria(usuario: string, chaveMemoria: string, tenantId: number = getDefaultTenantId()): Promise<void> {
+
+export async function removerMemoria(usuario: string, chaveMemoria: string, tenantId: number): Promise<void> {
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId obrigatório no contexto");
+  }
   try {
     await configuracoesService.deleteConfigByChave(key(tenantId, usuario, chaveMemoria));
   } catch (e) {

@@ -6,16 +6,13 @@
  */
 
 import { logger, systemLogger } from '../_core/logger.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 import {
   checkDiagnosticDatabaseHealth,
   registerDiagnosticAudit,
 } from '../services/system-diagnostic.service.js';
 
-function getDiagnosticTenantId(): number | null {
-  const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
-  const value = Number(raw);
-  return Number.isFinite(value) && value > 0 ? value : null;
-}
+
 
 export interface DiagnosticResult {
   timestamp: Date;
@@ -79,7 +76,10 @@ class SystemDiagnostic {
   /**
    * Executa diagnóstico completo do sistema
    */
-  public async runFullDiagnostic(): Promise<DiagnosticResult> {
+  public async runFullDiagnostic(tenantId: number): Promise<DiagnosticResult> {
+    if (!tenantId || !Number.isFinite(tenantId) || tenantId <= 0) {
+      throw new ValidationError('tenantId obrigatório para diagnóstico');
+    }
     console.log('Iniciando diagnóstico completo do sistema ERP');
 
     const result: DiagnosticResult = {
@@ -95,7 +95,7 @@ class SystemDiagnostic {
     this.evaluateOverallHealth(result);
 
     // Registrar no audit_log
-    await this.registerDiagnosticResult(result);
+    await this.registerDiagnosticResult(result, tenantId);
 
     // Armazenar histórico
     this.diagnosticHistory.push(result);
@@ -143,7 +143,6 @@ class SystemDiagnostic {
   private async checkDatabaseHealth(): Promise<DiagnosticResult['databaseHealth']> {
     try {
       const result = await checkDiagnosticDatabaseHealth(this.slowQueries);
-      
       if (!result.success) {
         console.error('Erro no diagnóstico do banco', result.error);
         return {
@@ -151,32 +150,9 @@ class SystemDiagnostic {
           slowQueries: this.slowQueries
         };
       }
-      
       return result.data as DiagnosticResult['databaseHealth'];
     } catch (error) {
       console.error('Erro no diagnóstico do banco', (error as Error).message);
-      
-      // Registrar no audit_log
-      try {
-        const tenantId = getDiagnosticTenantId();
-        if (!tenantId) {
-          return {
-            status: 'disconnected',
-            slowQueries: this.slowQueries
-          };
-        }
-        await registerDiagnosticAudit(tenantId, {
-          timestamp: new Date(),
-          systemHealth: await this.checkSystemHealth(),
-          databaseHealth: { status: 'disconnected', slowQueries: this.slowQueries },
-          routeHealth: await this.checkRouteHealth(),
-          queueHealth: await this.checkQueueHealth(),
-          serviceHealth: await this.checkServiceHealth(),
-        });
-      } catch (auditError) {
-        console.error(`Erro ao registrar diagnóstico no audit_log: ${(auditError as Error).message}`);
-      }
-
       return {
         status: 'disconnected',
         slowQueries: this.slowQueries
@@ -285,12 +261,14 @@ class SystemDiagnostic {
   /**
    * Registra resultado do diagnóstico no audit_log
    */
-  private async registerDiagnosticResult(result: DiagnosticResult): Promise<void> {
+  /**
+   * Agora é responsabilidade do chamador fornecer tenantId
+   */
+  public async registerDiagnosticResult(result: DiagnosticResult, tenantId: number): Promise<void> {
+    if (!tenantId || !Number.isFinite(tenantId) || tenantId <= 0) {
+      throw new ValidationError('tenantId obrigatório para registrar diagnóstico');
+    }
     try {
-      const tenantId = getDiagnosticTenantId();
-      if (!tenantId) {
-        return;
-      }
       await registerDiagnosticAudit(tenantId, result);
     } catch (error) {
       console.error(`Erro ao registrar diagnóstico no audit_log: ${(error as Error).message}`);
@@ -375,7 +353,10 @@ Serviços: ${Object.values(latest.serviceHealth).filter(s => s.status === 'healt
 export const systemDiagnostic = SystemDiagnostic.getInstance();
 
 // Exportar funções convenientes
-export const runSystemDiagnostic = () => systemDiagnostic.runFullDiagnostic();
+// Para rodar diagnóstico, agora é obrigatório informar tenantId
+export const runSystemDiagnostic = async (tenantId: number) => {
+  return systemDiagnostic.runFullDiagnostic(tenantId);
+};
 export const registerSlowQuery = (query: string, duration: number) => 
   systemDiagnostic.registerSlowQuery(query, duration);
 export const registerRouteError = (route: string, error: string) => 

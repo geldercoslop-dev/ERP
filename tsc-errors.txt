@@ -1,0 +1,268 @@
+server/_core/bounded-map.ts(144,23): error TS2345: Argument of type 'K | undefined' is not assignable to parameter of type 'K'.
+  'K' could be instantiated with an arbitrary type which could be unrelated to 'K | undefined'.
+server/_core/llm.ts(158,36): error TS2532: Object is possibly 'undefined'.
+server/_core/llm.ts(162,16): error TS2532: Object is possibly 'undefined'.
+server/_core/llm.ts(162,32): error TS2339: Property 'text' does not exist on type 'TextContent | ImageContent | FileContent'.
+  Property 'text' does not exist on type 'ImageContent'.
+server/_core/llm.ts(198,25): error TS2532: Object is possibly 'undefined'.
+server/_core/opentelemetry.ts(125,16): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/_core/safe-cache.ts(395,29): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/_core/session.service.ts(69,17): error TS18048: 'sessionData' is possibly 'undefined'.
+server/_core/session.service.ts(70,21): error TS18048: 'sessionData' is possibly 'undefined'.
+server/_core/system-monitor.ts(137,50): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/_core/system-monitor.ts(141,33): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/cache/api-cache.ts(122,20): error TS2532: Object is possibly 'undefined'.
+server/cache/simple-memory-cache.ts(62,25): error TS2532: Object is possibly 'undefined'.
+server/controllers/client.controller.ts(87,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/client.controller.ts(137,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/client.controller.ts(180,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/order.controller.ts(125,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/order.controller.ts(175,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/order.controller.ts(218,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/order.controller.ts(261,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/order.controller.ts(304,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/payment.controller.ts(91,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/payment.controller.ts(141,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/payment.controller.ts(184,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/payment.controller.ts(228,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/controllers/payment.controller.ts(273,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/db/core.ts(213,27): error TS2532: Object is possibly 'undefined'.
+server/infra/trace-propagation.ts(81,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/leo/desktop/app-controller.ts(207,27): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/browser-controller.ts(73,31): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+server/leo/desktop/browser-controller.ts(79,17): error TS2339: Property 'on' does not exist on type 'never'.
+  The intersection 'ChildProcessWithoutNullStreams & ChildProcessByStdio<Writable, Readable, Readable> & ... 7 more ... & ChildProcess' was reduced to 'never' because property 'stdin' has conflicting types in some constituents.
+server/leo/desktop/browser-controller.ts(84,34): error TS2339: Property 'pid' does not exist on type 'never'.
+  The intersection 'ChildProcessWithoutNullStreams & ChildProcessByStdio<Writable, Readable, Readable> & ... 7 more ... & ChildProcess' was reduced to 'never' because property 'stdin' has conflicting types in some constituents.
+server/leo/desktop/browser-controller.ts(88,17): error TS2339: Property 'on' does not exist on type 'never'.
+  The intersection 'ChildProcessWithoutNullStreams & ChildProcessByStdio<Writable, Readable, Readable> & ... 7 more ... & ChildProcess' was reduced to 'never' because property 'stdin' has conflicting types in some constituents.
+server/leo/desktop/browser-controller.ts(88,30): error TS7006: Parameter 'error' implicitly has an 'any' type.
+server/leo/desktop/browser-controller.ts(97,24): error TS2339: Property 'killed' does not exist on type 'never'.
+  The intersection 'ChildProcessWithoutNullStreams & ChildProcessByStdio<Writable, Readable, Readable> & ... 7 more ... & ChildProcess' was reduced to 'never' because property 'stdin' has conflicting types in some constituents.
+server/leo/desktop/browser-controller.ts(101,36): error TS2339: Property 'pid' does not exist on type 'never'.
+  The intersection 'ChildProcessWithoutNullStreams & ChildProcessByStdio<Writable, Readable, Readable> & ... 7 more ... & ChildProcess' was reduced to 'never' because property 'stdin' has conflicting types in some constituents.
+server/leo/desktop/browser-controller.ts(136,31): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+server/leo/desktop/browser-controller.ts(142,17): error TS2339: Property 'on' does not exist on type 'never'.
+  The intersection 'ChildProcessWithoutNullStreams & ChildProcessByStdio<Writable, Readable, Readable> & ... 7 more ... & ChildProcess' was reduced to 'never' because property 'stdin' has conflicting types in some constituents.
+server/leo/desktop/browser-controller.ts(150,17): error TS2339: Property 'on' does not exist on type 'never'.
+  The intersection 'ChildProcessWithoutNullStreams & ChildProcessByStdio<Writable, Readable, Readable> & ... 7 more ... & ChildProcess' was reduced to 'never' because property 'stdin' has conflicting types in some constituents.
+server/leo/desktop/browser-controller.ts(150,30): error TS7006: Parameter 'error' implicitly has an 'any' type.
+server/leo/desktop/system-controller.ts(209,13): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(209,49): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(209,60): error TS2339: Property 'value' does not exist on type 'PromiseSettledResult<{ stdout: string; stderr: string; }>'.
+  Property 'value' does not exist on type 'PromiseRejectedResult'.
+server/leo/desktop/system-controller.ts(210,14): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(210,50): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(210,61): error TS2339: Property 'value' does not exist on type 'PromiseSettledResult<{ stdout: string; stderr: string; }>'.
+  Property 'value' does not exist on type 'PromiseRejectedResult'.
+server/leo/desktop/system-controller.ts(211,17): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(211,53): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(211,64): error TS2339: Property 'value' does not exist on type 'PromiseSettledResult<{ stdout: string; stderr: string; }>'.
+  Property 'value' does not exist on type 'PromiseRejectedResult'.
+server/leo/desktop/system-controller.ts(212,15): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(212,51): error TS2532: Object is possibly 'undefined'.
+server/leo/desktop/system-controller.ts(212,62): error TS2339: Property 'value' does not exist on type 'PromiseSettledResult<{ stdout: string; stderr: string; }>'.
+  Property 'value' does not exist on type 'PromiseRejectedResult'.
+server/leo/desktop/system-controller.ts(320,19): error TS2538: Type 'undefined' cannot be used as an index type.
+server/leo/memory/leo-long-memory.ts(181,28): error TS2532: Object is possibly 'undefined'.
+server/leo/memory/leo-memory.ts(656,5): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/leo/memory/memory-manager.ts(358,15): error TS2488: Type '[string, MemoryItem] | undefined' must have a '[Symbol.iterator]()' method that returns an iterator.
+server/leo/perception/leo-system-monitor.ts(547,11): error TS2322: Type '"error" | "info" | "debug" | "warn" | undefined' is not assignable to type '"error" | "info" | "debug" | "warn"'.
+  Type 'undefined' is not assignable to type '"error" | "info" | "debug" | "warn"'.
+server/leo/planning/leo-daily-report.ts(792,32): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+server/leo/planning/leo-daily-report.ts(824,32): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+server/leo/providers/groq-provider.ts(132,23): error TS18048: 'choice' is possibly 'undefined'.
+server/leo/providers/groq-provider.ts(133,47): error TS18048: 'choice' is possibly 'undefined'.
+server/leo/providers/groq-provider.ts(182,51): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/leo/providers/groq-provider.ts(185,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/leo/providers/groq-provider.ts(214,14): error TS2538: Type 'undefined' cannot be used as an index type.
+server/middlewares/rate-limit.ts(82,12): error TS2532: Object is possibly 'undefined'.
+server/modules/logistica/rota-sugerida.service.ts(37,28): error TS2532: Object is possibly 'undefined'.
+server/modules/logistica/rota-sugerida.service.ts(40,44): error TS2532: Object is possibly 'undefined'.
+server/modules/logistica/rota-sugerida.service.ts(94,23): error TS18048: 'a' is possibly 'undefined'.
+server/modules/logistica/rota-sugerida.service.ts(94,31): error TS18048: 'b' is possibly 'undefined'.
+server/modules/logistica/rota-sugerida.service.ts(94,38): error TS18048: 'a' is possibly 'undefined'.
+server/modules/logistica/rota-sugerida.service.ts(94,46): error TS18048: 'b' is possibly 'undefined'.
+server/modules/logistica/rota-sugerida.service.ts(103,22): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+server/monitoring/error-alerter.ts(173,30): error TS2532: Object is possibly 'undefined'.
+server/pdf.ts(56,60): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(73,12): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(74,21): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(85,29): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(105,47): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(211,60): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(226,19): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(227,21): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(236,36): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(254,42): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(438,48): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+server/pdf.ts(685,62): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(690,14): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(691,38): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(696,38): error TS18048: 'b' is possibly 'undefined'.
+server/pdf.ts(709,14): error TS18048: 'b' is possibly 'undefined'.
+server/resilience/retry-middleware.ts(210,9): error TS2345: Argument of type 'RetryConfig | undefined' is not assignable to parameter of type 'RetryConfig'.
+  Type 'undefined' is not assignable to type 'RetryConfig'.
+server/resilience/retry-middleware.ts(226,31): error TS2345: Argument of type 'RetryConfig | undefined' is not assignable to parameter of type 'RetryConfig'.
+  Type 'undefined' is not assignable to type 'RetryConfig'.
+server/resilience/retry-middleware.ts(236,31): error TS2345: Argument of type 'RetryConfig | undefined' is not assignable to parameter of type 'RetryConfig'.
+  Type 'undefined' is not assignable to type 'RetryConfig'.
+server/routes/concurrency-test.ts(74,21): error TS18048: 'produto' is possibly 'undefined'.
+server/routes/pedidos.ts(206,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/routes/pedidos.ts(245,24): error TS2532: Object is possibly 'undefined'.
+server/routes/pedidos.ts(253,26): error TS2532: Object is possibly 'undefined'.
+server/routes/pedidos.ts(295,5): error TS2322: Type '{ status: any; data_entrega: string | undefined; cliente_id?: number | undefined; data_pedido?: string | undefined; forma_pagamento?: "PIX" | "BOLETO" | "CARTAO" | "DINHEIRO" | "MISTO" | undefined; ... 7 more ...; data_confirmacao?: string | undefined; }' is not assignable to type '{ cliente_id: number; data_pedido: string; status: "ENTREGUE" | "CANCELADO" | "PENDENTE" | "CONFIRMADO" | "EM_PRODUCAO" | "PRONTO"; forma_pagamento: "PIX" | "BOLETO" | "CARTAO" | "DINHEIRO" | "MISTO"; ... 8 more ...; data_confirmacao?: string | undefined; }'.
+  Types of property 'cliente_id' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+server/routes/pedidos.ts(298,37): error TS2532: Object is possibly 'undefined'.
+server/routes/pedidos.ts(320,21): error TS18048: 'pedidoRemovido' is possibly 'undefined'.
+server/scripts/reset-admin-password.ts(105,15): error TS18048: 'user' is possibly 'undefined'.
+server/scripts/reset-admin-password.ts(114,60): error TS18048: 'admin' is possibly 'undefined'.
+server/scripts/reset-admin-password.ts(114,75): error TS18048: 'admin' is possibly 'undefined'.
+server/scripts/reset-admin-password.ts(122,26): error TS18048: 'admin' is possibly 'undefined'.
+server/scripts/seed-massa-teste.ts(56,46): error TS2532: Object is possibly 'undefined'.
+server/security/jwt-auth.ts(240,5): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+server/security/jwt-auth.ts(288,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/security/jwt-auth.ts(288,36): error TS2538: Type 'undefined' cannot be used as an index type.
+server/security/jwt-hardening.ts(51,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/security/jwt-hardening.ts(51,40): error TS2538: Type 'undefined' cannot be used as an index type.
+server/security/rate-limiting.ts(28,10): error TS18048: 'path' is possibly 'undefined'.
+server/security/timing-safe.ts(95,23): error TS18048: 'local' is possibly 'undefined'.
+server/security/timing-safe.ts(96,7): error TS18048: 'local' is possibly 'undefined'.
+server/security/timing-safe.ts(96,42): error TS18048: 'local' is possibly 'undefined'.
+server/security/timing-safe.ts(97,18): error TS18048: 'local' is possibly 'undefined'.
+server/services/ai/leo-memory.ts(93,5): error TS2322: Type 'MemoryEntry | undefined' is not assignable to type 'Partial<MemoryEntry> | null'.
+  Type 'undefined' is not assignable to type 'Partial<MemoryEntry> | null'.
+server/services/ai/llm-connector.ts(127,11): error TS2532: Object is possibly 'undefined'.
+server/services/ai/llm-connector.ts(128,30): error TS2532: Object is possibly 'undefined'.
+server/services/ai/llm-connector.ts(129,36): error TS2532: Object is possibly 'undefined'.
+server/services/ai/llm-connector.ts(130,11): error TS2532: Object is possibly 'undefined'.
+server/services/ai/llm-connector.ts(130,11): error TS2532: Object is possibly 'undefined'.
+server/services/ai/llm-connector.ts(130,73): error TS2532: Object is possibly 'undefined'.
+server/services/ai/llm-connector.ts(130,73): error TS2532: Object is possibly 'undefined'.
+server/services/ai/llm-connector.ts(134,11): error TS2532: Object is possibly 'undefined'.
+server/services/assistant/assistant.service.ts(27,3): error TS2322: Type 'T | undefined' is not assignable to type 'T | null'.
+  Type 'undefined' is not assignable to type 'T | null'.
+server/services/audit-log.service.ts(118,21): error TS2532: Object is possibly 'undefined'.
+server/services/clientes.service.ts(547,41): error TS2532: Object is possibly 'undefined'.
+server/services/clientes.service.ts(598,37): error TS2532: Object is possibly 'undefined'.
+server/services/clientes.service.ts(838,55): error TS2532: Object is possibly 'undefined'.
+server/services/finance.service.ts(145,11): error TS18048: 'cliente' is possibly 'undefined'.
+server/services/finance.service.ts(145,33): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(150,35): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(184,40): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(198,21): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(199,25): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(200,22): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(201,23): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(217,22): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(218,21): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(219,23): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(220,31): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(235,22): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(236,21): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(237,23): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(238,31): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(265,19): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(266,32): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(272,21): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(273,19): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(274,21): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(295,21): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(296,20): error TS18048: 'pedido' is possibly 'undefined'.
+server/services/finance.service.ts(331,28): error TS2532: Object is possibly 'undefined'.
+server/services/finance.service.ts(332,21): error TS2532: Object is possibly 'undefined'.
+server/services/finance.service.ts(362,13): error TS18048: 'b' is possibly 'undefined'.
+server/services/finance.service.ts(362,49): error TS18048: 'b' is possibly 'undefined'.
+server/services/finance.service.ts(363,73): error TS18048: 'b' is possibly 'undefined'.
+server/services/finance.service.ts(367,41): error TS18048: 'b' is possibly 'undefined'.
+server/services/finance.service.ts(977,92): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/services/inventory.service.ts(393,25): error TS2532: Object is possibly 'undefined'.
+server/services/inventory.service.ts(456,31): error TS2532: Object is possibly 'undefined'.
+server/services/inventory.service.ts(556,35): error TS2532: Object is possibly 'undefined'.
+server/services/logistica.service.ts(69,24): error TS2532: Object is possibly 'undefined'.
+server/services/logistica.service.ts(75,29): error TS2532: Object is possibly 'undefined'.
+server/services/logistica.service.ts(79,9): error TS2532: Object is possibly 'undefined'.
+server/services/logistica.service.ts(89,70): error TS2532: Object is possibly 'undefined'.
+server/services/logistica.service.ts(95,21): error TS2532: Object is possibly 'undefined'.
+server/services/logistica.service.ts(334,9): error TS2532: Object is possibly 'undefined'.
+server/services/logistica.service.ts(492,9): error TS2532: Object is possibly 'undefined'.
+server/services/reports/pdf.service.ts(95,60): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(110,12): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(111,21): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(120,29): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(138,47): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(221,60): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(236,19): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(237,21): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(246,36): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(264,42): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(682,62): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(687,14): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(688,38): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(693,38): error TS18048: 'b' is possibly 'undefined'.
+server/services/reports/pdf.service.ts(706,14): error TS18048: 'b' is possibly 'undefined'.
+server/services/safe-stock.ts(298,35): error TS2532: Object is possibly 'undefined'.
+server/services/safe-stock.ts(514,28): error TS18048: 'produto' is possibly 'undefined'.
+server/services/system-diagnostic.service.ts(65,20): error TS2532: Object is possibly 'undefined'.
+server/services/system-health.service.ts(234,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/services/system-health.service.ts(327,9): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/services/users.service.ts(98,30): error TS2322: Type '{ id: number; tenantId: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; role: "admin" | "user"; createdAt: Date; updatedAt: Date; lastSignedIn: Date; } | undefined' is not assignable to type '{ id: number; email: string | null; createdAt: Date; updatedAt: Date; tenantId: number; name: string | null; openId: string; loginMethod: string | null; role: "admin" | "user"; lastSignedIn: Date; } | null'.
+  Type 'undefined' is not assignable to type '{ id: number; email: string | null; createdAt: Date; updatedAt: Date; tenantId: number; name: string | null; openId: string; loginMethod: string | null; role: "admin" | "user"; lastSignedIn: Date; } | null'.
+server/services/users.service.ts(113,30): error TS2322: Type '{ id: number; tenantId: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; role: "admin" | "user"; createdAt: Date; updatedAt: Date; lastSignedIn: Date; } | undefined' is not assignable to type '{ id: number; email: string | null; createdAt: Date; updatedAt: Date; tenantId: number; name: string | null; openId: string; loginMethod: string | null; role: "admin" | "user"; lastSignedIn: Date; } | null'.
+  Type 'undefined' is not assignable to type '{ id: number; email: string | null; createdAt: Date; updatedAt: Date; tenantId: number; name: string | null; openId: string; loginMethod: string | null; role: "admin" | "user"; lastSignedIn: Date; } | null'.
+server/services/users.service.ts(234,38): error TS2532: Object is possibly 'undefined'.
+server/services/users.service.ts(238,94): error TS2532: Object is possibly 'undefined'.
+server/services/users.service.ts(282,30): error TS2322: Type '{ id: number; tenantId: number; userId: number | null; nome: string; telefone: string | null; email: string | null; senha: string | null; cidade: string | null; admin: boolean; ativo: boolean; createdAt: Date; updatedAt: Date; } | undefined' is not assignable to type '{ id: number; nome: string; email: string | null; createdAt: Date; updatedAt: Date; tenantId: number; userId: number | null; admin: boolean; telefone: string | null; cidade: string | null; ativo: boolean; senha: string | null; } | null'.
+  Type 'undefined' is not assignable to type '{ id: number; nome: string; email: string | null; createdAt: Date; updatedAt: Date; tenantId: number; userId: number | null; admin: boolean; telefone: string | null; cidade: string | null; ativo: boolean; senha: string | null; } | null'.
+server/tools/diagnostic-cli.ts(107,15): error TS18048: 'arg' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(365,14): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(366,12): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(366,62): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(367,10): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(367,43): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(368,10): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(368,40): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(369,27): error TS18048: 'latest' is possibly 'undefined'.
+server/tools/system-diagnostic.ts(369,107): error TS18048: 'latest' is possibly 'undefined'.
+server/types/service-guard.ts(219,9): error TS2322: Type '"single" | "create" | "list" | "other" | "paginated" | undefined' is not assignable to type '"single" | "create" | "list" | "other" | "paginated"'.
+  Type 'undefined' is not assignable to type '"single" | "create" | "list" | "other" | "paginated"'.

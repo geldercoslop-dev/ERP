@@ -58,7 +58,7 @@ export async function resolveSessionPrincipal(
     const tokenTenantId = Number(parts[1]);
     const vendedorId = Number(parts[2]);
     if (Number.isInteger(tokenTenantId) && tokenTenantId > 0 && Number.isInteger(vendedorId) && vendedorId > 0) {
-      const loadedVendedor = await db.getVendedorById(String(tokenTenantId), vendedorId);
+      const loadedVendedor = await db.getVendedorById(vendedorId);
       if (loadedVendedor?.ativo) {
         vendedor = loadedVendedor;
         tenantId = tokenTenantId;

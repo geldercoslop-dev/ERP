@@ -659,10 +659,10 @@ class LeoMemory {
   /**
    * Busca decisões similares
    */
-  async findSimilarDecisions(action: string, context?: any, limit: number = 5): Promise<MemoryDecision[]> {
+  async findSimilarDecisions(action: string, context?: unknown, limit: number = 5): Promise<MemoryDecision[]> {
     return this.history
-      .filter((d: any) => d.action === action)
-      .filter((d: any) => {
+      .filter((d) => d.action === action)
+      .filter((d) => {
         if (!context) return true;
         // Implementar lógica de similaridade de contexto
         return true;
@@ -673,14 +673,14 @@ class LeoMemory {
   /**
    * Prevê sucesso de uma ação baseado no histórico
    */
-  async predictSuccess(action: string, context?: any): Promise<number> {
+  async predictSuccess(action: string, context?: unknown): Promise<number> {
     const similarDecisions = await this.findSimilarDecisions(action, context, 20);
     
     if (similarDecisions.length === 0) {
       return 0.5; // 50% se não há histórico
     }
 
-    const successCount = similarDecisions.filter((d: any) => d.success).length;
+    const successCount = similarDecisions.filter((d) => d.success).length;
     return successCount / similarDecisions.length;
   }
 

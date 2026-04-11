@@ -213,6 +213,10 @@ export function createRateLimitMiddleware(options: RateLimitOptions = DEFAULT_CO
   setInterval(cleanupExpiredEntries, 5 * 60 * 1000);
   
   return (req: Request, res: Response, next: NextFunction): void => {
+    if (process.env.K6_MODE === 'true') {
+      return next();
+    }
+
     const ip = getClientIP(req);
     const path = req.path;
     

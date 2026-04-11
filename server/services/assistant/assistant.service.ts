@@ -4,6 +4,7 @@
 import * as db from "../../db/index.js";
 import { inArray, ne } from "drizzle-orm";
 import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from "../../shared/domain-status.js";
+import { ValidationError } from "../../_core/errors/typed-errors.js";
 
 export type SugestaoSistema = {
   tipo: string;
@@ -15,16 +16,20 @@ export type SugestaoSistema = {
 function parseTenantId(tenantId: string): number {
   const parsed = Number(tenantId);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error("TENANT_ID_REQUIRED: tenantId deve ser inteiro positivo");
+    throw new ValidationError("TENANT_ID_REQUIRED: tenantId deve ser inteiro positivo");
   }
   return parsed;
 }
 
-function escolher<T>(arr: T[]): T | null {
+type EscolhaResultado<T> =
+  | { found: false; item: null }
+  | { found: true; item: T };
+
+function escolher<T>(arr: T[]): EscolhaResultado<T> {
   if (arr.length === 0) {
-    return null;
+    return { found: false, item: null };
   }
-  return arr[Math.floor(Math.random() * arr.length)];
+  return { found: true, item: arr[Math.floor(Math.random() * arr.length)] };
 }
 
 /** Datas comerciais fixas: { nome, dia, mês } (aviso 15 dias antes). */
@@ -182,9 +187,10 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
   for (const p of produtosComEstoque as Array<{ id: number; descricao: string; estoque: number }>) {
     const ultima = ultimaPorId.get(p.id);
     if (ultima == null || new Date(ultima) < limite30) {
+      const escolha = escolher(VARIACOES_ESTOQUE_PARADO);
       sugestoes.push({
         tipo: "estoque_parado",
-        mensagem: escolher(VARIACOES_ESTOQUE_PARADO) ?? "Produto parado há 30 dias. Verifique.",
+        mensagem: escolha.found ? escolha.item : "Produto parado há 30 dias. Verifique.",
         prioridade: "media",
         data: hoje,
       });
@@ -205,9 +211,10 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
     )
     .limit(1);
   if (pedidosParados.length > 0) {
+    const escolhaPedido = escolher(VARIACOES_PEDIDO_PARADO);
     sugestoes.push({
       tipo: "pedido_parado",
-      mensagem: escolher(VARIACOES_PEDIDO_PARADO) ?? "Pedido parado há mais de 20 dias. Verifique.",
+      mensagem: escolhaPedido.found ? escolhaPedido.item : "Pedido parado há mais de 20 dias. Verifique.",
       prioridade: "alta",
       data: hoje,
     });
@@ -237,9 +244,10 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
   const totalRecebido = Number((recebidoHoje as unknown as Array<{ total: string | number }> | undefined)?.[0]?.total ?? 0);
   const totalPago = Number((pagoHoje as unknown as Array<{ total: string | number }> | undefined)?.[0]?.total ?? 0);
   if (totalPago > totalRecebido) {
+    const escolhaFinanceiro = escolher(VARIACOES_FINANCEIRO_DESEQUILIBRADO);
     sugestoes.push({
       tipo: "financeiro_desequilibrado",
-      mensagem: escolher(VARIACOES_FINANCEIRO_DESEQUILIBRADO) ?? "Fluxo de caixa desequilibrado hoje.",
+      mensagem: escolhaFinanceiro.found ? escolhaFinanceiro.item : "Fluxo de caixa desequilibrado hoje.",
       prioridade: "alta",
       data: hoje,
     });
@@ -258,9 +266,10 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
     )
     .limit(1);
   if (contasReceberHoje.length > 0) {
+    const escolhaContas = escolher(VARIACOES_CONTAS_RECEBER_HOJE);
     sugestoes.push({
       tipo: "contas_receber_hoje",
-      mensagem: escolher(VARIACOES_CONTAS_RECEBER_HOJE) ?? "Existem contas a receber hoje.",
+      mensagem: escolhaContas.found ? escolhaContas.item : "Existem contas a receber hoje.",
       prioridade: "media",
       data: hoje,
     });
@@ -279,9 +288,10 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
   const count7 = Number((pedidosUltimos7 as unknown as Array<{ c: string | number }> | undefined)?.[0]?.c ?? 0);
   const mediaSemanal = count7 / 7;
   if (mediaSemanal > 0 && countHoje < mediaSemanal) {
+    const escolhaMovimento = escolher(VARIACOES_MOVIMENTO_FRACO);
     sugestoes.push({
       tipo: "movimento_fraco",
-      mensagem: escolher(VARIACOES_MOVIMENTO_FRACO) ?? "Movimento de vendas fraco hoje.",
+      mensagem: escolhaMovimento.found ? escolhaMovimento.item : "Movimento de vendas fraco hoje.",
       prioridade: "baixa",
       data: hoje,
     });
@@ -291,9 +301,11 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
   for (const dc of DATAS_COMERCIAIS) {
     const dataRef = proximaDataComercial(dc.dia, dc.mes);
     if (estaProximo(dataRef, 15)) {
+      const escolhaData = escolher(VARIACOES_DATA_COMERCIAL);
+      const mensagemBase = escolhaData.found ? escolhaData.item : "Data comercial se aproximando.";
       sugestoes.push({
         tipo: "data_comercial",
-        mensagem: (escolher(VARIACOES_DATA_COMERCIAL) ?? "Data comercial se aproximando.").replace(/essa data comercial/gi, dc.nome),
+        mensagem: mensagemBase.replace(/essa data comercial/gi, dc.nome),
         prioridade: "media",
         data: hoje,
       });

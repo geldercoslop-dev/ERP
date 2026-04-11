@@ -1,0 +1,22 @@
+  Throw genérico detectado - usar erro tipado (ValidationError, InfrastructureError)
+    server\services\core-business-real.test.ts:50 - if (!db) throw new Error("no db");
+    server\services\core-business-real.test.ts:60 - if (!id) throw new Error("vendedor id");
+    server\services\core-business-real.test.ts:161 - if (!db) throw new Error("db");
+    server\services\core-business-real.test.ts:181 - if (!db2) throw new Error("db");
+    server\services\core-business-real.test.ts:200 - if (!db) throw new Error("db");
+    server\services\core-business-real.test.ts:249 - if (!db) throw new Error("db");
+    server\services\core-business-real.test.ts:276 - if (!pedidoPk) throw new Error("pedido");
+    server\services\core-business-real.test.ts:290 - if (!boletoId) throw new Error("boleto");
+    server\services\core-business-real.test.ts:328 - if (!db) throw new Error("db");
+    server\services\financial-idempotency.ts:192 - throw new Error(`Operação ${operationType} já processada em ${check.record!.processedAt.toISOString()}`);
+    server\services\idempotency-command.service.ts:25 - throw new Error("Database not available");
+    server\services\inventory.service.ts:57 - if (!after.length) throw new Error("Falha ao atualizar cor");
+    server\services\inventory.service.ts:67 - if (after.length > 0) throw new Error("Falha ao excluir cor");
+    server\services\inventory.service.ts:354 - if (!current) throw new Error("Produto não encontrado ou acesso negado");
+    server\services\inventory.service.ts:394 - if (produtoAtual.length === 0) throw new Error("Produto não encontrado");
+    server\services\inventory.service.ts:397 - if (updatedAt && updatedAt > versionDate) throw new Error(`O produto foi modificado por outro usuário desde que você o abriu.`);
+    server\services\inventory.service.ts:402 - if (!after) throw new Error("Falha ao atualizar produto");
+    server\services\inventory.service.ts:417 - if (!after || after.ativo !== false) throw new Error("Falha ao excluir logicamente produto");
+    server\services\inventory.service.ts:441 - if (!row) throw new Error("Produto não encontrado");
+    server\services\inventory.service.ts:445 - throw new Error(`Estoque insuficiente para saída do produto "${row.descricao}". Saldo atual: ${saldoAnterior}.`);
+  2. Usar erros tipados (ValidationError, InfrastructureError)

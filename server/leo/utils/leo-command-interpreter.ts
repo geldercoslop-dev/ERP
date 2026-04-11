@@ -3,14 +3,18 @@ import { LeoStockMonitor } from '../intelligence/leo-stock-monitor.js';
 import { LeoPatternDetection } from '../intelligence/leo-pattern-detection.js';
 import { logInfo } from '../../_core/logger.js';
 
-const salesAnalysis = new LeoSalesAnalysis();
+const salesAnalysis = new LeoSalesAnalysis(1); // TODO: Obter tenantId do contexto seguro
 const stockMonitor = LeoStockMonitor.getInstance();
 const patternDetection = new LeoPatternDetection();
+
+type RestockItem = {
+  priority?: string;
+};
 
 /**
  * Interpreta comandos em linguagem natural e executa ações correspondentes
  */
-export async function interpretLeoCommand(message: string, context?: string): Promise<string> {
+export async function interpretLeoCommand(message: string, tenantId: number, context?: string): Promise<string> {
   try {
     const lowerMessage = message.toLowerCase();
     
@@ -21,17 +25,17 @@ export async function interpretLeoCommand(message: string, context?: string): Pr
     // Comandos de vendas
     if (lowerMessage.includes('venda') || lowerMessage.includes('vender')) {
       if (lowerMessage.includes('hoje') || lowerMessage.includes('dia')) {
-        const avgTicket = await salesAnalysis.calculateAverageTicket(undefined, '1d');
+        const avgTicket = await salesAnalysis.calculateAverageTicket(tenantId, undefined, '1d');
         return `📊 Ticket médio hoje: R$ ${avgTicket.toFixed(2)}`;
       }
       
       if (lowerMessage.includes('semana') || lowerMessage.includes('7 dias')) {
-        const growth = await salesAnalysis.analyzeSalesGrowth('7d');
+        const growth = await salesAnalysis.analyzeSalesGrowth(tenantId, '7d');
         return `📈 Crescimento de vendas na semana: ${growth.percentage}% (${growth.trend})`;
       }
       
       if (lowerMessage.includes('mês') || lowerMessage.includes('30 dias')) {
-        const growth = await salesAnalysis.analyzeSalesGrowth('30d');
+        const growth = await salesAnalysis.analyzeSalesGrowth(tenantId, '30d');
         return `📈 Crescimento de vendas no mês: ${growth.percentage}% (${growth.trend})`;
       }
     }
@@ -39,8 +43,8 @@ export async function interpretLeoCommand(message: string, context?: string): Pr
     // Comandos de estoque
     if (lowerMessage.includes('estoque') || lowerMessage.includes('produtos')) {
       if (lowerMessage.includes('baixo') || lowerMessage.includes('crítico')) {
-        const alerts = await stockMonitor.getProductsNeedingRestock();
-        const allLow = await stockMonitor.checkLowStock();
+        const alerts = await stockMonitor.getProductsNeedingRestock(tenantId);
+        const allLow = await stockMonitor.checkLowStock(tenantId);
         if (allLow.length > 0) {
           const criticalCount = alerts.length;
           return `⚠️ Encontrei ${criticalCount} produtos com estoque CRÍTICO e ${allLow.length} com estoque baixo`;
@@ -49,7 +53,7 @@ export async function interpretLeoCommand(message: string, context?: string): Pr
       }
       
       if (lowerMessage.includes('resumo') || lowerMessage.includes('status')) {
-        const alerts = await stockMonitor.checkLowStock();
+        const alerts = await stockMonitor.checkLowStock(tenantId);
         const lowStock = alerts.filter((a) => a.status === 'low').length;
         const criticalStock = alerts.filter((a) => a.status === 'critical').length;
         const outOfStock = alerts.filter((a) => a.status === 'out').length;
@@ -81,9 +85,9 @@ export async function interpretLeoCommand(message: string, context?: string): Pr
 
     // Comandos de alertas
     if (lowerMessage.includes('alerta') || lowerMessage.includes('aviso')) {
-      const restock = await stockMonitor.getProductsNeedingRestock();
+      const restock = await stockMonitor.getProductsNeedingRestock(tenantId);
       if (restock.length > 0) {
-        const highPriority = restock.filter((r: any) => r.priority === 'high');
+        const highPriority = (restock as RestockItem[]).filter((r) => r.priority === 'high');
         return `⚠️ ${highPriority.length} produtos precisam de reposição URGENTE!`;
       }
       return '✅ Nenhum produto precisa de reposição no momento';
@@ -91,8 +95,8 @@ export async function interpretLeoCommand(message: string, context?: string): Pr
 
     // Comandos de status geral
     if (lowerMessage.includes('status') || lowerMessage.includes('como vai')) {
-      const growth = await salesAnalysis.analyzeSalesGrowth('7d');
-      const alerts = await stockMonitor.checkLowStock();
+      const growth = await salesAnalysis.analyzeSalesGrowth(tenantId, '7d');
+      const alerts = await stockMonitor.checkLowStock(tenantId);
       const lowStock = alerts.filter((a) => a.status === 'low').length;
       const criticalStock = alerts.filter((a) => a.status === 'critical' || a.status === 'out').length;
       return `📊 Status Geral do ERP:

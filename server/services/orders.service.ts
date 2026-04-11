@@ -9,6 +9,8 @@ import { createHash } from 'crypto';
 import { ensureArray, ensureObject } from "../_core/service-response.js";
 import type { ServiceActor } from "../_core/service-actor.js";
 import { assertVendedorActor } from "../_core/service-actor.js";
+import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
+import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
@@ -52,7 +54,7 @@ async function loadClienteRowTenant(
   clienteId: number
 ): Promise<typeof clientes.$inferSelect | null> {
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select()
     .from(clientes)
@@ -70,7 +72,7 @@ export async function getClienteRowForPedidoCreate(
   clienteId: number
 ): Promise<typeof clientes.$inferSelect> {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select()
     .from(clientes)
@@ -109,13 +111,13 @@ export async function assertPedidoMutableByActor(
 
 function assertRequiredId(value: number, fieldName: string): void {
   if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${fieldName} obrigatório`);
+    throw new ValidationError(`${fieldName} obrigatório`);
   }
 }
 
 function assertRequiredObject<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
-    throw new Error(message);
+    throw new ValidationError(message);
   }
 
   return value;
@@ -143,7 +145,7 @@ export function isDuplicateKeyError(error: unknown): boolean {
 export async function countPedidosByTenant(tenantId: number): Promise<number> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return 0;
+  assertDbConnection(dbConn);
   const rows = await dbConn.select({ count: sql<number>`COUNT(*)` }).from(pedidos).where(eq(pedidos.tenantId, tenantId));
   return Number(rows[0]?.count ?? 0);
 }
@@ -177,7 +179,7 @@ function generatePedidoIdempotencyKey(
  */
 export async function getProdutoById(tenantId: number, id: number) {
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
 
   const result = await dbConn.select().from(produtos).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, id))).limit(1);
   return result.length > 0 ? result[0] : null;
@@ -264,7 +266,7 @@ export function resolveVendedorIdForCreate(
     if (tid != null && Number.isFinite(tid) && tid > 0) {
       return Math.floor(tid);
     }
-    throw new Error("vendedor do pedido (admin): informe trustedVendedorId da sessão; input.vendedorId não é aceito");
+    throw new ValidationError("vendedor do pedido (admin): informe trustedVendedorId da sessão; input.vendedorId não é aceito");
   }
   const legacyVid = (actor as { vendedorId?: number } | undefined)?.vendedorId;
   if (legacyVid != null && Number(legacyVid) > 0) {
@@ -282,7 +284,7 @@ export async function createPedidoSafe(
   assertRequiredId(tenantId, "tenantId");
   assertRequiredObject(input, "Input do pedido obrigatório");
   if (!Array.isArray(input.itens) || input.itens.length === 0) {
-    throw new Error("Pedido deve ter pelo menos um item");
+    throw new ValidationError("Pedido deve ter pelo menos um item");
   }
   const effectiveClienteId =
     (input.clienteId != null && Number(input.clienteId) > 0 ? Number(input.clienteId) : undefined) ??
@@ -297,14 +299,14 @@ export async function createPedidoSafe(
     clienteSnapshot = await loadClienteRowTenant(tenantId, clienteIdPedido);
   }
   if (!clienteSnapshot) {
-    throw new Error("Cliente não encontrado");
+    throw new ValidationError("Cliente não encontrado");
   }
 
   const vendedorIdResolved = resolveVendedorIdForCreate(input, actor, trustedVendedorId);
   assertRequiredId(vendedorIdResolved, "vendedorId");
 
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
 
   // 1️⃣ IDEMPOTÊNCIA: Gerar e inserir chave ANTES da transação
   const idempotencyKey = generatePedidoIdempotencyKey(
@@ -316,6 +318,7 @@ export async function createPedidoSafe(
 
   try {
     await dbConn.insert(idempotencyKeys).values({
+      tenantId,
       key: idempotencyKey,
       commandName: 'createPedido',
       traceId: nanoid(10),
@@ -366,7 +369,7 @@ export async function createPedidoSafe(
     
     // Verificar se o número foi gerado corretamente
     if (!numero || numero <= 0) {
-      throw new Error('Falha na geração de número de pedido');
+      throw new InfrastructureError('Falha na geração de número de pedido');
     }
 
     // 2. Bloquear produtos para atualização (FOR UPDATE)
@@ -394,19 +397,19 @@ export async function createPedidoSafe(
     const itensComFalta: Set<number> = new Set();
     for (const i of input.itens) {
       if (!i || typeof i !== "object") {
-        throw new Error("Item do pedido inválido");
+        throw new ValidationError("Item do pedido inválido");
       }
       if (!i.tipo) {
-        throw new Error("Tipo do item obrigatório");
+        throw new ValidationError("Tipo do item obrigatório");
       }
       if (!Number.isFinite(Number(i.quantidade)) || Number(i.quantidade) <= 0) {
-        throw new Error("Quantidade do item inválida");
+        throw new ValidationError("Quantidade do item inválida");
       }
       if (!Number.isFinite(Number(i.valorUnitario ?? 0))) {
-        throw new Error("Valor unitário do item inválido");
+        throw new ValidationError("Valor unitário do item inválido");
       }
       if (!Number.isFinite(Number(i.custo ?? 0))) {
-        throw new Error("Custo do item inválido");
+        throw new ValidationError("Custo do item inválido");
       }
       if (i.tipo === 'CATALOGO' && i.produtoId) {
         const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
@@ -445,7 +448,7 @@ export async function createPedidoSafe(
     });
 
     const pedidoId = getInsertId(pedidoInsert);
-    if (!pedidoId) throw new Error('Falha ao criar pedido');
+    if (!pedidoId) throw new InfrastructureError('Falha ao criar pedido');
 
     // Criar conta provisória no Contas a Receber (30 dias)
     const venc = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -509,7 +512,7 @@ export async function createPedidoSafe(
         
         if (statusPedido === PedidoStatus.GERADO && !falta) {
           const novoEstoque = estoqueAtual - i.quantidade;
-          await tx.update(produtos).set({ estoque: novoEstoque }).where(eq(produtos.id, i.produtoId));
+          await tx.update(produtos).set({ estoque: novoEstoque }).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, i.produtoId)));
           
           await insertAuditLog({
             tenantId,
@@ -578,7 +581,7 @@ export async function getPedidoById(tenantId: number, id: number): Promise<Pedid
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(id, "pedidoId");
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   const result = await dbConn.select().from(pedidos).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, id))).limit(1);
   // Se encontrou um resultado, retorna o objeto garantido, caso contrário retorna null
   return result.length > 0 ? ensureObject(result[0]) : null;
@@ -593,7 +596,7 @@ async function pedidoAcessivelViaCliente(
   assertVendedorActor(actor);
   if (actor.userId == null || actor.userId <= 0) return false;
   const dbConn = await getDb();
-  if (!dbConn) return false;
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select({ id: clientes.id })
     .from(clientes)
@@ -634,7 +637,7 @@ export async function getPedidoByNumeroForActor(
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(numero, "numero");
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   const result = await dbConn
     .select()
     .from(pedidos)
@@ -651,7 +654,7 @@ export async function getItensPedido(tenantId: number, pedidoId: number): Promis
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(pedidoId, "pedidoId");
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   const result = await dbConn.select().from(itensPedido).where(eq(itensPedido.pedidoId, pedidoId));
   // Garantir que o retorno seja sempre um array
   return ensureArray(result as ItemPedido[]);
@@ -677,7 +680,7 @@ export async function listPedidosExtended(
 ): Promise<{ items: Pedido[]; total: number; page: number; pageSize: number }> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertDbConnection(dbConn);
 
   const safeParams = params ?? {};
   const { page = 1, pageSize = 50, status, busca, vendedorId, clienteId, clientId, dataInicio, dataFim } = safeParams;
@@ -692,7 +695,7 @@ export async function listPedidosExtended(
   if (actor.role === "vendedor") {
     assertVendedorActor(actor);
     if (actor.userId == null || actor.userId <= 0) {
-      throw new Error("userId do ator obrigatório para listar pedidos");
+      throw new ValidationError("userId do ator obrigatório para listar pedidos");
     }
     conditions.push(
       sql`exists (select 1 from clientes c where c.id = ${pedidos.clienteId} and c.user_id = ${actor.userId})`
@@ -762,9 +765,7 @@ export async function listPedidosTrpcPage(
 }> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) {
-    return { items: [], total: 0, page: 1, pageSize: 50, hasMore: false };
-  }
+  assertDbConnection(dbConn);
 
   const filters = [eq(pedidos.tenantId, tenantId)];
   if (actor.role === "vendedor") {
@@ -893,12 +894,12 @@ export async function updatePedido(
     assertRequiredObject(data, "Dados do pedido obrigatórios");
     await assertPedidoMutableByActor(tenantId, actor, id);
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Banco de dados indisponível");
+    assertDbConnection(dbConn);
     const pedido = await getPedidoById(tenantId, id);
     if (!pedido) throw new PedidoAccessError("NOT_FOUND", "Pedido não encontrado.");
     await dbConn.update(pedidos).set({ ...data, updatedAt: new Date() }).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, id)));
     const after = await getPedidoById(tenantId, id);
-    if (!after) throw new Error("Falha ao atualizar pedido");
+    if (!after) throw new InfrastructureError("Falha ao atualizar pedido");
     return { success: true };
   } catch (error) {
     console.error("Erro ao atualizar pedido:", error);
@@ -912,15 +913,15 @@ export async function deletePedido(tenantId: number, actor: ServiceActor, id: nu
     assertRequiredId(id, "pedidoId");
     await assertPedidoMutableByActor(tenantId, actor, id);
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Banco de dados indisponível");
+    assertDbConnection(dbConn);
     const pedido = await getPedidoById(tenantId, id);
     if (!pedido) throw new PedidoAccessError("NOT_FOUND", "Pedido não encontrado.");
     if (String(pedido.status) === PedidoStatus.ENTREGUE) {
-      throw new Error("Pedido ENTREGUE não pode ser excluído.");
+      throw new ValidationError("Pedido ENTREGUE não pode ser excluído.");
     }
     await dbConn.delete(pedidos).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, id)));
     const after = await getPedidoById(tenantId, id);
-    if (after) throw new Error("Falha ao excluir pedido");
+    if (after) throw new InfrastructureError("Falha ao excluir pedido");
     return { success: true };
   } catch (error) {
     console.error("Erro ao excluir pedido:", error);
@@ -936,11 +937,11 @@ export async function deletePedido(tenantId: number, actor: ServiceActor, id: nu
 export async function updatePedidoStatus(tenantId: number, id: number, status: string, actor?: { userId?: number; vendedorId?: number }): Promise<void> {
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(id, "pedidoId");
-  if (!status?.trim()) throw new Error("status obrigatório");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
   const pedido = await getPedidoById(tenantId, id);
-  if (!pedido) throw new Error("Pedido não encontrado");
+  if (!pedido) throw new ValidationError("Pedido não encontrado");
 
   const statusVal = validateStatus(status, PedidoStatusValues, "pedido.status");
   await dbConn.update(pedidos)
@@ -982,7 +983,7 @@ export async function getPedidosByCliente(tenantId: number, clienteId: number): 
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(clienteId, "clienteId");
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
 
   const result = await dbConn.select({
     id: pedidos.id,
@@ -1074,7 +1075,7 @@ export async function getReportProdutosMaisVendidos(tenantId: number, params: {
 }): Promise<Array<{ descricao: string; quantidade: number; valorTotal: string }>> {
   assertRequiredId(tenantId, "tenantId");
   const db = await getDb();
-  if (!db) return [];
+  if (!db) throw new InfrastructureError('Banco de dados indisponível para relatório de produtos');
   
   try {
     const result = await db
@@ -1101,8 +1102,31 @@ export async function getReportProdutosMaisVendidos(tenantId: number, params: {
     return result as Array<{ descricao: string; quantidade: number; valorTotal: string }> || [];
   } catch (error) {
     console.error('Error in getReportProdutosMaisVendidos:', error);
-    return [];
+    throw new InfrastructureError('Falha ao gerar relatório de produtos mais vendidos', { cause: error });
   }
+}
+
+export async function getSumTotalPedidos(
+  tenantId: number,
+  opts: { vendedorId?: number; since?: Date }
+): Promise<number> {
+  assertRequiredId(tenantId, "tenantId");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  const conditions = [eq(pedidos.tenantId, tenantId)];
+  if (opts.vendedorId != null) conditions.push(eq(pedidos.vendedorId, opts.vendedorId));
+  if (opts.since) conditions.push(gte(pedidos.createdAt, opts.since));
+  const [row] = await dbConn
+    .select({
+      sumTotal: sql<string>`COALESCE(SUM(${pedidos.total}), 0)`.as("sumTotal"),
+    })
+    .from(pedidos)
+    .where(and(...conditions))
+    .limit(1);
+  if (!row) {
+    throw new InfrastructureError("Não foi possível calcular o total de pedidos");
+  }
+  return Number(row.sumTotal);
 }
 
 export async function aggregateTicketPedidos(
@@ -1111,7 +1135,7 @@ export async function aggregateTicketPedidos(
 ): Promise<{ sumTotal: number; count: number }> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return { sumTotal: 0, count: 0 };
+  assertDbConnection(dbConn);
   const conditions = [eq(pedidos.tenantId, tenantId)];
   if (opts.vendedorId != null) conditions.push(eq(pedidos.vendedorId, opts.vendedorId));
   if (opts.since) conditions.push(gte(pedidos.createdAt, opts.since));
@@ -1133,7 +1157,7 @@ export async function sumPedidosTotalBetween(
 ): Promise<number> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return 0;
+  assertDbConnection(dbConn);
   const [row] = await dbConn
     .select({ t: sql<string>`COALESCE(SUM(${pedidos.total}), 0)`.as("t") })
     .from(pedidos)
@@ -1151,7 +1175,7 @@ export async function findPedidoGrandeRecente(
 ): Promise<{ numero: number; total: string } | null> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select({ numero: pedidos.numero, total: pedidos.total })
     .from(pedidos)
@@ -1175,7 +1199,7 @@ export async function listNumerosPedidosEmRotaAtrasados(
 ): Promise<number[]> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   const limite = new Date();
   limite.setDate(limite.getDate() - diasMinimos);
   const rows = await dbConn
@@ -1191,7 +1215,7 @@ export async function listNumerosPedidosEmRotaAtrasados(
 export async function countPedidosParadosGeradoConferido(tenantId: number, updatedBefore: Date): Promise<number> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return 0;
+  assertDbConnection(dbConn);
   const [row] = await dbConn
     .select({ c: sql<number>`COUNT(*)`.as("c") })
     .from(pedidos)
@@ -1220,7 +1244,7 @@ export async function leoAggregatePedidosByDayAndVendedor(
 ): Promise<LeoLearningSalesRow[]> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select({
       day: sql<string>`DATE(${pedidos.dataCriacao})`.as("day"),

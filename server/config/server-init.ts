@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { validateEnv, getEnv } from './env.js';
+import { ENV_SECRET_MIN_LENGTH } from '../_core/env-validator.js';
 import { createLogger } from '../infra/structured-logger.js';
 import { exitProcessInProductionUnlessDevelopment } from '../_core/dev-process-exit.js';
 
@@ -58,17 +59,12 @@ function validateCriticalDependencies(): void {
     throw new Error('Configuração de banco de dados incompleta');
   }
   
-  if (!env.JWT_ACCESS_SECRET || env.JWT_ACCESS_SECRET.length < 32) {
+  if (!env.JWT_ACCESS_SECRET || env.JWT_ACCESS_SECRET.length < ENV_SECRET_MIN_LENGTH) {
     throw new Error('JWT_ACCESS_SECRET inválido ou muito curto');
   }
 
-  if (!env.JWT_REFRESH_SECRET || env.JWT_REFRESH_SECRET.length < 32) {
+  if (!env.JWT_REFRESH_SECRET || env.JWT_REFRESH_SECRET.length < ENV_SECRET_MIN_LENGTH) {
     throw new Error('JWT_REFRESH_SECRET inválido ou muito curto');
-  }
-  
-  // Validações específicas de produção
-  if (env.NODE_ENV === 'production') {
-    validateProductionSecurity();
   }
   
   logger.info('Critical dependencies validated');
@@ -81,12 +77,12 @@ function validateProductionSecurity(): void {
   const env = getEnv();
   
   // Segredos fortes em produção
-  if (env.JWT_ACCESS_SECRET.length < 64) {
-    throw new Error('JWT_ACCESS_SECRET deve ter pelo menos 64 caracteres em produção');
+  if (env.JWT_ACCESS_SECRET.length < ENV_SECRET_MIN_LENGTH) {
+    throw new Error(`JWT_ACCESS_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`);
   }
 
-  if (env.JWT_REFRESH_SECRET.length < 64) {
-    throw new Error('JWT_REFRESH_SECRET deve ter pelo menos 64 caracteres em produção');
+  if (env.JWT_REFRESH_SECRET.length < ENV_SECRET_MIN_LENGTH) {
+    throw new Error(`JWT_REFRESH_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`);
   }
   
   logger.info('Production security validated');
@@ -123,8 +119,8 @@ export function checkEnvironmentHealth(): { healthy: boolean; issues: string[] }
     if (!env.JWT_ACCESS_SECRET) issues.push('JWT_ACCESS_SECRET missing');
     if (!env.JWT_REFRESH_SECRET) issues.push('JWT_REFRESH_SECRET missing');
 
-    if (env.JWT_ACCESS_SECRET.length < 32) issues.push('JWT_ACCESS_SECRET too short');
-    if (env.JWT_REFRESH_SECRET.length < 32) issues.push('JWT_REFRESH_SECRET too short');
+    if (env.JWT_ACCESS_SECRET.length < ENV_SECRET_MIN_LENGTH) issues.push('JWT_ACCESS_SECRET too short');
+    if (env.JWT_REFRESH_SECRET.length < ENV_SECRET_MIN_LENGTH) issues.push('JWT_REFRESH_SECRET too short');
     
     return {
       healthy: issues.length === 0,

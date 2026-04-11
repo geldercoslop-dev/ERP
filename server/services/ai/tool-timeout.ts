@@ -3,6 +3,8 @@
  * Evita que uma tool trave indefinidamente.
  */
 
+import { InfrastructureError } from '../../_core/errors/typed-errors.js';
+
 const DEFAULT_MS = 15000;
 const DEFAULT_RETRIES = 2;
 
@@ -67,5 +69,5 @@ export async function executeWithFailSafe<T>(
   }
 
   const details = lastError instanceof Error ? lastError.message : String(lastError);
-  throw new Error(`Fallback de execução acionado para ${toolLabel}: ${details}`);
+  throw new InfrastructureError(`Fallback de execução acionado para ${toolLabel}: ${details}`);
 }

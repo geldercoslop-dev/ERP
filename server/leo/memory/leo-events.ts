@@ -212,7 +212,7 @@ export class LeoEvents {
     });
   }
 
-  async createSystemErrorEvent(error: Error, context?: any): Promise<LeoEvent> {
+  async createSystemErrorEvent(error: Error, context?: unknown): Promise<LeoEvent> {
     return this.createEvent({
       tipo: 'erro_sistema',
       descricao: `Erro no sistema: ${error.message}`,

@@ -8,6 +8,7 @@ import type { Payload } from '../../../shared/types/index.js';
 import { LeoRuntimeContext } from '../utils/leo-context.js';
 import { leoErpService } from '../../services/leo-service.js';
 import { actorFromLeoRuntimeContext } from '../../_core/service-actor.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { stripSensitiveIdsFromUnknown } from '../../_core/strip-sensitive-payload.js';
 import type { PedidoInput } from '../../services/leo-service.js';
 import { leoComputerControl } from './leo-computer-control.js';
@@ -136,15 +137,9 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
   try {
     console.log(`🔍 [LeoActions] Executando consulta: ${action.description || action.action}`);
     
-    const tid = Number((context as unknown as { tenantId?: number }).tenantId);
-    const fromEnv = Number(process.env.TENANT_ID || 0);
-    const tenantId = Number.isFinite(tid) && tid > 0 ? tid : fromEnv;
-    if (!tenantId) {
-      return {
-        success: false,
-        message: "tenantId obrigatório no contexto LEO ou ambiente (TENANT_ID)",
-        executionTime: Date.now() - startTime,
-      };
+    const tenantId = context?.tenantId;
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório no contexto");
     }
 
     // Usar context para determinar a entidade

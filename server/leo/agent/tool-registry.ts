@@ -22,7 +22,7 @@ class ToolRegistry {
   }
 
   private async getRobot(): Promise<Payload> {
-    return {};
+    return { status: "no_robot", available: false };
   }
 
   private registerTools() {

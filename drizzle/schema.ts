@@ -56,12 +56,14 @@ export const vendedores = mysqlTable(
 
 export const cores = mysqlTable("cores", {
   id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
   nome: varchar("nome", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const gruposPrecificacao = mysqlTable("grupos_precificacao", {
   id: int("id").primaryKey().autoincrement(),
+  tenantId: int("tenant_id").notNull(),
   nome: varchar("nome", { length: 255 }).notNull(),
   descontoFabrica: decimal("desconto_fabrica", { precision: 5, scale: 2 }).default("0").notNull(),
   ipi: decimal("ipi", { precision: 5, scale: 2 }).default("0").notNull(),
@@ -193,6 +195,7 @@ export const clienteVendedores = mysqlTable(
   "cliente_vendedores",
   {
     id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
     clienteId: int("cliente_id")
       .notNull()
       .references(() => clientes.id, { onDelete: "cascade" }),
@@ -204,6 +207,7 @@ export const clienteVendedores = mysqlTable(
   },
   (table) => ({
     clienteVendedorUnique: unique("cliente_vendedor_unique").on(table.clienteId, table.vendedorId),
+    tenantIdIdx: index("cliente_vendedores_tenant_id_idx").on(table.tenantId),
     clienteIdx: index("cliente_vendedores_cliente_idx").on(table.clienteId),
     vendedorIdx: index("cliente_vendedores_vendedor_idx").on(table.vendedorId),
   }),
@@ -301,6 +305,7 @@ export const pedidosCarga = mysqlTable(
   "pedidos_carga",
   {
     id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
     cargaId: int("carga_id").notNull().references(() => cargas.id, { onDelete: "cascade" }),
     pedidoId: int("pedido_id").notNull().references(() => pedidos.id),
     numeroPedido: int("numero_pedido"),
@@ -311,6 +316,7 @@ export const pedidosCarga = mysqlTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
+    tenantIdIdx: index("pedidos_carga_tenant_id_idx").on(table.tenantId),
     cargaIdx: index("pedidos_carga_carga_idx").on(table.cargaId),
     pedidoIdx: index("pedidos_carga_pedido_idx").on(table.pedidoId),
   }),
@@ -361,7 +367,7 @@ export const fornecedores = mysqlTable(
   "fornecedores",
   {
     id: int("id").primaryKey().autoincrement(),
-    tenantId: int("tenant_id"),
+    tenantId: int("tenant_id").notNull(),
     nome: varchar("nome", { length: 255 }).notNull(),
     telefone: varchar("telefone", { length: 20 }),
     email: varchar("email", { length: 320 }),
@@ -531,6 +537,7 @@ export const idempotencyKeys = mysqlTable(
   "idempotency_keys",
   {
     id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
     key: varchar("key", { length: 64 }).notNull(),
     commandName: varchar("command_name", { length: 64 }).notNull(),
     resultJson: text("result_json"),
@@ -538,6 +545,7 @@ export const idempotencyKeys = mysqlTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
+    tenantIdIdx: index("idempotency_keys_tenant_id_idx").on(table.tenantId),
     keyIdx: index("idempotency_key_idx").on(table.key),
     createdAtIdx: index("idempotency_created_at_idx").on(table.createdAt),
     idempotencyCmdKey: unique("idempotency_cmd_key").on(table.commandName, table.key),

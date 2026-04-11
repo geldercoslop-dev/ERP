@@ -2,6 +2,20 @@ import { Request } from 'express';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 
+// Tipos reais para type safety
+interface Item {
+  produto_id: number;
+  quantidade: number;
+  subtotal: number;
+}
+
+interface TopProduto {
+  produto_id: number;
+  produto_nome: string;
+  quantidade: number;
+  valor_total: number;
+}
+
 const pedidoItemSchema = z.object({
   produto_id: z.number().min(1, 'ID do produto é obrigatório'),
   quantidade: z.number().min(1, 'Quantidade deve ser maior que 0'),
@@ -85,8 +99,8 @@ let pedidos: Pedido[] = [
 ];
 
 // Função para verificar estoque
-function verificarEstoqueDisponivel(itens: PedidoItem[]): { disponivel: boolean; itensIndisponiveis: any[] } {
-  const itensIndisponiveis: any[] = [];
+function verificarEstoqueDisponivel(itens: PedidoItem[]): { disponivel: boolean; itensIndisponiveis: unknown[] } {
+  const itensIndisponiveis: unknown[] = [];
   
   for (const item of itens) {
     const produto = produtos.find(p => p.id === item.produto_id);
@@ -452,7 +466,7 @@ export async function getRelatorioVendas(request: Request) {
       }, {} as Record<string, number>),
       top_produtos: pedidosRelatorio.flatMap(p => p.itens)
         .reduce((acc, item) => {
-          const existing = acc.find(a => a.produto_id === item.produto_id);
+          const existing = acc.find((a: TopProduto) => a.produto_id === item.produto_id);
           if (existing) {
             existing.quantidade += item.quantidade;
             existing.valor_total += item.subtotal;
@@ -465,8 +479,8 @@ export async function getRelatorioVendas(request: Request) {
             });
           }
           return acc;
-        }, [] as any[])
-        .sort((a, b) => b.valor_total - a.valor_total)
+        }, [] as TopProduto[])
+        .sort((a: TopProduto, b: TopProduto) => b.valor_total - a.valor_total)
         .slice(0, 10)
     };
     

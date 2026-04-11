@@ -7,6 +7,7 @@ import { leoAgentCore } from "../leo/agent/agent-core.js";
 import { leoLogManager } from "../leo/utils/leo-log-manager.js";
 import { leoActionService, type LeoAction, type LeoActionPayloadMap } from "../services/leoAction.service.js";
 import { parseLeoActionPayload } from "../services/leoActionPayload.parse.js";
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 const leoActionSchema = z.enum(["CREATE_ORDER", "PROCESS_PAYMENT", "REGISTER_SALE"]);
 
@@ -115,7 +116,7 @@ const leoRouterWithMiddleware = router({
           },
         });
         if (!ctx.tenantId) {
-          throw new Error("Tenant ID is required for fallback");
+          throw new ValidationError("Tenant ID is required for fallback");
         }
         if (!ctx.user?.id) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão inválida para o LEO." });
@@ -131,8 +132,7 @@ const leoRouterWithMiddleware = router({
           success: fallbackResponse.success ?? true,
           executionTime: 0,
           fallback: true,
-          data: fallbackResponse.data,
-          meta: fallbackResponse.meta
+          data: fallbackResponse.data
         };
       }
     }),

@@ -1,15 +1,22 @@
 import * as db from "../db/index.js";
 import { eq, and, gte, lte, sql, asc } from "drizzle-orm";
 import { pedidos } from "../../drizzle/schema.js";
+import { assertDbConnection } from "../_core/errors/assertions.js";
 
 /**
  * Serviço de relatórios e análises do ERP.
  * Todas as funções são tenant-aware.
  */
 
-export async function getVendasPeriodo(tenantId: number, dataInicio: Date, dataFim: Date): Promise<{ success: boolean; data?: any[]; error?: string }> {
+type VendasPeriodoRow = {
+  data: string;
+  quantidade: number;
+  total: number;
+};
+
+export async function getVendasPeriodo(tenantId: number, dataInicio: Date, dataFim: Date): Promise<{ success: boolean; data?: VendasPeriodoRow[]; error?: string }> {
   const dbConn = await db.getDb();
-  if (!dbConn) return { success: false, error: "Database not available" };
+  assertDbConnection(dbConn);
 
   try {
     const result = await dbConn.select({
@@ -26,7 +33,7 @@ export async function getVendasPeriodo(tenantId: number, dataInicio: Date, dataF
     .groupBy(sql`DATE(${pedidos.createdAt})`)
     .orderBy(asc(sql`DATE(${pedidos.createdAt})`));
 
-    return { success: true, data: result };
+    return { success: true, data: result as VendasPeriodoRow[] };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }

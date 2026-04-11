@@ -260,7 +260,7 @@ export class LeoSystemMonitor {
     const startTime = performance.now();
 
     try {
-      const ping = await pingDatabase();
+      const ping = await pingDatabase('LEO');
 
       if (!ping.ok) {
         return {

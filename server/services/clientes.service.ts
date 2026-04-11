@@ -16,6 +16,7 @@ import type { Cliente, ClienteVendedor } from "../db/core.js";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 import { validateTenantAccess, globalDbAuditor } from "../_core/tenant-validator.js";
 import { assertVendedorActor, type ServiceActor } from "../_core/service-actor.js";
+import { assertDbConnection } from "../_core/errors/assertions.js";
 
 export type CreateClienteInput = {
   nome: string;
@@ -137,7 +138,7 @@ export async function createCliente(
     if (!data.telefone) return { success: false, error: "Telefone do cliente obrigatório" };
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
+    assertDbConnection(dbConn);
     
     // userId: prioritário userIdOverride, senão data.userId (opcional para compatibilidade)
     const userId = userIdOverride ?? data.userId;
@@ -189,6 +190,7 @@ export async function createCliente(
       }
       
       await dbConn.insert(clienteVendedores).values({
+        tenantId,
         clienteId,
         vendedorId: Number(data.vendedorIdPrincipal),
         tipo: "PRINCIPAL",
@@ -217,7 +219,7 @@ export async function getHistoricoCliente(
   actor: ServiceActor,
   clienteId: number,
   limit = 20
-): Promise<{ success: boolean; data?: Array<{ id: number; numero: number; total: string; createdAt: Date; status: string }>; error?: string }> {
+): Promise<{ success: boolean; data?: Array<{ id: number; numero: number; total: string; createdAt: Date; status: string; dataEntrega: Date | null }>; error?: string }> {
   try {
     if (!Number.isInteger(tenantId) || tenantId <= 0) {
       return { success: false, error: "tenantId obrigatório" };
@@ -227,7 +229,7 @@ export async function getHistoricoCliente(
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
+    assertDbConnection(dbConn);
 
     if (actor.role === "vendedor") {
       if (!actor.vendedorId) {
@@ -252,6 +254,7 @@ export async function getHistoricoCliente(
         total: pedidos.total,
         createdAt: pedidos.createdAt,
         status: pedidos.status,
+        dataEntrega: pedidos.dataEntrega,
       })
       .from(pedidos)
       .where(and(...pedidoConds))
@@ -276,7 +279,7 @@ export async function getClienteById(tenantId: number, actor: ServiceActor, id: 
       return { success: false, error: "clienteId obrigatório" };
     }
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
+    assertDbConnection(dbConn);
 
     const result = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
     const row = result.length > 0 ? ensureObject(result[0]) : null;
@@ -308,7 +311,7 @@ export async function listClientes(
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
+    assertDbConnection(dbConn);
 
     const safeParams = params ?? {};
     const { page = 1, pageSize = 50, busca } = safeParams;
@@ -447,7 +450,7 @@ export async function updateCliente(tenantId: number, actor: ServiceActor, id: n
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
+    assertDbConnection(dbConn);
     
     // Verificar ownership (novo: userId direto OU via clienteVendedores)
     const canAccess = await userCanAccessCliente(dbConn, tenantId, actor, id);
@@ -520,7 +523,7 @@ export async function associarClienteVendedor(tenantId: number, clienteId: numbe
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
   
     // Validar que cliente pertence ao tenant
     const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
@@ -576,7 +579,7 @@ export async function getOrCreateCliente(
     if (!data.telefone) return { success: false, error: "Telefone do cliente obrigatório" };
 
     const dbConn = tx || await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
 
     const telefoneNorm = normalizeTelefone(data.telefone);
     const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(data.nome);
@@ -673,7 +676,7 @@ export async function deleteCliente(tenantId: number, actor: ServiceActor, id: n
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Banco de dados indisponível" };
+    assertDbConnection(dbConn);
 
     const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id))).limit(1);
     if (cliente.length === 0) {
@@ -694,7 +697,7 @@ export async function deleteCliente(tenantId: number, actor: ServiceActor, id: n
     }
     
     // 2. Excluir vínculos com vendedores
-    await dbConn.delete(clienteVendedores).where(eq(clienteVendedores.clienteId, id));
+    await dbConn.delete(clienteVendedores).where(and(eq(clienteVendedores.tenantId, tenantId), eq(clienteVendedores.clienteId, id)));
     
     // 3. Excluir cliente
     await dbConn.delete(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id)));
@@ -720,7 +723,7 @@ export async function getVendedorPrincipalDoCliente(tenantId: number, clienteId:
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
   
     const result = await dbConn.select({
       vendedorId: clienteVendedores.vendedorId,
@@ -754,7 +757,7 @@ export async function removerAssociacaoClienteVendedor(tenantId: number, cliente
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
   
     // Validar que cliente pertence ao tenant
     const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
@@ -784,7 +787,7 @@ export async function getVendedoresByCliente(tenantId: number, clienteId: number
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
   
     // Validar que cliente pertence ao tenant
     const cliente = await dbConn.select().from(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId))).limit(1);
@@ -818,7 +821,7 @@ export async function getClienteByTelefone(tenantId: number, actor: ServiceActor
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
 
     const telefoneNormalizado = normalizeTelefone(telefone);
     const base = and(eq(clientes.tenantId, tenantId), eq(clientes.telefone, telefoneNormalizado));
@@ -854,7 +857,7 @@ export async function searchClientesByNome(
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
 
     const searchTerm = `%${nome.trim()}%`;
     const nameCond = like(clientes.nome, searchTerm);
@@ -952,7 +955,7 @@ export async function listClientesComMetricasPedidos(
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
 
     if (actor.role === "vendedor") {
       if (!actor.vendedorId) {

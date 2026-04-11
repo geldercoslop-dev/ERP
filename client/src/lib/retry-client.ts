@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { authenticatedFetch, isSameOriginUrl } from './security/apiClient';
+import { InfrastructureError } from './errors/typed-errors.js';
 
 /**
  * Configurações de retry para requisições API
@@ -157,7 +158,7 @@ export async function fetchWithRetry(
 
       // Se não for retryável, lançar erro
       if (!shouldRetry(null, attempt, config, response.status)) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new InfrastructureError(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       // Preparar para retry
@@ -222,7 +223,7 @@ export async function fetchJsonWithRetry<T = any>(
   const response = await fetchWithRetry(url, options);
   
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    throw new InfrastructureError(`HTTP ${response.status}: ${response.statusText}`);
   }
 
   const text = await response.text();
@@ -235,7 +236,7 @@ export async function fetchJsonWithRetry<T = any>(
     return JSON.parse(text) as T;
   } catch (error) {
     console.error('[Retry] Failed to parse JSON response:', text.substring(0, 200));
-    throw new Error(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)}`);
+    throw new InfrastructureError(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -279,7 +280,7 @@ export async function fetchAllWithRetry(
   }
 
   if (responses.length === 0) {
-    throw new Error(`All ${requests.length} HTTP requests failed`);
+    throw new InfrastructureError(`All ${requests.length} HTTP requests failed`);
   }
 
   console.log(`[Retry] ${responses.length}/${requests.length} requests succeeded`);

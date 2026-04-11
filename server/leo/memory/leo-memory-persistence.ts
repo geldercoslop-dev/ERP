@@ -125,29 +125,29 @@ export class LeoMemoryPersistence implements ILeoMemory {
 
       // Filtro por tipo
       if (filters.type) {
-        memories = memories.filter((m: any) => m.type === filters.type);
+        memories = memories.filter((m) => m.type === filters.type);
       }
 
       // Filtro por tags
       if (filters.tags && filters.tags.length > 0) {
-        memories = memories.filter((m: any) => 
+        memories = memories.filter((m) => 
           filters.tags!.some(tag => m.tags?.includes(tag))
         );
       }
 
       // Filtro por importância
       if (filters.importance && filters.importance.length > 0) {
-        memories = memories.filter((m: any) => 
+        memories = memories.filter((m) => 
           filters.importance!.includes(m.importance)
         );
       }
 
       // Filtro por data
       if (filters.dateFrom) {
-        memories = memories.filter((m: any) => m.timestamp >= filters.dateFrom!.getTime());
+        memories = memories.filter((m) => m.timestamp >= filters.dateFrom!.getTime());
       }
       if (filters.dateTo) {
-        memories = memories.filter((m: any) => m.timestamp <= filters.dateTo!.getTime());
+        memories = memories.filter((m) => m.timestamp <= filters.dateTo!.getTime());
       }
 
       // Ordenar por timestamp (mais recentes primeiro)
@@ -182,7 +182,7 @@ export class LeoMemoryPersistence implements ILeoMemory {
 
       // Limpar decisões antigas também
       const originalLength = this.decisions.length;
-      this.decisions = this.decisions.filter((d: any) => d.timestamp >= cutoffTime);
+      this.decisions = this.decisions.filter((d) => d.timestamp >= cutoffTime);
       removedCount += (originalLength - this.decisions.length);
 
       logInfo('Cleanup de memórias antigas realizado', {

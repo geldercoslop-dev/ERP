@@ -8,6 +8,7 @@
  */
 
 import { nanoid } from 'nanoid';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { leoComputerControl } from './leo-computer-control.js';
 import { leoErpService } from '../../services/leo-service.js';
 import { ADMIN_ACTOR } from '../../_core/service-actor.js';
@@ -211,7 +212,7 @@ export class LeoAutomation {
   /**
    * Executa uma ação específica
    */
-  private async executarAcao(acao: string, dados: any): Promise<{ success: boolean; message: string; data?: any }> {
+  private async executarAcao(tenantId: number, acao: string, dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log(`[LeoAutomation] Executando ação: ${acao}`);
 
@@ -220,10 +221,16 @@ export class LeoAutomation {
           return await this.executarBackupAutomatico(dados);
         
         case 'checar_estoque':
-          return await this.checarEstoque(dados && typeof dados === "object" ? (dados as Record<string, unknown>) : {});
+          if (!Number.isInteger(tenantId) || tenantId <= 0) {
+            throw new ValidationError("tenantId obrigatório para ação checar_estoque");
+          }
+          return await this.checarEstoque(tenantId, dados && typeof dados === "object" ? (dados as Record<string, unknown>) : {});
         
         case 'analisar_vendas':
-          return await this.analisarVendas(dados && typeof dados === "object" ? (dados as Record<string, unknown>) : {});
+          if (!Number.isInteger(tenantId) || tenantId <= 0) {
+            throw new ValidationError("tenantId obrigatório para ação analisar_vendas");
+          }
+          return await this.analisarVendas(tenantId, dados && typeof dados === "object" ? (dados as Record<string, unknown>) : {});
         
         case 'limpar_logs_antigos':
           return await this.limparLogsAntigos(dados);
@@ -252,7 +259,7 @@ export class LeoAutomation {
   /**
    * Executa backup automático
    */
-  private async executarBackupAutomatico(dados: any): Promise<{ success: boolean; message: string; data?: any }> {
+  private async executarBackupAutomatico(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log('[LeoAutomation] Executando backup automático');
       
@@ -284,14 +291,11 @@ export class LeoAutomation {
   /**
    * Checa estoque e gera alertas
    */
-  private async checarEstoque(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
+  private async checarEstoque(tenantId: number, dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log('[LeoAutomation] Checando estoque');
-      const fromPayload = Number(dados.tenantId);
-      const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
-      const tenantId = Number.isFinite(fromPayload) && fromPayload > 0 ? fromPayload : fromEnv;
-      if (!tenantId) {
-        return { success: false, message: 'tenantId não configurado (contexto ou DEFAULT_TENANT_ID)' };
+      if (!Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError("tenantId obrigatório para checarEstoque");
       }
       const resultado = await leoErpService.getEstoque(tenantId, { alertaBaixo: true });
       
@@ -325,14 +329,11 @@ export class LeoAutomation {
   /**
    * Analisa vendas
    */
-  private async analisarVendas(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
+  private async analisarVendas(tenantId: number, dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log('[LeoAutomation] Analisando vendas');
-      const fromPayload = Number(dados.tenantId);
-      const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
-      const tenantId = Number.isFinite(fromPayload) && fromPayload > 0 ? fromPayload : fromEnv;
-      if (!tenantId) {
-        return { success: false, message: 'tenantId não configurado (contexto ou DEFAULT_TENANT_ID)' };
+      if (!Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError("tenantId obrigatório para analisarVendas");
       }
       // Obter pedidos dos últimos 7 dias
       const seteDiasAtras = new Date();
@@ -379,7 +380,7 @@ export class LeoAutomation {
   /**
    * Limpa logs antigos
    */
-  private async limparLogsAntigos(dados: any): Promise<{ success: boolean; message: string; data?: any }> {
+  private async limparLogsAntigos(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log('[LeoAutomation] Limpando logs antigos');
       
@@ -402,7 +403,7 @@ export class LeoAutomation {
   /**
    * Verifica eventos automáticos
    */
-  private async verificarEventosAutomaticos(dados: any): Promise<{ success: boolean; message: string; data?: any }> {
+  private async verificarEventosAutomaticos(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log('[LeoAutomation] Verificando eventos automáticos');
       
@@ -424,9 +425,10 @@ export class LeoAutomation {
   /**
    * Executa script personalizado
    */
-  private async executarScriptPersonalizado(dados: any): Promise<{ success: boolean; message: string; data?: any }> {
+  private async executarScriptPersonalizado(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
-      const scriptPath = dados?.scriptPath;
+      const scriptPath = typeof dados.scriptPath === 'string' ? dados.scriptPath : '';
+      const args = Array.isArray(dados.args) ? dados.args.filter((x): x is string => typeof x === 'string') : undefined;
       if (!scriptPath) {
         return {
           success: false,
@@ -436,7 +438,7 @@ export class LeoAutomation {
 
       console.log(`[LeoAutomation] Executando script personalizado: ${scriptPath}`);
       
-      const resultado = await leoComputerControl.executarScript(scriptPath, dados?.args);
+      const resultado = await leoComputerControl.executarScript(scriptPath, args);
       
       return {
         success: resultado.success,

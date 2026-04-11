@@ -75,7 +75,7 @@ export async function getLeoStatusSummary(
     aggregateTicketPedidos(tenantId, { since: startOfToday() }),
     listClientes(tenantId, ADMIN_ACTOR, { page: 1, pageSize: 1 }),
     getAllProdutos(tenantId),
-    buildLeoContext("leo").catch(() => null),
+    buildLeoContext("leo", tenantId).catch(() => null),
   ]);
 
   const lowStockCount = lowStockProducts.filter(

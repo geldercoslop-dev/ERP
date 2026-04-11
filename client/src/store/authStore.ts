@@ -5,6 +5,7 @@ import { setSessionToken } from '../lib/security/sessionToken';
 import { trpcCall } from '../lib/trpcClient';
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
+import { ValidationError } from '../lib/errors/typed-errors.js';
 
 // Tipos
 export type UserRole = 'admin' | 'vendedor';
@@ -203,7 +204,7 @@ async function login(username: string, password: string) {
 
       return true;
     }
-    throw new Error("Usuário ou senha inválidos");
+    throw new ValidationError("Usuário ou senha inválidos");
   } catch (error) {
     globalIsLoading = false;
     notifyListeners();

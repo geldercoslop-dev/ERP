@@ -1,5 +1,18 @@
+// Type guard para validar objeto
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" && data !== null;
+}
 import { Request, Response, NextFunction } from 'express';
 import { body, validationResult, query, param } from 'express-validator';
+import { ValidationError } from '../_core/errors/typed-errors.js';
+
+// Tipo ParsedQs compatível com Express
+type ParsedQs = Record<string, string | string[]> | undefined;
+
+// Tipos reais para type safety
+interface Validation {
+  run: (req: Request) => Promise<unknown>;
+}
 
 /**
  * Sanitização global de inputs
@@ -72,14 +85,14 @@ export class InputSanitizer {
   /**
    * Sanitiza objeto inteiro recursivamente
    */
-  static sanitizeObject(obj: any): any {
-    if (!obj || typeof obj !== 'object') return obj;
-    
+  static sanitizeObject(obj: unknown): unknown {
+    if (!isRecord(obj)) return obj;
+
     if (Array.isArray(obj)) {
       return obj.map(item => this.sanitizeObject(item));
     }
-    
-    const sanitized: any = {};
+
+    const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'string') {
         sanitized[key] = this.sanitizeString(value);
@@ -89,7 +102,7 @@ export class InputSanitizer {
         sanitized[key] = value;
       }
     }
-    
+
     return sanitized;
   }
 }
@@ -102,7 +115,13 @@ export function sanitizationMiddleware() {
     try {
       // Sanitiza query parameters
       if (req.query) {
-        req.query = InputSanitizer.sanitizeObject(req.query);
+        const sanitized = InputSanitizer.sanitizeObject(req.query);
+        
+        if (!isRecord(sanitized)) {
+          throw new ValidationError("Query inválida");
+        }
+        
+        req.query = sanitized as any;
       }
       
       // Sanitiza body
@@ -112,7 +131,7 @@ export function sanitizationMiddleware() {
       
       // Sanitiza params
       if (req.params) {
-        req.params = InputSanitizer.sanitizeObject(req.params);
+        req.params = InputSanitizer.sanitizeObject(req.params) as Record<string, string>;
       }
       
       next();
@@ -129,11 +148,11 @@ export function sanitizationMiddleware() {
 /**
  * Middleware de validação com sanitização
  */
-export function validationMiddleware(validations: any[]) {
+export function validationMiddleware(validations: Validation[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Run validations
-      await Promise.all(validations.map(validation => validation.run(req)));
+      await Promise.all(validations.map((validation: Validation) => validation.run(req)));
       
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -215,7 +234,7 @@ export function criticalValidationMiddleware() {
       // Verifica se há scripts no body
       const bodyStr = JSON.stringify(value);
       if (/<script|javascript:|on\w+=/i.test(bodyStr)) {
-        throw new Error('Conteúdo não permitido');
+        throw new ValidationError('Conteúdo não permitido');
       }
       return true;
     }),
@@ -223,7 +242,7 @@ export function criticalValidationMiddleware() {
     // Sanitização adicional
     (req: Request, res: Response, next: NextFunction) => {
       const originalSend = res.send;
-      res.send = function(data: any) {
+      res.send = function(data: unknown) {
         // Log de tentativas suspeitas
         if (req.body && typeof req.body === 'object') {
           const bodyStr = JSON.stringify(req.body);

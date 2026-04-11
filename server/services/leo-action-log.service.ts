@@ -12,8 +12,8 @@ export async function insertLeoLegacyActionLog(params: {
   const tenantMatch = params.usuario.match(/tenant:(\d+)/i);
   const tenantId = tenantMatch
     ? Number(tenantMatch[1])
-    : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
-  if (!Number.isFinite(tenantId) || tenantId <= 0) return;
+    : null;
+  if (!tenantId || !Number.isFinite(tenantId) || tenantId <= 0) return;
   try {
     await insertLeoActionLogCore({
       tenantId,

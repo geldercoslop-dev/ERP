@@ -2,10 +2,11 @@ import * as db from "../db/index.js";
 import { eq, and, sql } from "drizzle-orm";
 import { produtos } from "../../drizzle/schema.js";
 import { isRecord } from "../_core/type-guards.js";
+import { assertDbConnection } from "../_core/errors/assertions.js";
 
 /** Primeiro conjunto de linhas retornado por `db.execute` (driver MySQL: [rows, fields]). */
 function mysqlFirstRowset(result: unknown): unknown[] {
-  if (!Array.isArray(result) || result.length === 0) return [];
+  if (!Array.isArray(result) || result.length === 0) return []; // Ausência legítima - sem linhas no resultado
   const first = result[0];
   return Array.isArray(first) ? first : [];
 }
@@ -23,7 +24,7 @@ export type ProblemaDiagnostico = {
 
 export async function runDiagnosticoConsistencia(tenantId: number): Promise<ProblemaDiagnostico[]> {
   const dbConn = await db.getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
 
   const problemas: ProblemaDiagnostico[] = [];
 

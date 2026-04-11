@@ -8,6 +8,7 @@
 import { EventEmitter } from 'events';
 import { rotationLogger } from '../../_core/logger-rotation.js';
 import type { LeoTask, Payload } from '../types.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { LeoTaskType, LeoTaskPriority, LeoTaskStatus } from '../types.js';
 import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 
@@ -334,7 +335,7 @@ class LeoTaskQueue extends EventEmitter {
         case 'emergency':
           return await this.executeEmergencyTask(task);
         default:
-          throw new Error(`Tipo de tarefa não suportado: ${task.type}`);
+          throw new ValidationError(`Tipo de tarefa não suportado: ${task.type}`);
       }
     } catch (error) {
       return {

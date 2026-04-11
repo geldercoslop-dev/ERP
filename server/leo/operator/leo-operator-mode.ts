@@ -460,8 +460,8 @@ export class LeoOperatorMode {
     ativo: boolean;
     configuracao: OperatorModeConfig;
     tempoAtivo: number;
-    capacidades: any;
-    performance: any;
+    capacidades: unknown;
+    performance: unknown;
   }> {
     const capabilities = await leoEngine.getCapabilities();
     const systemStatus = await leoSystemMonitor.verificarSistema();
@@ -484,7 +484,7 @@ export class LeoOperatorMode {
   /**
    * Registra log das ações do modo operador
    */
-  private async logAction(acao: string, descricao: string, dados?: any): Promise<void> {
+  private async logAction(acao: string, descricao: string, dados?: unknown): Promise<void> {
     try {
       await insertLeoActionLog({
         usuario: 'leo-operator',

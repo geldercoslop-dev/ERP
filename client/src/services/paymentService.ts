@@ -11,6 +11,7 @@ import type {
   PagamentoListParams,
 } from '../types/pagamento.types';
 import { toast } from 'sonner';
+import { InfrastructureError } from '../lib/errors/typed-errors.js';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -33,7 +34,7 @@ export async function listarPagamentos(params?: PagamentoListParams): Promise<Pa
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json() as PagamentoListResponse;
@@ -59,7 +60,7 @@ export async function obterPagamentoPorId(id: number): Promise<Pagamento | null>
     });
 
     if (response.status === 404) return null;
-    if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+    if (!response.ok) throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
 
     const data = await response.json() as Pagamento;
     return data;
@@ -85,7 +86,7 @@ export async function criarPagamento(input: PagamentoCreateInput): Promise<Pagam
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json() as Pagamento;
@@ -113,7 +114,7 @@ export async function atualizarPagamento(id: number, input: Partial<PagamentoCre
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json() as Pagamento;
@@ -140,7 +141,7 @@ export async function deletarPagamento(id: number): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     toast.success('Pagamento deletado com sucesso!');

@@ -8,6 +8,7 @@
 import { leoTaskQueue } from '../tasks/leo-task-queue.js';
 import { LeoTaskType, LeoTaskPriority, LeoTaskStatus } from '../types.js';
 import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 import { leoEvents } from '../memory/leo-events.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
@@ -58,7 +59,7 @@ class CronParser {
     
     const parts = schedule.split(' ');
     if (parts.length !== 5) {
-      throw new Error(`Expressão cron inválida: ${schedule}`);
+      throw new ValidationError(`Expressão cron inválida: ${schedule}`);
     }
     const [minPart, hourPart, dayPart, monthPart, weekdayPart] = parts;
     return {
@@ -113,7 +114,7 @@ class CronParser {
         next.setMinutes(next.getMinutes() + 1);
       }
 
-      throw new Error('Não foi possível encontrar próxima data de execução');
+      throw new InfrastructureError('Não foi possível encontrar próxima data de execução');
     } catch (error) {
       // Fallback para 1 hora se expressão for inválida
       const fallback = new Date(from);
@@ -122,7 +123,10 @@ class CronParser {
     }
   }
 
-  private static matchesCron(date: Date, cron: any): boolean {
+  private static matchesCron(
+    date: Date,
+    cron: { minutes: number[]; hours: number[]; days: number[]; months: number[]; weekdays: number[] }
+  ): boolean {
     return cron.minutes.includes(date.getMinutes()) &&
            cron.hours.includes(date.getHours()) &&
            cron.days.includes(date.getDate()) &&
@@ -366,7 +370,7 @@ class LeoScheduler {
     console.log(`⏰ Executando ${tasksToRun.length} tarefa(s) agendada(s)...`);
 
     // Executar tarefas em paralelo
-    const promises = tasksToRun.map((task: any) => this.runScheduledTask(task));
+    const promises = tasksToRun.map((task) => this.runScheduledTask(task));
     await Promise.allSettled(promises);
   }
 

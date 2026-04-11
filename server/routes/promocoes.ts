@@ -8,27 +8,12 @@ import {
   deletePromocao,
   getPromocaoItens,
   setPromocaoItens,
-} from '../db/index.js';
-
-function tenantFromRequest(req: Request): number {
-  // SECURITY: tenantId must come from JWT only
-  const reqWithTenant = req as Request & {
-    tenantId?: unknown;
-    user?: { tenantId?: number | string };
-  };
-  const fromRequest = Number(reqWithTenant.tenantId);
-  if (Number.isFinite(fromRequest) && fromRequest > 0) return fromRequest;
-  const fromUser = Number(reqWithTenant.user?.tenantId);
-  if (Number.isFinite(fromUser) && fromUser > 0) return fromUser;
-  throw new TRPCError({
-    code: "UNAUTHORIZED",
-    message: "Tenant ID obrigatório via autenticação",
-  });
-}
+} from '../services/promocoes.service.js';
+import { requireTenantFromRequest } from '../_core/tenant-utils.js';
 
 export async function listar(req: Request) {
   try {
-    const tenantId = tenantFromRequest(req);
+    const tenantId = requireTenantFromRequest(req);
     const promocoes = await listPromocoes(tenantId);
     return { promocoes };
   } catch (e) {
@@ -39,7 +24,7 @@ export async function listar(req: Request) {
 
 export async function detalhes(request: Request) {
   try {
-    const tenantId = tenantFromRequest(request);
+    const tenantId = requireTenantFromRequest(request);
     const { id } = request.params as { id: string };
     const itens = await getPromocaoItens(tenantId, Number(id));
     return { itens };
@@ -51,7 +36,7 @@ export async function detalhes(request: Request) {
 
 export async function criar(request: Request) {
   try {
-    const tenantId = tenantFromRequest(request);
+    const tenantId = requireTenantFromRequest(request);
     const body = z.object({
       nome: z.string().min(2),
       inicio: z.coerce.date(),
@@ -78,7 +63,7 @@ export async function criar(request: Request) {
 
 export async function atualizar(request: Request) {
   try {
-    const tenantId = tenantFromRequest(request);
+    const tenantId = requireTenantFromRequest(request);
     const { id } = request.params as { id: string };
     const body = z.object({
       nome: z.string().min(2).optional(),
@@ -114,7 +99,7 @@ export async function atualizar(request: Request) {
 
 export async function remover(request: Request) {
   try {
-    const tenantId = tenantFromRequest(request);
+    const tenantId = requireTenantFromRequest(request);
     const { id } = request.params as { id: string };
     await deletePromocao(tenantId, Number(id));
     return { ok: true };

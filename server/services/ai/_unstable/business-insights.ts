@@ -2,11 +2,12 @@
  * Insights de negócio do LEO: produto mais vendido, queda de vendas, cliente que parou de comprar,
  * produto sem giro, tempo médio de entrega.
  */
-import * as db from "../../db/index.js";
-import { eq, and, sql, ne } from "drizzle-orm";
 import * as db from "../../../db/index.js";
+import { eq, and, sql, ne } from "drizzle-orm";
+import { PedidoStatus } from "../../../shared/domain-status.js";
 import { gerarInsights } from "./insight-engine.js";
 import * as ordersService from "../../orders.service.js";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
 
 const DIAS_SEM_GIRO = 60;
 const DIAS_CLIENTE_PARADO = 90;
@@ -48,7 +49,7 @@ export async function quedaVendas(tenantId: number): Promise<BusinessInsight | n
 /** Clientes que compraram antes mas não nos últimos DIAS_CLIENTE_PARADO. */
 export async function clientesQuePararamDeComprar(tenantId: number): Promise<BusinessInsight | null> {
   const conn = await db.getDb();
-  if (!conn) return null;
+  assertDbConnection(conn);
   const limite = new Date();
   limite.setDate(limite.getDate() - DIAS_CLIENTE_PARADO);
   
@@ -80,7 +81,7 @@ export async function clientesQuePararamDeComprar(tenantId: number): Promise<Bus
 /** Produtos com estoque > 0 e sem venda nos últimos DIAS_SEM_GIRO. */
 export async function produtoSemGiro(tenantId: number): Promise<BusinessInsight | null> {
   const conn = await db.getDb();
-  if (!conn) return null;
+  assertDbConnection(conn);
   const limite = new Date();
   limite.setDate(limite.getDate() - DIAS_SEM_GIRO);
   
@@ -122,7 +123,7 @@ export async function produtoSemGiro(tenantId: number): Promise<BusinessInsight 
 /** Tempo médio de entrega (em dias). */
 export async function tempoMedioEntrega(tenantId: number): Promise<BusinessInsight | null> {
   const conn = await db.getDb();
-  if (!conn) return null;
+  assertDbConnection(conn);
   
   const entregues = await conn
     .select({

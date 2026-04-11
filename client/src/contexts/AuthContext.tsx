@@ -6,6 +6,7 @@
 import React, { createContext, ReactNode, useCallback, useEffect, useState } from "react";
 import type { AuthUser } from "../hooks/useAuthIntegration";
 import * as authService from "../services/auth.service";
+import { setSessionToken } from "../lib/security/sessionToken";
 
 export interface AuthContextType {
   user: AuthUser | null;

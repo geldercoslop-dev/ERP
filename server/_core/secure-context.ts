@@ -4,6 +4,7 @@
  *
  * Nota: serviços de domínio continuam usando `ServiceActor` em paralelo; este tipo cobre a camada de execução de tools.
  */
+import { ValidationError } from './errors/typed-errors.js';
 
 export type SecureRole = "admin" | "vendedor" | "system";
 
@@ -51,7 +52,7 @@ export function isSecureContext(value: unknown): value is SecureContext {
 
 export function assertSecureContext(value: unknown): asserts value is SecureContext {
   if (!isSecureContext(value)) {
-    throw new Error("SecureContext inválido: tenantId, userId e role são obrigatórios");
+    throw new ValidationError("SecureContext inválido: tenantId, userId e role são obrigatórios");
   }
 }
 

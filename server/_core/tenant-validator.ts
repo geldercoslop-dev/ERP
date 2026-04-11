@@ -5,6 +5,7 @@
 
 import type { ServiceActor } from './service-actor.js';
 import { assertServiceEntryIfEnabled } from './service-entry-guard.js';
+import { InfrastructureError } from './errors/typed-errors.js';
 
 export interface TenantValidation {
   tenantId: number;
@@ -21,19 +22,19 @@ export function validateTenantAccess(tenantId?: number, actor?: ServiceActor): T
   assertServiceEntryIfEnabled();
   // VALIDAÇÃO CRÍTICA - NÃO PERMITIR OPERAÇÕES SEM TENANT
   if (!tenantId || tenantId <= 0) {
-    throw new Error('TENANT_ID_REQUIRED: Operação de banco exige tenantId válido');
+    throw new InfrastructureError('TENANT_ID_REQUIRED: Operação de banco exige tenantId válido');
   }
   
   if (!actor) {
-    throw new Error('ACTOR_REQUIRED: Operação de banco exige contexto do usuário');
+    throw new InfrastructureError('ACTOR_REQUIRED: Operação de banco exige contexto do usuário');
   }
   
   if (!actor.role || !['admin', 'vendedor'].includes(actor.role)) {
-    throw new Error('INVALID_ACTOR_ROLE: Role do usuário inválido');
+    throw new InfrastructureError('INVALID_ACTOR_ROLE: Role do usuário inválido');
   }
   
   if (actor.role === 'vendedor' && !actor.vendedorId) {
-    throw new Error('VENDEDOR_ID_REQUIRED: Vendedor exige vendedorId');
+    throw new InfrastructureError('VENDEDOR_ID_REQUIRED: Vendedor exige vendedorId');
   }
   
   return { tenantId, actor };

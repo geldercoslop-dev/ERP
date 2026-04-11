@@ -9,6 +9,8 @@ import { executeQuery } from '../config/database.js';
 import { sql, eq, and, lt, desc } from 'drizzle-orm';
 import { pedidos, itensPedido, produtos, contasReceber, contasPagar } from '../../drizzle/schema.js';
 import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from '../shared/domain-status.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
+import { assertDbConnection } from '../_core/errors/assertions.js';
 
 /**
  * Queries otimizadas para Sales Analytics
@@ -20,7 +22,7 @@ export class SalesAnalyticsQueries {
    */
   static async getVendasUltimos30Dias(limit: number = 30): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const trintaDiasAtras = new Date();
@@ -52,7 +54,7 @@ export class SalesAnalyticsQueries {
       });
     } catch (error: unknown) {
       console.error('[SalesAnalyticsQueries] Erro em getVendasUltimos30Dias:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter vendas dos últimos 30 dias', { cause: error });
     }
   }
 
@@ -61,7 +63,7 @@ export class SalesAnalyticsQueries {
    */
   static async getProdutosMaisVendidos(limit: number = 10): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const trintaDiasAtras = new Date();
@@ -91,7 +93,7 @@ export class SalesAnalyticsQueries {
       return rows as unknown as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[SalesAnalyticsQueries] Erro em getProdutosMaisVendidos:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter produtos mais vendidos', { cause: error });
     }
   }
 
@@ -100,7 +102,7 @@ export class SalesAnalyticsQueries {
    */
   static async getClientesMaisAtivos(limit: number = 10): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const trintaDiasAtras = new Date();
@@ -135,7 +137,7 @@ export class SalesAnalyticsQueries {
       });
     } catch (error: unknown) {
       console.error('[SalesAnalyticsQueries] Erro em getClientesMaisAtivos:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter clientes mais ativos', { cause: error });
     }
   }
 }
@@ -150,7 +152,7 @@ export class StockAnalyticsQueries {
    */
   static async getEstoqueCritico(limit: number = 50): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const query = `
@@ -179,7 +181,7 @@ export class StockAnalyticsQueries {
       return rows as unknown as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[StockAnalyticsQueries] Erro em getEstoqueCritico:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter estoque crítico', { cause: error });
     }
   }
 
@@ -188,7 +190,7 @@ export class StockAnalyticsQueries {
    */
   static async getProdutosSemGiro(dias: number = 60, limit: number = 50): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const dataLimite = new Date();
@@ -226,7 +228,7 @@ export class StockAnalyticsQueries {
       return rows as unknown as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[StockAnalyticsQueries] Erro em getProdutosSemGiro:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter produtos sem giro', { cause: error });
     }
   }
 
@@ -235,7 +237,7 @@ export class StockAnalyticsQueries {
    */
   static async getProdutosAltoGiro(dias: number = 30, limit: number = 20): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const dataLimite = new Date();
@@ -283,7 +285,7 @@ export class StockAnalyticsQueries {
       return rows as unknown as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[StockAnalyticsQueries] Erro em getProdutosAltoGiro:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter produtos com alto giro', { cause: error });
     }
   }
 }
@@ -298,7 +300,7 @@ export class FinancialInsightsQueries {
    */
   static async getFaturamentoDiario(dias: number = 30, limit: number = 100): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const dataLimite = new Date();
@@ -324,7 +326,7 @@ export class FinancialInsightsQueries {
       return rows as unknown as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[FinancialInsightsQueries] Erro em getFaturamentoDiario:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter faturamento diário', { cause: error });
     }
   }
 
@@ -333,7 +335,7 @@ export class FinancialInsightsQueries {
    */
   static async getFluxoCaixa(dias: number = 30, limit: number = 50): Promise<Record<string, unknown>[]> {
     const dbConnection = await getDb();
-    if (!dbConnection) return [];
+    assertDbConnection(dbConnection);
 
     try {
       const dataLimite = new Date();
@@ -372,7 +374,7 @@ export class FinancialInsightsQueries {
       return rows as unknown as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[FinancialInsightsQueries] Erro em getFluxoCaixa:', error);
-      return [];
+      throw new InfrastructureError('Falha ao obter fluxo de caixa', { cause: error });
     }
   }
 

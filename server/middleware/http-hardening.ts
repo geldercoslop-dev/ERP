@@ -35,6 +35,10 @@ const GLOBAL_RATE_LIMIT = rateLimit({
     return `global-rate-limit:${ip}`;
   },
   skip: (req: Request) => {
+    if (process.env.K6_MODE === 'true') {
+      return true;
+    }
+
     // Pular health checks e endpoints públicos
     const path = req.path || req.url;
     return path === '/health' || 

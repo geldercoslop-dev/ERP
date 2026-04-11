@@ -5,23 +5,26 @@ import { nanoid } from "nanoid";
 
 // --- Core ---
 import { protectedProcedure, adminProcedure, router } from "../_core/trpc.js";
-import { requireTenant } from "../_core/tenant.js";
+import { assertTenantId } from "../_core/errors/assertions.js";
 import { withServiceGuard } from "../types/service-guard.js";
 
-// --- DB e serviços ---
+// --- Serviços ---
 import * as inventoryService from "../services/inventory.service.js";
 import * as promocoesService from "../services/promocoes.service.js";
-import * as db from "../db/index.js";
 import { validatePaginationParams, createPaginationMetadata } from "../utils/pagination.js";
 import { cacheKeys, withCache } from "../cache/simple-memory-cache.js";
 import { invalidateInventoryCachesForTenant } from "../_core/cache-invalidation.js";
+
+// --- DB apenas para operações específicas que ainda não foram migradas ---
+import * as db from "../db/index.js";
+import { getInsertId } from "../db/index.js";
 
 /** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
 async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: Record<string, unknown> | null; tenantId?: number | null }) {
   if (ctx.vendedor) return ctx.vendedor;
   if (!ctx.user || ctx.user.role === "admin") return null;
   const tenantId = ctx.tenantId;
-  if (!tenantId) return null;
+  assertTenantId(tenantId);
   const usersService = await import("../services/users.service.js");
   return (await usersService.getVendedorById(ctx.user.id, tenantId)) ?? null;
 }
@@ -33,7 +36,8 @@ export const produtosRouter = router({
       pageSize: z.number().min(1).optional(),
     }).optional())
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const { page, pageSize } = validatePaginationParams(input?.page, input?.pageSize);
       const cacheKey = cacheKeys.produtos({ tenantId, page, pageSize });
 
@@ -61,14 +65,16 @@ export const produtosRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       return await inventoryService.getProdutoById(tenantId, input.id) ?? null;
     }),
 
   create: adminProcedure
     .input(z.record(z.string(), z.unknown()))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const r = await inventoryService.createProduto(
         tenantId,
         input as unknown as Parameters<typeof inventoryService.createProduto>[1]
@@ -95,10 +101,11 @@ export const produtosRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { id, version, ...data } = input;
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       
       try {
-        const patch: any = {
+        const patch: Record<string, unknown> = {
           ...data,
           custo: Number(data.custo).toFixed(2),
           valorVenda: Number(data.valorVenda).toFixed(2),
@@ -123,7 +130,8 @@ export const produtosRouter = router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       await inventoryService.deleteProduto(tenantId, input.id);
       invalidateInventoryCachesForTenant(tenantId);
       return { ok: true as const };
@@ -136,7 +144,8 @@ export const produtosRouter = router({
       pageSize: z.number().min(1).max(100).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const query = (input.query ?? "").trim();
       const page = input.page ?? 1;
       const pageSize = Math.min(input.pageSize ?? (query ? 50 : 50), 100);
@@ -170,7 +179,8 @@ export const produtosRouter = router({
         motivo: "atualizarEstoque",
       };
       try {
-        const tenantId = await requireTenant(ctx);
+        const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
         await inventoryService.updateEstoqueProduto(tenantId, { 
           id: input.id, 
           quantidade: qtd, 
@@ -180,7 +190,7 @@ export const produtosRouter = router({
           }
         });
         return { message: "Estoque atualizado" };
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("Estoque insuficiente")) {
           throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
         }
@@ -191,26 +201,30 @@ export const produtosRouter = router({
 
 export const coresRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    const tenantId = await requireTenant(ctx);
+    const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
     return await inventoryService.listCores(tenantId);
   }),
   create: adminProcedure
     .input(z.object({ nome: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
-      return await inventoryService.createCor(tenantId, { nome: input.nome });
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
+      return await inventoryService.createCor(tenantId, { tenantId, nome: input.nome });
     }),
   update: adminProcedure
     .input(z.object({ id: z.number(), nome: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       await inventoryService.updateCor(tenantId, input.id, { nome: input.nome });
       return { ok: true as const };
     }),
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       await inventoryService.deleteCor(tenantId, input.id);
       return { ok: true as const };
     }),
@@ -218,15 +232,15 @@ export const coresRouter = router({
 
 export const gruposPrecificacaoRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    const tenantId = await requireTenant(ctx);
-    const db_conn = await db.getDb();
-    if (!db_conn) return [];
-    return await db_conn.select().from(db.gruposPrecificacao) ?? [];
+    const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
+    return await inventoryService.listGruposPrecificacao(tenantId);
   }),
   create: adminProcedure
     .input(z.object({ nome: z.string().min(1), idempotencyKey: z.string().max(64).optional() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const { idempotencyKey, ...data } = input;
       const executeCommand = await import("../_core/command.js").then(m => m.executeCommand);
       const commandResult = await import("../_core/command.js").then(m => m.commandResult);
@@ -235,8 +249,8 @@ export const gruposPrecificacaoRouter = router({
       const result = await executeCommand(
         { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },
         async (tx) => {
-          const res = await (tx as any).insert(db.gruposPrecificacao).values({ ...data });
-          const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;
+          const res = await tx.insert(db.gruposPrecificacao).values({ tenantId, ...data });
+          const id = getInsertId(res);
           return { ...commandResult(true, ["Grupo criado"]), id };
         }
       );
@@ -259,7 +273,8 @@ export const gruposPrecificacaoRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const { id, ...data } = input;
       await inventoryService.updateGrupoPrecificacao(tenantId, id, data);
       return { ok: true as const };
@@ -267,7 +282,8 @@ export const gruposPrecificacaoRouter = router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       await inventoryService.deleteGrupoPrecificacao(tenantId, input.id);
       return { ok: true as const };
     }),
@@ -286,7 +302,8 @@ export const ajusteEstoqueRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const traceId = nanoid(10);
       const out = await inventoryService.ajusteRapidoEstoque(
         tenantId,
@@ -305,13 +322,15 @@ export const ajusteEstoqueRouter = router({
 
 export const promocoesRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    const tenantId = await requireTenant(ctx);
+    const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
     return await promocoesService.listPromocoes(tenantId);
   }),
   detalhes: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       return await promocoesService.getPromocaoById(tenantId, input.id);
     }),
   create: adminProcedure
@@ -325,7 +344,8 @@ export const promocoesRouter = router({
       ).default([]),
     }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const promo = await promocoesService.createPromocao(tenantId, {
         nome: input.nome,
         inicio: input.inicio,
@@ -350,14 +370,16 @@ export const promocoesRouter = router({
       ativo: z.boolean(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       const { id, ...data } = input;
       return await promocoesService.updatePromocao(tenantId, id, data);
     }),
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       return await promocoesService.deletePromocao(tenantId, input.id);
     }),
 });
@@ -382,7 +404,8 @@ export const notasEntradaRouter = router({
       })).min(1),
     }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = await requireTenant(ctx);
+      const tenantId = ctx.tenantId;
+      assertTenantId(tenantId);
       await db.criarNotaEntrada(tenantId, {
         marca: input.marca,
         dataChegada: new Date(input.dataChegada),
@@ -391,7 +414,7 @@ export const notasEntradaRouter = router({
         observacao: input.observacao,
         parcelas: input.parcelas?.map(p => ({ ...p, dataVencimento: new Date(p.dataVencimento) })),
         itens: input.itens,
-        createdBy: (ctx.user as any)?.id,
+        createdBy: ctx.user?.id,
       });
       return { ok: true };
     }),

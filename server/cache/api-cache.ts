@@ -89,7 +89,7 @@ function updateStats(): void {
  * Obtém valor do cache se existir e não estiver expirado.
  */
 export function get<T>(key: string): T | undefined {
-  const entry = store.get(key) as Entry<T> | undefined;
+  const entry = store.get(key) as unknown as Entry<T> | undefined;
   if (!entry) {
     stats.misses++;
     return undefined;

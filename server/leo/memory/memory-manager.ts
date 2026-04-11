@@ -20,7 +20,7 @@ export interface MemoryStats {
 export interface MemoryItem {
   id: string;
   type: string;
-  data: any;
+  data: unknown;
   createdAt: Date;
   lastAccessed: Date;
   accessCount: number;
@@ -93,7 +93,7 @@ class LeoMemoryManager {
   public set(
     key: string,
     type: string,
-    data: any,
+    data: unknown,
     options?: {
       ttl?: number;
       priority?: number;
@@ -303,7 +303,7 @@ class LeoMemoryManager {
   /**
    * Calcula tamanho aproximado do item
    */
-  private calculateSize(data: any): number {
+  private calculateSize(data: unknown): number {
     try {
       if (data === null || data === undefined) return 0;
       
@@ -565,13 +565,13 @@ export const leoMemoryManager = LeoMemoryManager.getInstance();
 export function setLeoMemory(
   key: string,
   type: string,
-  data: any,
+  data: unknown,
   options?: { ttl?: number; priority?: number }
 ): boolean {
   return leoMemoryManager.set(key, type, data, options);
 }
 
-export function getLeoMemory<T = any>(key: string): T | null {
+export function getLeoMemory<T = unknown>(key: string): T | null {
   return leoMemoryManager.get<T>(key);
 }
 

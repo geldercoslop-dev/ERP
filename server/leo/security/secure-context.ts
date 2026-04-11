@@ -7,6 +7,7 @@ import type { SecureRole } from "../../_core/secure-context.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard.js";
 import { reconstructLeoToolExecutionIdentity } from "../../_core/tenant-ownership.js";
 import { securityLogger } from "../../_core/logger.js";
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 /** Evita import circular com agent-core. */
 export type LeoAgentRequestLike = {
@@ -178,7 +179,7 @@ export async function createSecureExecutionContext(
 ): Promise<SecureAgentContext> {
   const validation = await validateSecurityBeforeExecution(request, authContext);
   if (!validation.valid) {
-    throw new Error(validation.reason || "Falha na validação de segurança");
+    throw new ValidationError(validation.reason || "Falha na validação de segurança");
   }
   return validation.secureContext!;
 }

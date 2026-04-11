@@ -6,6 +6,7 @@ import { users, vendedores } from "../../drizzle/schema.js";
 import { nanoid } from "nanoid";
 import { recordQueryTime } from "../_core/system-monitor.js";
 import { logAuditAction } from "./audit-log.service.js";
+import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
 
 // Types
 export type CreateVendedorInput = InsertVendedor;
@@ -14,14 +15,14 @@ export type CreateVendedorInput = InsertVendedor;
  * Cria ou atualiza um usuário (vinculado ao tenant)
  */
 export async function upsertUser(tenantId: number, user: InsertUser): Promise<{ success: boolean; data?: User; error?: string }> {
-  if (!tenantId) return { success: false, error: "tenantId is required" };
+  assertTenantId(tenantId);
   if (!user.openId) {
     return { success: false, error: "User openId is required for upsert" };
   }
 
   try {
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
 
     const existing = await dbConn.select().from(users).where(and(eq(users.tenantId, tenantId), eq(users.openId, user.openId))).limit(1);
 
@@ -87,7 +88,7 @@ export async function getUserByOpenId(tenantId: number, openId: string): Promise
   if (!tenantId || !openId) return null;
   
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   
   const result = await dbConn
     .select()
@@ -105,7 +106,7 @@ export async function getUserByOpenId(tenantId: number, openId: string): Promise
  */
 export async function getUserById(id: number, tenantId?: number): Promise<User | null> {
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   
   const result = tenantId
     ? await dbConn.select().from(users).where(and(eq(users.tenantId, tenantId), eq(users.id, id))).limit(1)
@@ -114,12 +115,23 @@ export async function getUserById(id: number, tenantId?: number): Promise<User |
 }
 
 /**
+ * Busca usuário pelo openId sem filtro de tenant (para sessões legadas sem contexto de tenant).
+ */
+export async function getUserByOpenIdGlobal(openId: string): Promise<User | null> {
+  if (!openId) return null;
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  const result = await dbConn.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
  * Atualiza último login do usuário
  */
 export async function touchLastSignedIn(tenantId: number, userId: number): Promise<void> {
-  if (!tenantId) return;
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return;
+  assertDbConnection(dbConn);
 
   await dbConn.update(users).set({ lastSignedIn: new Date() }).where(and(eq(users.tenantId, tenantId), eq(users.id, userId)));
 }
@@ -140,7 +152,7 @@ export async function listUsers(
   } = {}
 ): Promise<{ success: boolean; data?: { users: User[]; total: number; page: number; limit: number }; error?: string }> {
   const dbConn = await getDb();
-  if (!dbConn) return { success: false, error: "Database not available" };
+  assertDbConnection(dbConn);
 
   const { page = 1, limit = 50, search, role, active, sortBy = "name", sortOrder = "asc" } = options;
   const offset = (page - 1) * limit;
@@ -204,13 +216,13 @@ export async function listUsers(
  */
 export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor): Promise<{ success: boolean; data?: Vendedor; error?: string }> {
   try {
-    if (!tenantId) return { success: false, error: "tenantId is required" };
+    assertTenantId(tenantId);
     if (!vendedor.nome) {
       return { success: false, error: "Vendedor nome is required" };
     }
 
     const dbConn = await getDb();
-    if (!dbConn) return { success: false, error: "Database not available" };
+    assertDbConnection(dbConn);
 
     const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(vendedor.nome);
     const nomeVendedor = [nomeNorm, sobrenomeNorm].filter(Boolean).join(" ").trim() || String(vendedor.nome);
@@ -274,7 +286,7 @@ export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor)
  */
 export async function getVendedorById(id: number, tenantId?: number): Promise<Vendedor | null> {
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   
   const result = tenantId
     ? await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, id))).limit(1)
@@ -297,7 +309,7 @@ export async function listVendedores(
   } = {}
 ): Promise<{ success: boolean; data?: { vendedores: Vendedor[]; total: number; page: number; limit: number }; error?: string }> {
   const dbConn = await getDb();
-  if (!dbConn) return { success: false, error: "Database not available" };
+  assertDbConnection(dbConn);
 
   const { page = 1, limit = 50, search, active, sortBy = "nome", sortOrder = "asc" } = options;
   const offset = (page - 1) * limit;
@@ -359,7 +371,7 @@ export async function listVendedores(
  */
 export async function toggleVendedor(tenantId: number, id: number, active: boolean): Promise<{ success: boolean; message: string }> {
   const dbConn = await getDb();
-  if (!dbConn) return { success: false, message: "Database not available" };
+  assertDbConnection(dbConn);
 
   const result = await dbConn
     .update(vendedores)
@@ -387,7 +399,7 @@ export async function toggleVendedor(tenantId: number, id: number, active: boole
  */
 export async function removeVendedor(tenantId: number, id: number): Promise<{ success: boolean; message: string }> {
   const dbConn = await getDb();
-  if (!dbConn) return { success: false, message: "Database not available" };
+  assertDbConnection(dbConn);
 
   const result = await dbConn
     .update(vendedores)
@@ -414,7 +426,7 @@ export { getVendedorByNome } from "../db/core.js";
 
 export async function getUserByDisplayName(displayName: string): Promise<User | null> {
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   const term = displayName.trim().toLowerCase();
   const result = await dbConn
     .select()

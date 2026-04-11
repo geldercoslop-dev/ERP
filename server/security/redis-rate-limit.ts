@@ -64,6 +64,12 @@ export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): 
   } = options;
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (process.env.K6_MODE === "true") {
+      console.warn("[RATE_LIMIT] bypass ativo (K6_MODE)");
+      next();
+      return;
+    }
+
     if (!shouldApply(req)) {
       next();
       return;
@@ -115,7 +121,12 @@ export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): 
       }
 
       next();
-    } catch {
+    } catch (error) {
+      console.error("[SECURITY] falha no redis-rate-limit", {
+        name,
+        path: req.originalUrl || req.url,
+        error: error instanceof Error ? error.message : String(error),
+      });
       next();
     }
   };

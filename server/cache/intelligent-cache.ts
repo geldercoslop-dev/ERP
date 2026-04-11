@@ -4,9 +4,8 @@
  */
 import { getOrSet } from './api-cache.js';
 import * as db from '../db/index.js';
+import { eq, or, like, gte, lte, and, lt, sql, produtos, clientes, pedidos, cargas, contasReceber, contasPagar } from '../db/index.js';
 import { logInfo } from '../_core/logger.js';
-import { eq, or, like, gte, lte, and, lt, sql } from 'drizzle-orm';
-import { produtos, clientes, pedidos, cargas, contasReceber, contasPagar } from '../../drizzle/schema.js';
 
 // Alias para evitar conflito de nomes
 const produtosTable = produtos;
@@ -30,24 +29,55 @@ const CACHE_TTL = {
 /**
  * Cache para produtos com busca por descrição.
  */
-export async function getProdutosCache(busca?: string): Promise<any[]> {
+interface Produto {
+  id: number;
+  descricao: string;
+  marca?: string | null;
+  estoque?: number;
+  ativo?: boolean;
+}
+
+interface Cliente {
+  id: number;
+  nome: string;
+  telefone?: string | null;
+}
+
+interface Pedido {
+  id: number;
+  total?: number | string;
+  createdAt: Date;
+  status: string;
+}
+
+interface Conta {
+  valor?: number | string;
+  status: string;
+  dataVencimento?: Date;
+}
+
+export async function getProdutosCache(busca?: string): Promise<unknown[]> {
   const key = `produtos:${busca || 'todos'}`;
   return getOrSet(key, async () => {
     const dbConnection = await db.getDb();
     if (!dbConnection) return [];
     
-    let query = dbConnection.select().from(produtosTable) as any;
+    const baseQuery = dbConnection.select().from(produtosTable);
     
     if (busca) {
-      query = query.where(
-        or(
-          like(produtosTable.descricao, `%${busca}%`),
-          like(produtosTable.marca, `%${busca}%`)
+      const produtosData = await baseQuery
+        .where(
+          or(
+            like(produtosTable.descricao, `%${busca}%`),
+            like(produtosTable.marca, `%${busca}%`)
+          )
         )
-      );
+        .limit(100)
+        .orderBy(produtosTable.descricao);
+      return produtosData;
     }
     
-    const produtosData = await query.limit(100).orderBy(produtosTable.descricao);
+    const produtosData = await baseQuery.limit(100).orderBy(produtosTable.descricao);
     return produtosData;
   }, CACHE_TTL.produtos);
 }
@@ -55,24 +85,28 @@ export async function getProdutosCache(busca?: string): Promise<any[]> {
 /**
  * Cache para clientes com busca por nome e telefone.
  */
-export async function getClientesCache(busca?: string): Promise<any[]> {
+export async function getClientesCache(busca?: string): Promise<unknown[]> {
   const key = `clientes:${busca || 'todos'}`;
   return getOrSet(key, async () => {
     const dbConnection = await db.getDb();
     if (!dbConnection) return [];
     
-    let query = dbConnection.select().from(clientesTable) as any;
+    const baseQuery = dbConnection.select().from(clientesTable);
     
     if (busca) {
-      query = query.where(
-        or(
-          like(clientesTable.nome, `%${busca}%`),
-          like(clientesTable.telefone, `%${busca}%`)
+      const clientesData = await baseQuery
+        .where(
+          or(
+            like(clientesTable.nome, `%${busca}%`),
+            like(clientesTable.telefone, `%${busca}%`)
+          )
         )
-      );
+        .limit(100)
+        .orderBy(clientesTable.nome);
+      return clientesData;
     }
     
-    const clientesData = await query.limit(100).orderBy(clientesTable.nome);
+    const clientesData = await baseQuery.limit(100).orderBy(clientesTable.nome);
     return clientesData;
   }, CACHE_TTL.clientes);
 }
@@ -80,7 +114,7 @@ export async function getClientesCache(busca?: string): Promise<any[]> {
 /**
  * Cache para vendas do dia (crítico para LEO).
  */
-export async function getVendasHojeCache(data?: Date): Promise<{ quantidade: number; total: number; pedidos: any[] }> {
+export async function getVendasHojeCache(data?: Date): Promise<{ quantidade: number; total: number; pedidos: unknown[] }> {
   const dataStr = data?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0];
   const key = `vendas:dia:${dataStr}`;
   return getOrSet(key, async () => {
@@ -102,7 +136,7 @@ export async function getVendasHojeCache(data?: Date): Promise<{ quantidade: num
       );
     
     const quantidade = pedidos.length;
-    const total = Number(pedidos.reduce((sum: number, p: any) => sum + Number(p.total || 0), 0));
+    const total = Number(pedidos.reduce((sum: number, p: unknown) => sum + Number(Number((p as { total?: number | string }).total || 0)), 0));
     
     return { quantidade, total, pedidos };
   }, CACHE_TTL.vendas);
@@ -111,7 +145,7 @@ export async function getVendasHojeCache(data?: Date): Promise<{ quantidade: num
 /**
  * Cache para estoque baixo (crítico para alertas do LEO).
  */
-export async function getEstoqueBaixoCache(): Promise<any[]> {
+export async function getEstoqueBaixoCache(): Promise<unknown[]> {
   const key = `estoque:baixo:${new Date().toISOString().split('T')[0]}`;
   return getOrSet(key, async () => {
     const dbConnection = await db.getDb();
@@ -171,8 +205,8 @@ export async function getFinanceiroResumoCache(): Promise<{ aReceber: number; aP
         )
       );
     
-    const aReceber = Number(contasReceber.reduce((sum: number, c: any) => sum + Number(c.valor || 0), 0));
-    const aPagar = Number(contasPagar.reduce((sum: number, c: any) => sum + Number(c.valor || 0), 0));
+    const aReceber = Number(contasReceber.reduce((sum: number, c: unknown) => sum + Number(Number((c as { valor?: number | string }).valor || 0)), 0));
+    const aPagar = Number(contasPagar.reduce((sum: number, c: unknown) => sum + Number(Number((c as { valor?: number | string }).valor || 0)), 0));
     
     return {
       aReceber,

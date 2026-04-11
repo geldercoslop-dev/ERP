@@ -149,7 +149,7 @@ async function perguntarUnqueued(
 
     if (intent === "status_sistema") {
       const respostaTexto = await SystemObserver.answerHealthQuery();
-      leoMemory.record(user, pergunta, respostaTexto, entities, intent);
+      leoMemory.record(user, pergunta, respostaTexto, entities, intent, tenantId);
       return padrao(true, respostaTexto, null, { intent, tool: "status_sistema" }, { action: intent });
     }
 
@@ -162,7 +162,7 @@ async function perguntarUnqueued(
       );
       const pedido = pedidoFromToolData(res.data);
       if (res.success && pedido) {
-        leoMemory.record(user, pergunta, res.message, entities, intent);
+        leoMemory.record(user, pergunta, res.message, entities, intent, tenantId);
         return padrao(true, `Encontrei o pedido #${pedido.numero} do cliente ${pedido.clienteNome}. Confirma a baixa deste pedido?`, res.data, { intent }, {
           action: intent,
           pendingConfirmation: {
@@ -173,13 +173,13 @@ async function perguntarUnqueued(
           context: { entities, intent },
         });
       }
-      leoMemory.record(user, pergunta, res.message, entities, intent);
+      leoMemory.record(user, pergunta, res.message, entities, intent, tenantId);
       return padrao(res.success, res.message, res.data, res.meta, { action: intent });
     }
 
     if (intent === "gerar_relatorio") {
       const respostaTexto = `Vou gerar o relatório de ${entities.tipoRelatorio || "dados"} para você agora.`;
-      leoMemory.record(user, pergunta, respostaTexto, entities, intent);
+      leoMemory.record(user, pergunta, respostaTexto, entities, intent, tenantId);
       return padrao(true, respostaTexto, null, { intent }, { action: intent });
     }
 
@@ -205,20 +205,20 @@ async function perguntarUnqueued(
               ? JSON.stringify(planResult.data).slice(0, 500)
               : String(planResult.data).slice(0, 500))
           : "");
-      leoMemory.record(user, pergunta, msg, entities, intent);
+      leoMemory.record(user, pergunta, msg, entities, intent, tenantId);
       return padrao(planResult.success, msg, planResult.data, { intent, steps: planResult.steps.length }, { action: intent });
     }
 
     const toolCall = interpretacao.toolCall ?? intentToToolCall(intent, entities as Record<string, unknown>);
     if (toolCall) {
       const res = await ActionExecutor.execute(tenantId, toolCall.tool, toolCall.input as ActionParams, execBase);
-      leoMemory.record(user, pergunta, res.message, entities, intent);
+      leoMemory.record(user, pergunta, res.message, entities, intent, tenantId);
       return padrao(res.success, res.message, res.data, { ...res.meta, intent, tool: toolCall.tool }, { action: intent });
     }
 
     const respostaTexto =
       "Desculpe, ainda não sei como processar esse pedido. Tente perguntar sobre pedidos, clientes ou financeiro.";
-    leoMemory.record(user, pergunta, respostaTexto, entities, intent);
+    leoMemory.record(user, pergunta, respostaTexto, entities, intent, tenantId);
     return padrao(false, respostaTexto, null, { intent }, { action: intent });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);

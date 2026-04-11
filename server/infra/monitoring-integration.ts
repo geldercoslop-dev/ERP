@@ -31,21 +31,9 @@ export function setupMonitoring(app: express.Application): void {
     });
   });
   
-  // 3. Health check único (usando o sistema centralizado)
-  app.get('/health', async (req: Request, res: Response) => {
-    try {
-      const { getSystemHealthComplete } = await import('../services/system-health.service.js');
-      const health = await getSystemHealthComplete();
-      res.status(health.status === 'ok' ? 200 : 503).json(health);
-    } catch (error) {
-      logger.error('Erro ao obter health check', error as Error);
-      res.status(500).json({ error: 'Erro ao obter health check' });
-    }
-  });
-  
   logger.info('Sistema de monitoramento configurado', {
     metadata: {
-      endpoints: ['/health', '/health/live', '/health/ready', '/metrics'],
+      endpoints: ['/api/health', '/metrics'],
       middleware: ['metricsMiddleware', 'databaseMetricsMiddleware', 'errorTrackingMiddleware'],
     },
   });

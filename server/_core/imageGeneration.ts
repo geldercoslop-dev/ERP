@@ -15,6 +15,7 @@
  *     }]
  *   });
  */
+import { InfrastructureError } from './errors/typed-errors.js';
 import { storagePut } from "../storage.js";
 import { ENV } from "./env.js";
 
@@ -35,10 +36,10 @@ export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
   if (!ENV.forgeApiUrl) {
-    throw new Error("BUILT_IN_FORGE_API_URL is not configured");
+    throw new InfrastructureError("BUILT_IN_FORGE_API_URL is not configured");
   }
   if (!ENV.forgeApiKey) {
-    throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+    throw new InfrastructureError("BUILT_IN_FORGE_API_KEY is not configured");
   }
 
   // Build the full URL by appending the service path to the base URL
@@ -66,7 +67,7 @@ export async function generateImage(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(
+    throw new InfrastructureError(
       `Image generation request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
     );
   }

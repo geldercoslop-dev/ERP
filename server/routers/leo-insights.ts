@@ -6,6 +6,7 @@
 
 import { Router, Request } from 'express';
 import { getLeoInsights } from '../services/leo-insights.service.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ function tenantIdFromReq(req: Request): number {
   const id = (req as Request & { tenantId?: number }).tenantId;
   
   if (!id || !Number.isInteger(id) || id <= 0) {
-    throw new Error('Tenant ID não encontrado ou inválido no request. Tenant é obrigatório.');
+    throw new ValidationError('Tenant ID não encontrado ou inválido no request. Tenant é obrigatório.');
   }
   
   return id;

@@ -1,0 +1,3 @@
+db|mysql_data:/var/lib/mysql
+redis|SEM_PERSISTENCIA
+api|SEM_PERSISTENCIA

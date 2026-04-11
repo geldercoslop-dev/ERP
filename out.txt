@@ -1,0 +1,719 @@
+
+> vendas-app@1.0.0 dev C:\ERP
+> cross-env NODE_ENV=development tsx watch --exclude dist --exclude node_modules --exclude server/_core/port.ts --exclude server/_core/**/*.log --exclude server/_core/**/*.tmp --import ./instrument.ts server/index.ts
+
+[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [JTAR9dx21u]: Iniciando proteção de serviços...
+[INFO] [INFO] [Plc4tHQ1-r]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [IAUDoD7XoA]: Iniciando monitor de serviços
+[INFO] [INFO] [ruLf2ke0-4]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688104695,"timestamp":"2026-04-08T22:41:44.694Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688104695,"timestamp":"2026-04-08T22:41:44.695Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688105069,"timestamp":"2026-04-08T22:41:45.069Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:41:56 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [mSl17_Cnf2]: Iniciando proteção de serviços...
+[INFO] [INFO] [yV6tRTfbdq]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [T5WKT7Ljig]: Iniciando monitor de serviços
+[INFO] [INFO] [43erRa-LoM]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688121108,"timestamp":"2026-04-08T22:42:01.108Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688121108,"timestamp":"2026-04-08T22:42:01.108Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688121339,"timestamp":"2026-04-08T22:42:01.339Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:42:23 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[BOOT] instrument.ts — dotenv .env carregado
+19:42:25 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [87QnLWawbb]: Iniciando proteção de serviços...
+[INFO] [INFO] [kLQCs0v4k0]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [aCRBHG2l9p]: Iniciando monitor de serviços
+[INFO] [INFO] [Yz_ND1imlY]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688150365,"timestamp":"2026-04-08T22:42:30.365Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688150366,"timestamp":"2026-04-08T22:42:30.366Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688150629,"timestamp":"2026-04-08T22:42:30.629Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:42:44 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [-TyGIdeWnu]: Iniciando proteção de serviços...
+[INFO] [INFO] [g4Dy6esIyt]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [p6GJ1GnzQ_]: Iniciando monitor de serviços
+[INFO] [INFO] [I2mcf5fDHb]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688168438,"timestamp":"2026-04-08T22:42:48.438Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688168438,"timestamp":"2026-04-08T22:42:48.438Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688168655,"timestamp":"2026-04-08T22:42:48.655Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:43:01 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [KW_dRHQBxt]: Iniciando proteção de serviços...
+[INFO] [INFO] [vZfpGvB1N2]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [Q1_NL8IoYZ]: Iniciando monitor de serviços
+[INFO] [INFO] [O2ErWYPUI7]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688184966,"timestamp":"2026-04-08T22:43:04.965Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688184966,"timestamp":"2026-04-08T22:43:04.966Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688185168,"timestamp":"2026-04-08T22:43:05.168Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:43:06 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [3HAxLk90sF]: Iniciando proteção de serviços...
+[INFO] [INFO] [44fOsJ6h9_]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [QA8WbI6Fqm]: Iniciando monitor de serviços
+[INFO] [INFO] [oq6H4qh2wC]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688190148,"timestamp":"2026-04-08T22:43:10.148Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688190148,"timestamp":"2026-04-08T22:43:10.148Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688190375,"timestamp":"2026-04-08T22:43:10.375Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:43:13 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [q1KXCjdnEP]: Iniciando proteção de serviços...
+[INFO] [INFO] [7uiBuBEzc1]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [qtxTylJiqZ]: Iniciando monitor de serviços
+[INFO] [INFO] [IgeFxEcCJh]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688197124,"timestamp":"2026-04-08T22:43:17.124Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688197125,"timestamp":"2026-04-08T22:43:17.125Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688197343,"timestamp":"2026-04-08T22:43:17.343Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:44:36 [tsx] change in ./server\_core\env.validation.ts Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[BOOT] instrument.ts — dotenv .env carregado
+19:44:40 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [PaGSaZz6Bk]: Iniciando proteção de serviços...
+[INFO] [INFO] [jUEMriShDd]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [boRkdF8X_I]: Iniciando monitor de serviços
+[INFO] [INFO] [tzXT_byK8A]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688285144,"timestamp":"2026-04-08T22:44:45.144Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688285144,"timestamp":"2026-04-08T22:44:45.144Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688285357,"timestamp":"2026-04-08T22:44:45.357Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:44:46 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [B8PQYv3HEy]: Iniciando proteção de serviços...
+[INFO] [INFO] [JmLFyvr0Mr]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [u0GRV146iI]: Iniciando monitor de serviços
+[INFO] [INFO] [iK2yVVvzvi]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688290942,"timestamp":"2026-04-08T22:44:50.942Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688290942,"timestamp":"2026-04-08T22:44:50.942Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688291149,"timestamp":"2026-04-08T22:44:51.149Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:44:57 [tsx] change in ./server\_core\env.validation.ts Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [-ZtbNdrhpX]: Iniciando proteção de serviços...
+[INFO] [INFO] [xr6r1-Hv9p]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [g3xN0ZbJXs]: Iniciando monitor de serviços
+[INFO] [INFO] [oMIIg19ROL]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688303606,"timestamp":"2026-04-08T22:45:03.605Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688303606,"timestamp":"2026-04-08T22:45:03.606Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688303953,"timestamp":"2026-04-08T22:45:03.953Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:45:05 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [oHfT6U2hLg]: Iniciando proteção de serviços...
+[INFO] [INFO] [GuIZyXovvq]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [CgsV12utVX]: Iniciando monitor de serviços
+[INFO] [INFO] [f5FgQq1sos]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688309741,"timestamp":"2026-04-08T22:45:09.740Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688309741,"timestamp":"2026-04-08T22:45:09.741Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688309954,"timestamp":"2026-04-08T22:45:09.954Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:45:30 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [HywXixu1oa]: Iniciando proteção de serviços...
+[INFO] [INFO] [RD1xE1uKE0]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [KhipryHqCl]: Iniciando monitor de serviços
+[INFO] [INFO] [VDZSor8ueY]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688334207,"timestamp":"2026-04-08T22:45:34.207Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688334207,"timestamp":"2026-04-08T22:45:34.207Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688334459,"timestamp":"2026-04-08T22:45:34.459Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:45:37 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [ekODUJxIHs]: Iniciando proteção de serviços...
+[INFO] [INFO] [6OTr7uLfXq]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [2Xd0Am5SZ_]: Iniciando monitor de serviços
+[INFO] [INFO] [qGINOw9Vda]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+19:45:40 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [WXk352MIA1]: Iniciando proteção de serviços...
+[INFO] [INFO] [sU0ModQMDf]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [bqfTBTcJLo]: Iniciando monitor de serviços
+[INFO] [INFO] [Q-fg9swyXA]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688344891,"timestamp":"2026-04-08T22:45:44.891Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688344891,"timestamp":"2026-04-08T22:45:44.891Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688345125,"timestamp":"2026-04-08T22:45:45.125Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:45:45 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [_R8tnNewaV]: Iniciando proteção de serviços...
+[INFO] [INFO] [D722JrzIql]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [7hkpm6IGCa]: Iniciando monitor de serviços
+[INFO] [INFO] [6EkbDBJJH7]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688349713,"timestamp":"2026-04-08T22:45:49.713Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688349713,"timestamp":"2026-04-08T22:45:49.713Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688349948,"timestamp":"2026-04-08T22:45:49.948Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:45:57 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [FrORhqnAVb]: Iniciando proteção de serviços...
+[INFO] [INFO] [cb0rdDE5N5]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [Hxf4gyNdob]: Iniciando monitor de serviços
+[INFO] [INFO] [y9gCgBvpGH]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688360973,"timestamp":"2026-04-08T22:46:00.973Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688360973,"timestamp":"2026-04-08T22:46:00.973Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688361186,"timestamp":"2026-04-08T22:46:01.186Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:46:03 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [sJqMBvgehG]: Iniciando proteção de serviços...
+[INFO] [INFO] [HKTzRagRzz]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [D2B24XU3bQ]: Iniciando monitor de serviços
+[INFO] [INFO] [YCuhX2DZvd]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688367537,"timestamp":"2026-04-08T22:46:07.537Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688367537,"timestamp":"2026-04-08T22:46:07.537Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688367792,"timestamp":"2026-04-08T22:46:07.792Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:48:08 [tsx] Return key Rerunning...
+c19:48:09 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[BOOT] instrument.ts — dotenv .env carregado
+19:48:13 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [QqUitbcvfy]: Iniciando proteção de serviços...
+[INFO] [INFO] [RhitMHQOtx]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [FZbQuH9Z4o]: Iniciando monitor de serviços
+[INFO] [INFO] [U7GB9VMe3Z]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688498535,"timestamp":"2026-04-08T22:48:18.535Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688498536,"timestamp":"2026-04-08T22:48:18.536Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688498783,"timestamp":"2026-04-08T22:48:18.783Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:49:49 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [8ix-TEGLw7]: Iniciando proteção de serviços...
+[INFO] [INFO] [NhpDsW6TKc]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [DFiHAyW0uX]: Iniciando monitor de serviços
+[INFO] [INFO] [SXnRMnAAWr]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688593478,"timestamp":"2026-04-08T22:49:53.478Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688593478,"timestamp":"2026-04-08T22:49:53.478Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+{"level":50,"time":1775688593681,"timestamp":"2026-04-08T22:49:53.681Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:53:08 [tsx] change in ./server\_core\index.ts Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[BOOT] instrument.ts — dotenv .env carregado
+19:53:11 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [yHRXhghOZn]: Iniciando proteção de serviços...
+[INFO] [INFO] [Yv0j5iRdL8]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [WAF1shMXS9]: Iniciando monitor de serviços
+[INFO] [INFO] [nJMK6eHaDz]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688795945,"timestamp":"2026-04-08T22:53:15.945Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688795945,"timestamp":"2026-04-08T22:53:15.945Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+BOOT STEP: ENV
+{"level":50,"time":1775688796257,"timestamp":"2026-04-08T22:53:16.257Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:55:10 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [d1vuexOsgO]: Iniciando proteção de serviços...
+[INFO] [INFO] [0FFHSUzpy0]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [Sa1BIi5O0U]: Iniciando monitor de serviços
+[INFO] [INFO] [6itugP0EzW]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛡️ auth for agents: https://vestauth.com
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775688914866,"timestamp":"2026-04-08T22:55:14.866Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775688914866,"timestamp":"2026-04-08T22:55:14.866Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+BOOT STEP: ENV
+{"level":50,"time":1775688915082,"timestamp":"2026-04-08T22:55:15.081Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+19:59:19 [tsx] change in ./server\_core\index.ts Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+19:59:24 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [T5gYHDThlR]: Iniciando proteção de serviços...
+[INFO] [INFO] [XPh9OegDAM]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [8C9O4ph9cV]: Iniciando monitor de serviços
+[INFO] [INFO] [hGDVRKUaYi]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775689168644,"timestamp":"2026-04-08T22:59:28.644Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775689168644,"timestamp":"2026-04-08T22:59:28.644Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+BOOT STEP: ENV
+{"level":50,"time":1775689168882,"timestamp":"2026-04-08T22:59:28.882Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+20:01:07 [tsx] change in ./server\index.ts Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [cRzrhj_A_U]: Iniciando proteção de serviços...
+[INFO] [INFO] [1WPqa-3YJ_]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [kfgr8guxLk]: Iniciando monitor de serviços
+[INFO] [INFO] [C8vl6QwpXg]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775689272949,"timestamp":"2026-04-08T23:01:12.948Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775689272949,"timestamp":"2026-04-08T23:01:12.949Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+20:01:13 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [GXPHDDKKLR]: Iniciando proteção de serviços...
+[INFO] [INFO] [RJckYGFwDE]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [vR-8JuRTS3]: Iniciando monitor de serviços
+[INFO] [INFO] [vK161rXjSE]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+20:01:17 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [bUs2cLyHXV]: Iniciando proteção de serviços...
+[INFO] [INFO] [GmQmbQJ1M0]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [1r98LTSK3U]: Iniciando monitor de serviços
+[INFO] [INFO] [h9KbXl5SZG]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775689281739,"timestamp":"2026-04-08T23:01:21.739Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775689281740,"timestamp":"2026-04-08T23:01:21.740Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+BOOT STEP: ENV
+{"level":50,"time":1775689281980,"timestamp":"2026-04-08T23:01:21.980Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+20:03:04 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+20:03:06 [tsx] Return key Restarting...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [hYV0pA9BAJ]: Iniciando proteção de serviços...
+[INFO] [INFO] [UvvtByhl-D]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [Ri3dk5haSA]: Iniciando monitor de serviços
+[INFO] [INFO] [3EG1UAyHFD]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775689390991,"timestamp":"2026-04-08T23:03:10.990Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775689390991,"timestamp":"2026-04-08T23:03:10.991Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+BOOT STEP: ENV
+{"level":50,"time":1775689391224,"timestamp":"2026-04-08T23:03:11.224Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+20:03:13 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [7N9UWmyI4c]: Iniciando proteção de serviços...
+[INFO] [INFO] [x91bvEmg9D]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [rMqFlLoQHP]: Iniciando monitor de serviços
+[INFO] [INFO] [8Wi52P2hWE]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775689397450,"timestamp":"2026-04-08T23:03:17.450Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775689397450,"timestamp":"2026-04-08T23:03:17.450Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+BOOT STEP: ENV
+{"level":50,"time":1775689397691,"timestamp":"2026-04-08T23:03:17.691Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}
+20:03:22 [tsx] Return key Rerunning...
+c[dotenv@17.3.1] injecting env (18) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[BOOT] instrument.ts — dotenv .env carregado
+[INFO] [INFO] [UMktk5o2j9]: Iniciando proteção de serviços...
+[INFO] [INFO] [kyS2iCqNJX]: Proteção in-place de serviços desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [fFIY3c7A1C]: Iniciando monitor de serviços
+[INFO] [INFO] [Qd2DIS7RhH]: Proteção de serviços aplicada com sucesso
+[BOOT] loadEnv — início
+[ENV] carregamento de .env habilitado apenas em desenvolvimento…
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+{"level":30,"time":1775689406159,"timestamp":"2026-04-08T23:03:26.159Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775689406160,"timestamp":"2026-04-08T23:03:26.160Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+🧹 Limpeza automática de memória iniciada (executa a cada 30 minutos)
+[LEO Events STUB] Initialized in stub mode
+[ENV] validado com sucesso
+[ENV] NODE_ENV=development
+[ENV] PORT=3000
+[ENV] Database: (via DATABASE_URL):/
+ROUTES REGISTERED {
+  clients: '/api/clients',
+  orders: '/api/orders',
+  payments: '/api/payments'
+}
+BOOT STEP: ENV
+{"level":50,"time":1775689406384,"timestamp":"2026-04-08T23:03:26.384Z","level":"ERROR","message":"critical_environment_invalid","module":"env-validation","metadata":{"scope":"boot-critical","issues":["APP_SECRET: must be at least 64 chars","JWT_ACCESS_SECRET: must be at least 64 chars","JWT_REFRESH_SECRET: must be at least 64 chars"]}}

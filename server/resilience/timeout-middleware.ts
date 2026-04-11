@@ -16,60 +16,6 @@ export function globalTimeoutMiddleware(timeoutMs: number = 10000) {
     }
     const startTime = Date.now();
     let timedOut = false;
-
-    const originalJson = res.json.bind(res);
-    const originalSend = res.send.bind(res);
-    const originalEnd = res.end.bind(res);
-
-    const shouldSkipResponse = () => timedOut || res.headersSent || res.writableEnded;
-
-    res.json = ((body: unknown) => {
-      if (shouldSkipResponse()) {
-        logger.warn('Response suppressed after timeout/headers sent', {
-          metadata: {
-            url: req.url,
-            method: req.method,
-            timeout: timeoutMs,
-          },
-        });
-        return res;
-      }
-      return originalJson(body);
-    }) as Response['json'];
-
-    res.send = ((body?: unknown) => {
-      if (shouldSkipResponse()) {
-        logger.warn('Send suppressed after timeout/headers sent', {
-          metadata: {
-            url: req.url,
-            method: req.method,
-            timeout: timeoutMs,
-          },
-        });
-        return res;
-      }
-      return originalSend(body);
-    }) as Response['send'];
-
-    res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void), cb?: () => void) => {
-      if (shouldSkipResponse()) {
-        logger.warn('End suppressed after timeout/headers sent', {
-          metadata: {
-            url: req.url,
-            method: req.method,
-            timeout: timeoutMs,
-          },
-        });
-        if (typeof encoding === 'function') {
-          encoding();
-        }
-        if (typeof cb === 'function') {
-          cb();
-        }
-        return res;
-      }
-      return originalEnd(chunk as never, encoding as never, cb as never);
-    }) as Response['end'];
     
     // Timeout timer
     const timeout = setTimeout(() => {
@@ -93,6 +39,7 @@ export function globalTimeoutMiddleware(timeoutMs: number = 10000) {
           message: `Request exceeded ${timeoutMs}ms timeout`,
           timeout: timeoutMs,
         });
+        return;
       }
     }, timeoutMs);
     

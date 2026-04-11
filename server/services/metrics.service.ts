@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, isNotNull, like, lte, or, sql } from "drizzle-orm";
 import { auditLogs } from "../../drizzle/schema.js";
 import { getDb } from "../db/index.js";
+import { ValidationError } from "../_core/errors/typed-errors.js";
 
 type Payload = Record<string, unknown>;
 
@@ -13,7 +14,7 @@ export interface MetricsDateRange {
 
 function buildBaseConditions(tenantId: number, range?: MetricsDateRange) {
   if (!Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new Error("tenantId is required and must be a positive integer");
+    throw new ValidationError("tenantId is required and must be a positive integer");
   }
 
   const conditions = [eq(auditLogs.tenantId, tenantId)];

@@ -11,6 +11,7 @@ import type {
   PedidoListParams,
 } from '../types/pedido.types';
 import { toast } from 'sonner';
+import { InfrastructureError } from '../lib/errors/typed-errors.js';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -33,7 +34,7 @@ export async function listarPedidos(params?: PedidoListParams): Promise<PedidoLi
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json() as PedidoListResponse;
@@ -59,7 +60,7 @@ export async function obterPedidoPorId(id: number): Promise<Pedido | null> {
     });
 
     if (response.status === 404) return null;
-    if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+    if (!response.ok) throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
 
     const data = await response.json() as Pedido;
     return data;
@@ -85,7 +86,7 @@ export async function criarPedido(input: PedidoCreateInput): Promise<Pedido> {
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json() as Pedido;
@@ -113,7 +114,7 @@ export async function atualizarPedido(id: number, input: Partial<PedidoCreateInp
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json() as Pedido;
@@ -140,7 +141,7 @@ export async function deletarPedido(id: number): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      throw new InfrastructureError(`Erro ${response.status}: ${response.statusText}`);
     }
 
     toast.success('Pedido deletado com sucesso!');

@@ -1,0 +1,272 @@
+
+­ƒøæ CRITICAL violations (65):
+  [104] server/services/ai/_unstable/finance-engine.ts: Entry point com tenantId sem valida├º├úo de contexto: recebimentosPorVendedor
+      export function recebimentosPorVendedor(
+  periodo: Periodo,
+  tenantId: string
+)
+  [55] server/services/alert.service.ts: Entry point de service sem tenantId obrigat├│rio: clearAlertHistoryForTests
+      export function clearAlertHistoryForTests()
+  [6] server/services/app-audit.service.ts: Entry point com tenantId sem valida├º├úo de contexto: logLeoSyntheticAudit
+      export function logLeoSyntheticAudit(params: {
+  tenantId: number;
+  payloadJson: string;
+  entity?: string;
+  entityId?: string | number | null;
+})
+  [524] server/services/async-operations.ts: Entry point de service sem tenantId obrigat├│rio: processOcrAsync
+      export function processOcrAsync(
+  request: OcrRequest,
+  userId?: string,
+  priority?: number
+)
+  [532] server/services/async-operations.ts: Entry point de service sem tenantId obrigat├│rio: captureScreenshotAsync
+      export function captureScreenshotAsync(
+  request: ScreenshotRequest,
+  userId?: string,
+  priority?: number
+)
+  [540] server/services/async-operations.ts: Entry point de service sem tenantId obrigat├│rio: processLeoAnalysisAsync
+      export function processLeoAnalysisAsync(
+  request: LeoAnalysisRequest,
+  userId?: string,
+  priority?: number
+)
+  [548] server/services/async-operations.ts: Entry point de service sem tenantId obrigat├│rio: generateReportAsync
+      export function generateReportAsync(
+  request: ReportGenerationRequest,
+  userId?: string,
+  priority?: number
+)
+  [556] server/services/async-operations.ts: Entry point de service sem tenantId obrigat├│rio: sendNotificationAsync
+      export function sendNotificationAsync(
+  request: NotificationRequest,
+  userId?: string,
+  priority?: number
+)
+  [435] server/services/audit-log.service.ts: Entry point com tenantId sem valida├º├úo de contexto: logAuditAction
+      export function logAuditAction(
+  action: string,
+  entity: string,
+  payload: Record<string, unknown>,
+  context: {
+    tenantId: number;
+    actorUserId?: number;
+    actorVendedorId?: number;
+    entityId?: string;
+    traceId?: string;
+    ip?: string;
+    userAgent?: string;
+  },
+  request?: { ip?: string; headers?: Record<string, string> }
+)
+  [8] server/services/auditService.ts: Entry point de service sem tenantId obrigat├│rio: logAuth
+      export function logAuth(data: AuthLog)
+  [11] server/services/boot-validation.service.ts: Entry point de service sem tenantId obrigat├│rio: validateBootDatabaseConnection
+      export function validateBootDatabaseConnection()
+  [31] server/services/cached-clientes.service.ts: Entry point com tenantId sem valida├º├úo de contexto: listClientes
+      export function listClientes(
+  tenantId: number,
+  actor: ServiceActor,
+  params: { page?: number; pageSize?: number; busca?: string; vendedorId?: number }
+)
+  [178] server/services/cached-clientes.service.ts: Entry point com tenantId sem valida├º├úo de contexto: associarClienteVendedor
+      export function associarClienteVendedor(
+  tenantId: number,
+  clienteId: number,
+  vendedorId: number,
+  tipo?: boolean
+)
+  [198] server/services/cached-clientes.service.ts: Entry point com tenantId sem valida├º├úo de contexto: removerAssociacaoClienteVendedor
+      export function removerAssociacaoClienteVendedor(
+  tenantId: number,
+  clienteId: number,
+  vendedorId: number
+)
+  [112] server/services/cached-inventory.service.ts: Entry point com tenantId sem valida├º├úo de contexto: updateProduto
+      export function updateProduto(
+  tenantId: number,
+  id: number,
+  data: UpdateProdutoInput
+)
+  [161] server/services/cached-inventory.service.ts: Entry point de service sem tenantId obrigat├│rio: createCor
+      export function createCor(...args: Parameters<typeof inventoryService.createCor>)
+  [6] server/services/configuracoes.service.ts: Entry point de service sem tenantId obrigat├│rio: getConfig
+      export function getConfig(chave: string)
+  [10] server/services/configuracoes.service.ts: Entry point de service sem tenantId obrigat├│rio: setConfig
+      export function setConfig(chave: string, valor: string)
+  [14] server/services/configuracoes.service.ts: Entry point de service sem tenantId obrigat├│rio: listConfigKeysLike
+      export function listConfigKeysLike(pattern: string)
+  [24] server/services/configuracoes.service.ts: Entry point de service sem tenantId obrigat├│rio: deleteConfigByChave
+      export function deleteConfigByChave(chave: string)
+  [35] server/services/context-auth.service.ts: Entry point de service sem tenantId obrigat├│rio: resolveSessionPrincipal
+      export function resolveSessionPrincipal(
+  token: string | undefined,
+  adminSessionToken?: string
+)
+  [22] server/services/database-health.service.ts: Entry point de service sem tenantId obrigat├│rio: pingDatabase
+      export function pingDatabase()
+  [4] server/services/env.service.ts: Entry point de service sem tenantId obrigat├│rio: validateRequiredEnv
+      export function validateRequiredEnv()
+  [438] server/services/finance.service.ts: Entry point com tenantId sem valida├º├úo de contexto: getBoletosByVendedor
+      export function getBoletosByVendedor(
+  tenantId: number, 
+  vendedorId: number, 
+  opts?: { page?: number; pageSize?: number; }
+)
+  [485] server/services/finance.service.ts: Entry point com tenantId sem valida├º├úo de contexto: marcarContaRecebida
+      export function marcarContaRecebida(
+  tenantId: number, 
+  id: number, 
+  dataRecebimento: string, 
+  formaPagamento: string
+)
+  [695] server/services/finance.service.ts: Entry point com tenantId sem valida├º├úo de contexto: listContasFixas
+      export function listContasFixas(
+  tenantId: number,
+  opts?: { page?: number; pageSize?: number; }
+)
+  [245] server/services/financial-idempotency.ts: Entry point de service sem tenantId obrigat├│rio: cleanupOldIdempotencyRecords
+      export function cleanupOldIdempotencyRecords(daysToKeep: number = 90)
+  [53] server/services/inventory.service.ts: Entry point de service sem tenantId obrigat├│rio: updateCor
+      export function updateCor(_tenantId: number, id: number, data: Partial<InsertCor>)
+  [62] server/services/inventory.service.ts: Entry point de service sem tenantId obrigat├│rio: deleteCor
+      export function deleteCor(_tenantId: number, id: number)
+  [365] server/services/inventory.service.ts: Entry point com tenantId sem valida├º├úo de contexto: updateEstoqueProduto
+      export function updateEstoqueProduto(
+  tenantId: number,
+  input: { id: number; quantidade: number; audit?: UpdateEstoqueInput["audit"] & { usuario?: string } }
+)
+  [5] server/services/leo-action-log.service.ts: Entry point de service sem tenantId obrigat├│rio: insertLeoLegacyActionLog
+      export function insertLeoLegacyActionLog(params: {
+  usuario: string;
+  acao: string;
+  entidade: string;
+  dados?: string | null;
+  resultado: string;
+})
+  [21] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: semanticMemoryExecute
+      export function semanticMemoryExecute(sqlText: string, params: unknown[])
+  [30] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: semanticMemoryExecuteMany
+      export function semanticMemoryExecuteMany(
+  statements: Array<{ sql: string; params: unknown[] }>
+)
+  [44] server/services/leo-semantic-memory.service.ts: Entry point com tenantId sem valida├º├úo de contexto: findRecentSimilarSemanticEvents
+      export function findRecentSimilarSemanticEvents(tenantId: number, 
+  contexto: string,
+  entidade: string,
+  sinceIso: string,
+  limit: number = 10
+)
+  [57] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: saveSemanticMemoryEvent
+      export function saveSemanticMemoryEvent(evento: SemanticMemoryEvent)
+  [78] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: upsertSemanticMemoryPattern
+      export function upsertSemanticMemoryPattern(padrao: SemanticPattern)
+  [104] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: getSemanticMemoryDailyStats
+      export function getSemanticMemoryDailyStats(
+  inicioIso: string,
+  fimIso: string
+)
+  [129] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: saveSemanticMemorySummary
+      export function saveSemanticMemorySummary(resumo: SemanticSummary)
+  [149] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: querySemanticMemory
+      export function querySemanticMemory(query: MemoryQuery)
+  [199] server/services/leo-semantic-memory.service.ts: Entry point de service sem tenantId obrigat├│rio: deleteOldSemanticMemory
+      export function deleteOldSemanticMemory(iso: string)
+  [24] server/services/leo.service.ts: Entry point com tenantId sem valida├º├úo de contexto: askLeoQuestion
+      export function askLeoQuestion(
+  tenantId: number,
+  question: string,
+  context?: string
+)
+  [6] server/services/notification.service.ts: Entry point de service sem tenantId obrigat├│rio: sendWhatsApp
+      export function sendWhatsApp(message: string)
+  [11] server/services/notification.service.ts: Entry point de service sem tenantId obrigat├│rio: sendEmail
+      export function sendEmail(message: string)
+  [73] server/services/operational-health.pipeline.ts: Entry point de service sem tenantId obrigat├│rio: scheduleOperationalHealthCheck
+      export function scheduleOperationalHealthCheck(data: HealthEvaluationInput)
+  [1171] server/services/orders.service.ts: Entry point com tenantId sem valida├º├úo de contexto: aggregateTicketPedidos
+      export function aggregateTicketPedidos(
+  tenantId: number,
+  opts: { vendedorId?: number; since?: Date }
+)
+  [1192] server/services/orders.service.ts: Entry point com tenantId sem valida├º├úo de contexto: sumPedidosTotalBetween
+      export function sumPedidosTotalBetween(
+  tenantId: number,
+  startInclusive: Date,
+  endExclusive: Date
+)
+  [1210] server/services/orders.service.ts: Entry point com tenantId sem valida├º├úo de contexto: findPedidoGrandeRecente
+      export function findPedidoGrandeRecente(
+  tenantId: number,
+  minTotal: number,
+  since: Date
+)
+  [1282] server/services/orders.service.ts: Entry point com tenantId sem valida├º├úo de contexto: leoAggregatePedidosByDayAndVendedor
+      export function leoAggregatePedidosByDayAndVendedor(
+  tenantId: number,
+  since: Date
+)
+  [6] server/services/pdf.service.ts: Entry point de service sem tenantId obrigat├│rio: generatePdf
+      export function generatePdf()
+  [555] server/services/safe-stock.ts: Entry point de service sem tenantId obrigat├│rio: processStockOperation
+      export function processStockOperation(
+  operation: StockOperation
+)
+  [561] server/services/safe-stock.ts: Entry point de service sem tenantId obrigat├│rio: processBatchStockOperations
+      export function processBatchStockOperations(
+  operations: StockOperation[]
+)
+  [567] server/services/safe-stock.ts: Entry point de service sem tenantId obrigat├│rio: checkStock
+      export function checkStock(produtoId: number)
+  [654] server/services/safe-transaction.ts: Entry point de service sem tenantId obrigat├│rio: processSafeTransaction
+      export function processSafeTransaction(
+  pedidoOp?: PedidoOperation,
+  stockOps?: StockOperation[],
+  financeiroOps?: FinanceiroOperation[]
+)
+  [124] server/services/system/health.service.ts: Entry point com tenantId sem valida├º├úo de contexto: getServerHealth
+      export function getServerHealth(tenantId: number, 
+  options?: { checkTimeoutMs?: number }
+)
+  [17] server/services/system/payload-validation.service.ts: Entry point de service sem tenantId obrigat├│rio: validateShutdownAuthPayload
+      export function validateShutdownAuthPayload(
+  payload: unknown
+)
+  [82] server/services/system/shutdown.service.ts: Entry point de service sem tenantId obrigat├│rio: isShutdownInProgress
+      export function isShutdownInProgress()
+  [90] server/services/system/shutdown.service.ts: Entry point de service sem tenantId obrigat├│rio: getShutdownConnectionStats
+      export function getShutdownConnectionStats()
+  [112] server/services/system/shutdown.service.ts: Entry point de service sem tenantId obrigat├│rio: isHttpServerListening
+      export function isHttpServerListening()
+  [120] server/services/system/shutdown.service.ts: Entry point de service sem tenantId obrigat├│rio: attachShutdownHttpServer
+      export function attachShutdownHttpServer(
+
+  server: Server,
+
+  options: { timeoutMs?: number } = {}
+
+)
+  [794] server/services/system/shutdown.service.ts: Entry point de service sem tenantId obrigat├│rio: initiateGracefulShutdown
+      export function initiateGracefulShutdown(
+
+  signal: string = "manual",
+
+  exitCode: 0 | 1 = 0
+
+)
+  [808] server/services/system/shutdown.service.ts: Entry point de service sem tenantId obrigat├│rio: registerProcessShutdownHandlers
+      export function registerProcessShutdownHandlers()
+  [1130] server/services/system/shutdown.service.ts: Entry point de service sem tenantId obrigat├│rio: getShutdownBootCompleteFlag
+      export function getShutdownBootCompleteFlag()
+  [48] server/services/system-diagnostic.service.ts: Entry point com tenantId sem valida├º├úo de contexto: registerDiagnosticAudit
+      export function registerDiagnosticAudit(
+  tenantId: number,
+  result: DiagnosticResult
+)
+  [408] server/services/system-health.service.ts: Entry point de service sem tenantId obrigat├│rio: getSystemHealth
+      export function getSystemHealth()
+  [447] server/services/users.service.ts: Entry point de service sem tenantId obrigat├│rio: getUserByDisplayName
+      export function getUserByDisplayName(displayName: string)
+
+­ƒôè Total: 65 violations (65 CRITICAL, 0 HIGH, 0 MEDIUM)

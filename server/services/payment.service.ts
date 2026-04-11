@@ -1,4 +1,5 @@
 type Payload = Record<string, unknown>;
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 /**
  * PAYMENT SERVICE
@@ -22,6 +23,12 @@ export class PaymentService {
       return { success: false, error: 'Payment value is required and must be a number' };
     }
     
+    // Validate tenantId
+    const tenantId = payload.tenantId as number;
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para criação de pagamento");
+    }
+    
     // TODO: Implement actual payment creation using safe-payment.module
     // For now, return mock data
     const payment = {
@@ -29,7 +36,7 @@ export class PaymentService {
       tipo: payload.tipo,
       valor: payload.valor,
       status: payload.status || 'pending',
-      tenantId: payload.tenantId || 1,
+      tenantId: tenantId,
       pedidoId: payload.pedidoId || null,
       formaPagamento: payload.formaPagamento || null,
       descricao: payload.descricao || '',
@@ -53,7 +60,12 @@ export class PaymentService {
     const search = typeof data.search === 'string' ? data.search : undefined;
     const tipo = typeof data.tipo === 'string' ? data.tipo : undefined;
     const status = typeof data.status === 'string' ? data.status : undefined;
-    const tenantId = typeof data.tenantId === 'number' ? data.tenantId : undefined;
+    const tenantId = data.tenantId as number;
+    
+    // Validate tenantId
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para listagem de pagamentos");
+    }
     
     // TODO: Implement actual payment listing using safe-payment.module
     // For now, return mock data
@@ -63,7 +75,7 @@ export class PaymentService {
         tipo: 'receita',
         valor: 100.00,
         status: 'pending',
-        tenantId: tenantId || 1,
+        tenantId: tenantId,
         pedidoId: 1,
         formaPagamento: 'dinheiro',
         descricao: 'Pagamento do pedido #1',
@@ -76,7 +88,7 @@ export class PaymentService {
         tipo: 'despesa',
         valor: 50.00,
         status: 'paid',
-        tenantId: tenantId || 1,
+        tenantId: tenantId,
         pedidoId: null,
         formaPagamento: 'cartao',
         descricao: 'Despesa de escritório',
@@ -127,6 +139,12 @@ export class PaymentService {
       return { success: false, error: 'Payment ID is required and must be a number' };
     }
     
+    // Validate tenantId
+    const tenantId = payload.tenantId as number;
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para atualização de pagamento");
+    }
+    
     // TODO: Implement actual payment update using safe-payment.module
     // For now, return mock data
     const payment = {
@@ -134,7 +152,7 @@ export class PaymentService {
       tipo: payload.tipo || 'receita',
       valor: payload.valor || 0,
       status: payload.status || 'pending',
-      tenantId: payload.tenantId || 1,
+      tenantId: tenantId,
       pedidoId: payload.pedidoId || null,
       formaPagamento: payload.formaPagamento || null,
       descricao: payload.descricao || '',

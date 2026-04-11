@@ -8,6 +8,7 @@
 import { router, publicProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
 import { leoEngine } from '../leo/engine/leo-engine.js';
+import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 import { leoLoop } from '../leo/engine/leo-loop.js';
 import { leoTaskQueue } from '../leo/tasks/leo-task-queue.js';
 import { leoScheduler } from '../leo/engine/leo-scheduler.js';
@@ -96,7 +97,7 @@ export const leoAdminDashboardRouter = router({
       };
     } catch (error) {
       console.error('[LeoAdmin] Erro ao carregar dashboard:', error);
-      throw new Error('Erro ao carregar dashboard do Leo');
+      throw new InfrastructureError('Erro ao carregar dashboard do Leo');
     }
   }),
 
@@ -255,7 +256,7 @@ export const leoAdminDashboardRouter = router({
             break;
             
           default:
-            throw new Error(`Ação desconhecida: ${input.action}`);
+            throw new ValidationError(`Ação desconhecida: ${input.action}`);
         }
         
         // Registrar ação de controle
@@ -275,7 +276,7 @@ export const leoAdminDashboardRouter = router({
         return result;
       } catch (error) {
         console.error('[LeoAdmin] Erro na ação de controle:', error);
-        throw new Error(`Erro ao executar ação ${input.action}: ${error}`);
+        throw new InfrastructureError(`Erro ao executar ação ${input.action}: ${error}`);
       }
     }),
 
@@ -309,7 +310,7 @@ export const leoAdminDashboardRouter = router({
         };
       } catch (error) {
         console.error('[LeoAdmin] Erro ao criar tarefa:', error);
-        throw new Error(`Erro ao criar tarefa: ${error}`);
+        throw new InfrastructureError(`Erro ao criar tarefa: ${error}`);
       }
     }),
 
@@ -346,7 +347,7 @@ export const leoAdminDashboardRouter = router({
         };
       } catch (error) {
         console.error('[LeoAdmin] Erro ao criar tarefa agendada:', error);
-        throw new Error(`Erro ao criar tarefa agendada: ${error}`);
+        throw new InfrastructureError(`Erro ao criar tarefa agendada: ${error}`);
       }
     }),
 
@@ -374,7 +375,7 @@ export const leoAdminDashboardRouter = router({
         };
       } catch (error) {
         console.error('[LeoAdmin] Erro ao resolver evento:', error);
-        throw new Error(`Erro ao resolver evento: ${error}`);
+        throw new InfrastructureError(`Erro ao resolver evento: ${error}`);
       }
     }),
 
@@ -409,7 +410,7 @@ export const leoAdminDashboardRouter = router({
         }
       } catch (error) {
         console.error('[LeoAdmin] Erro ao alterar bloqueio de tarefa:', error);
-        throw new Error(`Erro ao alterar bloqueio: ${error}`);
+        throw new InfrastructureError(`Erro ao alterar bloqueio: ${error}`);
       }
     }),
 
@@ -483,7 +484,7 @@ export const leoAdminDashboardRouter = router({
         };
       } catch (error) {
         console.error('[LeoAdmin] Erro ao gerar relatório de performance:', error);
-        throw new Error(`Erro ao gerar relatório: ${error}`);
+        throw new InfrastructureError(`Erro ao gerar relatório: ${error}`);
       }
     }),
 
@@ -512,7 +513,7 @@ export const leoAdminDashboardRouter = router({
       };
     } catch (error) {
       console.error('[LeoAdmin] Erro ao obter configurações:', error);
-      throw new Error(`Erro ao obter configurações: ${error}`);
+      throw new InfrastructureError(`Erro ao obter configurações: ${error}`);
     }
   }),
 
@@ -520,29 +521,29 @@ export const leoAdminDashboardRouter = router({
    * Atualizar configurações
    */
   updateSettings: publicProcedure
-    .input(z.object({
-      supervisor: z.object({
-        maxActionsPerMinute: z.number().min(1).max(100).optional(),
-        maxRetries: z.number().min(1).max(10).optional(),
-        maxCpuUsage: z.number().min(1).max(100).optional(),
-        maxMemoryUsage: z.number().min(1).max(100).optional(),
-        maxConcurrentTasks: z.number().min(1).max(20).optional(),
-        maxExecutionTime: z.number().min(5000).max(300000).optional(),
-      }).optional(),
-    }))
-    .mutation(async ({ input }) => {
-      try {
-        if (input.supervisor) {
-          leoSupervisor.updateLimits(input.supervisor);
-        }
-        
-        return {
-          success: true,
-          message: 'Configurações atualizadas com sucesso',
-        };
-      } catch (error) {
-        console.error('[LeoAdmin] Erro ao atualizar configurações:', error);
-        throw new Error(`Erro ao atualizar configurações: ${error}`);
+  .input(z.object({
+    supervisor: z.object({
+      maxActionsPerMinute: z.number().min(1).max(100).optional(),
+      maxRetries: z.number().min(1).max(10).optional(),
+      maxCpuUsage: z.number().min(1).max(100).optional(),
+      maxMemoryUsage: z.number().min(1).max(100).optional(),
+      maxConcurrentTasks: z.number().min(1).max(20).optional(),
+      maxExecutionTime: z.number().min(5000).max(300000).optional(),
+    }).optional(),
+  }))
+  .mutation(async ({ input }) => {
+    try {
+      if (input.supervisor) {
+        leoSupervisor.updateLimits(input.supervisor);
       }
-    }),
+      
+      return {
+        success: true,
+        message: 'Configurações atualizadas com sucesso',
+      };
+    } catch (error) {
+      console.error('[LeoAdmin] Erro ao atualizar configurações:', error);
+      throw new InfrastructureError(`Erro ao atualizar configurações: ${error}`);
+    }
+  }),
 });

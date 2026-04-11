@@ -4,5 +4,5 @@
  */
 export function isHealthProbePath(rawUrl: string): boolean {
   const p = (rawUrl.split("?")[0] || "/").replace(/\/+$/, "") || "/";
-  return p === "/health" || p === "/api/health" || p === "/api/health/full";
+  return p === "/api/health";
 }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { notifyOwner } from "./notification.js";
 import { adminProcedure, publicProcedure, router } from "./trpc.js";
 import { checkProtectedDatabaseConnection } from "../services/system-db-check.service.js";
+import { InfrastructureError } from "./errors/typed-errors.js";
 
 export const systemRouter = router({
   health: publicProcedure
@@ -35,7 +36,7 @@ export const systemRouter = router({
         return await checkProtectedDatabaseConnection();
       } catch (error) {
         console.error("Erro ao verificar banco de dados:", error);
-        throw new Error(error instanceof Error ? error.message : "Erro desconhecido na conexão com o banco de dados");
+        throw new InfrastructureError(error instanceof Error ? error.message : "Erro desconhecido na conexão com o banco de dados");
       }
     }),
 });

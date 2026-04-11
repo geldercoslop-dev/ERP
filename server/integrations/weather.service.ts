@@ -16,6 +16,20 @@ export type WeatherResult = {
   previsao: string;
 };
 
+interface OpenWeatherResponse {
+  name: string;
+  weather: Array<{ description: string }>;
+  main: {
+    temp: number;
+    feels_like: number;
+    humidity: number;
+  };
+  rain?: {
+    '1h'?: number;
+    '3h'?: number;
+  };
+}
+
 function getApiKey(): string | undefined {
   return process.env.OPENWEATHER_API_KEY ?? process.env.OPENWEATHERMAP_API_KEY;
 }
@@ -63,7 +77,7 @@ export async function previsaoPorCidade(cidade: string): Promise<{
     const url = `${BASE}/weather?lat=${coords.lat}&lon=${coords.lon}&units=metric&lang=pt_br&appid=${key}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
     if (!res.ok) return { ok: false, erro: "Serviço de clima indisponível." };
-    const data = (await res.json()) as any;
+    const data = (await res.json()) as OpenWeatherResponse;
     const rain = data.rain?.["1h"] ?? data.rain?.["3h"] ?? 0;
     return {
       ok: true,
@@ -77,8 +91,8 @@ export async function previsaoPorCidade(cidade: string): Promise<{
         previsao: data.weather?.[0]?.description ?? "N/A",
       },
     };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao consultar clima." : e?.message ?? "Erro ao consultar clima.";
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao consultar clima." : e instanceof Error ? e.message : "Erro ao consultar clima.";
     return { ok: false, erro: msg };
   }
   });

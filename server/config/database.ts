@@ -1,4 +1,5 @@
 import * as mysql from "mysql2/promise";
+import { assertNoDirectDbAccess } from "../_core/db-access-guard.js";
 import { systemLogger } from "../_core/logger.js";
 import { createLogger } from "../infra/structured-logger.js";
 import { recordDatabase } from "../infra/metrics.js";
@@ -325,6 +326,7 @@ async function _executeQueryCore(
   query: string,
   params: unknown[] = []
 ): Promise<[unknown, mysql.FieldPacket[]]> {
+  assertNoDirectDbAccess("db");
   const startTime = Date.now();
   let conn: mysql.PoolConnection | null = null;
 

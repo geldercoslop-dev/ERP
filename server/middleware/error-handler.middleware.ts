@@ -35,14 +35,15 @@ export function globalErrorHandler(
   res: Response,
   next: NextFunction
 ): void {
+  const reqWithTenant = req as Request & { tenantId?: number };
   // Log error
   console.error('[GlobalErrorHandler] Error:', {
     message: error.message,
     url: req.url,
     method: req.method,
     body: req.body,
-    user: (req as any).user,
-    tenantId: (req as any).tenantId,
+    user: req.user,
+    tenantId: reqWithTenant.tenantId,
     timestamp: new Date().toISOString()
   });
 

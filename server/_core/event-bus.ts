@@ -5,6 +5,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { InfrastructureError } from './errors/typed-errors.js';
 
 export interface SystemEvent {
   type: 'pedido_criado' | 'pedido_atualizado' | 'produto_cadastrado' | 'estoque_baixo' | 'cliente_cadastrado' | 'venda_realizada' | 'login_usuario' | 'logout_usuario';
@@ -20,7 +21,7 @@ export class EventBus extends EventEmitter {
   private constructor() {
     super();
     if (EventBus.instance) {
-      throw new Error('EventBus é um singleton');
+      throw new InfrastructureError('EventBus é um singleton');
     }
     EventBus.instance = this;
   }

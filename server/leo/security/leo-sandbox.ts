@@ -8,6 +8,7 @@
 import { existsSync, statSync } from 'fs';
 import { resolve, normalize } from 'path';
 import { exec, spawn } from 'child_process';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 import { promisify } from 'util';
 import { logInfo, logError, logWarn } from '../../_core/logger.js';
 
@@ -441,7 +442,7 @@ class LeoSandbox {
    */
   async executeAction(action: LeoSandboxAction): Promise<{
     success: boolean;
-    result?: any;
+    result?: unknown;
     error?: string;
     warnings?: string[];
   }> {
@@ -512,7 +513,7 @@ class LeoSandbox {
       case 'automation':
         return await this.executeAutomationAction(action);
       default:
-        throw new Error(`Tipo de ação não implementado: ${action.type}`);
+        throw new ValidationError(`Tipo de ação não implementado: ${action.type}`);
     }
   }
 
@@ -527,7 +528,7 @@ class LeoSandbox {
       const { stdout, stderr } = await execAsync(command as string);
       return { stdout, stderr };
     } catch (error) {
-      throw new Error(`Erro ao executar comando: ${error}`);
+      throw new InfrastructureError(`Erro ao executar comando: ${error}`);
     }
   }
 
@@ -546,7 +547,7 @@ class LeoSandbox {
         // Implementar abertura de arquivo
         return { path: filePath, operation: 'open' };
       default:
-        throw new Error(`Operação de arquivo não implementada: ${operation}`);
+        throw new ValidationError(`Operação de arquivo não implementada: ${operation}`);
     }
   }
 

@@ -1,0 +1,1251 @@
+
+======================================================================
+ÔØî BAD PATTERNS HARDENED VALIDATION FAILED
+======================================================================
+
+­ƒƒá HIGH (Silent bypass):
+
+  server/cache/intelligent-cache.ts:105
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/cache/intelligent-cache.ts:105
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/cache/intelligent-cache.ts:174
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/cache/intelligent-cache.ts:174
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/cache/intelligent-cache.ts:175
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/cache/intelligent-cache.ts:175
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/cache/simple-memory-cache.ts:105
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/cache/simple-memory-cache.ts:106
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/concurrency/pedido-control.ts:159
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/concurrency/pedido-control.ts:160
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/concurrency/pedido-control.ts:168
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/concurrency/pedido-control.ts:169
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/client.controller.ts:25
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/client.controller.ts:59
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/client.controller.ts:88
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/client.controller.ts:103
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/client.controller.ts:138
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/client.controller.ts:181
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:27
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:28
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:29
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:30
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:31
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:32
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:40
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:97
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:126
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:141
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:176
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:219
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:235
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:262
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:278
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:305
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/order.controller.ts:322
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:25
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:63
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:92
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:107
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:142
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:185
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:229
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/controllers/payment.controller.ts:274
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/core/redis.service.ts:25
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/index.ts:40
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/metrics-middleware.ts:13
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/metrics-middleware.ts:26
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/metrics-middleware.ts:27
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/metrics-middleware.ts:44
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/metrics-middleware.ts:51
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/mysql-instrumentation.ts:21
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/mysql-instrumentation.ts:56
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/performance-logging.ts:292
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/redis.ts:161
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/redis.ts:175
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/redis.ts:281
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/infra/redis.ts:281
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/request-tracing.ts:64
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/request-tracing.ts:81
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/request-tracing.ts:283
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/response-optimizer.ts:90
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/response-optimizer.ts:185
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/structured-logger.ts:275
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/infra/tracing-integration.ts:11
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:21
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:22
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:23
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:24
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:31
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:33
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:34
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:82
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:105
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:163
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing-integration.ts:222
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing.ts:181
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing.ts:222
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/infra/tracing.ts:452
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/integrations/freight.service.ts:74
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/integrations/index.ts:180
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/integrations/superfrete.service.ts:145
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/integrations/superfrete.service.ts:145
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/integrations/tracking.service.ts:26
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/integrations/tracking.service.ts:26
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/actions/desktop-automation-config.ts:129
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/leo/actions/desktop-automation-config.ts:265
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/leo/agent/tool-executor.ts:159
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:323
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:323
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/core/task-queue.ts:326
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:326
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/core/task-queue.ts:329
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:329
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/core/task-queue.ts:332
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:332
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/core/task-queue.ts:362
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:362
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/core/task-queue.ts:426
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:431
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/core/task-queue.ts:431
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/engine/leo-scheduler.ts:369
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/engine/leo-scheduler.ts:369
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/engine/leo-supervisor.ts:204
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/engine/leo-supervisor.ts:204
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/engine/leo-supervisor.ts:385
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/engine/leo-supervisor.ts:385
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:222
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:222
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:299
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:299
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:334
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:334
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:398
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:398
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:400
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:400
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:422
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:422
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:423
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:423
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:444
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:444
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:450
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:450
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:451
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:451
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:540
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:540
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/learning/leo-learning-engine.ts:541
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/learning/leo-learning-engine.ts:541
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/leo-watchdog.ts:486
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory-persistence.ts:128
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory-persistence.ts:128
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory-persistence.ts:133
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory-persistence.ts:133
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory-persistence.ts:140
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory-persistence.ts:140
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory-persistence.ts:147
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory-persistence.ts:147
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory-persistence.ts:150
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory-persistence.ts:150
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory-persistence.ts:185
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory-persistence.ts:185
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory.ts:664
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory.ts:664
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/memory/leo-memory.ts:665
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory.ts:683
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/memory/leo-memory.ts:683
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:457
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:457
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:544
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:544
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:545
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:545
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:546
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:546
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:549
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:549
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:550
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:550
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:551
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:551
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:552
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:552
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/planning/leo-daily-report.ts:770
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/planning/leo-daily-report.ts:770
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-desktop-sandbox.ts:359
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-desktop-sandbox.ts:359
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-desktop-sandbox.ts:360
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-desktop-sandbox.ts:360
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-desktop-sandbox.ts:361
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-desktop-sandbox.ts:361
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-desktop-sandbox.ts:379
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-desktop-sandbox.ts:379
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-desktop-sandbox.ts:381
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:206
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:206
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:248
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:248
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:334
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:334
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:337
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:337
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:393
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:393
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:522
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:522
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:532
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:532
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:614
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:614
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:615
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:615
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/security/leo-loop-protection.ts:617
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/security/leo-loop-protection.ts:617
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/utils/leo-log-manager.ts:195
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/utils/leo-log-manager.ts:195
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/leo/utils/leo-log-manager.ts:196
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/utils/leo-log-manager.ts:268
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/leo/utils/leo-log-manager.ts:268
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/middleware/auth.middleware.ts:50
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/auth.middleware.ts:51
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/auth.middleware.ts:87
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/auth.middleware.ts:88
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/error-handler.middleware.ts:44
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/error-handler.middleware.ts:45
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/request-logger.ts:67
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/middleware/request-logger.ts:73
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/middleware/safe-defaults.middleware.ts:24
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/middleware/safe-defaults.middleware.ts:53
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/safe-defaults.middleware.ts:54
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/safe-defaults.middleware.ts:55
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/safe-defaults.middleware.ts:56
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/safe-defaults.middleware.ts:100
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/safe-defaults.middleware.ts:101
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/safe-defaults.middleware.ts:102
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middleware/safe-defaults.middleware.ts:103
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middlewares/request-id.ts:243
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middlewares/security.ts:203
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/middlewares/timeout.ts:112
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/middlewares/timeout.ts:114
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/modules/logistica/mapa-rota.service.ts:67
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/modules/logistica/roteiro.service.ts:25
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/modules/logistica/roteiro.service.ts:25
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/modules/safe-order.module.ts:162
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/modules/safe-order.module.ts:176
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/modules/safe-payment.module.ts:116
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/modules/safe-shipment.module.ts:163
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/monitoring/advanced-monitoring.ts:345
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/monitoring/advanced-monitoring.ts:345
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/monitoring/error-alerter.ts:88
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/monitoring/error-alerter.ts:94
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/pdf.ts:286
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/pdf.ts:287
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/pdf.ts:288
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/pdf.ts:362
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/pdf.ts:402
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/pdf.ts:402
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/pdf.ts:755
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/pdf.ts:757
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/queue/queue.ts:271
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/queue/worker-simple.ts:96
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/queue/worker-simple.ts:172
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/queue/worker-simple.ts:172
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/circuit-breaker.ts:331
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/failure-logger.ts:128
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/failure-logger.ts:189
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/failure-simulator.ts:117
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/failure-simulator.ts:138
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/retry-middleware.ts:207
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/timeout-middleware.ts:26
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/timeout-middleware.ts:134
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/resilience/timeout-middleware.ts:170
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/routers/financeiro.router.ts:422
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/financeiro.router.ts:436
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/leo.router.ts:129
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/logistica.ts:272
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/logistica.ts:273
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/logistica.ts:274
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/logistica.ts:275
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/produtos.router.ts:238
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/produtos.ts:206
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers/smart-auth.ts:92
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:73
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:893
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1502
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1550
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1754
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1766
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1800
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1815
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1822
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1826
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1891
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/routers.ts:1891
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/routers.ts:1917
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1956
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:1968
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:2011
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:2017
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:2176
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:2321
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/routers.ts:2321
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/routers.ts:2321
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:2328
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/routers.ts:2328
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/routers.ts:2482
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routers.ts:2495
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routes/produtos.ts:162
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/routes/produtos.ts:162
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/routes/test-monitoring.ts:109
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/routes/test-monitoring.ts:138
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/scripts/check-database.ts:66
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/scripts/fix-types-massive.ts:29
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/scripts/fix-types-massive.ts:36
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/scripts/fix-types-massive.ts:43
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/security/attack-testing.ts:547
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/attack-testing.ts:574
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/critical-audit.ts:15
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/critical-audit.ts:34
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/critical-audit.ts:35
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/critical-audit.ts:36
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/critical-audit.ts:113
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/critical-audit.ts:210
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/critical-audit.ts:228
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/critical-audit.ts:289
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/critical-audit.ts:307
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/critical-audit.ts:308
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/critical-audit.ts:309
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/csrf-protection.ts:32
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/csrf-protection.ts:80
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/csrf-protection.ts:146
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/input-sanitization.ts:226
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/leo-protection.ts:289
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/leo-protection.ts:290
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/leo-protection.ts:334
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/leo-protection.ts:335
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/leo-protection.ts:418
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/security/penetration-test.ts:894
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/penetration-test.ts:921
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/secure-logger.ts:211
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/secure-logger.ts:217
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/secure-logger.ts:226
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/security/security-validation.ts:213
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/services/ai/_unstable/finance-engine.ts:49
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/services/ai/_unstable/finance-engine.ts:72
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/services/ai/_unstable/finance-engine.ts:164
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/services/ai/_unstable/finance-engine.ts:188
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/services/ai/_unstable/finance-engine.ts:188
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/services/external-apis.ts:280
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/services/external-apis.ts:280
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/services/stock-safety.service.ts:644
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/services/stock-safety.service.ts:644
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/audit-hardening-simple.test.ts:17
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/audit-hardening-simple.test.ts:22
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/database-consistency.test.ts:71
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/database-consistency.test.ts:195
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tests/database-consistency.test.ts:452
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/database-consistency.test.ts:483
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/multitenant/tenant-isolation.test.ts:59
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tests/orchestrator-consistency.ts:93
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/tests/orchestrator-consistency.ts:93
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/orchestrator-consistency.ts:114
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/tests/orchestrator-consistency.ts:114
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/orchestrator-consistency.ts:121
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/tests/orchestrator-consistency.ts:121
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/run-core-tests.ts:110
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/run-core-tests.ts:140
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tests/setup-test-data.ts:60
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tests/setup-test-data.ts:92
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tests/setup-test-data.ts:116
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tools/client.tool.ts:61
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tools/client.tool.ts:106
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tools/client.tool.ts:161
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tools/diagnostic-cli.ts:148
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/tools/diagnostic-cli.ts:148
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tools/diagnostic-cli.ts:166
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/tools/diagnostic-cli.ts:166
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/tools/order.tool.ts:59
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tools/product.tool.ts:52
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tools/product.tool.ts:91
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/tools/product.tool.ts:128
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-audit.ts:17
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-guard.ts:179
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:42
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:42
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:47
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:56
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:56
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:77
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:77
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:81
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:93
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:103
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:103
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:132
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:132
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:136
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:147
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:157
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:157
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:192
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:192
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:196
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:207
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:217
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:217
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:260
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:260
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:264
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:284
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safe-example.ts:302
+  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
+
+  server/types/service-safe-example.ts:302
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safe-example.ts:341
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/types/service-safety.ts:74
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safety.ts:94
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safety.ts:95
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safety.ts:96
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/types/service-safety.ts:124
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/auth-detection.ts:90
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/auth-detection.ts:103
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/cache-manager.ts:80
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/cache-manager.ts:89
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/cache-manager.ts:108
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/cache-manager.ts:114
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/index.ts:222
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/_core/index.ts:898
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/retry-client.ts:231
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/retry-client.ts:232
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/service-safety.ts:36
+  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
+
+  server/_core/service-safety.ts:279
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/_core/service-safety.ts:314
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+  server/_core/validation.ts:189
+  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
+
+
+­ƒôè Total: 413 patterns
+   0 CRITICAL
+   413 HIGH
+

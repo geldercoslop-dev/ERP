@@ -97,7 +97,7 @@ router.get('/memory-leak', (req: Request, res: Response) => {
   
   try {
     // Criar um grande array para simular vazamento de memória
-    const leak: any[] = [];
+    const leak: unknown[] = [];
     const bytesPerMB = 1024 * 1024;
     const iterations = (sizeInMB * bytesPerMB) / 8;
     

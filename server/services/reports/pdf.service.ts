@@ -8,6 +8,7 @@ import { getDb, clienteVendedores } from "../../db/index.js";
 import { pedidos, itensPedido, produtos, clientes, contasReceber } from "../../../drizzle/schema.js";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
+import { ValidationError } from "../../_core/errors/typed-errors.js";
 import * as logisticaService from "../logistica.service.js";
 import * as financeService from "../finance.service.js";
 import * as ordersService from "../orders.service.js";
@@ -16,6 +17,7 @@ import { eq, and, inArray, asc, desc, sql } from "drizzle-orm";
 import type { InferSelectModel } from "drizzle-orm";
 import { ContaReceberStatus } from "../../shared/domain-status.js";
 import type { ServiceActor } from "../../_core/service-actor.js";
+import { InfrastructureError } from "../../_core/errors/typed-errors.js";
 
 /** Payload dinâmico de carga (retorno de getCargaById). */
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -28,7 +30,7 @@ function asCargaRecord(carga: unknown): Record<string, unknown> {
 
 function pedidosCargaLista(carga: Record<string, unknown>): Record<string, unknown>[] {
   const p = carga["pedidos"];
-  if (!Array.isArray(p)) return [];
+  if (!Array.isArray(p)) return []; // Ausência legítima - sem pedidos na carga
   return p.filter(isRecord);
 }
 
@@ -159,7 +161,7 @@ export async function gerarBoletoPDF(tenantId: number, boletoId: number): Promis
  */
 export async function gerarExtratoClientePDF(tenantId: number, clienteId: number, vendedorId?: number): Promise<string> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new Error("Database not available");
+  if (!db_conn) throw new InfrastructureError("Database not available");
 
   const cliente = await db_conn.select({ nome: db.clientes.nome })
     .from(db.clientes)
@@ -286,7 +288,7 @@ export async function gerarBoletoPDFBytes(tenantId: number, boletoId: number): P
  */
 export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promise<string> {
   const carga = await logisticaService.getCargaById(tenantId, cargaId);
-  if (!carga) throw new Error('Carga não encontrada');
+  if (!carga) throw new ValidationError('Carga não encontrada');
 
   const cr = asCargaRecord(carga);
   const doc = new jsPDF();
@@ -366,7 +368,7 @@ export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promi
  */
 export async function gerarRoteiroEntregaPDF(tenantId: number, cargaId: number): Promise<string> {
   const carga = await logisticaService.getCargaById(tenantId, cargaId);
-  if (!carga) throw new Error('Carga não encontrada');
+  if (!carga) throw new ValidationError('Carga não encontrada');
 
   const cr = asCargaRecord(carga);
   const doc = new jsPDF({ orientation: 'landscape' });
@@ -441,7 +443,7 @@ export async function gerarRoteiroEntregaPDF(tenantId: number, cargaId: number):
  */
 export async function gerarZipBoletos(tenantId: number, params: { boletoIds: number[]; pedidoNumero: number; clienteNome: string; }): Promise<{ fileName: string; base64: string; }> {
   const { boletoIds, pedidoNumero, clienteNome } = params;
-  if (!boletoIds.length) throw new Error('Nenhum boleto para gerar ZIP');
+  if (!boletoIds.length) throw new ValidationError('Nenhum boleto para gerar ZIP');
 
   const safeCliente = String(clienteNome || 'CLIENTE').toUpperCase().replace(/[^A-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_').slice(0, 40);
   const fileName = `BOLETOS_PED-${String(pedidoNumero).padStart(4, '0')}_${safeCliente}.zip`;
@@ -456,7 +458,7 @@ export async function gerarZipBoletos(tenantId: number, params: { boletoIds: num
   for (const [i, id] of Array.from(boletoIds.entries())) {
     const pdfBytes = await gerarBoletoPDFBytes(tenantId, id);
     if (!pdfBytes.success || !pdfBytes.data) {
-      throw new Error(pdfBytes.error ?? `Falha ao gerar PDF do boleto ${id}`);
+      throw new InfrastructureError(pdfBytes.error ?? `Falha ao gerar PDF do boleto ${id}`);
     }
     const pdfName = `BOLETO_${String(i + 1).padStart(2, '0')}_ID-${id}.pdf`;
     archive.append(Buffer.from(pdfBytes.data), { name: pdfName });
@@ -505,7 +507,7 @@ export async function gerarEstoquePDF(tenantId: number): Promise<{ dataUri: stri
  */
 export async function gerarVendasPDF(tenantId: number, params: { dataInicio: Date, dataFim: Date }): Promise<{ dataUri: string; nomeArquivo: string }> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new Error("Database not available");
+  if (!db_conn) throw new InfrastructureError("Database not available");
 
   const vendas = await db_conn.select({
     data: sql<string>`DATE(${db.pedidos.createdAt})`,
@@ -559,7 +561,7 @@ export async function gerarVendasPDF(tenantId: number, params: { dataInicio: Dat
  */
 export async function gerarPedidoPDF(tenantId: number, pedidoId: number): Promise<string> {
   const p = await ordersService.getPedidoById(tenantId, pedidoId);
-  if (!p) throw new Error('Pedido não encontrado');
+  if (!p) throw new ValidationError('Pedido não encontrado');
 
   const itens = await ordersService.getItensPedido(tenantId, pedidoId);
 
@@ -649,10 +651,10 @@ export async function gerarPedidoPDF(tenantId: number, pedidoId: number): Promis
  */
 export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pedidoNumero?: number): Promise<string> {
   const carga = await logisticaService.getCargaById(tenantId, cargaId);
-  if (!carga) throw new Error("Carga não encontrada");
+  if (!carga) throw new ValidationError("Carga não encontrada");
 
   const db_conn = await db.getDb();
-  if (!db_conn) throw new Error("Database not available");
+  if (!db_conn) throw new InfrastructureError("Database not available");
 
   const cr = asCargaRecord(carga);
   const pedidosFiltro = pedidoNumero
@@ -669,7 +671,7 @@ export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pe
       eq(db.contasReceber.status, ContaReceberStatus.PENDENTE)
     ));
 
-  if (boletos.length === 0) throw new Error("Nenhum boleto encontrado.");
+  if (boletos.length === 0) throw new ValidationError("Nenhum boleto encontrado.");
 
   const doc = new jsPDF();
   const dadosBanco = await db.getConfig("DADOS_BANCO") || "DADOS BANCÁRIOS NÃO CONFIGURADOS";
@@ -723,7 +725,7 @@ export async function gerarRelatorioLeoPDF(
   actor?: ServiceActor
 ): Promise<{ dataUri: string; nomeArquivo: string }> {
   if (!tenantId || tenantId <= 0) {
-    throw new Error("tenantId é obrigatório para relatório LEO");
+    throw new ValidationError("tenantId é obrigatório para relatório LEO");
   }
   
   switch (tipo) {
@@ -736,7 +738,7 @@ export async function gerarRelatorioLeoPDF(
     case 'clientes':
       // For now, return a simple clientes report
       const db_conn = await db.getDb();
-      if (!db_conn) throw new Error("Database not available");
+      if (!db_conn) throw new InfrastructureError("Database not available");
       
       // ✅ HARDENING: Filtrar por ownership (userId ou admin)
       let clientesList;
@@ -782,7 +784,7 @@ export async function gerarRelatorioLeoPDF(
       const dataUri = doc.output('datauristring');
       return { dataUri, nomeArquivo: `relatorio_clientes_${hoje.replace(/\//g, '-')}.pdf` };
     default:
-      throw new Error(`Tipo de relatório não suportado: ${tipo}`);
+      throw new ValidationError(`Tipo de relatório não suportado: ${tipo}`);
   }
 }
 
@@ -791,7 +793,7 @@ export async function gerarRelatorioLeoPDF(
  */
 export async function gerarRelatorioFinanceiroPDF(tenantId: number, tipo: 'PAGAR' | 'RECEBER', mesAno: string): Promise<string> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new Error("Database not available");
+  if (!db_conn) throw new InfrastructureError("Database not available");
 
   const doc = new jsPDF();
   let y = drawHeader(doc, `RELATÓRIO DE CONTAS A ${tipo}`, `Mês Referência: ${mesAno}`);

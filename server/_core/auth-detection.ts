@@ -8,6 +8,7 @@ import { authLogger } from './logger.js';
 import { recordQueryTime } from "../_core/system-monitor.js";
 import * as fs from "fs";
 import * as path from "path";
+import { ValidationError, InfrastructureError } from './errors/typed-errors.js';
 
 interface AuthConfig {
   table: "users" | "vendedores";
@@ -31,7 +32,7 @@ let detectionCompleted = false;
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
-    throw new Error(`[Auth Detection] variável obrigatória ausente: ${name}`);
+    throw new ValidationError(`[Auth Detection] variável obrigatória ausente: ${name}`);
   }
   return value;
 }
@@ -45,7 +46,7 @@ function getRequiredDbConfig(): DatabaseConfig {
   const port = Number.parseInt(portRaw, 10);
 
   if (!Number.isFinite(port) || port <= 0) {
-    throw new Error("[Auth Detection] DB_PORT inválida");
+    throw new ValidationError("[Auth Detection] DB_PORT inválida");
   }
 
   return { host, port, user, password, database };
@@ -87,7 +88,8 @@ async function tableExists(connection: mysql.Connection, tableName: string): Pro
     const [rows] = await connection.execute(
       `SHOW TABLES LIKE '${tableName.replace(/'/g, "''")}'`
     );
-    return (rows as any[]).length > 0;
+    const tableRows = rows as unknown[];
+    return Array.isArray(tableRows) && tableRows.length > 0;
   } catch (error) {
     console.error(`[Auth Detection] Erro ao verificar tabela ${tableName}:`, error);
     return false;
@@ -100,7 +102,8 @@ async function tableExists(connection: mysql.Connection, tableName: string): Pro
 async function getTableStructure(connection: mysql.Connection, tableName: string): Promise<string[]> {
   try {
     const [rows] = await connection.execute("DESCRIBE ??", [tableName]);
-    return (rows as any[]).map(row => row.Field);
+    const tableRows = rows as unknown[];
+    return Array.isArray(tableRows) ? tableRows.map((row: unknown) => (row as { Field: string }).Field) : [];
   } catch (error) {
     console.error(`[Auth Detection] Erro ao obter estrutura da tabela ${tableName}:`, error);
     return [];
@@ -181,9 +184,10 @@ async function createAdminIfNeeded(connection: mysql.Connection, config: AuthCon
       ["admin"]
     );
     
-    const existing = existingRows as any[];
+    const existingRowsArray = existingRows as unknown[];
+    const existing = Array.isArray(existingRowsArray) && existingRowsArray.length > 0 ? existingRowsArray[0] : null;
     
-    if (existing.length > 0) {
+    if (existing && typeof existing === 'object' && 'length' in existing) {
       console.log("[Auth Detection] ✅ Admin já existe");
       return;
     }
@@ -292,7 +296,7 @@ export async function detectAuthConfig(): Promise<AuthConfig> {
     console.log(`[Auth Detection] Tabelas encontradas: users=${hasUsers}, vendedores=${hasVendedores}`);
     
     if (!hasUsers && !hasVendedores) {
-      throw new Error("Nenhuma tabela de autenticação encontrada (users ou vendedores)");
+      throw new InfrastructureError("Nenhuma tabela de autenticação encontrada (users ou vendedores)");
     }
     
     // FASE 3: Detectar colunas de login
@@ -324,18 +328,18 @@ export async function detectAuthConfig(): Promise<AuthConfig> {
     }
     
     if (!detectedConfig) {
-      throw new Error("Não foi possível detectar campos de autenticação nas tabelas existentes");
+      throw new InfrastructureError("Não foi possível detectar campos de autenticação nas tabelas existentes");
     }
     
     // Configuração final
     if (!detectedConfig.table) {
-      throw new Error("Table not detected in auth configuration");
+      throw new ValidationError("Table not detected in auth configuration");
     }
     if (!detectedConfig.usernameField) {
-      throw new Error("Username field not detected in auth configuration");
+      throw new ValidationError("Username field not detected in auth configuration");
     }
     if (!detectedConfig.passwordField) {
-      throw new Error("Password field not detected in auth configuration");
+      throw new ValidationError("Password field not detected in auth configuration");
     }
     
     authConfig = {
@@ -431,7 +435,7 @@ export async function getAuthConfig(): Promise<AuthConfig> {
 /**
  * Função universal de autenticação
  */
-export async function authenticateUser(username: string, password: string): Promise<any> {
+export async function authenticateUser(username: string, password: string): Promise<{ id: number; [key: string]: unknown }> {
   const config = await getAuthConfig();
   const dbConfig = getRequiredDbConfig();
   
@@ -444,25 +448,36 @@ export async function authenticateUser(username: string, password: string): Prom
       [username]
     );
     
-    const users = rows as any[];
+    const usersArray = rows as unknown[];
+    const users = Array.isArray(usersArray) && usersArray.length > 0 ? usersArray[0] : null;
     
-    if (users.length === 0) {
-      throw new Error("Usuário não encontrado");
+    if (!users || typeof users !== 'object') {
+      throw new ValidationError("Usuário não encontrado");
     }
     
-    const user = users[0];
+    const user = users as { [key: string]: unknown };
     
     // Verificar senha
-    const passwordMatch = await bcrypt.compare(password, user[config.passwordField]);
+    const passwordHash = user[config.passwordField];
+    if (typeof passwordHash !== 'string') {
+      throw new ValidationError("Campo de senha inválido");
+    }
+    
+    const passwordMatch = await bcrypt.compare(password, passwordHash);
     
     if (!passwordMatch) {
-      throw new Error("Senha incorreta");
+      throw new ValidationError("Senha incorreta");
     }
     
     // Retornar usuário sem senha
     const { [config.passwordField]: _, ...userWithoutPassword } = user;
     
-    return userWithoutPassword;
+    // Validar que tem id
+    if (!('id' in userWithoutPassword) || typeof userWithoutPassword.id !== 'number') {
+      throw new ValidationError("Usuário sem ID válido");
+    }
+    
+    return userWithoutPassword as { id: number; [key: string]: unknown };
     
   } finally {
     await connection.end();

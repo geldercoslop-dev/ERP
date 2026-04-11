@@ -3,13 +3,27 @@ import type { Express, Request, Response } from "express";
 import * as db from "../db/index.js";
 import { getSessionCookieOptions } from "./cookies.js";
 import { sdk } from "./sdk.js";
+import type { RequestWithTenant } from "../types/request-with-tenant.js";
+import { ValidationError } from './errors/typed-errors.js';
 
-export function getTenantFromRequest(req: any): number {
-  const raw = Number(process.env.TENANT_ID || "");
-  if (!Number.isFinite(raw) || raw <= 0) {
-    throw new Error("TENANT_ID obrigatório no request ou ambiente.");
+// Type guard real para RequestWithTenant
+function isRequestWithTenant(req: Request): req is RequestWithTenant {
+  return (
+    'user' in req &&
+    req.user !== null &&
+    typeof req.user === 'object' &&
+    'tenantId' in req.user &&
+    typeof req.user.tenantId === 'number' &&
+    Number.isInteger(req.user.tenantId) &&
+    req.user.tenantId > 0
+  );
+}
+
+export function getTenantFromRequest(req: RequestWithTenant): number {
+  if (!req.user?.tenantId || !Number.isFinite(req.user.tenantId) || req.user.tenantId <= 0) {
+    throw new ValidationError("tenantId obrigatório no request.");
   }
-  return raw;
+  return req.user.tenantId;
 }
 
 function getQueryParam(req: Request, key: string): string | undefined {
@@ -36,10 +50,13 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      const tenantId = Number(process.env.TENANT_ID || "");
-      if (!Number.isFinite(tenantId) || tenantId <= 0) {
-        throw new Error("TENANT_ID obrigatório no ambiente.");
+      // Type guard real para RequestWithTenant - sem cast estrutural
+      if (!isRequestWithTenant(req)) {
+        res.status(400).json({ error: "tenantId missing from request" });
+        return;
       }
+      
+      const tenantId = getTenantFromRequest(req);
       await db.upsertUser(tenantId, {
         tenantId,
         openId: userInfo.openId,

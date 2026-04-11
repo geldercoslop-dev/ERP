@@ -12,6 +12,8 @@
  * Usa armazenamento em memória até migração para tabela MySQL compatível.
  */
 
+import { assertTenantId } from "../../_core/errors/assertions.js";
+
 export type MemoryType = 'event' | 'decision' | 'insight' | 'pattern' | 'alert' | 'strategy';
 export type MemoryImportance = 'low' | 'medium' | 'high' | 'critical';
 
@@ -56,7 +58,7 @@ export class LeoLongMemory {
   }
 
   async saveMemory(tenantId: number, input: CreateMemoryInput): Promise<LeoMemoryEntry> {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
     idCounter++;
     const entry: LeoMemoryEntry = {
       id: idCounter,
@@ -71,26 +73,26 @@ export class LeoLongMemory {
   }
 
   async getMemoriesByType(tenantId: number, type: MemoryType, limit: number = 50): Promise<LeoMemoryEntry[]> {
-    if (!tenantId) return [];
+    assertTenantId(tenantId);
     return getStore(tenantId)
       .filter((e) => e.type === type)
       .slice(0, limit);
   }
 
   async getMemoriesByImportance(tenantId: number, importance: MemoryImportance, limit: number = 50): Promise<LeoMemoryEntry[]> {
-    if (!tenantId) return [];
+    assertTenantId(tenantId);
     return getStore(tenantId)
       .filter((e) => e.importance === importance)
       .slice(0, limit);
   }
 
   async getRecentMemories(tenantId: number, limit: number = 20): Promise<LeoMemoryEntry[]> {
-    if (!tenantId) return [];
+    assertTenantId(tenantId);
     return getStore(tenantId).slice(0, limit);
   }
 
   async searchMemories(tenantId: number, query: string, limit: number = 20): Promise<LeoMemoryEntry[]> {
-    if (!tenantId) return [];
+    assertTenantId(tenantId);
     const q = query.toLowerCase();
     return getStore(tenantId)
       .filter((e) => e.content.toLowerCase().includes(q))
@@ -166,7 +168,7 @@ export class LeoLongMemory {
   }
 
   async getMemoryStats(tenantId: number): Promise<Record<string, unknown>> {
-    if (!tenantId) return {};
+    assertTenantId(tenantId);;
     const list = getStore(tenantId);
     const stats: Record<string, number> = {
       total: list.length,

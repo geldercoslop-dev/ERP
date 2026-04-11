@@ -1,0 +1,20 @@
+# Frontend Environment Variables
+# These are client-safe and will be exposed to browser
+# Copy to client/.env.local and fill with real values
+
+# Vite automatically prefixes these with VITE_ and makes them available in import.meta.env
+
+# Application
+VITE_APP_ID=vendas-app-frontend
+VITE_API_URL=http://localhost:3000/api
+
+# Feature Flags
+VITE_ENABLE_DEBUG=true
+VITE_ENABLE_ANALYTICS=false
+
+# Public Configuration
+VITE_APP_NAME=ERP System
+VITE_APP_VERSION=1.0.0
+
+# IMPORTANT: NEVER put secrets here (API keys, passwords, tokens)
+# All secrets must be handled by backend only

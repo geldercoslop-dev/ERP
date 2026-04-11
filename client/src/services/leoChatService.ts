@@ -6,6 +6,7 @@
 import { sanitizePlainTextInput } from "../lib/security/sanitizePayload";
 import { GRS_API_ORIGIN } from "../lib/apiOrigin";
 import { apiClient } from "../lib/api/apiClient";
+import { InfrastructureError } from "../lib/errors/typed-errors.js";
 
 const getBaseUrl = () =>
   import.meta.env.VITE_API_URL ||
@@ -40,7 +41,7 @@ export async function sendMessageToLeo(message: string): Promise<LeoChatResponse
   });
 
   if (!res.ok) {
-    throw new Error(res.error.code === "NOT_FOUND" ? "LEO_CHAT_NOT_AVAILABLE" : res.error.message);
+    throw new InfrastructureError(res.error.code === "NOT_FOUND" ? "LEO_CHAT_NOT_AVAILABLE" : res.error.message);
   }
 
   return normalizeLeoResponse(res.data);

@@ -6,6 +6,7 @@
 
 import { spawn, exec } from 'child_process';
 import { promisify } from 'util';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 const execAsync = promisify(exec);
 
@@ -17,7 +18,7 @@ export interface AppAction {
 export interface AppResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
   error?: string;
   executionTime?: number;
 }
@@ -45,7 +46,7 @@ export class AppController {
             data: { apps }
           };
         default:
-          throw new Error(`Unknown app action: ${action}`);
+          throw new ValidationError(`Unknown app action: ${action}`);
       }
     } catch (error) {
       return {
@@ -61,7 +62,7 @@ export class AppController {
    */
   private async openApp(appName: string, args?: string[]): Promise<AppResult> {
     if (!appName) {
-      throw new Error('App name is required');
+      throw new ValidationError('App name is required');
     }
 
     try {
@@ -120,7 +121,7 @@ export class AppController {
       });
 
     } catch (error) {
-      throw new Error(`Failed to open app ${appName}: ${error}`);
+      throw new InfrastructureError(`Failed to open app ${appName}: ${error}`);
     }
   }
 
@@ -129,7 +130,7 @@ export class AppController {
    */
   private async closeApp(appName: string): Promise<AppResult> {
     if (!appName) {
-      throw new Error('App name is required');
+      throw new ValidationError('App name is required');
     }
 
     try {
@@ -163,7 +164,7 @@ export class AppController {
         };
       }
       
-      throw new Error(`Failed to close app ${appName}: ${error}`);
+      throw new InfrastructureError(`Failed to close app ${appName}: ${error}`);
     }
   }
 

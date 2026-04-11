@@ -7,6 +7,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { getDb } from '../db/index.js';
 import { DbResult, toDbResult } from '../_core/db-result.js';
 import { nanoid } from "nanoid";
+import { InfrastructureError, ValidationError } from '../_core/errors/typed-errors.js';
 
 // Tabela de controle de idempotência (se não existir, criar via schema)
 interface IdempotencyRecord {
@@ -15,7 +16,7 @@ interface IdempotencyRecord {
   operationKey: string; // boletoId + operação
   operationType: 'BAIXA_BOLETO' | 'CREDITO_CAIXA';
   processedAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -24,7 +25,7 @@ interface IdempotencyRecord {
 export function generateIdempotencyKey(
   operationType: string,
   resourceId: number,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): string {
   const baseKey = `${operationType}:${resourceId}`;
   
@@ -48,7 +49,7 @@ export async function checkOperationProcessed(
   operationType: string
 ): Promise<{ processed: boolean; record?: IdempotencyRecord }> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new InfrastructureError("Database not available");
 
   try {
     // Query usando SQL direto para verificar tabela de idempotência
@@ -97,10 +98,10 @@ export async function markOperationProcessed(
   tenantId: number,
   operationKey: string,
   operationType: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new InfrastructureError("Database not available");
 
   const idempotencyId = nanoid(10);
   
@@ -128,7 +129,7 @@ export async function markOperationProcessed(
  */
 async function createIdempotencyTable(): Promise<void> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new InfrastructureError("Database not available");
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS financial_idempotency (
@@ -152,7 +153,7 @@ export async function financialIdempotencyCheck(
   tenantId: number,
   operationType: string,
   resourceId: number,
-  operationData?: Record<string, any>
+  operationData?: Record<string, unknown>
 ): Promise<{ allowed: boolean; reason?: string; existingRecord?: IdempotencyRecord }> {
   // Gerar chave de idempotência
   const operationKey = generateIdempotencyKey(operationType, resourceId, operationData);
@@ -179,7 +180,7 @@ export async function executeWithIdempotency<T>(
   operationType: string,
   resourceId: number,
   operation: () => Promise<T>,
-  operationData?: Record<string, any>
+  operationData?: Record<string, unknown>
 ): Promise<{ result: T; wasProcessed: boolean; idempotencyKey: string }> {
   // Gerar chave
   const operationKey = generateIdempotencyKey(operationType, resourceId, operationData);
@@ -188,7 +189,7 @@ export async function executeWithIdempotency<T>(
   const check = await checkOperationProcessed(tenantId, operationKey, operationType);
   
   if (check.processed) {
-    throw new Error(`Operação ${operationType} já processada em ${check.record!.processedAt.toISOString()}`);
+    throw new ValidationError(`Operação ${operationType} já processada em ${check.record!.processedAt.toISOString()}`);
   }
   
   // Marcar como processado ANTES de executar (prevenção de race condition)
@@ -227,7 +228,7 @@ export async function executeWithIdempotency<T>(
  */
 export async function cleanupOldIdempotencyRecords(daysToKeep: number = 90): Promise<number> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new InfrastructureError("Database not available");
 
   const result = await db.execute(sql`
     DELETE FROM financial_idempotency 

@@ -21,7 +21,7 @@ export interface LogEntry {
   level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
   module: string;
   message: string;
-  data?: any;
+  data?: unknown;
   error?: Error;
   traceId?: string;
 }
@@ -192,8 +192,8 @@ class LeoLogManager {
     try {
       const files = readdirSync(this.config.logDirectory);
       const logFiles = files
-        .filter((file: any) => file.startsWith('leo-') && file.endsWith('.log'))
-        .map((file: any) => ({
+        .filter((file: string) => file.startsWith('leo-') && file.endsWith('.log'))
+        .map((file: string) => ({
           name: file,
           path: join(this.config.logDirectory, file),
           mtime: statSync(join(this.config.logDirectory, file)).mtime,
@@ -213,7 +213,7 @@ class LeoLogManager {
           unlinkSync(file.path);
           deletedCount++;
           console.log(`🗑️ Log antigo removido: ${file.name}`);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(`[LeoLogManager] Erro ao remover log ${file.name}:`, error);
         }
       }
@@ -247,7 +247,7 @@ class LeoLogManager {
         */
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[LeoLogManager] Erro na limpeza de logs:', error);
     }
   }
@@ -265,7 +265,7 @@ class LeoLogManager {
   } {
     try {
       const files = readdirSync(this.config.logDirectory);
-      const logFiles = files.filter((file: any) => file.startsWith('leo-') && file.endsWith('.log'));
+      const logFiles = files.filter((file: string) => file.startsWith('leo-') && file.endsWith('.log'));
       
       let totalSize = 0;
       let oldestFile: string | undefined;

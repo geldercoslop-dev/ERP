@@ -8,9 +8,10 @@ import { z } from "zod";
 import { getAuthConfig, authenticateUser } from "../_core/auth-detection.js";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import { getSessionCookieOptions } from "../_core/cookies.js";
+import { ValidationError } from '../_core/errors/typed-errors.js';
 import * as usersService from "../services/users.service.js";
 import * as authSecurity from "../_core/auth-security.js";
-import { logimport { auditLog } from "../_core/audit-log.js";
+import { auditLog } from "../_core/audit-log.js";
 
 /**
  * Router de autenticação inteligente
@@ -44,7 +45,14 @@ export const smartAuthRouter = router({
         // Autenticar usuário
         const user = await authenticateUser(username, password);
         
-        console.log(`[Smart Auth] ✅ Usuário autenticado: ID=${user.id}, Nome=${user.nome || user.name}`);
+        // Validar estrutura do usuário
+        if (!user || typeof user !== 'object' || !('id' in user)) {
+          throw new ValidationError("Usuário inválido retornado da autenticação");
+        }
+        
+        const userObj = user as { id: number; [key: string]: unknown };
+        
+        console.log(`[Smart Auth] ✅ Usuário autenticado: ID=${userObj.id}, Nome=${userObj.nome || userObj.name}`);
         
         // Determinar tipo de sessão baseado na tabela
         let sessionValue: string;
@@ -53,24 +61,24 @@ export const smartAuthRouter = router({
         
         if (authConfig.table === "users") {
           // Sessão de usuário da tabela users
-          sessionValue = `u:${user.id}`;
-          role = user.role || "user";
-          name = user.name || "Usuário";
+          sessionValue = `u:${userObj.id}`;
+          role = (userObj.role as string) || "user";
+          name = (userObj.name as string) || "Usuário";
           
           // Atualizar último signin
-          if (user.tenantId && user.id) {
-            await usersService.touchLastSignedIn(user.tenantId, user.id);
+          if (userObj.tenantId && userObj.id) {
+            await usersService.touchLastSignedIn(userObj.tenantId as number, userObj.id);
           }
           
         } else {
           // Sessão de vendedor
-          sessionValue = `v:${user.id}`;
-          role = user.admin ? "admin" : "vendedor";
-          name = user.nome || user.name || "Vendedor";
+          sessionValue = `v:${userObj.id}`;
+          role = userObj.admin ? "admin" : "vendedor";
+          name = (userObj.nome as string) || (userObj.name as string) || "Vendedor";
           
-          // Atualizar último signin se tiver userId
-          if (user.userId && user.tenantId) {
-            await usersService.touchLastSignedIn(user.tenantId, user.userId);
+          // Atualizar último signin
+          if (userObj.tenantId && userObj.userId) {
+            await usersService.touchLastSignedIn(userObj.tenantId as number, userObj.userId as number);
           }
         }
         
@@ -96,11 +104,11 @@ export const smartAuthRouter = router({
         return {
           ok: true,
           sessionToken: sessionValue,
-          openId: user.openId ||           ok: true,
+          openId: userObj.openId,
           role,
-          userId: user.id,
-          vendedorId: authConfig.table === "vendedores" ? user.id : undefined,
-          tenantId: user.tenantId,
+          userId: userObj.id,
+          vendedorId: authConfig.table === "vendedores" ? userObj.id : undefined,
+          tenantId: userObj.tenantId,
           authTable: authConfig.table,
         };
         
@@ -109,9 +117,6 @@ export const smartAuthRouter = router({
         
         // Registrar falha
         authSecurity.recordLoginFailure(username, ip);
-     throw error;
-        }
-
         throw authSecurity.getGenericAuthError();
       }
     }),

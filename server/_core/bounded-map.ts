@@ -5,6 +5,8 @@
  * Previne memory leaks em long-running processes
  */
 
+import { ValidationError } from './errors/typed-errors.js';
+
 export class BoundedMap<K, V> {
   private map = new Map<K, V>();
   private _maxSize: number;
@@ -12,7 +14,7 @@ export class BoundedMap<K, V> {
 
   constructor(maxSize: number = 1000) {
     if (maxSize <= 0) {
-      throw new Error('maxSize deve ser maior que 0');
+      throw new ValidationError('maxSize deve ser maior que 0');
     }
     this._maxSize = maxSize;
   }

@@ -3,23 +3,22 @@
 
 import * as db from "../db/index.js";
 import bcrypt from 'bcryptjs';
+import { ValidationError } from './errors/typed-errors.js';
 
 /**
  * Cria usuário admin inicial se não existir
  * Usa ADMIN_INITIAL_PASSWORD do ambiente ou gera erro
  */
-export async function ensureInitialAdmin(): Promise<void> {
-  const tenantIdRaw = Number(process.env.TENANT_ID || "");
-  if (!Number.isFinite(tenantIdRaw) || tenantIdRaw <= 0) {
-    throw new Error("TENANT_ID é obrigatório para inicializar admin sem hardcode.");
+export async function ensureInitialAdmin(tenantId: number): Promise<void> {
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId é obrigatório para inicializar admin.");
   }
-  const tenantId = tenantIdRaw;
   const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
   
   if (!adminPassword) {
     console.error('[ensureInitialAdmin] ADMIN_INITIAL_PASSWORD não definido nas variáveis de ambiente');
     console.error('[ensureInitialAdmin] Defina a variável: export ADMIN_INITIAL_PASSWORD="sua_senha_segura"');
-    throw new Error('ADMIN_INITIAL_PASSWORD não configurado');
+    throw new ValidationError('ADMIN_INITIAL_PASSWORD não configurado');
   }
 
   try {

@@ -2,6 +2,7 @@ import { createLogger } from "../infra/structured-logger.js";
 import * as ordersService from "./orders.service.js";
 import * as financeService from "./finance.service.js";
 import { assertVendedorActor } from "../_core/service-actor.js";
+import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
 
 export type LeoAction = "CREATE_ORDER" | "PROCESS_PAYMENT" | "REGISTER_SALE";
 
@@ -220,7 +221,7 @@ export class LeoActionService {
   private async runAction(request: LeoActionRequest): Promise<Record<string, unknown>> {
     const body = request.payload;
     if (body === undefined) {
-      throw new Error("Payload ausente para execução.");
+      throw new ValidationError("Payload ausente para execução.");
     }
     switch (request.action) {
       case "CREATE_ORDER": {
@@ -235,7 +236,7 @@ export class LeoActionService {
         }
         
         if ("role" in actor && actor.role === "admin") {
-          throw new Error("CREATE_ORDER: vendedorId não pode vir do payload; use sessão de vendedor");
+          throw new ValidationError("CREATE_ORDER: vendedorId não pode vir do payload; use sessão de vendedor");
         }
         const created = await ordersService.createPedidoSafe(
           request.actor.tenantId,

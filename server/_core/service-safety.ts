@@ -8,6 +8,7 @@
 import { ServiceList, ServiceObject, ServiceCreatedResult, ServiceUpdateResult, ServiceDeleteResult } from './service-types.js';
 import { logWarning, logError, logCritical, ErrorType } from './service-logger.js';
 import { nanoid } from 'nanoid';
+import { InfrastructureError } from './errors/typed-errors.js';
 
 /**
  * Verifica se um valor é um array de forma segura
@@ -33,7 +34,7 @@ export function isObjectSafe(value: unknown): value is object {
  * @returns true se o valor tiver uma propriedade id numérica, false caso contrário
  */
 export function hasValidId(value: unknown): value is { id: number } {
-  return isObjectSafe(value) && 'id' in value && typeof (value as any).id === 'number';
+  return isObjectSafe(value) && 'id' in value && typeof (value as { id: unknown }).id === 'number';
 }
 
 /**
@@ -109,7 +110,7 @@ export function ensureArray<T>(
  * @param context - Contexto adicional para o log
  * @returns Um objeto garantido ou null, nunca undefined
  */
-export function ensureObject<T extends Record<string, any>>(
+export function ensureObject<T extends Record<string, unknown>>(
   result: T | null | undefined,
   context?: { service?: string; method?: string; traceId?: string }
 ): ServiceObject<T> {
@@ -164,7 +165,7 @@ export function ensureCreatedResult(
       traceId,
       payload: { expectedType: 'object with id', actualType: result === null ? 'null' : 'undefined' }
     });
-    throw new Error(errorMessage);
+    throw new InfrastructureError(errorMessage);
   }
   
   // Se já tiver um ID, retorna como está
@@ -184,7 +185,7 @@ export function ensureCreatedResult(
     traceId,
     payload: { expectedType: 'object with id', actualType: typeof result, value: result }
   });
-  throw new Error(errorMessage);
+  throw new InfrastructureError(errorMessage);
 }
 
 /**
@@ -268,16 +269,18 @@ export function ensurePaginatedResult<T>(
  * @param context - Contexto adicional para o log
  * @returns Um decorator que envolve o método original com uma verificação de tipo
  */
-export function EnsureArrayReturn(context?: { service?: string }) {
+export function EnsureArrayReturn<T extends Record<string, Function>, K extends keyof T>(
+  context?: { service?: string }
+) {
   return function(
-    _target: any,
-    propertyKey: string,
+    _target: T,
+    propertyKey: K,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
     
-    descriptor.value = async function(...args: any[]) {
-      const method = propertyKey;
+    descriptor.value = async function<TArgs extends unknown[]>(...args: TArgs) {
+      const method = String(propertyKey);
       const traceId = nanoid(10);
       
       try {
@@ -290,7 +293,7 @@ export function EnsureArrayReturn(context?: { service?: string }) {
           traceId,
           error: error instanceof Error ? error : new Error(String(error))
         });
-        return [];
+        throw error; // Lança o erro em vez de retornar um array vazio
       }
     };
     
@@ -303,16 +306,18 @@ export function EnsureArrayReturn(context?: { service?: string }) {
  * @param context - Contexto adicional para o log
  * @returns Um decorator que envolve o método original com uma verificação de tipo
  */
-export function EnsureCreatedResult(context?: { service?: string }) {
+export function EnsureCreatedResult<T extends Record<string, Function>, K extends keyof T>(
+  context?: { service?: string }
+) {
   return function(
-    _target: any,
-    propertyKey: string,
+    _target: T,
+    propertyKey: K,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
     
-    descriptor.value = async function(...args: any[]) {
-      const method = propertyKey;
+    descriptor.value = async function<TArgs extends unknown[]>(...args: TArgs) {
+      const method = String(propertyKey);
       const traceId = nanoid(10);
       
       try {
@@ -343,7 +348,7 @@ export function createSafeService<T extends Record<string, Function>>(
   service: T,
   serviceName: string
 ): T {
-  const safeService = {} as T;
+  const safeService: Partial<T> = {};
   
   for (const key of Object.keys(service) as Array<keyof T>) {
     const originalMethod = service[key];
@@ -353,7 +358,7 @@ export function createSafeService<T extends Record<string, Function>>(
       // Determinar o tipo de método com base no nome
       if (methodName.startsWith('get') || methodName.startsWith('list') || methodName.startsWith('find')) {
         // Métodos de busca/listagem
-        safeService[key] = async function(...args: any[]) {
+        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
           const traceId = nanoid(10);
           
           try {
@@ -380,10 +385,10 @@ export function createSafeService<T extends Record<string, Function>>(
             }
             return null;
           }
-        } as any;
+        } as unknown as T[keyof T];
       } else if (methodName.startsWith('create') || methodName.includes('add')) {
         // Métodos de criação
-        safeService[key] = async function(...args: any[]) {
+        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
           const traceId = nanoid(10);
           
           try {
@@ -397,7 +402,7 @@ export function createSafeService<T extends Record<string, Function>>(
                 method: methodName,
                 traceId
               });
-              throw new Error(errorMessage);
+              throw new InfrastructureError(errorMessage);
             }
             
             return ensureCreatedResult(result, { service: serviceName, method: methodName, traceId });
@@ -410,10 +415,10 @@ export function createSafeService<T extends Record<string, Function>>(
             });
             throw error;
           }
-        } as any;
+        } as unknown as T[keyof T];
       } else if (methodName.startsWith('update') || methodName.includes('edit')) {
         // Métodos de atualização
-        safeService[key] = async function(...args: any[]) {
+        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
           const traceId = nanoid(10);
           
           try {
@@ -428,10 +433,10 @@ export function createSafeService<T extends Record<string, Function>>(
             });
             throw error;
           }
-        } as any;
+        } as unknown as T[keyof T];
       } else if (methodName.startsWith('delete') || methodName.includes('remove')) {
         // Métodos de exclusão
-        safeService[key] = async function(...args: any[]) {
+        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
           const traceId = nanoid(10);
           
           try {
@@ -446,7 +451,7 @@ export function createSafeService<T extends Record<string, Function>>(
             });
             throw error;
           }
-        } as any;
+        } as unknown as T[keyof T];
       } else {
         // Outros métodos
         safeService[key] = originalMethod.bind(service);
@@ -456,5 +461,5 @@ export function createSafeService<T extends Record<string, Function>>(
     }
   }
   
-  return safeService;
+  return Object.assign({}, service, safeService) as T;
 }

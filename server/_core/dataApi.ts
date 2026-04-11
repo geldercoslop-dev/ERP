@@ -5,6 +5,7 @@
  *   })
  */
 import { ENV } from "./env.js";
+import { InfrastructureError } from './errors/typed-errors.js';
 
 export type DataApiCallOptions = {
   query?: Record<string, unknown>;
@@ -18,10 +19,10 @@ export async function callDataApi(
   options: DataApiCallOptions = {}
 ): Promise<unknown> {
   if (!ENV.forgeApiUrl) {
-    throw new Error("BUILT_IN_FORGE_API_URL is not configured");
+    throw new InfrastructureError("BUILT_IN_FORGE_API_URL is not configured");
   }
   if (!ENV.forgeApiKey) {
-    throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+    throw new InfrastructureError("BUILT_IN_FORGE_API_KEY is not configured");
   }
 
   // Build the full URL by appending the service path to the base URL
@@ -47,7 +48,7 @@ export async function callDataApi(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(
+    throw new InfrastructureError(
       `Data API request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
     );
   }

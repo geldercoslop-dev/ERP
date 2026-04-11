@@ -1,0 +1,106 @@
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[DEBUG-VALIDATION] APP_SECRET length: 50 value: replace_with_secure_...
+[DEBUG-VALIDATION] JWT_ACCESS_SECRET length: 50 value: replace_with_secure_...
+[DEBUG-VALIDATION] JWT_REFRESH_SECRET length: 49 value: replace_with_secure_...
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[DEBUG-VALIDATION] APP_SECRET length: 50 value: replace_with_secure_...
+[DEBUG-VALIDATION] JWT_ACCESS_SECRET length: 50 value: replace_with_secure_...
+[DEBUG-VALIDATION] JWT_REFRESH_SECRET length: 49 value: replace_with_secure_...
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars
+[ENV] inválido (critical boot):
+[ENV]  - APP_SECRET: must be at least 64 chars
+[ENV]  - JWT_ACCESS_SECRET: must be at least 64 chars
+[ENV]  - JWT_REFRESH_SECRET: must be at least 64 chars

@@ -23,7 +23,7 @@ function safeResponseMiddleware(req: Request, res: SafeResponse, next: NextFunct
 
   // Override res.json para prevenir múltiplos writes
   const originalJson = res.json;
-  res.json = function(this: SafeResponse, body?: any): SafeResponse {
+  res.json = function(this: SafeResponse, body?: unknown): SafeResponse {
     if (res._responseSent || res.headersSent || res.writableEnded) {
       logger.warn({
         method: req.method,
@@ -41,7 +41,7 @@ function safeResponseMiddleware(req: Request, res: SafeResponse, next: NextFunct
 
   // Override res.send para prevenir múltiplos writes
   const originalSend = res.send;
-  res.send = function(this: SafeResponse, body?: any): SafeResponse {
+  res.send = function(this: SafeResponse, body?: unknown): SafeResponse {
     if (res._responseSent || res.headersSent || res.writableEnded) {
       logger.warn({
         method: req.method,
@@ -59,7 +59,7 @@ function safeResponseMiddleware(req: Request, res: SafeResponse, next: NextFunct
 
   // Override res.end para prevenir múltiplos writes
   const originalEnd = res.end;
-  res.end = function(this: SafeResponse, chunk?: any, encoding?: any, cb?: any): SafeResponse {
+  res.end = function(this: SafeResponse): SafeResponse {
     if (res._isDestroyed) {
       logger.warn({
         method: req.method,
@@ -72,7 +72,8 @@ function safeResponseMiddleware(req: Request, res: SafeResponse, next: NextFunct
     }
 
     res._responseSent = true;
-    return originalEnd.call(this, chunk, encoding, cb);
+    const args = Array.from(arguments) as unknown[];
+    return (originalEnd as (...params: unknown[]) => SafeResponse).apply(this, args);
   };
 
   // Escutar evento de close para marcar como destruído
@@ -110,7 +111,7 @@ function canWriteResponse(res: SafeResponse): boolean {
 /**
  * Wrapper seguro para response.json
  */
-function safeJson(res: SafeResponse, data: any, statusCode: number = 200): boolean {
+function safeJson(res: SafeResponse, data: unknown, statusCode: number = 200): boolean {
   if (!canWriteResponse(res)) {
     return false;
   }
@@ -184,7 +185,7 @@ function safeResponseGlobalMiddleware() {
     // Middleware para garantir que next() não seja chamado após response
     (req: Request, res: SafeResponse, next: NextFunction) => {
       const originalNext = next;
-      (next as any) = function(err?: any): void {
+      const guardedNext: NextFunction = (err?: unknown) => {
         if (res._responseSent || res.headersSent) {
           logger.warn({
             method: req.method,
@@ -195,10 +196,10 @@ function safeResponseGlobalMiddleware() {
           }, '[SAFE_RESPONSE] next() chamado após response enviado - BLOQUEADO');
           return;
         }
-        return originalNext(err);
+        return originalNext(err as Error | undefined);
       };
       
-      return originalNext();
+      return guardedNext();
     }
   ];
 }

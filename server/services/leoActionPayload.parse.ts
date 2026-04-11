@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { LeoAction, LeoActionPayloadMap } from "./leoAction.service.js";
+import { ValidationError } from "../_core/errors/typed-errors.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -47,7 +48,7 @@ const registerSalePayloadSchema = z.object({
 
 export function parseLeoActionPayload(action: LeoAction, raw: unknown): LeoActionPayloadMap[LeoAction] {
   if (!isRecord(raw)) {
-    throw new Error("Payload deve ser um objeto.");
+    throw new ValidationError("Payload deve ser um objeto.");
   }
   const recordRaw = raw as Record<string, unknown>;
   switch (action) {

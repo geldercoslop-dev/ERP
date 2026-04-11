@@ -141,21 +141,23 @@ export function sanitizeParams(req: Request, res: Response, next: NextFunction) 
   
   // Sanitizar body params
   if (req.body && typeof req.body === 'object') {
-    const sanitizeObject = (obj: any): any => {
+    const sanitizeObject = (obj: unknown): unknown => {
       if (Array.isArray(obj)) {
         return obj.map(sanitizeObject);
       }
       
       if (obj && typeof obj === 'object') {
-        const sanitized: any = {};
-        Object.keys(obj).forEach(key => {
-          if (typeof obj[key] === 'string') {
-            sanitized[key] = obj[key]
+        const sanitized: Record<string, unknown> = {};
+        const source = obj as Record<string, unknown>;
+        Object.keys(source).forEach(key => {
+          const value = source[key];
+          if (typeof value === 'string') {
+            sanitized[key] = value
               .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
               .replace(/javascript:/gi, '')
               .trim();
           } else {
-            sanitized[key] = sanitizeObject(obj[key]);
+            sanitized[key] = sanitizeObject(value);
           }
         });
         return sanitized;

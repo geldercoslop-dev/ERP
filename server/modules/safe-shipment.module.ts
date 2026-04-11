@@ -10,7 +10,7 @@ import { runTransaction } from '../services/db-transaction.js';
 import { insertAuditLog } from '../services/audit-service.js';
 import { getPool } from '../db/index.js';
 import * as db from '../db/index.js';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql } from '../db/index.js';
 
 export interface ShipmentItem {
   pedidoId: number;

@@ -26,7 +26,12 @@ interface StrictHealthConfig {
  */
 export function createStrictHealthMiddleware(config: StrictHealthConfig) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // Só aplica a endpoints de saúde
+    // A rota canônica /api/health (/health) é tratada no handler dedicado.
+    if (req.path === '/api/health' || req.path === '/health') {
+      return next();
+    }
+
+    // Só aplica a endpoints de saúde auxiliares
     if (!req.path.includes('/health') && !req.path.includes('/ping')) {
       return next();
     }
@@ -142,16 +147,9 @@ export const defaultHealthChecks: HealthCheck[] = [
   {
     name: 'database',
     check: async (): Promise<boolean> => {
-      const { getDb } = await import('../db/index.js');
-      const db = await getDb();
-      if (!db) return false;
-      
-      try {
-        await db.execute('SELECT 1');
-        return true;
-      } catch {
-        return false;
-      }
+      const { pingDatabase } = await import('../services/database-health.service.js');
+      const result = await pingDatabase('STRICT_HEALTH');
+      return result.ok;
     },
     timeout: 5000
   },

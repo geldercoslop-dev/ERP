@@ -6,7 +6,8 @@
 
 import { drizzle } from "drizzle-orm/mysql2";
 import * as mysql from "mysql2/promise";
-import { getDb } from "../db/index.js";
+import { getDb } from '../db/index.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { getConnectionPool } from "../config/database.js";
 
 export type TransactionCallback<T> = (tx: mysql.PoolConnection) => Promise<T>;
@@ -21,7 +22,7 @@ export async function runTransaction<T>(
 ): Promise<T> {
   const dbConnection = await getDb();
   if (!dbConnection) {
-    throw new Error("Database connection not available");
+    throw new InfrastructureError("Database connection not available");
   }
 
   // Obter conexão do pool em vez de criar uma nova
@@ -81,7 +82,7 @@ export async function runParallelTransaction<T>(
       }
     }
     if (errors.length > 0) {
-      throw new Error(`runParallelTransaction: ${errors.length} callback(s) falhou: ${errors.join('; ')}`);
+      throw new InfrastructureError(`runParallelTransaction: ${errors.length} callback(s) falhou: ${errors.join('; ')}`);
     }
     return results;
   }, isolationLevel);
@@ -146,7 +147,7 @@ export async function getActiveLocks(): Promise<Array<{
     }>;
   } catch (error) {
     console.error('[Transaction] Erro ao obter bloqueios ativos:', error);
-    return [];
+    throw new InfrastructureError('Falha ao consultar bloqueios ativos do banco', { cause: error });
   } finally {
     // Liberar a conexão de volta para o pool em vez de fechá-la
     connection.release();

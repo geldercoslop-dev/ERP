@@ -194,12 +194,13 @@ export class LeoErpObserver implements ILeoErpObserver {
     tipo: LeoEventType;
     titulo: string;
     descricao: string;
-    dados?: any;
+    dados?: Payload;
     prioridade: LeoEventPriority;
     entidade?: string;
     contexto?: string;
   }): LeoEvent {
     const now = new Date();
+    const entityId = this.extractEntityId(params.dados);
     
     return {
       id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -209,12 +210,21 @@ export class LeoErpObserver implements ILeoErpObserver {
       dados: params.dados,
       contexto: params.contexto,
       entidade: params.entidade,
-      entidadeId: params.dados?.id || undefined,
+      entidadeId: entityId,
       prioridade: params.prioridade,
       status: LeoEventStatus.ATIVO,
       dataCriacao: now,
       dataUltimaAtualizacao: now
     };
+  }
+
+  private extractEntityId(dados?: Payload): string | undefined {
+    if (!dados || typeof dados !== 'object') {
+      return undefined;
+    }
+
+    const rawId = (dados as { id?: unknown }).id;
+    return typeof rawId === 'string' ? rawId : undefined;
   }
 
   /**

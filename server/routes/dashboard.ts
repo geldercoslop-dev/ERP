@@ -7,9 +7,10 @@
 import { Router, Request, Response } from "express";
 import { getDashboardInsights } from "../services/dashboard-insights.service.js";
 import { getDashboardCache, setDashboardCache } from "../tools/dashboard-cache.js";
-import * as db from "../db/index.js";
+import { logAuditAction } from "../services/audit-log.service.js";
 import { nanoid } from "nanoid";
 import { requireAuthContext } from "../middlewares/require-auth-context.js";
+import { requireTenantFromRequest } from '../_core/tenant-utils.js';
 
 const router = Router();
 
@@ -19,16 +20,7 @@ const router = Router();
  */
 router.get("/insights", requireAuthContext, async (req: Request, res: Response) => {
   try {
-    const tenantIdRaw = req.user?.tenantId;
-    if (!Number.isInteger(tenantIdRaw) || Number(tenantIdRaw) <= 0) {
-      res.status(401).json({
-        success: false,
-        error: "Não autorizado",
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-    const tenantId = tenantIdRaw as number;
+    const tenantId = requireTenantFromRequest(req);
     const cached = getDashboardCache(tenantId);
     if (cached) {
       return res.json({
@@ -40,13 +32,7 @@ router.get("/insights", requireAuthContext, async (req: Request, res: Response) 
     }
     const data = await getDashboardInsights(tenantId);
     setDashboardCache(tenantId, data as Record<string, unknown>);
-    await db.insertAuditLog({
-      tenantId,
-      action: "dashboard_view",
-      entity: "dashboard",
-      payloadJson: JSON.stringify({ view: "insights" }),
-      traceId: nanoid(10),
-    });
+    await logAuditAction("dashboard_view", "dashboard", { view: "insights" }, { tenantId, traceId: nanoid(10) });
     res.json({
       success: true,
       data,

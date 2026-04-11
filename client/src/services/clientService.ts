@@ -4,7 +4,7 @@
  * Sem `any` - tipagem 100% forte
  */
 
-import { trpc } from '../lib/trpcClient';
+import { trpc, trpcCall } from '../lib/trpcClient';
 import type {
   Cliente,
   ClienteCreateInput,
@@ -19,7 +19,7 @@ import { toast } from 'sonner';
  */
 export async function listarClientes(params?: ClienteListParams): Promise<ClienteListResponse> {
   try {
-    const result = await trpc.clientes.list.query(params);
+    const result = await trpcCall('clientes.list', params as any);
     return result as ClienteListResponse;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro ao listar clientes';
@@ -48,7 +48,7 @@ export async function obterClientePorId(id: number): Promise<Cliente | null> {
 export async function buscarClientes(termo: string): Promise<Cliente[]> {
   try {
     if (!termo.trim()) return [];
-    const result = await trpc.clientes.search.query({ term: termo });
+    const result = await trpcCall('clientes.search', { term: termo });
     return result as Cliente[];
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro ao buscar clientes';
@@ -62,7 +62,7 @@ export async function buscarClientes(termo: string): Promise<Cliente[]> {
  */
 export async function criarCliente(input: ClienteCreateInput): Promise<Cliente> {
   try {
-    const result = await trpc.clientes.create.mutate(input);
+    const result = await trpcCall('clientes.create', input as any);
     toast.success('Cliente criado com sucesso!');
     return result as Cliente;
   } catch (error) {
@@ -77,7 +77,7 @@ export async function criarCliente(input: ClienteCreateInput): Promise<Cliente> 
  */
 export async function atualizarCliente(id: number, input: Partial<ClienteCreateInput>): Promise<Cliente> {
   try {
-    const result = await trpc.clientes.update.mutate({ id, ...input });
+    const result = await trpcCall('clientes.update', { id, input });
     toast.success('Cliente atualizado com sucesso!');
     return result as Cliente;
   } catch (error) {
@@ -92,7 +92,7 @@ export async function atualizarCliente(id: number, input: Partial<ClienteCreateI
  */
 export async function deletarCliente(id: number): Promise<void> {
   try {
-    await trpc.clientes.delete.mutate({ id });
+    await trpcCall('clientes.delete', { id });
     toast.success('Cliente deletado com sucesso!');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro ao deletar cliente';

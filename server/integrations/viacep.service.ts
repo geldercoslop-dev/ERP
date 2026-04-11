@@ -54,8 +54,8 @@ export async function buscarEnderecoPorCep(cep: string): Promise<{
       cidade: data.localidade,
       estado: data.uf,
     };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao consultar ViaCEP." : e?.message ?? "Erro ao consultar ViaCEP.";
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao consultar ViaCEP." : e instanceof Error ? e.message : "Erro ao consultar ViaCEP.";
     return { ok: false, erro: msg };
   }
   });

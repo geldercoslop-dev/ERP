@@ -1,5 +1,12 @@
 import { apiLogger, logError, logPerformance } from './logger.js';
 import { getCircuitBreaker } from './circuit-breaker.js';
+import { InfrastructureError } from './errors/typed-errors.js';
+
+// Interface para erros HTTP com status
+interface HttpError extends Error {
+  status?: number;
+  statusCode?: number;
+}
 
 /**
  * Configurações de retry para requisições HTTP
@@ -158,7 +165,7 @@ async function performFetchWithRetry(
   const timeout = options.timeout || 30000; // 30 segundos padrão
   const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...options.retryConfig };
   
-  let lastError: any;
+  let lastError: unknown;
   let lastStatusCode: number | undefined;
 
   for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
@@ -223,13 +230,14 @@ async function performFetchWithRetry(
 
       // Se não for retryável, lançar erro
       if (!shouldRetry(null, response.status, attempt, retryConfig)) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new InfrastructureError(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       // Preparar para retry
       const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
-      (error as any).status = response.status;
-      (error as any).statusCode = response.status;
+      const httpError = error as HttpError;
+      httpError.status = response.status;
+      httpError.statusCode = response.status;
       throw error;
 
     } catch (error) {
@@ -277,7 +285,7 @@ export async function fetchJsonWithRetry<T = any>(
   const response = await fetchWithRetry(url, options);
   
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    throw new InfrastructureError(`HTTP ${response.status}: ${response.statusText}`);
   }
 
   const text = await response.text();
@@ -293,7 +301,7 @@ export async function fetchJsonWithRetry<T = any>(
       url,
       responseText: text.substring(0, 200)
     });
-    throw new Error(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)}`);
+    throw new InfrastructureError(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -313,7 +321,7 @@ export async function fetchAllWithRetry(
 
   const results = await Promise.allSettled(promises);
   const responses: Response[] = [];
-  const errors: Array<{ url: string; error: any }> = [];
+  const errors: Array<{ url: string; error: unknown }> = [];
 
   results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
@@ -339,11 +347,11 @@ export async function fetchAllWithRetry(
   });
 
   if (errors.length > 0) {
-    apiLogger.warn({ message: 'Some HTTP requests failed', successful: responses.length, failed: errors.length, errors: errors.map(e => ({ url: e.url, error: e.error?.message })) });
+    apiLogger.warn({ message: 'Some HTTP requests failed', successful: responses.length, failed: errors.length, errors: errors.map(e => ({ url: e.url, error: e.error instanceof Error ? e.error.message : String(e.error) })) });
   }
 
   if (responses.length === 0) {
-    throw new Error(`All ${requests.length} HTTP requests failed`);
+    throw new InfrastructureError(`All ${requests.length} HTTP requests failed`);
   }
 
   return responses;
@@ -389,7 +397,7 @@ export class RetryHttpClient {
     return fetchWithRetry(url, { ...this.defaultOptions, ...options, method: 'GET' });
   }
 
-  async post(url: string, data?: any, options?: RequestOptions): Promise<Response> {
+  async post(url: string, data?: unknown, options?: RequestOptions): Promise<Response> {
     return fetchWithRetry(url, {
       ...this.defaultOptions,
       ...options,
@@ -398,7 +406,7 @@ export class RetryHttpClient {
     });
   }
 
-  async put(url: string, data?: any, options?: RequestOptions): Promise<Response> {
+  async put(url: string, data?: unknown, options?: RequestOptions): Promise<Response> {
     return fetchWithRetry(url, {
       ...this.defaultOptions,
       ...options,
@@ -415,7 +423,7 @@ export class RetryHttpClient {
     return fetchJsonWithRetry<T>(url, { ...this.defaultOptions, ...options, method: 'GET' });
   }
 
-  async postJson<T = any>(url: string, data?: any, options?: RequestOptions): Promise<T> {
+  async postJson<T = unknown>(url: string, data?: unknown, options?: RequestOptions): Promise<T> {
     return fetchJsonWithRetry<T>(url, {
       ...this.defaultOptions,
       ...options,

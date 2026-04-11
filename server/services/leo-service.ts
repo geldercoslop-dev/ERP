@@ -11,6 +11,8 @@ import { ADMIN_ACTOR, assertVendedorActor, type ServiceActor } from '../_core/se
 import { getAllProdutos, getProdutoById, updateEstoqueProduto } from './inventory.service.js';
 import { listContasReceber, listContasPagar } from './finance.service.js';
 import { nanoid } from 'nanoid';
+import { assertTenantId, assertDbConnection } from '../_core/errors/assertions.js';
+import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 
 /** Sem vendedorId: escopo vem apenas do actor (sessão / contexto LEO). */
 export interface PedidoInput {
@@ -127,7 +129,7 @@ export class LeoErpService {
       limite?: number;
     }
   ) {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
 
     try {
       const options = {
@@ -157,17 +159,17 @@ export class LeoErpService {
    * Cria um novo pedido — vendedorId nunca vem do input; apenas do actor.
    */
   async createPedido(tenantId: number, input: PedidoInput, actor: ServiceActor) {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
     if (!input.clienteId || !input.itens?.length) {
-      throw new Error("Dados obrigatórios do pedido não informados");
+      throw new ValidationError("Dados obrigatórios do pedido não informados");
     }
     if (actor.role === "admin") {
-      throw new Error(
+      throw new InfrastructureError(
         "LeoErpService: criação de pedido como admin exige fluxo com trustedVendedorId na API; não use input externo"
       );
     }
     if (actor.role !== "vendedor") {
-      throw new Error("LeoErpService: apenas vendedor autenticado pode criar pedido por este serviço");
+      throw new InfrastructureError("LeoErpService: apenas vendedor autenticado pode criar pedido por este serviço");
     }
     assertVendedorActor(actor);
 
@@ -217,7 +219,7 @@ export class LeoErpService {
     telefone?: string;
     limite?: number;
   }) {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
 
     try {
       const resultado = await listClientes(tenantId, actor, {
@@ -245,9 +247,9 @@ export class LeoErpService {
    * Cria um novo cliente
    */
   async createCliente(tenantId: number, input: ClienteInput, actor: ServiceActor) {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
     if (!input.nome || !input.telefone) {
-      throw new Error("Nome e telefone são obrigatórios");
+      throw new ValidationError("Nome e telefone são obrigatórios");
     }
 
     try {
@@ -257,7 +259,7 @@ export class LeoErpService {
         vendedorIdPrincipal = actor.vendedorId;
       }
       if (actor.userId == null || actor.userId <= 0) {
-        throw new Error("userId do ator ausente para criar cliente");
+        throw new ValidationError("userId do ator ausente para criar cliente");
       }
       const clienteData = {
         nome: input.nome,
@@ -293,7 +295,7 @@ export class LeoErpService {
     alertaBaixo?: boolean;
     limite?: number;
   }) {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
 
     try {
       const resultado = await getAllProdutos(tenantId);
@@ -351,9 +353,9 @@ export class LeoErpService {
    * Atualiza estoque de um produto
    */
   async atualizarEstoque(tenantId: number, input: EstoqueInput) {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
     if (!input.produtoId || !input.quantidade) {
-      throw new Error("ProdutoId e quantidade são obrigatórios");
+      throw new ValidationError("ProdutoId e quantidade são obrigatórios");
     }
 
     try {
@@ -391,7 +393,7 @@ export class LeoErpService {
       limite?: number;
     }
   ) {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
 
     try {
       const options = {
@@ -429,8 +431,8 @@ export class LeoErpService {
    * Busca um pedido específico
    */
   async getPedido(tenantId: number, pedidoId: number, actor: ServiceActor) {
-    if (!tenantId) throw new Error("tenantId is required");
-    if (!pedidoId) throw new Error("pedidoId is required");
+    assertTenantId(tenantId);
+    if (!pedidoId) throw new ValidationError("pedidoId is required");
 
     try {
       const pedido = await getPedidoByIdForActor(tenantId, actor, pedidoId);
@@ -449,9 +451,9 @@ export class LeoErpService {
    * Atualiza status de um pedido
    */
   async atualizarStatusPedido(tenantId: number, pedidoId: number, status: string) {
-    if (!tenantId) throw new Error("tenantId is required");
-    if (!pedidoId) throw new Error("pedidoId is required");
-    if (!status) throw new Error("status is required");
+    assertTenantId(tenantId);
+    if (!pedidoId) throw new ValidationError("pedidoId is required");
+    if (!status) throw new ValidationError("status is required");
 
     try {
       await updatePedidoStatus(tenantId, pedidoId, status, {
@@ -472,7 +474,7 @@ export class LeoErpService {
    * Gera próximo número de pedido
    */
   async gerarNumeroPedido(tenantId: number): Promise<string> {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
 
     try {
       // Simplificado: gera número baseado em timestamp

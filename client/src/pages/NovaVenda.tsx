@@ -263,7 +263,7 @@ export default function NovaVenda() {
   const selecionarClienteNaVenda = async (c: TCliente) => {
     const principalRaw = await utils.clientes.getVendedorPrincipal.fetch({ clienteId: c.id });
     const principal = principalRaw
-      ? { vendedorId: principalRaw.vendedorId, vendedorNome: principalRaw.vendedorNome }
+      ? { vendedorId: (principalRaw as any).vendedorId, vendedorNome: (principalRaw as any).vendedorNome }
       : null;
     const precisaConfirmar = shouldConfirmClienteOwnership(principal, vendedorEfetivoId);
     if (precisaConfirmar && principal) {

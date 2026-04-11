@@ -2,6 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 type Payload = Record<string, unknown>;
+type AuthenticatedRequest = Request & {
+  user?: Request['user'];
+  userId?: number;
+};
 
 /**
  * AUTHENTICATION MIDDLEWARE
@@ -20,6 +24,7 @@ function getJwtSecret(): string {
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   try {
+    const authReq = req as AuthenticatedRequest;
     const authHeader = req.headers.authorization;
     
     if (!authHeader) {
@@ -47,8 +52,8 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     const decoded = jwt.verify(token, getJwtSecret()) as Payload;
     
     // Attach user info to request
-    (req as any).user = decoded;
-    (req as any).userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);
+    authReq.user = decoded as unknown as Request['user'];
+    authReq.userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);
     
     next();
   } catch (error: unknown) {
@@ -69,6 +74,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
  */
 export function optionalAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
   try {
+    const authReq = req as AuthenticatedRequest;
     const authHeader = req.headers.authorization;
     
     if (!authHeader) {
@@ -84,8 +90,8 @@ export function optionalAuthMiddleware(req: Request, res: Response, next: NextFu
 
     const decoded = jwt.verify(token, getJwtSecret()) as Payload;
     
-    (req as any).user = decoded;
-    (req as any).userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);
+    authReq.user = decoded as unknown as Request['user'];
+    authReq.userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);
     
     next();
   } catch (error: unknown) {

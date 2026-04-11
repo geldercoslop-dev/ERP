@@ -4,9 +4,11 @@
  * Motor de análise de vendas para gerar insights automáticos do negócio
  */
 
-import * as db from "../../db/index.js";
 import * as db from "../../../db/index.js";
 import { PedidoStatus } from "../../../shared/domain-status.js";
+import { eq, and, sql, ne, desc } from "drizzle-orm";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
+import { InfrastructureError } from "../../../_core/errors/typed-errors.js";
 
 export type VendaDiaria = {
   data: string;
@@ -50,7 +52,7 @@ export type SalesAnalytics = {
  */
 export async function getVendasUltimos30Dias(tenantId: number): Promise<VendaDiaria[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const trintaDiasAtras = new Date();
@@ -80,7 +82,7 @@ export async function getVendasUltimos30Dias(tenantId: number): Promise<VendaDia
     }));
   } catch (error: unknown) {
     console.error('[LEO Sales Analytics] Erro em getVendasUltimos30Dias:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter vendas dos últimos 30 dias', { cause: error });
   }
 }
 
@@ -89,7 +91,7 @@ export async function getVendasUltimos30Dias(tenantId: number): Promise<VendaDia
  */
 export async function getProdutosMaisVendidos(tenantId: number, limite: number = 10): Promise<ProdutoMaisVendido[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const trintaDiasAtras = new Date();
@@ -160,7 +162,7 @@ export async function getProdutosMaisVendidos(tenantId: number, limite: number =
       .slice(0, limite);
   } catch (error: unknown) {
     console.error('[LEO Sales Analytics] Erro em getProdutosMaisVendidos:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter produtos mais vendidos', { cause: error });
   }
 }
 
@@ -169,7 +171,7 @@ export async function getProdutosMaisVendidos(tenantId: number, limite: number =
  */
 export async function getClientesMaisAtivos(tenantId: number, limite: number = 10): Promise<ClienteMaisAtivo[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const noventaDiasAtras = new Date();
@@ -217,7 +219,7 @@ export async function getClientesMaisAtivos(tenantId: number, limite: number = 1
     });
   } catch (error: unknown) {
     console.error('[LEO Sales Analytics] Erro em getClientesMaisAtivos:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter clientes mais ativos', { cause: error });
   }
 }
 

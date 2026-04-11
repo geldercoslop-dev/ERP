@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { ENV_SECRET_MIN_LENGTH } from "../_core/env-validator.js";
 
 export const EnvSchema = z.object({
-  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 chars"),
-  JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 chars").optional(),
-  JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 chars").optional(),
+  APP_SECRET: z.string().min(ENV_SECRET_MIN_LENGTH, `APP_SECRET must be at least ${ENV_SECRET_MIN_LENGTH} chars`),
+  JWT_SECRET: z.string().min(ENV_SECRET_MIN_LENGTH, `JWT_SECRET must be at least ${ENV_SECRET_MIN_LENGTH} chars`),
+  JWT_ACCESS_SECRET: z.string().min(ENV_SECRET_MIN_LENGTH, `JWT_ACCESS_SECRET must be at least ${ENV_SECRET_MIN_LENGTH} chars`),
+  JWT_REFRESH_SECRET: z.string().min(ENV_SECRET_MIN_LENGTH, `JWT_REFRESH_SECRET must be at least ${ENV_SECRET_MIN_LENGTH} chars`),
   DB_HOST: z.string().min(1, "DB_HOST is required"),
   DB_PORT: z
     .string()
@@ -23,9 +25,7 @@ export const EnvSchema = z.object({
 
 type RawEnv = z.infer<typeof EnvSchema>;
 
-export type Env = Omit<RawEnv, "JWT_ACCESS_SECRET" | "JWT_REFRESH_SECRET" | "DATABASE_URL" | "REDIS_URL"> & {
-  JWT_ACCESS_SECRET: string;
-  JWT_REFRESH_SECRET: string;
+export type Env = Omit<RawEnv, "DATABASE_URL" | "REDIS_URL"> & {
   DATABASE_URL: string;
   REDIS_URL: string;
 };
@@ -52,6 +52,7 @@ export function parseEnv(): Env {
   // Cache para evitar múltiplos parses sob imports concorrentes.
   if (_cached) return _cached;
   const parsed = EnvSchema.safeParse({
+    APP_SECRET: process.env.APP_SECRET,
     JWT_SECRET: process.env.JWT_SECRET,
     JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
     JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
@@ -69,13 +70,12 @@ export function parseEnv(): Env {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
     console.error("[ENV] inválido:");
     for (const line of issues) console.error(`[ENV]  - ${line}`);
-    throw new Error(`Invalid environment: ${issues.join("; ")}`);
+    console.error("[ENV_FATAL] Exiting with process.exit(1)");
+    process.exit(1);
   }
 
   const normalized: Env = {
     ...parsed.data,
-    JWT_ACCESS_SECRET: parsed.data.JWT_ACCESS_SECRET ?? parsed.data.JWT_SECRET,
-    JWT_REFRESH_SECRET: parsed.data.JWT_REFRESH_SECRET ?? parsed.data.JWT_SECRET,
     DATABASE_URL: buildDatabaseUrl(parsed.data),
     REDIS_URL: buildRedisUrl(parsed.data),
   };

@@ -13,6 +13,7 @@ import { validateStatus } from "../shared/guards/domain-guard.js";
 import { loggerInstance as logger, logError } from '../utils/logger.js';
 import { processStockOperation, StockOperation } from './safe-stock.js';
 import { logAuditAction } from './audit-log.service.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
@@ -109,14 +110,19 @@ class SafeTransactionService {
    * Impede execução concorrente sobre o mesmo pedidoId.
    */
   public async processTransaction(
+    tenantId: number,
     pedidoOp?: PedidoOperation,
     stockOps?: StockOperation[],
     financeiroOps?: FinanceiroOperation[]
   ): Promise<SafeTransaction> {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para processTransaction");
+    }
+    
     const resourceKey = pedidoOp ? `pedido:${pedidoOp.pedidoId}` : 'global';
     const pending = this.resourceLocks.get(resourceKey);
     const run = (): Promise<SafeTransaction> =>
-      this.executeNewTransaction(pedidoOp, stockOps, financeiroOps);
+      this.executeNewTransaction(tenantId, pedidoOp, stockOps, financeiroOps);
     // Serializa: sempre executa após qualquer tx anterior do mesmo recurso (ok ou erro).
     const chained: Promise<SafeTransaction> = pending ? pending.then(run, run) : run();
     this.resourceLocks.set(resourceKey, chained);
@@ -133,6 +139,7 @@ class SafeTransactionService {
    * Lógica interna de execução — chamada exclusivamente pelo lock de processTransaction.
    */
   private async executeNewTransaction(
+    tenantId: number,
     pedidoOp?: PedidoOperation,
     stockOps?: StockOperation[],
     financeiroOps?: FinanceiroOperation[]
@@ -159,7 +166,7 @@ class SafeTransactionService {
       this.activeTransactions.set(transactionId, transaction);
 
       // Montar steps na ordem correta
-      const steps = this.buildTransactionSteps(pedidoOp, stockOps, financeiroOps);
+      const steps = this.buildTransactionSteps(tenantId, pedidoOp, stockOps, financeiroOps);
       transaction.steps = steps;
 
       // Processar transação
@@ -197,6 +204,7 @@ class SafeTransactionService {
    * Monta steps na ordem correta para evitar deadlock
    */
   private buildTransactionSteps(
+    tenantId: number,
     pedidoOp?: PedidoOperation,
     stockOps?: StockOperation[],
     financeiroOps?: FinanceiroOperation[]
@@ -205,11 +213,12 @@ class SafeTransactionService {
 
     // 1. Pedidos (ordem: 1)
     if (pedidoOp) {
+      const pedidoOpComTenant = { ...pedidoOp, tenantId };
       steps.push({
         type: 'pedido',
         order: TRANSACTION_ORDER.pedido,
         operation: pedidoOp.acao,
-        data: pedidoOp,
+        data: pedidoOpComTenant,
       });
     }
 
@@ -379,6 +388,11 @@ class SafeTransactionService {
    * Criar pedido
    */
   private async criarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+    // Validate tenantId
+    if (!pedidoOp.tenantId || !Number.isInteger(pedidoOp.tenantId) || pedidoOp.tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para criação de pedido");
+    }
+    
     // Implementação específica para criar pedido
     // Por enquanto, simulação
     const result = await tx.insert(pedidos).values({
@@ -400,7 +414,7 @@ class SafeTransactionService {
         operation: 'criar_pedido'
       },
       {
-        tenantId: pedidoOp.tenantId || 1,
+        tenantId: pedidoOp.tenantId,
         entityId: meta.insertId != null ? String(meta.insertId) : undefined,
         actorUserId: pedidoOp.actorUserId,
         actorVendedorId: pedidoOp.actorVendedorId
@@ -418,6 +432,11 @@ class SafeTransactionService {
    * Atualizar pedido
    */
   private async atualizarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+    // Validate tenantId
+    if (!pedidoOp.tenantId || !Number.isInteger(pedidoOp.tenantId) || pedidoOp.tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para atualização de pedido");
+    }
+    
     const result = await tx
       .update(pedidos)
       .set({
@@ -438,7 +457,7 @@ class SafeTransactionService {
         operation: 'atualizar_pedido'
       },
       {
-        tenantId: pedidoOp.tenantId || 1,
+        tenantId: pedidoOp.tenantId,
         entityId: pedidoOp.pedidoId.toString(),
         actorUserId: pedidoOp.actorUserId,
         actorVendedorId: pedidoOp.actorVendedorId
@@ -457,6 +476,11 @@ class SafeTransactionService {
    * Cancelar pedido
    */
   private async cancelarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+    // Validate tenantId
+    if (!pedidoOp.tenantId || !Number.isInteger(pedidoOp.tenantId) || pedidoOp.tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para cancelamento de pedido");
+    }
+    
     const motivo = pedidoOp.dados?.motivo;
     const result = await tx
       .update(pedidos)
@@ -479,7 +503,7 @@ class SafeTransactionService {
         operation: 'cancelar_pedido'
       },
       {
-        tenantId: pedidoOp.tenantId || 1,
+        tenantId: pedidoOp.tenantId,
         entityId: pedidoOp.pedidoId.toString(),
         actorUserId: pedidoOp.actorUserId,
         actorVendedorId: pedidoOp.actorVendedorId
@@ -652,9 +676,10 @@ export const safeTransactionService = SafeTransactionService.getInstance();
 
 // Exportar funções de utilidade
 export async function processSafeTransaction(
+  tenantId: number,
   pedidoOp?: PedidoOperation,
   stockOps?: StockOperation[],
   financeiroOps?: FinanceiroOperation[]
 ): Promise<SafeTransaction> {
-  return safeTransactionService.processTransaction(pedidoOp, stockOps, financeiroOps);
+  return safeTransactionService.processTransaction(tenantId, pedidoOp, stockOps, financeiroOps);
 }

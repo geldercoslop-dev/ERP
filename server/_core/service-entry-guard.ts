@@ -7,6 +7,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { TrpcContext } from "./context.js";
 import type { SecureRole, SecureToolContext } from "./secure-context.js";
 import { assertSecureContext, isSecureContext, secureRoleFromRequest } from "./secure-context.js";
+import { ValidationError, InfrastructureError } from "./errors/typed-errors.js";
 
 /** Contexto armazenado na cadeia async (serviços + getDb). */
 export type ServiceInvocationStore = SecureToolContext & { __fromTool: true };
@@ -58,16 +59,16 @@ export function buildBootstrapInvocation(tenantId: number): ServiceInvocationSto
 export function buildTrpcInvocationContext(ctx: TrpcContext): ServiceInvocationStore {
   const user = ctx.user;
   if (!user) {
-    throw new Error("buildTrpcInvocationContext: usuário ausente");
+    throw new ValidationError("buildTrpcInvocationContext: usuário ausente");
   }
   const tenantRaw = ctx.tenantId ?? user.tenantId ?? null;
   const tenantId = typeof tenantRaw === "number" && tenantRaw > 0 ? tenantRaw : 0;
   if (!tenantId) {
-    throw new Error("buildTrpcInvocationContext: tenantId inválido");
+    throw new ValidationError("buildTrpcInvocationContext: tenantId inválido");
   }
   const userId = user.id;
   if (!userId || userId <= 0) {
-    throw new Error("buildTrpcInvocationContext: userId inválido");
+    throw new ValidationError("buildTrpcInvocationContext: userId inválido");
   }
   const role: SecureRole = secureRoleFromRequest(
     user.role === "admin" ? "admin" : user.role ?? undefined,
@@ -86,7 +87,7 @@ export function buildTrpcInvocationContext(ctx: TrpcContext): ServiceInvocationS
 function validateInvocationStore(store: ServiceInvocationStore): void {
   assertSecureContext(store);
   if (store.__fromTool !== true) {
-    throw new Error("SECURITY: service só pode ser chamado via tool ou entrada autorizada (__fromTool)");
+    throw new InfrastructureError("SECURITY: service só pode ser chamado via tool ou entrada autorizada (__fromTool)");
   }
 }
 
@@ -107,7 +108,7 @@ export function assertServiceEntryIfEnabled(): void {
 /** Validação explícita (testes com contexto manual). */
 export function assertSecureServiceInvocation(context: unknown): asserts context is ServiceInvocationStore {
   if (!isSecureContext(context) || (context as SecureToolContext).__fromTool !== true) {
-    throw new Error("SECURITY: service só pode ser chamado via tool ou entrada autorizada (__fromTool)");
+    throw new InfrastructureError("SECURITY: service só pode ser chamado via tool ou entrada autorizada (__fromTool)");
   }
   validateInvocationStore(context as ServiceInvocationStore);
 }

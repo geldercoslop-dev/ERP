@@ -7,6 +7,7 @@
 import { AppController } from './app-controller.js';
 import { BrowserController } from './browser-controller.js';
 import { SystemController } from './system-controller.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 export interface DesktopAction {
   type: 'app' | 'browser' | 'system' | 'file';
@@ -59,7 +60,7 @@ export class DesktopController {
           break;
         }
         default:
-          throw new Error(`Invalid action type: ${action.type}`);
+          throw new ValidationError(`Invalid action type: ${action.type}`);
       }
 
       result.executionTime = result.executionTime ?? Date.now() - startTime;

@@ -6,14 +6,16 @@ import type {
   SemanticPattern,
   SemanticSummary,
 } from "../leo/memory/leo-semantic-memory.js";
+import { InfrastructureError } from "../_core/errors/typed-errors.js";
 
 export async function semanticMemoryQueryRows(sqlText: string, params: unknown[]): Promise<RowDataPacket[]> {
   try {
     const pool = await getConnectionPool();
     const [rows] = await pool.query<RowDataPacket[]>(sqlText, params);
     return Array.isArray(rows) ? rows : [];
-  } catch {
-    return [];
+  } catch (error) {
+    console.error('[SemanticMemory] Erro ao consultar dados:', error);
+    throw new InfrastructureError('Falha ao consultar memória semântica');
   }
 }
 
@@ -21,8 +23,9 @@ export async function semanticMemoryExecute(sqlText: string, params: unknown[]):
   try {
     const pool = await getConnectionPool();
     await pool.query(sqlText, params);
-  } catch {
-    void 0;
+  } catch (error) {
+    console.error('[SemanticMemory] Erro ao executar comando:', error);
+    throw new InfrastructureError('Falha ao executar operação na memória semântica');
   }
 }
 

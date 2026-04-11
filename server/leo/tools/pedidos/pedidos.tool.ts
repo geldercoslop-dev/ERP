@@ -5,6 +5,7 @@ import type { LeoToolContext, LeoToolDefinition } from "../types.js";
 import { createToolResponse } from "../tool-response.js";
 import { assertVendedorActor, serviceActorFromLeoExecutionContext } from "../../../_core/service-actor.js";
 import { stripSensitiveIdsFromRecord } from "../../../_core/strip-sensitive-payload.js";
+import { ValidationError } from '../../../_core/errors/typed-errors.js';
 
 const buscarInput = z.object({
   numero: z.number().describe("Número do pedido (número de exibição, não o id interno)"),
@@ -88,7 +89,7 @@ export const criarPedidoTool: LeoToolDefinition<z.infer<typeof criarInput>> = {
     const { tenantId } = ctx;
     const actor = serviceActorFromLeoExecutionContext(ctx);
     if (actor.role !== "vendedor") {
-      throw new Error("criar_pedido: apenas vendedor autenticado (admin use API com trustedVendedorId)");
+      throw new ValidationError("criar_pedido: apenas vendedor autenticado (admin use API com trustedVendedorId)");
     }
     assertVendedorActor(actor);
     const raw = stripSensitiveIdsFromRecord({ ...(input.dados as Record<string, unknown>) });

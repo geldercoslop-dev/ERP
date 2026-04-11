@@ -1,0 +1,19 @@
+name: Type Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - run: pnpm install
+      - run: pnpm typecheck
+      - run: pnpm run verify:drizzle
+      - run: pnpm run verify:any

@@ -8,6 +8,7 @@ import {
   stripForbiddenKeysFromToolInput,
   toSecureToolContext,
 } from '../../_core/tenant-ownership.js';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 import { toolRegistry, ToolDefinition } from './tool-registry.js';
 import { leoLogManager } from '../utils/leo-log-manager.js';
 
@@ -25,7 +26,7 @@ export interface ToolExecutionResult {
 /** Sanitiza input desconhecido para Record<string, unknown> para uso seguro em handlers. */
 function sanitizeToolInput(input: unknown): Record<string, unknown> {
   if (input === null || input === undefined) {
-    return {};
+    return { empty: true, sanitized: null };
   }
   if (typeof input === 'object' && !Array.isArray(input) && Object.getPrototypeOf(input) === Object.prototype) {
     return input as Record<string, unknown>;
@@ -137,19 +138,19 @@ export class ToolExecutor {
 
       const contextValidation = agentPermissions.validateRequiredContext(permissionContext);
       if (!contextValidation.valid) {
-        throw new Error(`Contexto inválido: ${contextValidation.reason}`);
+        throw new ValidationError(`Contexto inválido: ${contextValidation.reason}`);
       }
 
       // 1. Validar permissões antes de buscar tool
       const permissionCheck = agentPermissions.hasPermission(toolName, permissionContext);
       if (!permissionCheck.allowed) {
-        throw new Error(`Permissão negada: ${permissionCheck.reason}`);
+        throw new ValidationError(`Permissão negada: ${permissionCheck.reason}`);
       }
 
       // Validar tool existe
       const tool = toolRegistry.getTool(toolName);
       if (!tool) {
-        throw new Error(`Tool '${toolName}' não encontrada`);
+        throw new ValidationError(`Tool '${toolName}' não encontrada`);
       }
 
       // Validar input com Zod
@@ -158,7 +159,7 @@ export class ToolExecutor {
         const errorMessages = validationResult.error.issues
           .map((e: { path?: unknown[]; message?: string }) => `${(e.path ?? []).map(String).join('.')}: ${e.message ?? 'erro'}`)
           .join(', ');
-        throw new Error(`Input inválido: ${errorMessages}`);
+        throw new ValidationError(`Input inválido: ${errorMessages}`);
       }
 
       // Log antes da execução
@@ -170,7 +171,7 @@ export class ToolExecutor {
         : {};
       const execution = await this.executeToolWithRetry(toolName, payload, invocationCtx);
       if (execution.error) {
-        throw new Error(execution.error);
+        throw new InfrastructureError(execution.error);
       }
       const result = execution.result;
 

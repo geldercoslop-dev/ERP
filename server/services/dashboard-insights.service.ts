@@ -189,7 +189,7 @@ async function getVendedoresAbaixoMedia(
   const limiteAbaixo = media * 0.7;
 
   const vendedoresIds = vendasPorVendedor.map((r) => r.vendedorId);
-  if (vendedoresIds.length === 0) return [];
+  if (vendedoresIds.length === 0) return []; // Ausência legítima - sem vendedores no período
 
   const vendedores = await conn
     .select({ id: db.vendedores.id, nome: db.vendedores.nome })

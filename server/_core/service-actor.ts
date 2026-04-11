@@ -4,6 +4,7 @@
  */
 import type { TrpcContext } from "./context.js";
 import * as db from "../db/index.js";
+import { ValidationError, InfrastructureError } from "./errors/typed-errors.js";
 
 export type ServiceActorRole = "admin" | "vendedor";
 
@@ -20,7 +21,7 @@ export const ADMIN_ACTOR: ServiceActor = { role: "admin" };
 export function assertVendedorActor(actor: ServiceActor): asserts actor is ServiceActor & { vendedorId: number } {
   if (actor.role !== "vendedor") return;
   if (!actor.vendedorId || !Number.isInteger(actor.vendedorId) || actor.vendedorId <= 0) {
-    throw new Error("vendedorId obrigatório e válido para papel vendedor");
+    throw new ValidationError("vendedorId obrigatório e válido para papel vendedor");
   }
 }
 
@@ -30,21 +31,21 @@ export function assertVendedorActor(actor: ServiceActor): asserts actor is Servi
  */
 export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vendedor" | "session" | "tenantId">): Promise<ServiceActor> {
   if (!ctx.user) {
-    throw new Error("Usuário não autenticado");
+    throw new ValidationError("Usuário não autenticado");
   }
   if (ctx.user.role === "admin") {
     return { role: "admin", userId: ctx.user.id };
   }
   if (!ctx.tenantId || ctx.tenantId <= 0) {
-    throw new Error("tenantId obrigatório para resolver actor de serviço");
+    throw new ValidationError("tenantId obrigatório para resolver actor de serviço");
   }
   const tenantId = String(ctx.tenantId);
   const v =
     ctx.vendedor ??
-    (await db.getVendedorByUserId(tenantId, ctx.user.id)) ??
-    (await db.getVendedorById(tenantId, ctx.user.id));
+    (await db.getVendedorByUserId(ctx.user.id)) ??
+    (await db.getVendedorById(ctx.user.id));
   if (!v) {
-    throw new Error("Não foi possível resolver o vendedor para este usuário");
+    throw new InfrastructureError("Não foi possível resolver o vendedor para este usuário");
   }
   let ownerUserId: number | undefined;
   if (v.userId != null && v.userId > 0) {
@@ -53,7 +54,7 @@ export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vende
     ownerUserId = ctx.user.id;
   }
   if (ownerUserId == null || ownerUserId <= 0) {
-    throw new Error("Vendedor sem user_id vinculado para ownership de cliente");
+    throw new InfrastructureError("Vendedor sem user_id vinculado para ownership de cliente");
   }
   return { role: "vendedor", userId: ownerUserId, vendedorId: v.id };
 }
@@ -77,7 +78,7 @@ export function serviceActorFromLeoExecutionContext(ctx: {
   }
   const vid = ctx.vendedorId;
   if (!vid || !Number.isInteger(vid) || vid <= 0) {
-    throw new Error("Contexto LEO incompleto: userRole/vendedorId obrigatórios para vendedor");
+    throw new ValidationError("Contexto LEO incompleto: userRole/vendedorId obrigatórios para vendedor");
   }
   return { role: "vendedor", vendedorId: vid };
 }
@@ -102,5 +103,5 @@ export function actorFromLeoRuntimeContext(ctx: {
   if (vid != null && Number.isInteger(vid) && vid > 0) {
     return { role: "vendedor", vendedorId: vid };
   }
-  throw new Error("Contexto LEO incompleto: vendedorId obrigatório para consulta financeira como não-admin");
+  throw new ValidationError("Contexto LEO incompleto: vendedorId obrigatório para consulta financeira como não-admin");
 }

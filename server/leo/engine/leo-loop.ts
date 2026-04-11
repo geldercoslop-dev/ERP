@@ -184,7 +184,8 @@ export class LeoLoop {
 
     try {
       // Coletar contexto do sistema
-      const systemContext = await buildLeoContext('leo');
+      // TODO: Definir tenantId correto para contexto do loop (exemplo: 1)
+      const systemContext = await buildLeoContext('leo', 1);
 
       // Verificar saúde do sistema
       const systemHealth = await leoSystemMonitor.verificarSistema();
@@ -205,7 +206,7 @@ export class LeoLoop {
         erp: erpData,
         tasks: { pending: 0, total: 0 }, // Simplificado
         events: { open: eventsList.length, total: eventsList.length },
-        health: systemHealth as any,
+        health: systemHealth as { status?: string },
         memory: recentMemory
       };
 

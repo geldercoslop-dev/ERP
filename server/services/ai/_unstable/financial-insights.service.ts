@@ -4,9 +4,11 @@
  * Motor de análise financeira para gerar insights automáticos sobre faturamento e fluxo de caixa
  */
 
-import * as db from "../../db/index.js";
 import * as db from "../../../db/index.js";
 import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from "../../../shared/domain-status.js";
+import { eq, and, sql, ne, lt, gte, lte } from "drizzle-orm";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
+import { ValidationError, InfrastructureError } from "../../../_core/errors/typed-errors.js";
 
 export type FaturamentoDiario = {
   data: string;
@@ -67,7 +69,7 @@ export type FinancialInsights = {
  */
 export async function getFaturamentoDiario(tenantId: number): Promise<FaturamentoDiario[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const trintaDiasAtras = new Date();
@@ -101,7 +103,7 @@ export async function getFaturamentoDiario(tenantId: number): Promise<Faturament
     }));
   } catch (error: unknown) {
     console.error('[LEO Financial Insights] Erro em getFaturamentoDiario:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter faturamento diário', { cause: error });
   }
 }
 
@@ -110,7 +112,7 @@ export async function getFaturamentoDiario(tenantId: number): Promise<Faturament
  */
 export async function getFaturamentoMensal(tenantId: number): Promise<FaturamentoMensal[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const dozeMesesAtras = new Date();
@@ -138,7 +140,7 @@ export async function getFaturamentoMensal(tenantId: number): Promise<Faturament
     
     return faturamento.map((mes, index: number) => {
       if (!('mes' in mes)) {
-        throw new Error('Invalid mes object');
+        throw new ValidationError('Invalid mes object');
       }
       const faturamentoAnterior = index > 0 ? Number(faturamento[index - 1]?.faturamento) : 0;
       const fat = Number(mes.faturamento);
@@ -155,7 +157,7 @@ export async function getFaturamentoMensal(tenantId: number): Promise<Faturament
     });
   } catch (error: unknown) {
     console.error('[LEO Financial Insights] Erro em getFaturamentoMensal:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter faturamento mensal', { cause: error });
   }
 }
 
@@ -164,7 +166,7 @@ export async function getFaturamentoMensal(tenantId: number): Promise<Faturament
  */
 export async function getFluxoCaixa(tenantId: number): Promise<FluxoCaixa[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const trintaDiasAtras = new Date();
@@ -211,7 +213,7 @@ export async function getFluxoCaixa(tenantId: number): Promise<FluxoCaixa[]> {
     return fluxo;
   } catch (error: unknown) {
     console.error('[LEO Financial Insights] Erro em getFluxoCaixa:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter fluxo de caixa', { cause: error });
   }
 }
 
@@ -220,7 +222,7 @@ export async function getFluxoCaixa(tenantId: number): Promise<FluxoCaixa[]> {
  */
 export async function getIndicadoresFinanceiros(): Promise<IndicadorFinanceiro[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const indicadores: IndicadorFinanceiro[] = [];
@@ -291,7 +293,7 @@ export async function getIndicadoresFinanceiros(): Promise<IndicadorFinanceiro[]
     return indicadores;
   } catch (error: unknown) {
     console.error('[LEO Financial Insights] Erro em getIndicadoresFinanceiros:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter indicadores financeiros', { cause: error });
   }
 }
 
@@ -360,7 +362,7 @@ async function getMetasFinanceiras(): Promise<{
 
 async function getFaturamentoMesAtual(): Promise<number> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return 0;
+  assertDbConnection(dbConnection);
 
   try {
     const [result] = await dbConnection
@@ -382,7 +384,7 @@ async function getFaturamentoMesAtual(): Promise<number> {
 
 async function getFaturamentoMesAnterior(): Promise<number> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return 0;
+  assertDbConnection(dbConnection);
 
   try {
     const [result] = await dbConnection
@@ -404,7 +406,7 @@ async function getFaturamentoMesAnterior(): Promise<number> {
 
 async function getTicketMedio(): Promise<number> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return 0;
+  assertDbConnection(dbConnection);
 
   try {
     const [result] = await dbConnection
@@ -426,7 +428,7 @@ async function getTicketMedio(): Promise<number> {
 
 async function getTicketMedioAnterior(): Promise<number> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return 0;
+  assertDbConnection(dbConnection);
 
   try {
     const [result] = await dbConnection
@@ -457,7 +459,7 @@ async function getMargemLucroAnterior(): Promise<number> {
 
 async function getSaldoCaixa(): Promise<number> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return 0;
+  assertDbConnection(dbConnection);
 
   try {
     const [entradas] = await dbConnection

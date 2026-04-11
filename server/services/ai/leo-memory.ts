@@ -15,6 +15,7 @@ export type MemoryEntry = {
   timestamp: Date;
   entidades?: Record<string, unknown>;
   ultimaAcao?: string;
+  tenantId?: number;
 };
 
 /** Contexto de sessão para o LEO (últimas N interações em texto). */
@@ -58,7 +59,8 @@ class LeoMemory {
     pergunta: string,
     resposta: string,
     entidades?: Record<string, unknown>,
-    ultimaAcao?: string
+    ultimaAcao?: string,
+    tenantId?: number
   ): void {
     const entry: MemoryEntry = {
       id: Math.random().toString(36).substring(2, 11),
@@ -68,6 +70,7 @@ class LeoMemory {
       timestamp: new Date(),
       entidades,
       ultimaAcao,
+      tenantId,
     };
 
     const history = this.memoryCache.get(usuario) || [];

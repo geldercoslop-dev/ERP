@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { authLogger } from './logger.js';
+import { ValidationError } from './errors/typed-errors.js';
 
 // Schema para validação de login
 export const loginSchema = z.object({
@@ -205,7 +206,7 @@ export function validateWithLog<T>(schema: z.ZodSchema<T>, data: unknown, contex
         invalidData: data 
       }, 'Validation failed');
       
-      throw new Error(`Validação falhou: ${errors.map((e: { field: string; message: string }) => `${e.field}: ${e.message}`).join(', ')}`);
+      throw new ValidationError(`Validação falhou: ${errors.map((e: { field: string; message: string }) => `${e.field}: ${e.message}`).join(', ')}`);
     }
     
     authLogger.error({ context, error }, 'Unexpected validation error');

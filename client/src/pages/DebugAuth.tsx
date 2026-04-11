@@ -27,7 +27,7 @@ export default function DebugAuth() {
   const checkDbMutation = trpc.system.checkDatabase.useMutation({
     onSuccess: (data) => {
       setDbStatus('success');
-      setDbMessage(`Conexão bem-sucedida. Tabelas: ${data.tables.length}, Vendedores: ${data.vendedores.length}`);
+      setDbMessage(`Conexão bem-sucedida. Tabelas: ${(data as any)?.tables?.length || 0}, Vendedores: ${(data as any)?.vendedores?.length || 0}`);
     },
     onError: (error) => {
       setDbStatus('error');

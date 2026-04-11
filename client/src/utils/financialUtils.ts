@@ -3,6 +3,7 @@
  * 
  * Evita erros de ponto flutuante do JavaScript usando arredondamento correto
  */
+import { ValidationError } from '../lib/errors/typed-errors.js';
 
 /**
  * Arredonda um valor para 2 casas decimais
@@ -51,7 +52,7 @@ export function multiplyWithPrecision(a: number, b: number): number {
  */
 export function divideWithPrecision(dividend: number, divisor: number): number {
   if (divisor === 0) {
-    throw new Error("Divisão por zero");
+    throw new ValidationError("Divisão por zero");
   }
   return roundToTwo(dividend / divisor);
 }

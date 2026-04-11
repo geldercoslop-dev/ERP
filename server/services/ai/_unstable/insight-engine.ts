@@ -1,11 +1,12 @@
 /**
  * Motor de insights do LEO: detecta automaticamente situações relevantes.
  */
-import * as db from "../../db/index.js";
-import { eq, and, sql, ne } from "drizzle-orm";
 import * as db from "../../../db/index.js";
+import { eq, and, sql, ne } from "drizzle-orm";
+import { PedidoStatus, ContaReceberStatus } from "../../../shared/domain-status.js";
 import * as financeService from "../../finance.service.js";
 import { ADMIN_ACTOR } from "../../../_core/service-actor.js";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
 
 export type Insight = {
   tipo: string;
@@ -16,7 +17,7 @@ export type Insight = {
 /** Compara vendas da última semana com a anterior para detectar queda/crescimento. */
 async function compararVendasSemanas(tenantId: number): Promise<{ variacao: number; tipo: "queda" | "crescimento" | "estavel" }> {
   const conn = await db.getDb();
-  if (!conn) return { variacao: 0, tipo: "estavel" };
+  assertDbConnection(conn);
   const hoje = new Date();
   const fimEsta = new Date(hoje);
   const inicioEsta = new Date(hoje);
@@ -74,7 +75,7 @@ async function clientesInadimplentes(tenantId: number): Promise<number> {
 /** Produtos com estoque > 0 e sem venda nos últimos 30 dias (parado). */
 async function estoqueParado(tenantId: number): Promise<number> {
   const conn = await db.getDb();
-  if (!conn) return 0;
+  assertDbConnection(conn);
   const limite = new Date();
   limite.setDate(limite.getDate() - 30);
   
@@ -110,7 +111,7 @@ async function estoqueParado(tenantId: number): Promise<number> {
 /** Produtos com estoque <= 5 (baixo). */
 async function estoqueBaixo(tenantId: number): Promise<number> {
   const conn = await db.getDb();
-  if (!conn) return 0;
+  assertDbConnection(conn);
   const r = await conn
     .select({ count: sql<number>`COUNT(*)` })
     .from(db.produtos)

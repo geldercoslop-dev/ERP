@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import * as db from "./db/index.js";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "./db/index.js";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
 

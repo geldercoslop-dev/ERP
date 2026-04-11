@@ -7,7 +7,6 @@
 import { Router, type Request, type Response } from 'express';
 import {
   getInternalStatus,
-  getPublicHealth,
   internalStatusAuthGuard,
 } from './internal-status.controller.js';
 
@@ -24,15 +23,6 @@ router.get('/status', internalStatusAuthGuard, (req: Request, res: Response) => 
     console.error('Internal status error:', error);
     res.status(500).json({ error: 'Internal server error' });
   });
-});
-
-/**
- * GET /health (público)
- * 
- * Health check simples sem detalhes sensíveis
- */
-router.get('/health', (req: Request, res: Response) => {
-  getPublicHealth(req, res);
 });
 
 export default router;

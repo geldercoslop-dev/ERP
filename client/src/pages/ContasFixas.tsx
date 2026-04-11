@@ -80,7 +80,7 @@ export default function ContasFixas() {
               <Card key={fixa.id} className="border-slate-200">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-900">{fixa.descricao.toUpperCase()}</p>
+                    <p className="font-bold text-slate-900">{fixa.descricao?.toUpperCase()}</p>
                     <p className="text-sm text-slate-500">Vence todo dia {fixa.diaVencimento} | Valor Base: R$ {Number(fixa.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
                   </div>
                   <Button size="icon" variant="ghost" className="text-slate-400 hover:text-red-600">

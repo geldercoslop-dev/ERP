@@ -16,7 +16,7 @@ export class PenetrationTester {
     method: string;
     status: number;
     blocked: boolean;
-    response?: any;
+    response?: unknown;
     error?: string;
     vulnerability?: string;
     severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
@@ -891,7 +891,7 @@ export function createPenetrationTestRoutes() {
   const express = require('express');
   const router = express.Router();
 
-  router.post('/run', async (req: any, res: any) => {
+  router.post('/run', async (req: unknown, res: unknown) => {
     if (process.env.NODE_ENV !== 'development') {
       return res.status(403).json({
         error: 'Forbidden',
@@ -918,7 +918,7 @@ export function createPenetrationTestRoutes() {
     }
   });
 
-  router.get('/report', (req: any, res: any) => {
+  router.get('/report', (req: unknown, res: unknown) => {
     if (process.env.NODE_ENV !== 'development') {
       return res.status(403).json({
         error: 'Forbidden',

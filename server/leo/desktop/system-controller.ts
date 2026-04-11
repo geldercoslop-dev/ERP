@@ -8,6 +8,7 @@ import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 const execAsync = promisify(exec);
 
@@ -19,7 +20,7 @@ export interface SystemAction {
 export interface SystemResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
   error?: string;
   executionTime?: number;
 }
@@ -48,7 +49,7 @@ export class SystemController {
         case 'getEnvironmentVariables':
           return await this.getEnvironmentVariables();
         default:
-          throw new Error(`Unknown system action: ${action}`);
+          throw new ValidationError(`Unknown system action: ${action}`);
       }
     } catch (error) {
       return {
@@ -64,7 +65,7 @@ export class SystemController {
    */
   private async executeCommand(command: string, timeout: number = 30000): Promise<SystemResult> {
     if (!command) {
-      throw new Error('Command is required');
+      throw new ValidationError('Command is required');
     }
 
     // Validação de segurança
@@ -76,7 +77,7 @@ export class SystemController {
 
     for (const dangerous of dangerousCommands) {
       if (command.toLowerCase().includes(dangerous)) {
-        throw new Error(`Command contains dangerous operation: ${dangerous}`);
+        throw new ValidationError(`Command contains dangerous operation: ${dangerous}`);
       }
     }
 
@@ -121,7 +122,7 @@ export class SystemController {
    */
   private async readFileContent(filePath: string): Promise<SystemResult> {
     if (!filePath) {
-      throw new Error('File path is required');
+      throw new ValidationError('File path is required');
     }
 
     try {
@@ -136,7 +137,7 @@ export class SystemController {
       const normalizedPath = filePath.toLowerCase();
       for (const restricted of restrictedPaths) {
         if (normalizedPath.includes(restricted.toLowerCase())) {
-          throw new Error(`Access to restricted path denied: ${restricted}`);
+          throw new ValidationError(`Access to restricted path denied: ${restricted}`);
         }
       }
 
@@ -149,7 +150,7 @@ export class SystemController {
       };
 
     } catch (error) {
-      throw new Error(`Failed to read file ${filePath}: ${error}`);
+      throw new InfrastructureError(`Failed to read file ${filePath}: ${error}`);
     }
   }
 
@@ -157,8 +158,8 @@ export class SystemController {
    * Escreve conteúdo em arquivo
    */
   private async writeFileContent(filePath: string, content: string): Promise<SystemResult> {
-    if (!filePath || content === undefined) {
-      throw new Error('File path and content are required');
+    if (!filePath || !content) {
+      throw new ValidationError('File path and content are required');
     }
 
     try {
@@ -172,7 +173,7 @@ export class SystemController {
       const normalizedPath = filePath.toLowerCase();
       for (const restricted of restrictedPaths) {
         if (normalizedPath.startsWith(restricted.toLowerCase())) {
-          throw new Error(`Write access denied to protected path: ${restricted}`);
+          throw new ValidationError(`Write access denied to protected path: ${restricted}`);
         }
       }
 
@@ -185,7 +186,7 @@ export class SystemController {
       };
 
     } catch (error) {
-      throw new Error(`Failed to write file ${filePath}: ${error}`);
+      throw new InfrastructureError(`Failed to write file ${filePath}: ${error}`);
     }
   }
 
@@ -220,7 +221,7 @@ export class SystemController {
       };
 
     } catch (error) {
-      throw new Error(`Failed to get system info: ${error}`);
+      throw new InfrastructureError(`Failed to get system info: ${error}`);
     }
   }
 
@@ -229,7 +230,7 @@ export class SystemController {
    */
   private async getDirectoryListing(directoryPath: string): Promise<SystemResult> {
     if (!directoryPath) {
-      throw new Error('Directory path is required');
+      throw new ValidationError('Directory path is required');
     }
 
     try {
@@ -243,7 +244,7 @@ export class SystemController {
       };
 
     } catch (error) {
-      throw new Error(`Failed to list directory ${directoryPath}: ${error}`);
+      throw new InfrastructureError(`Failed to list directory ${directoryPath}: ${error}`);
     }
   }
 
@@ -252,7 +253,7 @@ export class SystemController {
    */
   private async createDirectory(directoryPath: string): Promise<SystemResult> {
     if (!directoryPath) {
-      throw new Error('Directory path is required');
+      throw new ValidationError('Directory path is required');
     }
 
     try {
@@ -265,7 +266,7 @@ export class SystemController {
       };
 
     } catch (error) {
-      throw new Error(`Failed to create directory ${directoryPath}: ${error}`);
+      throw new InfrastructureError(`Failed to create directory ${directoryPath}: ${error}`);
     }
   }
 
@@ -274,7 +275,7 @@ export class SystemController {
    */
   private async deleteFile(filePath: string): Promise<SystemResult> {
     if (!filePath) {
-      throw new Error('File path is required');
+      throw new ValidationError('File path is required');
     }
 
     try {
@@ -288,7 +289,7 @@ export class SystemController {
       const normalizedPath = filePath.toLowerCase();
       for (const restricted of restrictedPaths) {
         if (normalizedPath.startsWith(restricted.toLowerCase())) {
-          throw new Error(`Delete access denied to protected path: ${restricted}`);
+          throw new ValidationError(`Delete access denied to protected path: ${restricted}`);
         }
       }
 
@@ -301,7 +302,7 @@ export class SystemController {
       };
 
     } catch (error) {
-      throw new Error(`Failed to delete file ${filePath}: ${error}`);
+      throw new InfrastructureError(`Failed to delete file ${filePath}: ${error}`);
     }
   }
 
@@ -328,7 +329,7 @@ export class SystemController {
       };
 
     } catch (error) {
-      throw new Error(`Failed to get environment variables: ${error}`);
+      throw new InfrastructureError(`Failed to get environment variables: ${error}`);
     }
   }
 

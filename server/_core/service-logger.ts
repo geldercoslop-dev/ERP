@@ -48,7 +48,7 @@ export interface StructuredLog {
   service?: string;
   method?: string;
   traceId: string;
-  payload?: any;
+  payload?: unknown;
   stack?: string;
 }
 
@@ -98,7 +98,7 @@ export function logStructured(
     service?: string;
     method?: string;
     traceId?: string;
-    payload?: any;
+    payload?: unknown;
     error?: Error;
   }
 ): StructuredLog {
@@ -180,7 +180,7 @@ export function logDebug(
     service?: string;
     method?: string;
     traceId?: string;
-    payload?: any;
+    payload?: unknown;
   }
 ): StructuredLog {
   return logStructured(LogLevel.DEBUG, 'DEBUG', message, details);
@@ -198,7 +198,7 @@ export function logInfo(
     service?: string;
     method?: string;
     traceId?: string;
-    payload?: any;
+    payload?: unknown;
   }
 ): StructuredLog {
   return logStructured(LogLevel.INFO, 'INFO', message, details);
@@ -218,7 +218,7 @@ export function logWarning(
     service?: string;
     method?: string;
     traceId?: string;
-    payload?: any;
+    payload?: unknown;
   }
 ): StructuredLog {
   return logStructured(LogLevel.WARNING, type, message, details);
@@ -238,7 +238,7 @@ export function logError(
     service?: string;
     method?: string;
     traceId?: string;
-    payload?: any;
+    payload?: unknown;
     error?: Error;
   }
 ): StructuredLog {
@@ -259,7 +259,7 @@ export function logCritical(
     service?: string;
     method?: string;
     traceId?: string;
-    payload?: any;
+    payload?: unknown;
     error?: Error;
   }
 ): StructuredLog {

@@ -13,7 +13,7 @@ import { leoLoop } from '../../leo/engine/leo-loop.js';
 import { leoLoopProtection } from '../../leo/security/leo-loop-protection.js';
 import { logInfo, logError } from '../../_core/logger.js';
 import type { HealthCheck } from "../../../shared/types/index.js";
-import { sql } from 'drizzle-orm';
+import { pingDatabase } from '../../services/database-health.service.js';
 
 export interface SystemHealth {
   status: 'healthy' | 'degraded' | 'critical';
@@ -119,33 +119,11 @@ async function checkDatabaseHealth(): Promise<{
   status: 'connected' | 'disconnected' | 'error';
   responseTime: number;
 }> {
-  const startTime = Date.now();
-  
-  try {
-    // Simular verificação de conexão (implementar real se necessário)
-    const { getDb } = await import('../../db/index.js');
-    const db = await getDb();
-    
-    if (!db) {
-      return {
-        status: 'disconnected',
-        responseTime: Date.now() - startTime,
-      };
-    }
-    
-    // Tentar uma query simples
-    await db.execute(sql`SELECT 1`);
-    
-    return {
-      status: 'connected',
-      responseTime: Date.now() - startTime,
-    };
-  } catch (error) {
-    return {
-      status: 'error',
-      responseTime: Date.now() - startTime,
-    };
-  }
+  const result = await pingDatabase("SYSTEM_HEALTH");
+  return {
+    status: result.ok ? 'connected' : 'error',
+    responseTime: result.latencyMs >= 0 ? result.latencyMs : 0,
+  };
 }
 
 /**
@@ -297,19 +275,9 @@ export async function getHealthCheck(req: Request, res: Response): Promise<void>
 }
 
 export async function collectHealthCheck(): Promise<HealthCheck> {
-  const { getDb } = await import("../../db/index.js");
-  const db = await getDb();
-  if (!db) {
-    return {
-      status: "unhealthy",
-      timestamp: new Date(),
-      uptime: process.uptime(),
-      version: process.env.npm_package_version || "1.0.0",
-      environment: process.env.NODE_ENV || "development",
-    };
-  }
+  const result = await pingDatabase("HEALTH_CHECK");
   return {
-    status: "healthy",
+    status: result.ok ? "healthy" : "unhealthy",
     timestamp: new Date(),
     uptime: process.uptime(),
     version: process.env.npm_package_version || "1.0.0",

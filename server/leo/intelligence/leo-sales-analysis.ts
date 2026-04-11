@@ -1,30 +1,32 @@
 import * as ordersService from '../../services/orders.service.js';
 import { logInfo, logError } from '../../_core/logger.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 /**
  * Obtém tenantId do ambiente ou lança erro se não disponível
  * CRÍTICO: Não permite fallback para tenant fixo
  */
-function getTenantId(): number {
-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
-  
-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new Error('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
-  }
-  
-  return tenantId;
-}
+
 
 export class LeoSalesAnalysis {
   private readonly name = 'SalesAnalysis';
+  private readonly tenantId: number;
 
-  async calculateAverageTicket(vendedorId?: number, period?: string): Promise<number> {
+  constructor(tenantId: number) {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
+    this.tenantId = tenantId;
+  }
+
+  async calculateAverageTicket(tenantId: number, vendedorId?: number, period?: string): Promise<number> {
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
     try {
       logInfo(`Calculating average ticket for vendedor: ${vendedorId || 'all'}`, {
         extra: { entity: this.name, acao: 'calculateAverageTicket', vendedorId, period },
       });
-
-      if (!Number.isFinite(getTenantId()) || getTenantId() <= 0) return 0;
 
       const daysAgo = period
         ? (() => {
@@ -40,7 +42,7 @@ export class LeoSalesAnalysis {
           })()
         : undefined;
 
-      const { sumTotal, count } = await ordersService.aggregateTicketPedidos(getTenantId(), {
+      const { sumTotal, count } = await ordersService.aggregateTicketPedidos(tenantId, {
         vendedorId,
         since: daysAgo,
       });
@@ -59,7 +61,7 @@ export class LeoSalesAnalysis {
     }
   }
 
-  async analyzeSalesGrowth(period: string = '30d'): Promise<{
+  async analyzeSalesGrowth(tenantId: number, period: string = '30d'): Promise<{
     percentage: number;
     trend: 'increasing' | 'decreasing' | 'stable';
     volume: number;
@@ -69,7 +71,7 @@ export class LeoSalesAnalysis {
         extra: { entity: this.name, acao: 'analyzeSalesGrowth', period },
       });
 
-      if (!Number.isFinite(getTenantId()) || getTenantId() <= 0) {
+      if (!tenantId || !Number.isFinite(tenantId) || tenantId <= 0) {
         return { percentage: 0, trend: 'stable', volume: 0 };
       }
 
@@ -81,12 +83,12 @@ export class LeoSalesAnalysis {
       previousPeriodStart.setDate(previousPeriodStart.getDate() - days);
 
       const currentTotal = await ordersService.sumPedidosTotalBetween(
-        getTenantId(),
+        tenantId,
         currentPeriodStart,
         new Date()
       );
       const previousTotal = await ordersService.sumPedidosTotalBetween(
-        getTenantId(),
+        tenantId,
         previousPeriodStart,
         currentPeriodStart
       );

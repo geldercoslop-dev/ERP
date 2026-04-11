@@ -13,7 +13,7 @@
 
 /** Contexto de runtime construído para o LEO (tomada de decisão / ações). LeoContext em `shared/types` é o tipo canônico de contexto. */
 export interface LeoRuntimeContext {
-  traceId?: string;
+  tenantId: number;
   usuario: {
     id?: number;
     nome: string;
@@ -43,9 +43,10 @@ export interface LeoRuntimeContext {
 /**
  * Constrói o contexto completo do Leo para tomada de decisão
  */
-export async function buildLeoContext(usuarioNome: string): Promise<LeoRuntimeContext> {
+export async function buildLeoContext(usuarioNome: string, tenantId: number): Promise<LeoRuntimeContext> {
   // LEO não acessa DB diretamente: contexto base operacional.
   const contextoBase: LeoRuntimeContext = {
+    tenantId,
     usuario: {
       nome: usuarioNome,
     },

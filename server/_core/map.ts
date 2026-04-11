@@ -8,6 +8,7 @@
  */
 
 import { ENV } from "./env.js";
+import { InfrastructureError } from './errors/typed-errors.js';
 
 // ============================================================================
 // Configuration
@@ -23,7 +24,7 @@ function getMapsConfig(): MapsConfig {
   const apiKey = ENV.forgeApiKey;
 
   if (!baseUrl || !apiKey) {
-    throw new Error(
+    throw new InfrastructureError(
       "Google Maps proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
     );
   }
@@ -81,7 +82,7 @@ export async function makeRequest<T = unknown>(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
+    throw new InfrastructureError(
       `Google Maps API request failed (${response.status} ${response.statusText}): ${errorText}`
     );
   }

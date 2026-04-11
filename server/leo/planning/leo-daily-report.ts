@@ -454,7 +454,7 @@ class LeoDailyReport {
           (e.tipo === 'erro_sistema' || e.tipo === 'integracao_error' || e.tipo === 'backup_falhou')
         );
 
-      const criticos = errosPeriodo.filter((e: any) => e.prioridade === 'critica').length;
+      const criticos = errosPeriodo.filter((e) => e.prioridade === 'critica').length;
 
       // Agrupar por tipo
       const porTipo = new Map<string, { quantidade: number; exemplos: string[] }>();
@@ -539,17 +539,19 @@ class LeoDailyReport {
       const eventosArr = Array.isArray(eventos) ? eventos : [];
       // Filtrar eventos do período
       const eventosPeriodo = eventosArr
-        .filter((e: { dataCriacao?: Date }) => e.dataCriacao && e.dataCriacao >= inicio && e.dataCriacao <= fim);
+        .filter((e: { dataCriacao?: Date; status?: string; prioridade?: string }) =>
+          e.dataCriacao && e.dataCriacao >= inicio && e.dataCriacao <= fim
+        );
 
-      const abertos = eventosPeriodo.filter((e: any) => e.status === 'aberto').length;
-      const resolvidos = eventosPeriodo.filter((e: any) => e.status === 'resolvido').length;
-      const criticos = eventosPeriodo.filter((e: any) => e.prioridade === 'critica').length;
+      const abertos = eventosPeriodo.filter((e) => e.status === 'ativo').length;
+      const resolvidos = eventosPeriodo.filter((e) => e.status === 'resolvido').length;
+      const criticos = eventosPeriodo.filter((e) => e.prioridade === 'critica').length;
 
       const porPrioridade = {
-        critica: eventosPeriodo.filter((e: any) => e.prioridade === 'critica').length,
-        alta: eventosPeriodo.filter((e: any) => e.prioridade === 'alta').length,
-        media: eventosPeriodo.filter((e: any) => e.prioridade === 'media').length,
-        baixa: eventosPeriodo.filter((e: any) => e.prioridade === 'baixa').length,
+        critica: eventosPeriodo.filter((e) => e.prioridade === 'critica').length,
+        alta: eventosPeriodo.filter((e) => e.prioridade === 'alta').length,
+        media: eventosPeriodo.filter((e) => e.prioridade === 'media').length,
+        baixa: eventosPeriodo.filter((e) => e.prioridade === 'baixa').length,
       };
 
       return {
@@ -767,7 +769,7 @@ class LeoDailyReport {
 
     <div class="section">
         <h2>💡 Insights</h2>
-        ${relatorio.insights.map((insight: any) => `
+        ${relatorio.insights.map((insight) => `
             <div class="insight ${insight.tipo === 'risco' ? 'risk' : 'opportunity'}">
                 <strong>${insight.titulo}</strong><br>
                 ${insight.descricao}<br>

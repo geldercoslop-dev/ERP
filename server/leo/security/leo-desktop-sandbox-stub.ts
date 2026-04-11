@@ -23,7 +23,7 @@ export interface SandboxResult {
   message: string;
   blockedReason?: string;
   warnings?: string[];
-  data?: any;
+  data?: unknown;
 }
 
 export interface DesktopAction {

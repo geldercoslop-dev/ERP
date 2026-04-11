@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import * as db from "../db/index.js";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc.js";
 import type { Produto, NewProduto } from "../../shared/types/index.js";
 import { createSuccessResponse, createErrorResponse, createPaginatedResponse } from "../_core/api-response.js";
@@ -45,7 +44,7 @@ export const produtosRouter = router({
       limit: z.number().min(1).max(100).default(50),
       offset: z.number().min(0).default(0),
     }))
-    .query(async ({ input, ctx }): Promise<ApiResponse<Produto[]>> => {
+    .query(async ({ input, ctx }): Promise<ApiResponse<Awaited<ReturnType<typeof inventoryService.getAllProdutosComPrecoVigente>>>> => {
       try {
         const tenantId = await requireTenant(ctx);
         const { items, total } = await inventoryService.getProdutosComPrecoVigentePaged(tenantId, {

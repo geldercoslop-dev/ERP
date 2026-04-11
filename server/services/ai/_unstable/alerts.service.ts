@@ -3,9 +3,11 @@
  * Monitora eventos críticos do sistema e envia notificações amigáveis.
  */
 import { logger, logWarn, logInfo } from '../../../_core/logger.js';
-import * as db from '../../db/index.js';
-import { eq, lt, and, sql, ne } from "drizzle-orm";
 import * as db from '../../../db/index.js';
+import { eq, lt, and, sql, ne } from "drizzle-orm";
+import { ContaReceberStatus, PedidoStatus, CargaStatus } from "../../../shared/domain-status.js";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
+import { InfrastructureError } from "../../../_core/errors/typed-errors.js";
 
 export type Alerta = {
   id: string;
@@ -24,7 +26,7 @@ export type Alerta = {
  */
 export async function verificarEstoqueBaixo(): Promise<Alerta[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const produtos = await dbConnection
@@ -58,7 +60,7 @@ export async function verificarEstoqueBaixo(): Promise<Alerta[]> {
     return alertas;
   } catch (e: unknown) {
     logWarn('Erro ao verificar estoque baixo', { erro: (e as Error)?.message });
-    return [];
+    throw new InfrastructureError('Falha ao verificar estoque baixo', { cause: e });
   }
 }
 
@@ -67,7 +69,7 @@ export async function verificarEstoqueBaixo(): Promise<Alerta[]> {
  */
 export async function verificarContasAtrasadas(): Promise<Alerta[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const hoje = new Date();
@@ -102,7 +104,7 @@ export async function verificarContasAtrasadas(): Promise<Alerta[]> {
     return alertas;
   } catch (e: unknown) {
     logWarn('Erro ao verificar contas atrasadas', { erro: (e as Error)?.message });
-    return [];
+    throw new InfrastructureError('Falha ao verificar contas atrasadas', { cause: e });
   }
 }
 
@@ -111,7 +113,7 @@ export async function verificarContasAtrasadas(): Promise<Alerta[]> {
  */
 export async function verificarVendasBaixas(): Promise<Alerta[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const hoje = new Date();
@@ -153,7 +155,7 @@ export async function verificarVendasBaixas(): Promise<Alerta[]> {
     return [];
   } catch (e: unknown) {
     logWarn('Erro ao verificar vendas baixas', { erro: (e as Error)?.message });
-    return [];
+    throw new InfrastructureError('Falha ao verificar vendas baixas', { cause: e });
   }
 }
 
@@ -162,7 +164,7 @@ export async function verificarVendasBaixas(): Promise<Alerta[]> {
  */
 export async function verificarPedidosPendentes(): Promise<Alerta[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
@@ -200,7 +202,7 @@ export async function verificarPedidosPendentes(): Promise<Alerta[]> {
     return alertas;
   } catch (e: unknown) {
     logWarn('Erro ao verificar pedidos pendentes', { erro: (e as Error)?.message });
-    return [];
+    throw new InfrastructureError('Falha ao verificar pedidos pendentes', { cause: e });
   }
 }
 
@@ -209,7 +211,7 @@ export async function verificarPedidosPendentes(): Promise<Alerta[]> {
  */
 export async function verificarCargasAtrasadas(): Promise<Alerta[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -246,7 +248,7 @@ export async function verificarCargasAtrasadas(): Promise<Alerta[]> {
     return alertas;
   } catch (e: unknown) {
     logWarn('Erro ao verificar cargas atrasadas', { erro: (e as Error)?.message });
-    return [];
+    throw new InfrastructureError('Falha ao verificar cargas atrasadas', { cause: e });
   }
 }
 

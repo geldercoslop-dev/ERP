@@ -1,0 +1,2063 @@
+
+> vendas-app@1.0.0 test C:\ERP
+> vitest run
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/ERP[39m
+
+[90mstdout[2m | tests/architecture-guard.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/audit-hardening-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [32mÔ£ô[39m tests/architecture-guard.spec.ts [2m([22m[2m19 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+[90mstdout[2m | tests/bootstrap.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | tests/health.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+[90mstdout[2m | tests/database.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/health.spec.ts [2m([22m[2m24 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32mÔ£ô[39m tests/database.spec.ts [2m([22m[2m19 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+[90mstdout[2m | tests/bootstrap.spec.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/bootstrap.spec.ts [2m([22m[2m17 tests[22m[2m)[22m[90m 42[2mms[22m[39m
+ [31mÔØ»[39m server/tests/audit-hardening.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | server/tests/http-hardening-validation.test.ts
+[22m[39m­ƒöì INICIANDO VALIDA├ç├âO - HTTP HARDENING
+
+============================================================
+TESTE 1 ÔÇö RATE LIMIT GLOBAL
+============================================================
+­ƒôí Enviando 10 requisi├º├Áes r├ípidas para testar rate limit...
+
+ [31mÔØ»[39m server/tests/http-hardening-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | testRateLimit (C:\ERP\server\tests\http-hardening-validation.test.ts:67:15)
+[22m[39m   ÔÜá´©Å  Rate limit headers n├úo detectados (pode estar OK se n├úo excedeu)
+
+[90mstdout[2m | testRateLimit (C:\ERP\server\tests\http-hardening-validation.test.ts:79:15)
+[22m[39m   Ôä╣´©Å  Nenhuma requisi├º├úo bloqueada (comportamento normal)
+
+[90mstdout[2m | testHardening (C:\ERP\server\tests\http-hardening-validation.test.ts:85:11)
+[22m[39m
+============================================================
+
+[90mstdout[2m | testHardening (C:\ERP\server\tests\http-hardening-validation.test.ts:86:11)
+[22m[39mTESTE 2 ÔÇö SECURITY HEADERS
+
+[90mstdout[2m | testHardening (C:\ERP\server\tests\http-hardening-validation.test.ts:87:11)
+[22m[39m============================================================
+
+[90mstdout[2m | testSecurityHeaders (C:\ERP\server\tests\http-hardening-validation.test.ts:101:13)
+[22m[39m­ƒøí´©Å  Verificando security headers...
+
+[90mstdout[2m | server/tests/schema-consistency.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (11) from .env -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+[90mstdout[2m | server/tests/schema-consistency.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | server/tests/schema-consistency.test.ts[2m > [22m[2mSchema Consistency Tests
+[22m[39mÔ£ô Conectado ao banco de dados
+
+[90mstdout[2m | tests/routers/validation.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/routers/validation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+[90mstdout[2m | tests/env.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/env.spec.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+[90mstdout[2m | server/tests/schema-consistency.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/schema-consistency.test.ts [2m([22m[2m66 tests[22m[2m | [22m[31m32 failed[39m[2m)[22m[33m 551[2mms[22m[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela users deve ter coluna tenant_id[90m 18[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela vendedores deve ter coluna tenant_id[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela cargas deve ter coluna tenant_id[90m 11[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela clientes deve ter coluna tenant_id[90m 15[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela cores deve ter coluna tenant_id[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela produtos deve ter coluna tenant_id[90m 8[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela pedidos deve ter coluna tenant_id[90m 10[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela comissoes deve ter coluna tenant_id[90m 29[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela contas_fixas deve ter coluna tenant_id[90m 10[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela contas_pagar deve ter coluna tenant_id[90m 7[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela contas_receber deve ter coluna tenant_id[90m 6[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela counters deve ter coluna tenant_id[90m 4[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela grupos_precificacao deve ter coluna tenant_id[90m 6[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela itens_pedido deve ter coluna tenant_id[90m 10[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela plano_contas deve ter coluna tenant_id[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mMulti-tenant tenant_id presence[2m > [22mtabela pedidos_carga deve ter coluna tenant_id[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22musers.open_id deve existir em snake_case[90m 10[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar users.open_id: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22musers.login_method deve existir em snake_case[90m 8[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar users.login_method: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22musers.created_at deve existir em snake_case[90m 3[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar users.created_at: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22musers.updated_at deve existir em snake_case[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar users.updated_at: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22musers.tenant_id deve existir em snake_case[90m 4[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar users.tenant_id: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22mvendedores.user_id deve existir em snake_case[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar vendedores.user_id: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22mvendedores.created_at deve existir em snake_case[90m 6[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar vendedores.created_at: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22mvendedores.updated_at deve existir em snake_case[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar vendedores.updated_at: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22mvendedores.tenant_id deve existir em snake_case[90m 8[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar vendedores.tenant_id: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22mcores.created_at deve existir em snake_case[90m 8[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar cores.created_at: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mSnake_case column naming[2m > [22mcores.tenant_id deve existir em snake_case[90m 9[2mms[22m[31m[39m
+[31m     ÔåÆ Erro ao verificar cores.tenant_id: expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mTenants master table[2m > [22mtabela tenants deve existir[90m 5[2mms[22m[31m[39m
+[31m     ÔåÆ expected +0 to be 1 // Object.is equality[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mTenants master table[2m > [22mdeve existir pelo menos 1 tenant configurado[90m 7[2mms[22m[31m[39m
+[31m     ÔåÆ Table 'test.tenants' doesn't exist[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mTenants master table[2m > [22mtenant default (id=1) deve existir[90m 4[2mms[22m[31m[39m
+[31m     ÔåÆ Table 'test.tenants' doesn't exist[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mData integrity[2m > [22mtodas as linhas de vendedores devem ter tenant_id not null[90m 3[2mms[22m[31m[39m
+[31m     ÔåÆ Table 'test.vendedores' doesn't exist[39m
+[31m   [31m├ù[31m Schema Consistency Tests[2m > [22mData integrity[2m > [22mtodas as linhas de users devem ter tenant_id not null[90m 9[2mms[22m[31m[39m
+[31m     ÔåÆ Table 'test.users' doesn't exist[39m
+{"level":30,"time":1775484976272,"service":"erp-server","message":"[CB] Circuit breaker criado para timeout-test"}
+[90mstdout[2m | tests/resilience-integration.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+{"level":50,"time":1775484976280,"timestamp":"2026-04-06T14:16:16.279Z","level":"ERROR","message":"­ƒÜ¿ HIGH ERROR RATE DETECTED","module":"error-rate-monitor","metadata":{"errorCount":4,"threshold":3,"windowMs":1000,"windowSeconds":1,"context":"ALERT","severity":"CRITICAL"}}
+[90mstdout[2m | tests/observability.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+{"level":50,"time":1775484976291,"timestamp":"2026-04-06T14:16:16.290Z","level":"ERROR","message":"­ƒÜ¿ HIGH ERROR RATE DETECTED","module":"error-rate-monitor","metadata":{"errorCount":4,"threshold":3,"windowMs":1000,"windowSeconds":1,"context":"ALERT","severity":"CRITICAL"}}
+[90mstdout[2m | server/tests/database-consistency.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/database-consistency.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 6[2mms[22m[39m
+ [31mÔØ»[39m server/tests/audit-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+{"level":50,"time":1775484976907,"service":"erp-server","error":"SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado","payload":"{\"tenantId\":1,\"action\":\"large_payload_test\",\"entity\":\"test\",\"payload\":{\"data\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"metadata\":{\"description\":\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"details\":\"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\"}}}","timestamp":"2026-04-06T14:16:16.906Z","msg":"Failed to record audit log"}
+{"level":50,"time":1775484976921,"service":"erp-server","error":"SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado","payload":"{\"tenantId\":1,\"action\":\"small_payload_test\",\"entity\":\"test\",\"payload\":{\"user\":\"testuser\",\"action\":\"login\",\"timestamp\":\"2026-04-06T14:16:16.920Z\"}}","timestamp":"2026-04-06T14:16:16.921Z","msg":"Failed to record audit log"}
+{"level":50,"time":1775484976923,"service":"erp-server","error":"SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado","payload":"{\"tenantId\":1,\"action\":\"sensitive_data_test\",\"entity\":\"test\",\"payload\":{\"username\":\"testuser\",\"password\":\"123456\",\"token\":\"abc123xyz789\",\"apiKey\":\"secret_key_123\",\"normalField\":\"normal value\"}}","timestamp":"2026-04-06T14:16:16.923Z","msg":"Failed to record audit log"}
+{"level":50,"time":1775484976925,"service":"erp-server","error":"SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado","payload":"{\"tenantId\":1,\"action\":\"xss_test\",\"entity\":\"test\",\"payload\":{\"input\":\"<script>alert(1)</script>\",\"description\":\"<div onclick=\\\"alert(2)\\\">click me</div>\",\"url\":\"javascript:alert(3)\",\"iframe\":\"<iframe src=\\\"evil.com\\\"></iframe>\",\"normalText\":\"normal text without scripts\"}}","timestamp":"2026-04-06T14:16:16.925Z","msg":"Failed to record audit log"}
+{"level":50,"time":1775484976937,"service":"erp-server","error":"SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado","payload":"{\"tenantId\":1,\"action\":\"ip_test\",\"entity\":\"test\",\"payload\":{\"test\":\"ip capture\"}}","timestamp":"2026-04-06T14:16:16.937Z","msg":"Failed to record audit log"}
+ [31mÔØ»[39m server/tests/audit-hardening-simple.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | server/tests/audit-hardening-simple.test.ts
+[22m[39m­ƒöì INICIANDO VALIDA├ç├âO DE HARDENING - AuditLogService
+
+============================================================
+CASO 1 ÔÇö PAYLOAD GRANDE (>6000 chars)
+============================================================
+­ƒôï Payload grande deve ser truncado
+ÔØî Payload grande deve ser truncado - FALHOU: Error: Erros de sanitiza├º├úo detectados
+
+­ƒôï Payload pequeno n├úo deve ser truncado
+ÔØî Payload pequeno n├úo deve ser truncado - FALHOU: Error: Erro inesperado com payload pequeno
+
+
+============================================================
+CASO 2 ÔÇö DADOS SENS├ìVEIS
+============================================================
+­ƒôï Remover password e token
+ÔØî Remover password e token - FALHOU: Error: Falha ao processar dados sens├¡veis
+
+
+============================================================
+CASO 3 ÔÇö XSS
+============================================================
+­ƒôï Sanitizar scripts e HTML
+ÔØî Sanitizar scripts e HTML - FALHOU: Error: Falha ao sanitizar XSS
+
+
+============================================================
+CASO 4 ÔÇö IP REAL
+============================================================
+­ƒôï Capturar cf-connecting-ip
+ÔØî Capturar cf-connecting-ip - FALHOU: Error: Falha ao capturar IP real
+
+
+============================================================
+CASO 5 ÔÇö FAIL-SAFE
+============================================================
+­ƒôï Capturar erro sem quebrar aplica├º├úo
+ÔØî Capturar erro sem quebrar aplica├º├úo - FALHOU: Error: Fail-safe n├úo funcionou
+
+
+============================================================
+VALIDA├ç├âO FINAL
+============================================================
+­ƒôï Verificar tipagem forte (sem any)
+   Ô£ô Nenhum tipo "any" encontrado
+Ô£à Verificar tipagem forte (sem any) - PASSOU
+
+­ƒôï Verificar Record<string, unknown>
+   Ô£ô Record<string, unknown> encontrado (8 ocorr├¬ncias)
+Ô£à Verificar Record<string, unknown> - PASSOU
+
+
+============================================================
+­ƒÄë VALIDA├ç├âO DE HARDENING CONCLU├ìDA
+============================================================
+
+stderr | server/tests/audit-hardening-simple.test.ts
+AUDIT_FAIL ServiceContextMissingError: SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado
+    at Module.assertServiceEntryIfEnabled (C:\ERP\server\_core\service-entry-guard.ts:102:11)
+    at Module.getDb (C:\ERP\server\db\core.ts:77:3)
+    at AuditLogService.logAction (C:\ERP\server\services\audit-log.service.ts:207:24)
+    at C:\ERP\server\tests\audit-hardening-simple.test.ts:54:29
+    at testCase (C:\ERP\server\tests\audit-hardening-simple.test.ts:30:11)
+    at runTests (C:\ERP\server\tests\audit-hardening-simple.test.ts:42:9)
+    at C:\ERP\server\tests\audit-hardening-simple.test.ts:295:1
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at VitestExecutor.runModule (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/client.mjs:399:5)
+    at VitestExecutor.directRequest (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/client.mjs:381:5) {
+  code: 'SERVICE_CONTEXT_MISSING',
+  timestamp: '2026-04-06T14:16:16.890Z',
+  suggestion: 'Envolver chamada com runWithServiceInvocationAsync(buildBootstrapInvocation(tenantId), async () => { ... })'
+}
+AUDIT_FAIL ServiceContextMissingError: SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado
+    at Module.assertServiceEntryIfEnabled (C:\ERP\server\_core\service-entry-guard.ts:102:11)
+    at Module.getDb (C:\ERP\server\db\core.ts:77:3)
+    at AuditLogService.logAction (C:\ERP\server\services\audit-log.service.ts:207:24)
+    at C:\ERP\server\tests\audit-hardening-simple.test.ts:86:29
+    at testCase (C:\ERP\server\tests\audit-hardening-simple.test.ts:30:11)
+    at runTests (C:\ERP\server\tests\audit-hardening-simple.test.ts:76:9)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'SERVICE_CONTEXT_MISSING',
+  timestamp: '2026-04-06T14:16:16.921Z',
+  suggestion: 'Envolver chamada com runWithServiceInvocationAsync(buildBootstrapInvocation(tenantId), async () => { ... })'
+}
+AUDIT_FAIL ServiceContextMissingError: SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado
+    at Module.assertServiceEntryIfEnabled (C:\ERP\server\_core\service-entry-guard.ts:102:11)
+    at Module.getDb (C:\ERP\server\db\core.ts:77:3)
+    at AuditLogService.logAction (C:\ERP\server\services\audit-log.service.ts:207:24)
+    at C:\ERP\server\tests\audit-hardening-simple.test.ts:123:29
+    at testCase (C:\ERP\server\tests\audit-hardening-simple.test.ts:30:11)
+    at runTests (C:\ERP\server\tests\audit-hardening-simple.test.ts:111:9)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'SERVICE_CONTEXT_MISSING',
+  timestamp: '2026-04-06T14:16:16.922Z',
+  suggestion: 'Envolver chamada com runWithServiceInvocationAsync(buildBootstrapInvocation(tenantId), async () => { ... })'
+}
+AUDIT_FAIL ServiceContextMissingError: SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado
+    at Module.assertServiceEntryIfEnabled (C:\ERP\server\_core\service-entry-guard.ts:102:11)
+    at Module.getDb (C:\ERP\server\db\core.ts:77:3)
+    at AuditLogService.logAction (C:\ERP\server\services\audit-log.service.ts:207:24)
+    at C:\ERP\server\tests\audit-hardening-simple.test.ts:160:29
+    at testCase (C:\ERP\server\tests\audit-hardening-simple.test.ts:30:11)
+    at runTests (C:\ERP\server\tests\audit-hardening-simple.test.ts:148:9)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'SERVICE_CONTEXT_MISSING',
+  timestamp: '2026-04-06T14:16:16.924Z',
+  suggestion: 'Envolver chamada com runWithServiceInvocationAsync(buildBootstrapInvocation(tenantId), async () => { ... })'
+}
+AUDIT_FAIL ServiceContextMissingError: SECURITY: contexto de servi├ºo ausente ÔÇö use runWithServiceInvocation / executor de tools / tRPC autenticado
+    at Module.assertServiceEntryIfEnabled (C:\ERP\server\_core\service-entry-guard.ts:102:11)
+    at Module.getDb (C:\ERP\server\db\core.ts:77:3)
+    at AuditLogService.logAction (C:\ERP\server\services\audit-log.service.ts:207:24)
+    at C:\ERP\server\tests\audit-hardening-simple.test.ts:200:29
+    at testCase (C:\ERP\server\tests\audit-hardening-simple.test.ts:30:11)
+    at runTests (C:\ERP\server\tests\audit-hardening-simple.test.ts:185:9)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'SERVICE_CONTEXT_MISSING',
+  timestamp: '2026-04-06T14:16:16.936Z',
+  suggestion: 'Envolver chamada com runWithServiceInvocationAsync(buildBootstrapInvocation(tenantId), async () => { ... })'
+}
+
+ [31mÔØ»[39m tests/integration/ownership.test.ts [2m([22m[2m0 test[22m[2m)[22m
+stderr | tests/integration/pedidos-heavy.integration.test.ts
+
+[pedidos-heavy] MySQL indispon├¡vel ÔÇö su├¡te ignorada.
+
+
+ [31mÔØ»[39m tests/integration/pedidos-heavy.integration.test.ts [2m([22m[2m0 test[22m[2m)[22m
+stderr | server/services/core-business-real.test.ts > CORE: neg├│cio real (DB)
+[ENV] inv├ílido:
+[ENV]  - JWT_SECRET: Invalid input: expected string, received undefined
+[ENV]  - REDIS_HOST: Invalid input: expected string, received undefined
+[ENV]  - REDIS_PORT: Invalid input: expected string, received undefined
+
+[90mstdout[2m | server/services/core-business-real.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/services/core-business-real.test.ts [2m([22m[2m6 tests[22m[2m | [22m[33m6 skipped[39m[2m)[22m[90m 22[2mms[22m[39m
+{"level":40,"time":1775484977295,"service":"erp-server","message":"[CB:timeout-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":40,"time":1775484977296,"timestamp":"2026-04-06T14:16:17.296Z","level":"WARN","message":"Query timeout (1000ms)","module":"query-wrapper","metadata":{"serviceName":"timeout-test","attempt":1,"error":"Query timeout (1000ms)"}}
+{"level":50,"time":1775484977295,"service":"erp-server","msg":"[CB:timeout-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":30,"time":1775484977298,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977299,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977300,"service":"erp-server","message":"[CB] Circuit breaker criado para ok-timeout-test"}
+{"level":30,"time":1775484977400,"timestamp":"2026-04-06T14:16:17.400Z","level":"INFO","message":"Error rate returned to normal","module":"error-rate-monitor","metadata":{"context":"ALERT_CLEARED","threshold":3}}
+{"level":20,"time":1775484977408,"timestamp":"2026-04-06T14:16:17.408Z","level":"DEBUG","message":"Query succeeded (attempt 1/1)","module":"query-wrapper","metadata":{"serviceName":"ok-timeout-test","attempt":1,"circuitBreakerStatus":"CLOSED"}}
+{"level":30,"time":1775484977408,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":50,"time":1775484977410,"timestamp":"2026-04-06T14:16:17.410Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"circuit-test","maxRetries":1,"error":"Service unavailable","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775484977410,"timestamp":"2026-04-06T14:16:17.410Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977410,\"nextAttemptTime\":1775484978410,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977410,"timestamp":"2026-04-06T14:16:17.410Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977410,\"nextAttemptTime\":1775484978410,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977411,"timestamp":"2026-04-06T14:16:17.411Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977410,\"nextAttemptTime\":1775484978410,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977411,"timestamp":"2026-04-06T14:16:17.411Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977410,\"nextAttemptTime\":1775484978410,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977411,"timestamp":"2026-04-06T14:16:17.411Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977410,\"nextAttemptTime\":1775484978410,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977411,"timestamp":"2026-04-06T14:16:17.411Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977410,\"nextAttemptTime\":1775484978410,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977411,"timestamp":"2026-04-06T14:16:17.411Z","level":"WARN","message":"Circuit breaker aberto para circuit-test","module":"query-wrapper","metadata":{"serviceName":"circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977410,\"nextAttemptTime\":1775484978410,\"averageResponseTime\":0}"}}
+{"level":50,"time":1775484977413,"timestamp":"2026-04-06T14:16:17.413Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775484977413,"timestamp":"2026-04-06T14:16:17.413Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977413,"timestamp":"2026-04-06T14:16:17.413Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977413,"timestamp":"2026-04-06T14:16:17.413Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977413,"timestamp":"2026-04-06T14:16:17.413Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977413,"timestamp":"2026-04-06T14:16:17.413Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977414,"timestamp":"2026-04-06T14:16:17.414Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977414,"timestamp":"2026-04-06T14:16:17.414Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977414,"timestamp":"2026-04-06T14:16:17.414Z","level":"WARN","message":"Circuit breaker aberto para open-circuit-test","module":"query-wrapper","metadata":{"serviceName":"open-circuit-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977413,\"nextAttemptTime\":1775485007413,\"averageResponseTime\":0}"}}
+{"level":50,"time":1775484977415,"timestamp":"2026-04-06T14:16:17.415Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"half-open-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775484977416,"timestamp":"2026-04-06T14:16:17.416Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977415,\"nextAttemptTime\":1775484977565,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977416,"timestamp":"2026-04-06T14:16:17.416Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977415,\"nextAttemptTime\":1775484977565,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977416,"timestamp":"2026-04-06T14:16:17.416Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977415,\"nextAttemptTime\":1775484977565,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977416,"timestamp":"2026-04-06T14:16:17.416Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977415,\"nextAttemptTime\":1775484977565,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977416,"timestamp":"2026-04-06T14:16:17.416Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977415,\"nextAttemptTime\":1775484977565,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977416,"timestamp":"2026-04-06T14:16:17.416Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977415,\"nextAttemptTime\":1775484977565,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977416,"timestamp":"2026-04-06T14:16:17.416Z","level":"WARN","message":"Circuit breaker aberto para half-open-test","module":"query-wrapper","metadata":{"serviceName":"half-open-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977415,\"nextAttemptTime\":1775484977565,\"averageResponseTime\":0}"}}
+{"level":30,"time":1775484977408,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977409,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977409,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977409,"service":"erp-server","message":"[CB] Circuit breaker criado para circuit-test"}
+{"level":40,"time":1775484977410,"service":"erp-server","message":"[CB:circuit-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775484977410,"service":"erp-server","msg":"[CB:circuit-test] Circuit ABERTO! Pr├│xima tentativa em 1s"}
+{"level":40,"time":1775484977410,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775484977410,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775484977410,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775484977411,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775484977411,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775484977411,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":40,"time":1775484977411,"service":"erp-server","message":"[CB:circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 1s)"}
+{"level":30,"time":1775484977412,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977412,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977412,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977412,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977412,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977412,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977413,"service":"erp-server","message":"[CB] Circuit breaker criado para open-circuit-test"}
+{"level":40,"time":1775484977413,"service":"erp-server","message":"[CB:open-circuit-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775484977413,"service":"erp-server","msg":"[CB:open-circuit-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775484977413,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977413,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977413,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977413,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977413,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977413,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977414,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977414,"service":"erp-server","message":"[CB:open-circuit-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977414,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977415,"service":"erp-server","message":"[CB] Circuit breaker criado para half-open-test"}
+{"level":40,"time":1775484977415,"service":"erp-server","message":"[CB:half-open-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775484977415,"service":"erp-server","msg":"[CB:half-open-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775484977415,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977416,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977416,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977416,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977416,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977416,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977416,"service":"erp-server","message":"[CB:half-open-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m[INFO] [INFO] [ksXcuBDhlp]: Iniciando prote├º├úo de servi├ºos...
+[INFO] [INFO] [P1xj14mTZR]: Prote├º├úo in-place de servi├ºos desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [gVDuDBKzqH]: Iniciando monitor de servi├ºos
+[INFO] [INFO] [8io9xl8m2J]: Prote├º├úo de servi├ºos aplicada com sucesso
+
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m[INFO] [INFO] [Se4cRhS6Zx]: Iniciando prote├º├úo de servi├ºos...
+[INFO] [INFO] [3icr2EGNil]: Prote├º├úo in-place de servi├ºos desativada (namespace ESM read-only). Esperado em Node ESM.
+[INFO] [INFO] [DwlPlHYZfK]: Iniciando monitor de servi├ºos
+[INFO] [INFO] [TGukIGrt8l]: Prote├º├úo de servi├ºos aplicada com sucesso
+
+{"level":30,"time":1775484977631,"service":"erp-server","message":"[CB:half-open-test] Transitando para HALF_OPEN (testando recupera├º├úo)"}
+{"level":50,"time":1775484977632,"timestamp":"2026-04-06T14:16:17.632Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"half-open-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":50,"time":1775484977632,"service":"erp-server","msg":"[CB:half-open-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775484977632,"service":"erp-server","message":"[CB:half-open-test] Falha em HALF_OPEN, reabrindo circuit"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977635,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977636,"service":"erp-server","message":"[CB] Circuit breaker criado para half-to-closed-test"}
+{"level":40,"time":1775484977636,"service":"erp-server","message":"[CB:half-to-closed-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775484977636,"service":"erp-server","msg":"[CB:half-to-closed-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775484977636,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977636,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977637,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977637,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977637,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977637,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":40,"time":1775484977637,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 0s)"}
+{"level":50,"time":1775484977636,"timestamp":"2026-04-06T14:16:17.636Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775484977636,"timestamp":"2026-04-06T14:16:17.636Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977636,\"nextAttemptTime\":1775484977786,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977637,"timestamp":"2026-04-06T14:16:17.637Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977636,\"nextAttemptTime\":1775484977786,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977637,"timestamp":"2026-04-06T14:16:17.637Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977636,\"nextAttemptTime\":1775484977786,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977637,"timestamp":"2026-04-06T14:16:17.637Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977636,\"nextAttemptTime\":1775484977786,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977637,"timestamp":"2026-04-06T14:16:17.637Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977636,\"nextAttemptTime\":1775484977786,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977637,"timestamp":"2026-04-06T14:16:17.637Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977636,\"nextAttemptTime\":1775484977786,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484977637,"timestamp":"2026-04-06T14:16:17.637Z","level":"WARN","message":"Circuit breaker aberto para half-to-closed-test","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977636,\"nextAttemptTime\":1775484977786,\"averageResponseTime\":0}"}}
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m[BOOT] loadEnv ÔÇö in├¡cio
+[ENV] carregamento de .env habilitado apenas em desenvolvimentoÔÇª
+[dotenv@17.3.1] injecting env (11) from .env -- tip: ÔÜÖ´©Å  write to custom object with { processEnv: myObject }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m[BOOT] loadEnv ÔÇö in├¡cio
+[ENV] carregamento de .env habilitado apenas em desenvolvimentoÔÇª
+[dotenv@17.3.1] injecting env (11) from .env -- tip: ­ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+
+{"level":30,"time":1775484977846,"service":"erp-server","message":"[CB:half-to-closed-test] Transitando para HALF_OPEN (testando recupera├º├úo)"}
+{"level":50,"time":1775484977846,"timestamp":"2026-04-06T14:16:17.846Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"half-to-closed-test","maxRetries":1,"error":"Failure","circuitBreakerStatus":"OPEN"}}
+{"level":50,"time":1775484977846,"service":"erp-server","msg":"[CB:half-to-closed-test] Circuit ABERTO! Pr├│xima tentativa em 0s"}
+{"level":40,"time":1775484977846,"service":"erp-server","message":"[CB:half-to-closed-test] Falha em HALF_OPEN, reabrindo circuit"}
+{"level":30,"time":1775484977858,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977858,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977858,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977858,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977858,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977858,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977859,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977859,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977859,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977859,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977859,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977859,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977859,"service":"erp-server","message":"[CB] Circuit breaker criado para retry-test"}
+{"level":40,"time":1775484977859,"service":"erp-server","message":"[CB:retry-test] Taxa de falha 100% >= limiar 80%, abrindo circuit"}
+{"level":50,"time":1775484977859,"service":"erp-server","msg":"[CB:retry-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775484977860,"timestamp":"2026-04-06T14:16:17.860Z","level":"WARN","message":"Query failed, retrying in 10ms","module":"query-wrapper","metadata":{"serviceName":"retry-test","attempt":1,"maxRetries":3,"error":"Transient failure"}}
+{"level":40,"time":1775484977884,"service":"erp-server","message":"[CB:retry-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977884,"timestamp":"2026-04-06T14:16:17.884Z","level":"WARN","message":"Circuit breaker aberto para retry-test","module":"query-wrapper","metadata":{"serviceName":"retry-test","attempt":2,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977859,\"nextAttemptTime\":1775485007859,\"averageResponseTime\":0}"}}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977886,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977887,"service":"erp-server","message":"[CB] Circuit breaker criado para backoff-test"}
+{"level":40,"time":1775484977887,"service":"erp-server","message":"[CB:backoff-test] Taxa de falha 100% >= limiar 80%, abrindo circuit"}
+{"level":50,"time":1775484977887,"service":"erp-server","msg":"[CB:backoff-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775484977887,"timestamp":"2026-04-06T14:16:17.887Z","level":"WARN","message":"Query failed, retrying in 50ms","module":"query-wrapper","metadata":{"serviceName":"backoff-test","attempt":1,"maxRetries":3,"error":"Failure"}}
+{"level":30,"time":1775484977892,"service":"erp-server","message":"[CB] Circuit breaker criado para database-query"}
+[90mstdout[2m | tests/auth-security.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | tests/auth-security.test.ts[2m > [22m[2mAutentica├º├úo Segura[2m > [22m[2mdeve criar sess├úo v├ílida
+[22m[39mDB CONFIG: {
+  host: [32m'127.0.0.1'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'test'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'test'[39m,
+  envDbName: [32m'test'[39m
+}
+[Database] Creating connection pool to MySQL at 127.0.0.1:3306
+
+{"level":40,"time":1775484977939,"service":"erp-server","message":"[CB:backoff-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484977939,"timestamp":"2026-04-06T14:16:17.939Z","level":"WARN","message":"Circuit breaker aberto para backoff-test","module":"query-wrapper","metadata":{"serviceName":"backoff-test","attempt":2,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484977887,\"nextAttemptTime\":1775485007887,\"averageResponseTime\":0}"}}
+{"level":30,"time":1775484977941,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:backoff-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977942,"service":"erp-server","message":"[CB:backoff-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484977943,"service":"erp-server","message":"[CB] Circuit breaker criado para order-test"}
+{"level":30,"time":1775484977995,"timestamp":"2026-04-06T14:16:17.995Z","level":"INFO","message":"MySQL instrumentation enabled","module":"mysql-instrumentation","metadata":{"hasQuery":true,"hasExecute":true}}
+[90mstdout[2m | tests/auth-security.test.ts[2m > [22m[2mAutentica├º├úo Segura[2m > [22m[2mdeve criar sess├úo v├ílida
+[22m[39m[Database] Connection test successful on attempt 1
+[Database] Connection pool created and tested successfully
+[Database] OpenTelemetry instrumentation enabled
+
+{"level":50,"time":1775484978021,"timestamp":"2026-04-06T14:16:18.021Z","level":"ERROR","message":"Database query failed","module":"database-config","duration":92,"query":"SELECT token, createdAt, expiresAt FROM sessions WHERE userId = ? AND expiresAt > ? ORDER BY createdAt ASC","error":{"message":"Table 'test.sessions' doesn't exist","stack":"Error: Table 'test.sessions' doesn't exist\n    at PromisePoolConnection.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\connection.js:29:22)\n    at _executeQueryCore (C:\\ERP\\server\\config\\database.ts:333:31)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at CircuitBreaker.fire (C:\\ERP\\server\\infra\\circuit-breaker.ts:96:22)\n    at Module.executeWithResilience (C:\\ERP\\server\\resilience\\query-wrapper.ts:63:22)\n    at SessionService.cleanupOldSessions (C:\\ERP\\server\\_core\\session.service.ts:136:33)\n    at SessionService.createSession (C:\\ERP\\server\\_core\\session.service.ts:29:7)\n    at C:\\ERP\\tests\\auth-security.test.ts:59:28\n    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5\n    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)"}}
+{"level":40,"time":1775484978022,"service":"erp-server","message":"[CB:database-query] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":40,"time":1775484978023,"timestamp":"2026-04-06T14:16:18.023Z","level":"WARN","message":"Query failed, retrying in 1000ms","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"maxRetries":3,"error":"Table 'test.sessions' doesn't exist"}}
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve criar sess├úo v├ílida
+[ERROR-TRACKING] {"timestamp":"2026-04-06T14:16:18.021Z","level":"ERROR","message":"Table 'test.sessions' doesn't exist","stack":"Error: Table 'test.sessions' doesn't exist\n    at PromisePoolConnection.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\connection.js:29:22)\n    at _executeQueryCore (C:\\ERP\\server\\config\\database.ts:333:31)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at CircuitBreaker.fire (C:\\ERP\\server\\infra\\circuit-breaker.ts:96:22)\n    at Module.executeWithResilience (C:\\ERP\\server\\resilience\\query-wrapper.ts:63:22)\n    at SessionService.cleanupOldSessions (C:\\ERP\\server\\_core\\session.service.ts:136:33)\n    at SessionService.createSession (C:\\ERP\\server\\_core\\session.service.ts:29:7)\n    at C:\\ERP\\tests\\auth-security.test.ts:59:28\n    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5\n    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)","context":{"duration":92}}
+
+{"level":50,"time":1775484978023,"service":"erp-server","msg":"[CB:database-query] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+[90mstdout[2m | server/tests/http-hardening-static-validation.test.ts
+[22m[39m­ƒöì VALIDA├ç├âO - HTTP HARDENING (MODO EST├üTICO)
+
+============================================================
+MIDDLEWARES APLICADOS
+============================================================
+­ƒôï Lista de middlewares configurados:
+   1. trust-proxy
+   2. rate-limit-global
+   3. security-helmet
+
+============================================================
+CONFIGURA├ç├òES IMPLEMENTADAS
+============================================================
+
+1. Rate Limit Global:
+   Ô£ô window: 15 minutos
+   Ô£ô max: 100 requisi├º├Áes/IP
+   Ô£ô skip: health checks
+   Ô£ô headers: X-RateLimit-*
+
+2. Security Headers (Helmet):
+   Ô£ô csp: b├ísico
+   Ô£ô xssFilter: ativo
+   Ô£ô noSniff: ativo
+   Ô£ô frameguard: deny
+   Ô£ô hsts: produ├º├úo apenas
+
+3. Trust Proxy:
+   Ô£ô trustProxy: true
+   Ô£ô ipPriority: cf-connecting-ip ÔåÆ x-forwarded-for ÔåÆ remoteAddress
+
+============================================================
+VALIDA├ç├âO DE IMPORTA├ç├âO
+============================================================
+Ô£à httpHardeningMiddleware exportado com sucesso
+Ô£à GLOBAL_RATE_LIMIT configurado
+Ô£à SECURITY_HEADERS configurado
+Ô£à extractRealIP dispon├¡vel
+
+Ô£à Todas as fun├º├Áes exportadas corretamente
+
+============================================================
+­ƒÄë VALIDA├ç├âO EST├üTICA CONCLU├ìDA
+============================================================
+
+­ƒôï RESUMO DA IMPLEMENTA├ç├âO:
+   Ô£à Rate limit global: 100 req / 15 min por IP
+   Ô£à Security headers: CSP, XSS, Clickjacking protection
+   Ô£à Trust proxy: para Cloudflare IP real
+   Ô£à Middleware integrado no servidor principal
+
+­ƒöº PARA VALIDAR COM SERVIDOR RODANDO:
+   1. Iniciar servidor: pnpm run dev
+   2. Testar com curl: curl -I http://127.0.0.1:PORT/api/health
+   3. Verificar headers de seguran├ºa
+   4. Testar rate limit com spam de requisi├º├Áes
+   5. Monitorar logs para IP capturado
+
+­ƒôí MIDDLEWARES APLICADOS:
+trust-proxy, rate-limit-global, security-helmet
+
+ [31mÔØ»[39m server/tests/http-hardening-static-validation.test.ts [2m([22m[2m0 test[22m[2m)[22m
+{"level":40,"time":1775484978047,"service":"erp-server","message":"[CB:order-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":40,"time":1775484978047,"timestamp":"2026-04-06T14:16:18.047Z","level":"WARN","message":"Query timeout (100ms)","module":"query-wrapper","metadata":{"serviceName":"order-test","attempt":1,"error":"Query timeout (100ms)"}}
+{"level":50,"time":1775484978047,"service":"erp-server","msg":"[CB:order-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:backoff-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:order-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978048,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978049,"service":"erp-server","message":"[CB:backoff-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978049,"service":"erp-server","message":"[CB:order-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484978049,"service":"erp-server","message":"[CB] Circuit breaker criado para cascade-test"}
+{"level":40,"time":1775484978049,"service":"erp-server","message":"[CB:cascade-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775484978049,"service":"erp-server","msg":"[CB:cascade-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775484978049,"timestamp":"2026-04-06T14:16:18.049Z","level":"WARN","message":"Query failed, retrying in 1000ms","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"maxRetries":2,"error":"Persistent failure"}}
+[90mstdout[2m | server/tests/multitenant/tenant-auth.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/multitenant/tenant-auth.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+{"level":50,"time":1775484978516,"timestamp":"2026-04-06T14:16:18.515Z","level":"ERROR","message":"­ƒÜ¿ HIGH ERROR RATE DETECTED","module":"error-rate-monitor","metadata":{"errorCount":4,"threshold":3,"windowMs":1000,"windowSeconds":1,"context":"ALERT","severity":"CRITICAL"}}
+[90mstdout[2m | tests/observability.spec.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/observability.spec.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 2255[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Observability[2m > [22mErrorRateMonitor[2m > [22mshould clear alert when errors decrease [33m1111[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Observability[2m > [22mErrorRateMonitor[2m > [22mshould remove errors outside window [33m1114[2mms[22m[39m
+ [31mÔØ»[39m server/tests/production-blindagem.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | tests/services/orders.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/services/orders.service.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+{"level":40,"time":1775484979048,"service":"erp-server","message":"[CB:database-query] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775484979049,"timestamp":"2026-04-06T14:16:19.049Z","level":"WARN","message":"Circuit breaker aberto para database-query","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":2,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978022,\"nextAttemptTime\":1775485008022,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484979076,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775484979077,"timestamp":"2026-04-06T14:16:19.077Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":2,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978049,\"nextAttemptTime\":1775485008049,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484979077,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775484979078,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775484979078,"service":"erp-server","message":"[CB:cascade-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":30,"time":1775484979079,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:backoff-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:order-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:cascade-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979080,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB:backoff-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB:order-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB:cascade-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979081,"service":"erp-server","message":"[CB] Circuit breaker criado para metrics-test"}
+{"level":40,"time":1775484979081,"service":"erp-server","message":"[CB:metrics-test] Taxa de falha 100% >= limiar 50%, abrindo circuit"}
+{"level":50,"time":1775484979081,"service":"erp-server","msg":"[CB:metrics-test] Circuit ABERTO! Pr├│xima tentativa em 30s"}
+{"level":40,"time":1775484979082,"service":"erp-server","message":"[CB:metrics-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":40,"time":1775484979082,"service":"erp-server","message":"[CB:metrics-test] Circuit OPEN, rejeitando request (pr├│xima tentativa em 30s)"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:ok-timeout-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:open-circuit-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:half-open-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:half-to-closed-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:retry-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:backoff-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:order-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:cascade-test] Circuit breaker resetado manualmente"}
+{"level":30,"time":1775484979087,"service":"erp-server","message":"[CB:metrics-test] Circuit breaker resetado manualmente"}
+{"level":40,"time":1775484979078,"timestamp":"2026-04-06T14:16:19.078Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978049,\"nextAttemptTime\":1775485008049,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484979078,"timestamp":"2026-04-06T14:16:19.078Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978049,\"nextAttemptTime\":1775485008049,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484979078,"timestamp":"2026-04-06T14:16:19.078Z","level":"WARN","message":"Circuit breaker aberto para cascade-test","module":"query-wrapper","metadata":{"serviceName":"cascade-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978049,\"nextAttemptTime\":1775485008049,\"averageResponseTime\":0}"}}
+{"level":50,"time":1775484979082,"timestamp":"2026-04-06T14:16:19.081Z","level":"ERROR","message":"Query failed after 1 attempts","module":"query-wrapper","metadata":{"serviceName":"metrics-test","maxRetries":1,"error":"Test failure","circuitBreakerStatus":"OPEN"}}
+{"level":40,"time":1775484979082,"timestamp":"2026-04-06T14:16:19.082Z","level":"WARN","message":"Circuit breaker aberto para metrics-test","module":"query-wrapper","metadata":{"serviceName":"metrics-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484979081,\"nextAttemptTime\":1775485009081,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484979082,"timestamp":"2026-04-06T14:16:19.082Z","level":"WARN","message":"Circuit breaker aberto para metrics-test","module":"query-wrapper","metadata":{"serviceName":"metrics-test","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484979081,\"nextAttemptTime\":1775485009081,\"averageResponseTime\":0}"}}
+[90mstdout[2m | tests/resilience-integration.spec.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m tests/resilience-integration.spec.ts [2m([22m[2m11 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 2821[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Resilience Integration[2m > [22mTimeout Protection[2m > [22mshould timeout if operation exceeds timeoutMs [33m1029[2mms[22m[39m
+[31m   [31m├ù[31m Resilience Integration[2m > [22mCircuit Breaker Activation[2m > [22mshould transition from HALF_OPEN to CLOSED on success[90m 223[2mms[22m[31m[39m
+[31m     ÔåÆ Query failed after 1 attempts: Failure[39m
+[31m   [31m├ù[31m Resilience Integration[2m > [22mRetry with Exponential Backoff[2m > [22mshould retry on transient failures[90m 28[2mms[22m[31m[39m
+[31m     ÔåÆ Circuit breaker OPEN para retry-test[39m
+[31m   [31m├ù[31m Resilience Integration[2m > [22mRetry with Exponential Backoff[2m > [22mshould respect exponential backoff delays[90m 56[2mms[22m[31m[39m
+[31m     ÔåÆ Circuit breaker OPEN para backoff-test[39m
+   [33m[2mÔ£ô[22m[39m Resilience Integration[2m > [22mIntegration: All Three Layers[2m > [22mshould handle cascading failures gracefully [33m1032[2mms[22m[39m
+{"level":30,"time":1775484979377,"timestamp":"2026-04-06T14:16:19.377Z","level":"INFO","message":"Configurando monitoramento de banco de dados...","module":"monitoring-setup"}
+{"level":40,"time":1775484979076,"service":"erp-server","message":"[CB:database-query] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775484979182,"service":"erp-server","message":"[CB:database-query] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775484979219,"service":"erp-server","message":"[CB:database-query] Circuit OPEN, rejeitando request (pr├│xima tentativa em 29s)"}
+{"level":40,"time":1775484979076,"timestamp":"2026-04-06T14:16:19.076Z","level":"WARN","message":"Circuit breaker aberto para database-query","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978022,\"nextAttemptTime\":1775485008022,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484979183,"timestamp":"2026-04-06T14:16:19.183Z","level":"WARN","message":"Circuit breaker aberto para database-query","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978022,\"nextAttemptTime\":1775485008022,\"averageResponseTime\":0}"}}
+{"level":40,"time":1775484979219,"timestamp":"2026-04-06T14:16:19.219Z","level":"WARN","message":"Circuit breaker aberto para database-query","module":"query-wrapper","metadata":{"serviceName":"database-query","attempt":1,"state":"{\"status\":\"OPEN\",\"failureCount\":1,\"successCount\":0,\"totalRequests\":1,\"failureRate\":100,\"lastFailureTime\":1775484978022,\"nextAttemptTime\":1775485008022,\"averageResponseTime\":0}"}}
+{"level":30,"time":1775484979377,"timestamp":"2026-04-06T14:16:19.377Z","level":"INFO","message":"Monitoramento de banco de dados configurado com sucesso","module":"monitoring-setup"}
+ [31mÔØ»[39m tests/auth-security.test.ts [2m([22m[2m11 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 1512[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Autentica├º├úo Segura[2m > [22mdeve criar sess├úo v├ílida [33m1276[2mms[22m[39m
+[31m   [31m├ù[31m Configura├º├úo de Ambiente[2m > [22mdeve lan├ºar erro se TENANT_ID n├úo estiver definido[90m 12[2mms[22m[31m[39m
+[31m     ÔåÆ expected [AsyncFunction] to throw an error[39m
+[31m   [31m├ù[31m Configura├º├úo de Ambiente[2m > [22mdeve exigir ADMIN_INITIAL_PASSWORD[90m 45[2mms[22m[31m[39m
+[31m     ÔåÆ expected [Function] to throw error including 'ADMIN_INITIAL_PASSWORD n├úo configurado' but got 'TENANT_ID ├® obrigat├│rio para inicialiÔÇª'[39m
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve criar sess├úo v├ílida
+[SessionService] Erro ao limpar sess├Áes antigas: Error: Circuit breaker OPEN para database-query
+    at CircuitBreaker.fire (C:\ERP\server\infra\circuit-breaker.ts:84:15)
+    at Module.executeWithResilience (C:\ERP\server\resilience\query-wrapper.ts:63:43)
+    at SessionService.cleanupOldSessions (C:\ERP\server\_core\session.service.ts:136:33)
+    at SessionService.createSession (C:\ERP\server\_core\session.service.ts:29:7)
+    at C:\ERP\tests\auth-security.test.ts:59:28
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+[SessionService] Erro ao criar sess├úo: Error: Circuit breaker OPEN para database-query
+    at CircuitBreaker.fire (C:\ERP\server\infra\circuit-breaker.ts:84:15)
+    at Module.executeWithResilience (C:\ERP\server\resilience\query-wrapper.ts:63:43)
+    at Module.executeQuery (C:\ERP\server\config\database.ts:306:10)
+    at SessionService.createSession (C:\ERP\server\_core\session.service.ts:32:13)
+    at C:\ERP\tests\auth-security.test.ts:59:28
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+
+stderr | tests/auth-security.test.ts > Autentica├º├úo Segura > deve rejeitar token inv├ílido
+[SessionService] Erro ao validar sess├úo: Error: Circuit breaker OPEN para database-query
+    at CircuitBreaker.fire (C:\ERP\server\infra\circuit-breaker.ts:84:15)
+    at Module.executeWithResilience (C:\ERP\server\resilience\query-wrapper.ts:63:43)
+    at Module.executeQuery (C:\ERP\server\config\database.ts:306:10)
+    at SessionService.validateSession (C:\ERP\server\_core\session.service.ts:56:31)
+    at C:\ERP\tests\auth-security.test.ts:84:42
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+
+stderr | tests/auth-security.test.ts > Backdoor Removido > deve garantir que admin-session n├úo ├® mais aceito
+[SessionService] Erro ao validar sess├úo: Error: Circuit breaker OPEN para database-query
+    at CircuitBreaker.fire (C:\ERP\server\infra\circuit-breaker.ts:84:15)
+    at Module.executeWithResilience (C:\ERP\server\resilience\query-wrapper.ts:63:43)
+    at Module.executeQuery (C:\ERP\server\config\database.ts:306:10)
+    at SessionService.validateSession (C:\ERP\server\_core\session.service.ts:56:31)
+    at C:\ERP\tests\auth-security.test.ts:103:42
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+
+stderr | tests/auth-security.test.ts > Configura├º├úo de Ambiente > deve exigir ADMIN_INITIAL_PASSWORD
+Promise returned by `expect(actual).rejects.toThrow(expected)` was not awaited. Vitest currently auto-awaits hanging assertions at the end of the test, but this will cause the test to fail in Vitest 3. Please remember to await the assertion.
+    at C:/ERP/tests/auth-security.test.ts:126:6
+
+[90mstdout[2m | tests/auth-security.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+[90mstdout[2m | server/tests/http-integration.test.ts
+[22m[39m[BOOT] loadEnv ÔÇö in├¡cio
+[ENV] carregamento de .env habilitado apenas em desenvolvimentoÔÇª
+[dotenv@17.3.1] injecting env (11) from .env -- tip: ÔÜÖ´©Å  load multiple .env files with { path: ['.env.local', '.env'] }
+[ENV] DATABASE_URL: definido
+[ENV] Redis: localhost 6379
+
+[90mstdout[2m | tests/core/command.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/core/command.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+[90mstdout[2m | server/tests/enterprise-production.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | tests/client/frontend-security.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/client/frontend-security.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+stderr | server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+[ENV] inv├ílido:
+[ENV]  - JWT_SECRET: Invalid input: expected string, received undefined
+[ENV]  - REDIS_HOST: Invalid input: expected string, received undefined
+[ENV]  - REDIS_PORT: Invalid input: expected string, received undefined
+[ENV] inv├ílido:
+[ENV]  - JWT_SECRET: Invalid input: expected string, received undefined
+[ENV]  - REDIS_HOST: Invalid input: expected string, received undefined
+[ENV]  - REDIS_PORT: Invalid input: expected string, received undefined
+
+[90mstdout[2m | server/tests/multitenant/tenant-isolation.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/multitenant/tenant-isolation.test.ts [2m([22m[2m6 tests[22m[2m | [22m[33m6 skipped[39m[2m)[22m[90m 23[2mms[22m[39m
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts[2m > [22m[2mP0.7 Security - TENANT leak
+[22m[39m[TENANT-LEAK] server interno ativo em http://127.0.0.1:63811
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts[2m > [22m[2mP0.7 Security - TENANT leak[2m > [22m[2mhttp: bloqueia token do tenant A tentando recurso do tenant B
+[22m[39m[TENANT-MIDDLEWARE] Request received: {
+  hasUser: [33mtrue[39m,
+  user: {
+    userId: [33m111[39m,
+    tenantId: [33m1001[39m,
+    role: [32m'user'[39m,
+    iat: [33m1775484980[39m,
+    exp: [33m1775486780[39m
+  },
+  userTenantId: [33m1001[39m,
+  userTenantIdType: [32m'number'[39m,
+  headers: {
+    authorization: [32m'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2...'[39m
+  }
+}
+[TENANT-MIDDLEWARE] Processing tenantId: {
+  originalTenantId: [33m1001[39m,
+  parsedTenantId: [33m1001[39m,
+  isFinite: [33mtrue[39m,
+  isPositive: [33mtrue[39m
+}
+[TENANT-MIDDLEWARE] SUCCESS - Tenant set: { tenantId: [33m1001[39m, nextCalled: [33mtrue[39m }
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts[2m > [22m[2mP0.7 Security - TENANT leak[2m > [22m[2mhttp: bloqueia token do tenant A tentando recurso do tenant B
+[22m[39m[TENANT-LEAK:HTTP-CROSS] {
+  status: [33m403[39m,
+  body: {
+    success: [33mfalse[39m,
+    error: [32m'Access denied: tenant isolation'[39m,
+    tenantContext: [33m1001[39m,
+    requestedTenant: [33m1002[39m
+  }
+}
+
+[90mstdout[2m | server/tests/security/tenant-leak.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/security/tenant-leak.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 129[2mms[22m[39m
+[90mstdout[2m | server/tests/leo-session-gate.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | server/tests/leo-session-gate.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/leo-session-gate.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 81[2mms[22m[39m
+stderr | server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+[ENV] inv├ílido:
+[ENV]  - JWT_SECRET: Invalid input: expected string, received undefined
+[ENV]  - REDIS_HOST: Invalid input: expected string, received undefined
+[ENV]  - REDIS_PORT: Invalid input: expected string, received undefined
+[ENV] inv├ílido:
+[ENV]  - JWT_SECRET: Invalid input: expected string, received undefined
+[ENV]  - REDIS_HOST: Invalid input: expected string, received undefined
+[ENV]  - REDIS_PORT: Invalid input: expected string, received undefined
+
+[90mstdout[2m | server/tests/security/vendedor-finance-isolation.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/security/vendedor-finance-isolation.service.test.ts [2m([22m[2m4 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m[90m 26[2mms[22m[39m
+{"level":30,"time":1775484982150,"service":"erp-server","message":"Sandbox do agente LEO inicializado"}
+{"level":30,"time":1775484982168,"service":"erp-server","message":"Verificando a├º├úo no sandbox: shell - ls","extra":{"action":{"type":"shell","action":"ls","parameters":{"command":"ls"},"userId":"attacker"},"userId":"attacker"}}
+[90mstdout[2m | server/tests/security/leo-rce.test.ts[2m > [22m[2mP0.7 Security - LEO RCE[2m > [22m[2mbloqueia payload { type:'shell', command:'ls' }
+[22m[39m[LEO-RCE] payload= { type: [32m'shell'[39m, command: [32m'ls'[39m } result= {
+  success: [33mfalse[39m,
+  error: [32m'A├º├úo bloqueada: LEO NUNCA pode executar comandos shell diretamente'[39m,
+  warnings: [90mundefined[39m
+}
+
+[90mstdout[2m | server/tests/security/leo-rce.test.ts[2m > [22m[2mP0.7 Security - LEO RCE[2m > [22m[2mbloqueia tentativa de bypass com powershell
+[22m[39m[LEO-RCE-BYPASS] result= {
+  allowed: [33mfalse[39m,
+  reason: [32m'LEO NUNCA pode executar comandos shell diretamente'[39m,
+  requiresConfirmation: [33mfalse[39m,
+  riskLevel: [32m'critical'[39m
+}
+
+[90mstdout[2m | server/tests/security/leo-rce.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+{"level":40,"time":1775484982168,"service":"erp-server","message":"A├º├úo bloqueada por regra: LEO NUNCA pode executar comandos shell diretamente"}
+{"level":50,"time":1775484982168,"service":"erp-server","error":"[object Object]","msg":"A├º├úo bloqueada pelo sandbox: LEO NUNCA pode executar comandos shell diretamente"}
+{"level":30,"time":1775484982172,"service":"erp-server","message":"Verificando a├º├úo no sandbox: shell - powershell -Command Get-ChildItem","extra":{"action":{"type":"shell","action":"powershell -Command Get-ChildItem","userId":"attacker"},"userId":"attacker"}}
+{"level":40,"time":1775484982172,"service":"erp-server","message":"A├º├úo bloqueada por regra: LEO NUNCA pode executar comandos shell diretamente"}
+ [32mÔ£ô[39m server/tests/security/leo-rce.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39mDB CONFIG: {
+  host: [32m'127.0.0.1'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'test'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'test'[39m,
+  envDbName: [32m'test'[39m
+}
+[Database] Creating connection pool to MySQL at 127.0.0.1:3306
+
+[90mstdout[2m | tests/services/finance.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m tests/services/finance.service.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+stderr | server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+[ENV] inv├ílido:
+[ENV]  - JWT_SECRET: Invalid input: expected string, received undefined
+[ENV]  - REDIS_HOST: Invalid input: expected string, received undefined
+[ENV]  - REDIS_PORT: Invalid input: expected string, received undefined
+[ENV] inv├ílido:
+[ENV]  - JWT_SECRET: Invalid input: expected string, received undefined
+[ENV]  - REDIS_HOST: Invalid input: expected string, received undefined
+[ENV]  - REDIS_PORT: Invalid input: expected string, received undefined
+
+[90mstdout[2m | server/tests/security/vendedor-cliente-isolation.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/security/vendedor-cliente-isolation.service.test.ts [2m([22m[2m3 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[90m 33[2mms[22m[39m
+{"level":30,"time":1775484982350,"timestamp":"2026-04-06T14:16:22.349Z","level":"INFO","message":"MySQL instrumentation enabled","module":"mysql-instrumentation","metadata":{"hasQuery":true,"hasExecute":true}}
+{"level":30,"time":1775484982360,"timestamp":"2026-04-06T14:16:22.360Z","level":"INFO","message":"Configurando monitoramento de banco de dados...","module":"monitoring-setup"}
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts[2m > [22m[2mValida├º├úo Direta de Filtros em Servi├ºos[2m > [22m[2mupsertUser deve respeitar o tenantId fornecido
+[22m[39m[Database] Connection test successful on attempt 1
+[Database] Connection pool created and tested successfully
+[Database] OpenTelemetry instrumentation enabled
+
+{"level":30,"time":1775484982360,"timestamp":"2026-04-06T14:16:22.360Z","level":"INFO","message":"Monitoramento de banco de dados configurado com sucesso","module":"monitoring-setup"}
+{"level":50,"time":1775484982379,"timestamp":"2026-04-06T14:16:22.379Z","level":"ERROR","message":"MySQL query failed","module":"mysql-instrumentation","query":"select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = ? and `users`.`open_id` = ?) limit ","metadata":{"paramsCount":1},"success":false,"error":{"message":"Table 'test.users' doesn't exist"}}
+{"level":50,"time":1775484982391,"timestamp":"2026-04-06T14:16:22.391Z","level":"ERROR","message":"Query error: Table 'test.users' doesn't exist","module":"slow-query","error":{"message":"Table 'test.users' doesn't exist"},"query":"[object Object]","duration":8.500300000000607,"metadata":{"stack":"Error: Table 'test.users' doesn't exist\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\infra\\mysql-instrumentation.ts:27:44\n    at Module.measureDatabaseOperation (C:\\ERP\\server\\_core\\opentelemetry.ts:140:26)\n    at PromisePool.pool.query (C:\\ERP\\server\\infra\\mysql-instrumentation.ts:25:12)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29)","code":"ER_NO_SUCH_TABLE","errno":1146,"sqlState":"42S02","sqlMessage":"Table 'test.users' doesn't exist"}}
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+[UserService] Error in upsertUser: DrizzleQueryError: Failed query: select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = ? and `users`.`open_id` = ?) limit ?
+params: 2001,test-user-1775484982364,1
+    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:18)
+    at Module.upsertUser (C:\ERP\server\services\users.service.ts:26:22)
+    at C:\ERP\server\tests\multitenant\tenant-service.test.ts:28:5
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+  query: 'select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = ? and `users`.`open_id` = ?) limit ?',
+  params: [ 2001, 'test-user-1775484982364', 1 ],
+  cause: Error: Table 'test.users' doesn't exist
+      at PromisePool.query (C:\ERP\node_modules\.pnpm\mysql2@3.17.1\node_modules\mysql2\lib\promise\pool.js:36:22)
+      at C:\ERP\server\infra\mysql-instrumentation.ts:27:44
+      at Module.measureDatabaseOperation (C:\ERP\server\_core\opentelemetry.ts:140:26)
+      at PromisePool.pool.query (C:\ERP\server\infra\mysql-instrumentation.ts:25:12)
+      at C:\ERP\server\middleware\slow-query-logger.ts:133:36
+      at monitorQuery (C:\ERP\server\middleware\slow-query-logger.ts:26:10)
+      at PromisePool.connection.query (C:\ERP\server\middleware\slow-query-logger.ts:133:14)
+      at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24
+      at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)
+      at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29) {
+    code: 'ER_NO_SUCH_TABLE',
+    errno: 1146,
+    sql: "select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = 2001 and `users`.`open_id` = 'test-user-1775484982364') limit 1",
+    sqlState: '42S02',
+    sqlMessage: "Table 'test.users' doesn't exist"
+  }
+}
+
+{"level":50,"time":1775484982410,"timestamp":"2026-04-06T14:16:22.410Z","level":"ERROR","message":"MySQL query failed","module":"mysql-instrumentation","query":"select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = ? and `users`.`open_id` = ?) limit ","metadata":{"paramsCount":1},"success":false,"error":{"message":"Table 'test.users' doesn't exist"}}
+{"level":50,"time":1775484982411,"timestamp":"2026-04-06T14:16:22.411Z","level":"ERROR","message":"Query error: Table 'test.users' doesn't exist","module":"slow-query","error":{"message":"Table 'test.users' doesn't exist"},"query":"[object Object]","duration":12.106600000000071,"metadata":{"stack":"Error: Table 'test.users' doesn't exist\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\infra\\mysql-instrumentation.ts:27:44\n    at Module.measureDatabaseOperation (C:\\ERP\\server\\_core\\opentelemetry.ts:140:26)\n    at PromisePool.pool.query (C:\\ERP\\server\\infra\\mysql-instrumentation.ts:25:12)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29)","code":"ER_NO_SUCH_TABLE","errno":1146,"sqlState":"42S02","sqlMessage":"Table 'test.users' doesn't exist"}}
+{"level":50,"time":1775484982426,"timestamp":"2026-04-06T14:16:22.426Z","level":"ERROR","message":"MySQL query failed","module":"mysql-instrumentation","query":"insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`,","metadata":{"paramsCount":1},"success":false,"error":{"message":"Table 'test.produtos' doesn't exist"}}
+{"level":50,"time":1775484982426,"timestamp":"2026-04-06T14:16:22.426Z","level":"ERROR","message":"Query error: Table 'test.produtos' doesn't exist","module":"slow-query","error":{"message":"Table 'test.produtos' doesn't exist"},"query":"[object Object]","duration":8.788899999999558,"metadata":{"stack":"Error: Table 'test.produtos' doesn't exist\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\infra\\mysql-instrumentation.ts:27:44\n    at Module.measureDatabaseOperation (C:\\ERP\\server\\_core\\opentelemetry.ts:140:26)\n    at PromisePool.pool.query (C:\\ERP\\server\\infra\\mysql-instrumentation.ts:25:12)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)","code":"ER_NO_SUCH_TABLE","errno":1146,"sqlState":"42S02","sqlMessage":"Table 'test.produtos' doesn't exist"}}
+{"level":50,"time":1775484982438,"timestamp":"2026-04-06T14:16:22.438Z","level":"ERROR","message":"MySQL query failed","module":"mysql-instrumentation","query":"insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`,","metadata":{"paramsCount":1},"success":false,"error":{"message":"Table 'test.produtos' doesn't exist"}}
+{"level":50,"time":1775484982439,"timestamp":"2026-04-06T14:16:22.439Z","level":"ERROR","message":"Query error: Table 'test.produtos' doesn't exist","module":"slow-query","error":{"message":"Table 'test.produtos' doesn't exist"},"query":"[object Object]","duration":7.4460999999992055,"metadata":{"stack":"Error: Table 'test.produtos' doesn't exist\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\infra\\mysql-instrumentation.ts:27:44\n    at Module.measureDatabaseOperation (C:\\ERP\\server\\_core\\opentelemetry.ts:140:26)\n    at PromisePool.pool.query (C:\\ERP\\server\\infra\\mysql-instrumentation.ts:25:12)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27)","code":"ER_NO_SUCH_TABLE","errno":1146,"sqlState":"42S02","sqlMessage":"Table 'test.produtos' doesn't exist"}}
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > createProduto deve vincular o tenantId corretamente
+Erro ao criar produto: DrizzleQueryError: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 1775484982414,50
+    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16)
+    at Module.createProduto (C:\ERP\server\services\inventory.service.ts:75:20)
+    at C:\ERP\server\tests\multitenant\tenant-service.test.ts:51:18
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+  query: 'insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)',
+  params: [ 2001, 'Prod T1 1775484982414', 50 ],
+  cause: Error: Table 'test.produtos' doesn't exist
+      at PromisePool.query (C:\ERP\node_modules\.pnpm\mysql2@3.17.1\node_modules\mysql2\lib\promise\pool.js:36:22)
+      at C:\ERP\server\infra\mysql-instrumentation.ts:27:44
+      at Module.measureDatabaseOperation (C:\ERP\server\_core\opentelemetry.ts:140:26)
+      at PromisePool.pool.query (C:\ERP\server\infra\mysql-instrumentation.ts:25:12)
+      at C:\ERP\server\middleware\slow-query-logger.ts:133:36
+      at monitorQuery (C:\ERP\server\middleware\slow-query-logger.ts:26:10)
+      at PromisePool.connection.query (C:\ERP\server\middleware\slow-query-logger.ts:133:14)
+      at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+      at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)
+      at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27) {
+    code: 'ER_NO_SUCH_TABLE',
+    errno: 1146,
+    sql: "insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, 2001, 'Prod T1 1775484982414', default, default, default, default, default, default, default, default, default, default, default, 50, default, default, default, default, default, default)",
+    sqlState: '42S02',
+    sqlMessage: "Table 'test.produtos' doesn't exist"
+  }
+}
+
+stderr | server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > updateEstoqueProduto deve falhar se o produto n├úo pertencer ao tenant
+Erro ao criar produto: DrizzleQueryError: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 para Estoque,10
+    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16)
+    at Module.createProduto (C:\ERP\server\services\inventory.service.ts:75:20)
+    at C:\ERP\server\tests\multitenant\tenant-service.test.ts:70:18
+    at file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///C:/ERP/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+  query: 'insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)',
+  params: [ 2001, 'Prod T1 para Estoque', 10 ],
+  cause: Error: Table 'test.produtos' doesn't exist
+      at PromisePool.query (C:\ERP\node_modules\.pnpm\mysql2@3.17.1\node_modules\mysql2\lib\promise\pool.js:36:22)
+      at C:\ERP\server\infra\mysql-instrumentation.ts:27:44
+      at Module.measureDatabaseOperation (C:\ERP\server\_core\opentelemetry.ts:140:26)
+      at PromisePool.pool.query (C:\ERP\server\infra\mysql-instrumentation.ts:25:12)
+      at C:\ERP\server\middleware\slow-query-logger.ts:133:36
+      at monitorQuery (C:\ERP\server\middleware\slow-query-logger.ts:26:10)
+      at PromisePool.connection.query (C:\ERP\server\middleware\slow-query-logger.ts:133:14)
+      at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+      at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)
+      at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27) {
+    code: 'ER_NO_SUCH_TABLE',
+    errno: 1146,
+    sql: "insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, 2001, 'Prod T1 para Estoque', default, default, default, default, default, default, default, default, default, default, default, 10, default, default, default, default, default, default)",
+    sqlState: '42S02',
+    sqlMessage: "Table 'test.produtos' doesn't exist"
+  }
+}
+
+[90mstdout[2m | server/tests/multitenant/tenant-service.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/multitenant/tenant-service.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[90m 176[2mms[22m[39m
+[31m   [31m├ù[31m Valida├º├úo Direta de Filtros em Servi├ºos[2m > [22mupsertUser deve respeitar o tenantId fornecido[90m 144[2mms[22m[31m[39m
+[31m     ÔåÆ Failed query: select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = ? and `users`.`open_id` = ?) limit ?
+params: 2001,test-user-1775484982364,1[39m
+[31m   [31m├ù[31m Valida├º├úo Direta de Filtros em Servi├ºos[2m > [22mcreateProduto deve vincular o tenantId corretamente[90m 16[2mms[22m[31m[39m
+[31m     ÔåÆ Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 1775484982414,50[39m
+[31m   [31m├ù[31m Valida├º├úo Direta de Filtros em Servi├ºos[2m > [22mupdateEstoqueProduto deve falhar se o produto n├úo pertencer ao tenant[90m 10[2mms[22m[31m[39m
+[31m     ÔåÆ Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 para Estoque,10[39m
+{"level":30,"time":1775484982591,"timestamp":"2026-04-06T14:16:22.590Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775484982599,"timestamp":"2026-04-06T14:16:22.598Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+{"level":30,"time":1775484982605,"timestamp":"2026-04-06T14:16:22.604Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775484982610,"timestamp":"2026-04-06T14:16:22.610Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+[90mstdout[2m | tests/error-monitor-simple.spec.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+{"level":30,"time":1775484982612,"pid":26432,"hostname":"LENOVOGELDER","message":"Redis conectado com sucesso","host":"127.0.0.1","port":6379,"db":0}
+{"level":30,"time":1775484982621,"pid":25972,"hostname":"LENOVOGELDER","message":"Redis conectado com sucesso","host":"127.0.0.1","port":6379,"db":0}
+stderr | tests/error-monitor-simple.spec.ts > ErrorRateMonitor Simple Test > should exist and be importable
+Import error: Error: Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?
+    at loadAndTransform (file:///C:/ERP/node_modules/.pnpm/vite@5.4.21_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17)
+    at async ViteNodeServer._transformRequest (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/server.mjs:542:16)
+    at async ViteNodeServer._fetchModule (file:///C:/ERP/node_modules/.pnpm/vite-node@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite-node/dist/server.mjs:504:17)
+    at async Proxy.fetch (file:///C:/ERP/node_modules/.pnpm/vitest@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vitest/dist/chunks/resolveConfig.rBxzbVsl.js:6617:22)
+    at async EventEmitter.onMessage (file:///C:/ERP/node_modules/.pnpm/vitest@2.1.9_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vitest/dist/chunks/index.68735LiX.js:91:20)
+
+[90mstdout[2m | tests/error-monitor-simple.spec.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m tests/error-monitor-simple.spec.ts [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[90m 17[2mms[22m[39m
+[31m   [31m├ù[31m ErrorRateMonitor Simple Test[2m > [22mshould exist and be importable[90m 11[2mms[22m[31m[39m
+[31m     ÔåÆ Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?[39m
+[31m   [31m├ù[31m ErrorRateMonitor Simple Test[2m > [22mshould create instance with default config[90m 3[2mms[22m[31m[39m
+[31m     ÔåÆ Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?[39m
+{"level":30,"time":1775484982633,"pid":26432,"hostname":"LENOVOGELDER","message":"Redis pronto para uso"}
+{"level":30,"time":1775484982639,"pid":25972,"hostname":"LENOVOGELDER","message":"Redis pronto para uso"}
+[90mstdout[2m | server/tests/enterprise-production.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/enterprise-production.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 2081[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Enterprise ÔÇö Sentry[2m > [22m@sentry/node exp├Áe captureException [33m2049[2mms[22m[39m
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m­ƒº╣ Limpeza autom├ítica de mem├│ria iniciada (executa a cada 30 minutos)
+
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m­ƒº╣ Limpeza autom├ítica de mem├│ria iniciada (executa a cada 30 minutos)
+
+[90mstdout[2m | tests/internal-status-endpoint.spec.ts
+[22m[39m[LEO Events STUB] Initialized in stub mode
+
+[90mstdout[2m | server/tests/security.test.ts
+[22m[39m[LEO Events STUB] Initialized in stub mode
+
+ [32mÔ£ô[39m tests/services/safe-stock.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+[90mstdout[2m | tests/services/safe-stock.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts[2m > [22m[2mLEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22m[2mgetPedidoByNumeroForActor: sem registro retorna null
+[22m[39mDB CONFIG: {
+  host: [32m'127.0.0.1'[39m,
+  port: [33m3306[39m,
+  user: [32m'root'[39m,
+  database: [32m'test'[39m,
+  hasPassword: [33mtrue[39m,
+  connectionLimit: [33m20[39m,
+  connectTimeout: [33m15000[39m,
+  envDbUrl: [32m'SET'[39m,
+  envDbHost: [32m'localhost'[39m,
+  envDbPort: [32m'3306'[39m,
+  envDbUser: [32m'test'[39m,
+  envDbName: [32m'test'[39m
+}
+[Database] Creating connection pool to MySQL at 127.0.0.1:3306
+
+{"level":30,"time":1775484983269,"timestamp":"2026-04-06T14:16:23.268Z","level":"INFO","message":"MySQL instrumentation enabled","module":"mysql-instrumentation","metadata":{"hasQuery":true,"hasExecute":true}}
+{"level":30,"time":1775484983271,"timestamp":"2026-04-06T14:16:23.271Z","level":"INFO","message":"Configurando monitoramento de banco de dados...","module":"monitoring-setup"}
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts[2m > [22m[2mLEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22m[2mgetPedidoByNumeroForActor: sem registro retorna null
+[22m[39m[Database] Connection test successful on attempt 1
+[Database] Connection pool created and tested successfully
+[Database] OpenTelemetry instrumentation enabled
+
+{"level":30,"time":1775484983271,"timestamp":"2026-04-06T14:16:23.271Z","level":"INFO","message":"Monitoramento de banco de dados configurado com sucesso","module":"monitoring-setup"}
+{"level":50,"time":1775484983290,"timestamp":"2026-04-06T14:16:23.290Z","level":"ERROR","message":"MySQL query failed","module":"mysql-instrumentation","query":"select `id`, `tenant_id`, `numero`, `vendedor_id`, `cliente_id`, `cliente_nome`, `cliente_telefone`, `cliente_telefone_recado`, `cliente_rua`, `cliente_numero`, `cliente_bairro`, `cliente_cidade`, `cl","metadata":{"paramsCount":1},"success":false,"error":{"message":"Table 'test.pedidos' doesn't exist"}}
+{"level":50,"time":1775484983299,"timestamp":"2026-04-06T14:16:23.299Z","level":"ERROR","message":"Query error: Table 'test.pedidos' doesn't exist","module":"slow-query","error":{"message":"Table 'test.pedidos' doesn't exist"},"query":"[object Object]","duration":9.97990000000027,"metadata":{"stack":"Error: Table 'test.pedidos' doesn't exist\n    at PromisePool.query (C:\\ERP\\node_modules\\.pnpm\\mysql2@3.17.1\\node_modules\\mysql2\\lib\\promise\\pool.js:36:22)\n    at C:\\ERP\\server\\infra\\mysql-instrumentation.ts:27:44\n    at Module.measureDatabaseOperation (C:\\ERP\\server\\_core\\opentelemetry.ts:140:26)\n    at PromisePool.pool.query (C:\\ERP\\server\\infra\\mysql-instrumentation.ts:25:12)\n    at C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:36\n    at monitorQuery (C:\\ERP\\server\\middleware\\slow-query-logger.ts:26:10)\n    at PromisePool.connection.query (C:\\ERP\\server\\middleware\\slow-query-logger.ts:133:14)\n    at file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24\n    at MySql2PreparedQuery.queryWithCache (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18)\n    at MySql2PreparedQuery.execute (file:///C:/ERP/node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29)","code":"ER_NO_SUCH_TABLE","errno":1146,"sqlState":"42S02","sqlMessage":"Table 'test.pedidos' doesn't exist"}}
+[90mstdout[2m | server/tests/security/leo-pedidos-isolation.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m server/tests/security/leo-pedidos-isolation.test.ts [2m([22m[2m6 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[90m 95[2mms[22m[39m
+[31m   [31m├ù[31m LEO / pedidos ÔÇö isolamento e permiss├Áes[2m > [22mgetPedidoByNumeroForActor: sem registro retorna null[90m 85[2mms[22m[31m[39m
+[31m     ÔåÆ Failed query: select `id`, `tenant_id`, `numero`, `vendedor_id`, `cliente_id`, `cliente_nome`, `cliente_telefone`, `cliente_telefone_recado`, `cliente_rua`, `cliente_numero`, `cliente_bairro`, `cliente_cidade`, `cliente_uf`, `cliente_referencia`, `cliente_condominio`, `cliente_bloco`, `cliente_apartamento`, `subtotal`, `desconto`, `frete`, `acrescimo`, `total`, `data_criacao`, `status`, `forma_pagamento`, `data_entrega`, `garantia_inicio`, `observacoes`, `conferido_em`, `created_at`, `updated_at` from `pedidos` where (`pedidos`.`tenant_id` = ? and `pedidos`.`numero` = ?) limit ?
+params: 999999,1,1[39m
+[90mstdout[2m | tests/services/clientes.service.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [31mÔØ»[39m tests/services/clientes.service.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[90m 25[2mms[22m[39m
+[31m   [31m├ù[31m ClientesService[2m > [22mcreateCliente[2m > [22mdeve criar um cliente com sucesso[90m 17[2mms[22m[31m[39m
+[31m     ÔåÆ expected { success: true, data: { id: 99 } } to deeply equal { id: 99 }[39m
+[31m   [31m├ù[31m ClientesService[2m > [22mcreateCliente[2m > [22mdeve lan├ºar erro quando tenantId n├úo ├® fornecido[90m 4[2mms[22m[31m[39m
+[31m     ÔåÆ promise resolved "{ success: false, ÔÇª(1) }" instead of rejecting[39m
+[31m   [31m├ù[31m ClientesService[2m > [22mgetClienteById[2m > [22mdeve retornar null quando cliente n├úo encontrado[90m 2[2mms[22m[31m[39m
+[31m     ÔåÆ expected { success: false, ÔÇª(1) } to be null[39m
+stderr | tests/internal-status-endpoint.spec.ts
+
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ           ÔØî ERRO CR├ìTICO: ENVIRONMENT INV├üLIDO             Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+
+­ƒôï VARI├üVEIS INV├üLIDAS OU FALTANDO:
+
+  1. NODE_ENV
+     ÔööÔöÇ Invalid option: expected one of "development"|"production"
+
+­ƒôû SOLU├ç├âO:
+  1. Copie .env.example para .env
+     $ cp .env.example .env
+
+  2. Configure todas as vari├íveis obrigat├│rias:
+     - DATABASE_URL (mysql://user:pass@host:3306/db)
+     - JWT_ACCESS_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - JWT_REFRESH_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - APP_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - REDIS_HOST e REDIS_PORT
+
+  3. Reinicie o servidor
+
+­ƒöÉ NOTA DE SEGURAN├çA (PRODU├ç├âO):
+  Em NODE_ENV=production, JWT secrets devem ter M├ìNIMO 64 caracteres
+  Use: openssl rand -base64 32 | head -c 64
+
+
+stderr | server/tests/security.test.ts
+
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ           ÔØî ERRO CR├ìTICO: ENVIRONMENT INV├üLIDO             Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+
+­ƒôï VARI├üVEIS INV├üLIDAS OU FALTANDO:
+
+  1. NODE_ENV
+     ÔööÔöÇ Invalid option: expected one of "development"|"production"
+
+­ƒôû SOLU├ç├âO:
+  1. Copie .env.example para .env
+     $ cp .env.example .env
+
+  2. Configure todas as vari├íveis obrigat├│rias:
+     - DATABASE_URL (mysql://user:pass@host:3306/db)
+     - JWT_ACCESS_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - JWT_REFRESH_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - APP_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - REDIS_HOST e REDIS_PORT
+
+  3. Reinicie o servidor
+
+­ƒöÉ NOTA DE SEGURAN├çA (PRODU├ç├âO):
+  Em NODE_ENV=production, JWT secrets devem ter M├ìNIMO 64 caracteres
+  Use: openssl rand -base64 32 | head -c 64
+
+
+ [31mÔØ»[39m tests/internal-status-endpoint.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31mÔØ»[39m server/tests/security.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | server/tests/security/leo-lockdown-bypass.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/security/leo-lockdown-bypass.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts
+[22m[39mROUTES REGISTERED {
+  clients: [32m'/api/clients'[39m,
+  orders: [32m'/api/orders'[39m,
+  payments: [32m'/api/payments'[39m
+}
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts
+[22m[39m­ƒº¬ Inicializando ambiente de testes
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts[2m > [22m[2mP0.7 Security - AUTH bypass
+[22m[39m[AUTH-BYPASS] server interno ativo em http://127.0.0.1:63823
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts[2m > [22m[2mP0.7 Security - AUTH bypass[2m > [22m[2mnega endpoint protegido sem token
+[22m[39m[AUTH-BYPASS:NO-TOKEN] {
+  status: [33m401[39m,
+  body: {
+    success: [33mfalse[39m,
+    error: [32m'No authorization header'[39m,
+    message: [32m'Authorization token is required'[39m
+  }
+}
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts[2m > [22m[2mP0.7 Security - AUTH bypass[2m > [22m[2mnega endpoint protegido com bearer inv├ílido
+[22m[39m[AUTH-BYPASS:INVALID-TOKEN] {
+  status: [33m401[39m,
+  body: {
+    success: [33mfalse[39m,
+    error: [32m'Invalid or expired token'[39m,
+    message: [32m'Authentication failed'[39m
+  }
+}
+
+[90mstdout[2m | server/tests/security/auth-bypass.test.ts
+[22m[39m­ƒº¬ Finalizando ambiente de testes
+
+ [32mÔ£ô[39m server/tests/security/auth-bypass.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 53[2mms[22m[39m
+{"level":30,"time":1775484985347,"timestamp":"2026-04-06T14:16:25.347Z","level":"INFO","message":"Redis instrumentation enabled","module":"redis-instrumentation","metadata":{"instrumentedMethods":["get","set","setex","del","exists","expire","ttl","hget","hset","hdel","hgetall","hkeys","hvals","lpush","rpush","lpop","rpop","lrange","llen","sadd","srem","smembers","scard","sismember","zadd","zrem","zrange","zcard","zscore","incr","decr","incrby","decrby","mget","mset","flushall","flushdb"],"hasPipeline":true}}
+{"level":30,"time":1775484985348,"timestamp":"2026-04-06T14:16:25.348Z","level":"INFO","message":"Redis OpenTelemetry instrumentation enabled","module":"redis"}
+{"level":30,"time":1775484985354,"pid":5472,"hostname":"LENOVOGELDER","message":"Redis conectado com sucesso","host":"127.0.0.1","port":6379,"db":0}
+{"level":30,"time":1775484985361,"pid":5472,"hostname":"LENOVOGELDER","message":"Redis pronto para uso"}
+[90mstdout[2m | server/tests/http-integration.test.ts
+[22m[39m­ƒº╣ Limpeza autom├ítica de mem├│ria iniciada (executa a cada 30 minutos)
+
+[90mstdout[2m | server/tests/http-integration.test.ts
+[22m[39m[LEO Events STUB] Initialized in stub mode
+
+stderr | server/tests/http-integration.test.ts
+
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ           ÔØî ERRO CR├ìTICO: ENVIRONMENT INV├üLIDO             Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+
+­ƒôï VARI├üVEIS INV├üLIDAS OU FALTANDO:
+
+  1. NODE_ENV
+     ÔööÔöÇ Invalid option: expected one of "development"|"production"
+
+­ƒôû SOLU├ç├âO:
+  1. Copie .env.example para .env
+     $ cp .env.example .env
+
+  2. Configure todas as vari├íveis obrigat├│rias:
+     - DATABASE_URL (mysql://user:pass@host:3306/db)
+     - JWT_ACCESS_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - JWT_REFRESH_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - APP_SECRET (m├¡nimo 32 chars, recomendado 64 em prod)
+     - REDIS_HOST e REDIS_PORT
+
+  3. Reinicie o servidor
+
+­ƒöÉ NOTA DE SEGURAN├çA (PRODU├ç├âO):
+  Em NODE_ENV=production, JWT secrets devem ter M├ìNIMO 64 caracteres
+  Use: openssl rand -base64 32 | head -c 64
+
+
+ [31mÔØ»[39m server/tests/http-integration.test.ts [2m([22m[2m0 test[22m[2m)[22m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Suites 16 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/internal-status-endpoint.spec.ts [ tests/internal-status-endpoint.spec.ts ]
+ FAIL  server/tests/http-integration.test.ts [ server/tests/http-integration.test.ts ]
+ FAIL  server/tests/security.test.ts [ server/tests/security.test.ts ]
+Error: process.exit unexpectedly called with "1"
+ ÔØ» Module.exitProcessInProductionUnlessDevelopment server/_core/dev-process-exit.ts:6:13
+      4| export function exitProcessInProductionUnlessDevelopment(code: number ÔÇª
+      5|   if (process.env.NODE_ENV !== "development") {
+      6|     process.exit(code);
+       |             ^
+      7|   }
+      8|   console.error("ÔØî ERRO CAPTURADO EM DEV - N├âO ENCERRANDO");
+ ÔØ» validateEnv server/config/env.ts:208:5
+ ÔØ» getEnv server/config/env.ts:220:17
+ ÔØ» server/config/env.ts:428:20
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/65]ÔÄ»
+
+ FAIL  tests/integration/ownership.test.ts [ tests/integration/ownership.test.ts ]
+ReferenceError: INTEGRATION_DB_READY is not defined
+ ÔØ» tests/integration/ownership.test.ts:55:18
+     53| const actorAdmin: ServiceActor = { role: "admin", userId: 9999 };
+     54| 
+     55| describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REÔÇª
+       |                  ^
+     56|   beforeAllWithServiceContext(async () => {
+     57|     const conn = await getDb();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/65]ÔÄ»
+
+ FAIL  tests/integration/pedidos-heavy.integration.test.ts [ tests/integration/pedidos-heavy.integration.test.ts ]
+ReferenceError: INTEGRATION_DB_READY is not defined
+ ÔØ» tests/integration/pedidos-heavy.integration.test.ts:67:18
+     65| const pedidosCriados = new Set<number>();
+     66| 
+     67| describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS ÔÇö integra├º├úo pesada + ÔÇª
+       |                  ^
+     68|   beforeAllWithServiceContext(async () => {
+     69|     const conn = await getDb();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/65]ÔÄ»
+
+ FAIL  server/services/core-business-real.test.ts > CORE: neg├│cio real (DB)
+Error: Invalid environment: JWT_SECRET: Invalid input: expected string, received undefined; REDIS_HOST: Invalid input: expected string, received undefined; REDIS_PORT: Invalid input: expected string, received undefined
+ ÔØ» Module.parseEnv server/services/env.schema.ts:72:11
+     70|     console.error("[ENV] inv├ílido:");
+     71|     for (const line of issues) console.error(`[ENV]  - ${line}`);
+     72|     throw new Error(`Invalid environment: ${issues.join("; ")}`);
+       |           ^
+     73|   }
+     74| 
+ ÔØ» requireDatabaseUrl server/config/database.ts:21:15
+ ÔØ» getMysqlPoolOptionsFromEnv server/config/database.ts:70:32
+ ÔØ» getDatabaseConfig server/config/database.ts:160:18
+ ÔØ» Module.getConnectionPool server/config/database.ts:190:18
+ ÔØ» Module.getDb server/db/core.ts:79:18
+ ÔØ» server/services/core-business-real.test.ts:67:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/65]ÔÄ»
+
+ FAIL  server/tests/audit-hardening-simple.test.ts [ server/tests/audit-hardening-simple.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/audit-hardening-simple.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/65]ÔÄ»
+
+ FAIL  server/tests/audit-hardening-validation.test.ts [ server/tests/audit-hardening-validation.test.ts ]
+ FAIL  server/tests/audit-hardening.test.ts [ server/tests/audit-hardening.test.ts ]
+Error: Failed to load url @jest/globals (resolved id: @jest/globals) in C:/ERP/server/tests/audit-hardening-validation.test.ts. Does the file exist?
+ ÔØ» loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/65]ÔÄ»
+
+ FAIL  server/tests/audit-validation.test.ts [ server/tests/audit-validation.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/audit-validation.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/65]ÔÄ»
+
+ FAIL  server/tests/http-hardening-static-validation.test.ts [ server/tests/http-hardening-static-validation.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/http-hardening-static-validation.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/65]ÔÄ»
+
+ FAIL  server/tests/http-hardening-validation.test.ts [ server/tests/http-hardening-validation.test.ts ]
+Error: No test suite found in file C:/ERP/server/tests/http-hardening-validation.test.ts
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[9/65]ÔÄ»
+
+ FAIL  server/tests/production-blindagem.test.ts [ server/tests/production-blindagem.test.ts ]
+Error: REDIS_HOST e REDIS_PORT s├úo obrigat├│rios
+ ÔØ» parseRedisConfigFromEnv server/infra/redis.ts:67:11
+     65|   const portFromEnv = process.env.REDIS_PORT?.trim();
+     66|   if (!hostFromEnv || !portFromEnv) {
+     67|     throw new Error("REDIS_HOST e REDIS_PORT s├úo obrigat├│rios");
+       |           ^
+     68|   }
+     69|   const portNumber = Number(portFromEnv);
+ ÔØ» new RedisManager server/infra/redis.ts:123:19
+ ÔØ» RedisManager.getInstance server/infra/redis.ts:130:31
+ ÔØ» server/infra/redis.ts:454:42
+ ÔØ» server/security/redis-rate-limit.ts:1:1
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[10/65]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+Error: Invalid environment: JWT_SECRET: Invalid input: expected string, received undefined; REDIS_HOST: Invalid input: expected string, received undefined; REDIS_PORT: Invalid input: expected string, received undefined
+ ÔØ» Module.parseEnv server/services/env.schema.ts:72:11
+     70|     console.error("[ENV] inv├ílido:");
+     71|     for (const line of issues) console.error(`[ENV]  - ${line}`);
+     72|     throw new Error(`Invalid environment: ${issues.join("; ")}`);
+       |           ^
+     73|   }
+     74| 
+ ÔØ» requireDatabaseUrl server/config/database.ts:21:15
+ ÔØ» getMysqlPoolOptionsFromEnv server/config/database.ts:70:32
+ ÔØ» getDatabaseConfig server/config/database.ts:160:18
+ ÔØ» Module.getConnectionPool server/config/database.ts:190:18
+ ÔØ» Module.getDb server/db/core.ts:79:18
+ ÔØ» server/tests/multitenant/tenant-isolation.test.ts:22:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[11/65]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-isolation.test.ts > Isolamento de Dados entre Tenants (Servi├ºos)
+Error: Invalid environment: JWT_SECRET: Invalid input: expected string, received undefined; REDIS_HOST: Invalid input: expected string, received undefined; REDIS_PORT: Invalid input: expected string, received undefined
+ ÔØ» Module.parseEnv server/services/env.schema.ts:72:11
+     70|     console.error("[ENV] inv├ílido:");
+     71|     for (const line of issues) console.error(`[ENV]  - ${line}`);
+     72|     throw new Error(`Invalid environment: ${issues.join("; ")}`);
+       |           ^
+     73|   }
+     74| 
+ ÔØ» requireDatabaseUrl server/config/database.ts:21:15
+ ÔØ» getMysqlPoolOptionsFromEnv server/config/database.ts:70:32
+ ÔØ» getDatabaseConfig server/config/database.ts:160:18
+ ÔØ» Module.getConnectionPool server/config/database.ts:190:18
+ ÔØ» Module.getDb server/db/core.ts:79:18
+ ÔØ» server/tests/multitenant/tenant-isolation.test.ts:64:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[12/65]ÔÄ»
+
+ FAIL  server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+Error: Invalid environment: JWT_SECRET: Invalid input: expected string, received undefined; REDIS_HOST: Invalid input: expected string, received undefined; REDIS_PORT: Invalid input: expected string, received undefined
+ ÔØ» Module.parseEnv server/services/env.schema.ts:72:11
+     70|     console.error("[ENV] inv├ílido:");
+     71|     for (const line of issues) console.error(`[ENV]  - ${line}`);
+     72|     throw new Error(`Invalid environment: ${issues.join("; ")}`);
+       |           ^
+     73|   }
+     74| 
+ ÔØ» requireDatabaseUrl server/config/database.ts:21:15
+ ÔØ» getMysqlPoolOptionsFromEnv server/config/database.ts:70:32
+ ÔØ» getDatabaseConfig server/config/database.ts:160:18
+ ÔØ» Module.getConnectionPool server/config/database.ts:190:18
+ ÔØ» Module.getDb server/db/core.ts:79:18
+ ÔØ» server/tests/security/vendedor-cliente-isolation.service.test.ts:17:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[13/65]ÔÄ»
+
+ FAIL  server/tests/security/vendedor-cliente-isolation.service.test.ts > Isolamento vendedor A vs B (clientes.service)
+Error: Invalid environment: JWT_SECRET: Invalid input: expected string, received undefined; REDIS_HOST: Invalid input: expected string, received undefined; REDIS_PORT: Invalid input: expected string, received undefined
+ ÔØ» Module.parseEnv server/services/env.schema.ts:72:11
+     70|     console.error("[ENV] inv├ílido:");
+     71|     for (const line of issues) console.error(`[ENV]  - ${line}`);
+     72|     throw new Error(`Invalid environment: ${issues.join("; ")}`);
+       |           ^
+     73|   }
+     74| 
+ ÔØ» requireDatabaseUrl server/config/database.ts:21:15
+ ÔØ» getMysqlPoolOptionsFromEnv server/config/database.ts:70:32
+ ÔØ» getDatabaseConfig server/config/database.ts:160:18
+ ÔØ» Module.getConnectionPool server/config/database.ts:190:18
+ ÔØ» Module.getDb server/db/core.ts:79:18
+ ÔØ» server/tests/security/vendedor-cliente-isolation.service.test.ts:57:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[14/65]ÔÄ»
+
+ FAIL  server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+Error: Invalid environment: JWT_SECRET: Invalid input: expected string, received undefined; REDIS_HOST: Invalid input: expected string, received undefined; REDIS_PORT: Invalid input: expected string, received undefined
+ ÔØ» Module.parseEnv server/services/env.schema.ts:72:11
+     70|     console.error("[ENV] inv├ílido:");
+     71|     for (const line of issues) console.error(`[ENV]  - ${line}`);
+     72|     throw new Error(`Invalid environment: ${issues.join("; ")}`);
+       |           ^
+     73|   }
+     74| 
+ ÔØ» requireDatabaseUrl server/config/database.ts:21:15
+ ÔØ» getMysqlPoolOptionsFromEnv server/config/database.ts:70:32
+ ÔØ» getDatabaseConfig server/config/database.ts:160:18
+ ÔØ» Module.getConnectionPool server/config/database.ts:190:18
+ ÔØ» Module.getDb server/db/core.ts:79:18
+ ÔØ» server/tests/security/vendedor-finance-isolation.service.test.ts:18:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[15/65]ÔÄ»
+
+ FAIL  server/tests/security/vendedor-finance-isolation.service.test.ts > Isolamento financeiro vendedor A vs B (finance.service)
+Error: Invalid environment: JWT_SECRET: Invalid input: expected string, received undefined; REDIS_HOST: Invalid input: expected string, received undefined; REDIS_PORT: Invalid input: expected string, received undefined
+ ÔØ» Module.parseEnv server/services/env.schema.ts:72:11
+     70|     console.error("[ENV] inv├ílido:");
+     71|     for (const line of issues) console.error(`[ENV]  - ${line}`);
+     72|     throw new Error(`Invalid environment: ${issues.join("; ")}`);
+       |           ^
+     73|   }
+     74| 
+ ÔØ» requireDatabaseUrl server/config/database.ts:21:15
+ ÔØ» getMysqlPoolOptionsFromEnv server/config/database.ts:70:32
+ ÔØ» getDatabaseConfig server/config/database.ts:160:18
+ ÔØ» Module.getConnectionPool server/config/database.ts:190:18
+ ÔØ» Module.getDb server/db/core.ts:79:18
+ ÔØ» server/tests/security/vendedor-finance-isolation.service.test.ts:61:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[16/65]ÔÄ»
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 46 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/auth-security.test.ts > Configura├º├úo de Ambiente > deve lan├ºar erro se TENANT_ID n├úo estiver definido
+AssertionError: expected [AsyncFunction] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ÔØ» tests/auth-security.test.ts:117:8
+    115|     expect(async () => {
+    116|       await ensureInitialAdmin();
+    117|     }).toThrow("TENANT_ID ├® obrigat├│rio para inicializar admin sem harÔÇª
+       |        ^
+    118|   });
+    119| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[17/65]ÔÄ»
+
+ FAIL  tests/auth-security.test.ts > Configura├º├úo de Ambiente > deve exigir ADMIN_INITIAL_PASSWORD
+AssertionError: expected [Function] to throw error including 'ADMIN_INITIAL_PASSWORD n├úo configurado' but got 'TENANT_ID ├® obrigat├│rio para inicialiÔÇª'
+
+Expected: "ADMIN_INITIAL_PASSWORD n├úo configurado"
+Received: "TENANT_ID ├® obrigat├│rio para inicializar admin sem hardcode."
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[18/65]ÔÄ»
+
+ FAIL  tests/error-monitor-simple.spec.ts > ErrorRateMonitor Simple Test > should exist and be importable
+ FAIL  tests/error-monitor-simple.spec.ts > ErrorRateMonitor Simple Test > should create instance with default config
+Error: Failed to load url ./server/resilience/error-rate-monitor.js (resolved id: ./server/resilience/error-rate-monitor.js) in C:/ERP/tests/error-monitor-simple.spec.ts. Does the file exist?
+ ÔØ» loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@24.10.13_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[19/65]ÔÄ»
+
+ FAIL  tests/resilience-integration.spec.ts > Resilience Integration > Circuit Breaker Activation > should transition from HALF_OPEN to CLOSED on success
+Error: Query failed after 1 attempts: Failure
+ ÔØ» Module.executeWithResilience server/resilience/query-wrapper.ts:139:9
+    137| 
+    138|   // Falha depois de todos os retries
+    139|   throw new Error(
+       |         ^
+    140|     `Query failed after ${maxRetries} attempts: ${lastError?.message ?ÔÇª
+    141|   );
+ ÔØ» tests/resilience-integration.spec.ts:200:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[20/65]ÔÄ»
+
+ FAIL  tests/resilience-integration.spec.ts > Resilience Integration > Retry with Exponential Backoff > should retry on transient failures
+Error: Circuit breaker OPEN para retry-test
+ ÔØ» CircuitBreaker.fire server/infra/circuit-breaker.ts:84:15
+     82|           return this.fallbackFn() as Promise<T>;
+     83|         }
+     84|         throw new Error(`Circuit breaker OPEN para ${this.serviceName}ÔÇª
+       |               ^
+     85|       }
+     86| 
+ ÔØ» Module.executeWithResilience server/resilience/query-wrapper.ts:63:43
+ ÔØ» tests/resilience-integration.spec.ts:222:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[21/65]ÔÄ»
+
+ FAIL  tests/resilience-integration.spec.ts > Resilience Integration > Retry with Exponential Backoff > should respect exponential backoff delays
+Error: Circuit breaker OPEN para backoff-test
+ ÔØ» CircuitBreaker.fire server/infra/circuit-breaker.ts:84:15
+     82|           return this.fallbackFn() as Promise<T>;
+     83|         }
+     84|         throw new Error(`Circuit breaker OPEN para ${this.serviceName}ÔÇª
+       |               ^
+     85|       }
+     86| 
+ ÔØ» Module.executeWithResilience server/resilience/query-wrapper.ts:63:43
+ ÔØ» tests/resilience-integration.spec.ts:249:22
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[22/65]ÔÄ»
+
+ FAIL  tests/services/clientes.service.test.ts > ClientesService > createCliente > deve criar um cliente com sucesso
+AssertionError: expected { success: true, data: { id: 99 } } to deeply equal { id: 99 }
+
+- Expected
++ Received
+
+  Object {
++   "data": Object {
+      "id": 99,
++   },
++   "success": true,
+  }
+
+ ÔØ» tests/services/clientes.service.test.ts:45:22
+     43|       const result = await clientesService.createCliente(1, clienteDatÔÇª
+     44| 
+     45|       expect(result).toEqual({ id: 99 });
+       |                      ^
+     46|       expect(mockDb.insert).toHaveBeenCalled();
+     47|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[23/65]ÔÄ»
+
+ FAIL  tests/services/clientes.service.test.ts > ClientesService > createCliente > deve lan├ºar erro quando tenantId n├úo ├® fornecido
+AssertionError: promise resolved "{ success: false, ÔÇª(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "error": "tenantId obrigat├│rio",
++   "success": false,
++ }
+
+ ÔØ» tests/services/clientes.service.test.ts:55:7
+     53|           telefone: "11999999999",
+     54|         })
+     55|       ).rejects.toThrow(/tenantId obrigat├│rio/);
+       |       ^
+     56|     });
+     57|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[24/65]ÔÄ»
+
+ FAIL  tests/services/clientes.service.test.ts > ClientesService > getClienteById > deve retornar null quando cliente n├úo encontrado
+AssertionError: expected { success: false, ÔÇª(1) } to be null
+
+- Expected: 
+null
+
++ Received: 
+Object {
+  "error": "Cliente n├úo encontrado",
+  "success": false,
+}
+
+ ÔØ» tests/services/clientes.service.test.ts:70:22
+     68| 
+     69|       const result = await clientesService.getClienteById(1, ADMIN_ACTÔÇª
+     70|       expect(result).toBeNull();
+       |                      ^
+     71|     });
+     72|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[25/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela users deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela vendedores deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela cargas deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela clientes deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela cores deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela produtos deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela pedidos deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela comissoes deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela contas_fixas deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela contas_pagar deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela contas_receber deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela counters deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela grupos_precificacao deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela itens_pedido deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela plano_contas deve ter coluna tenant_id
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Multi-tenant tenant_id presence > tabela pedidos_carga deve ter coluna tenant_id
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ÔØ» server/tests/schema-consistency.test.ts:86:43
+     84|           );
+     85| 
+     86|           expect((rows as any)[0]?.count).toBe(1);
+       |                                           ^
+     87|         } catch (err: any) {
+     88|           if ((err.message as string).includes('Table')) {
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[26/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > users.open_id deve existir em snake_case
+Error: Erro ao verificar users.open_id: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[27/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > users.login_method deve existir em snake_case
+Error: Erro ao verificar users.login_method: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[28/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > users.created_at deve existir em snake_case
+Error: Erro ao verificar users.created_at: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[29/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > users.updated_at deve existir em snake_case
+Error: Erro ao verificar users.updated_at: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[30/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > users.tenant_id deve existir em snake_case
+Error: Erro ao verificar users.tenant_id: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[31/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > vendedores.user_id deve existir em snake_case
+Error: Erro ao verificar vendedores.user_id: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[32/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > vendedores.created_at deve existir em snake_case
+Error: Erro ao verificar vendedores.created_at: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[33/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > vendedores.updated_at deve existir em snake_case
+Error: Erro ao verificar vendedores.updated_at: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[34/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > vendedores.tenant_id deve existir em snake_case
+Error: Erro ao verificar vendedores.tenant_id: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[35/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > cores.created_at deve existir em snake_case
+Error: Erro ao verificar cores.created_at: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[36/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Snake_case column naming > cores.tenant_id deve existir em snake_case
+Error: Erro ao verificar cores.tenant_id: expected +0 to be 1 // Object.is equality
+ ÔØ» server/tests/schema-consistency.test.ts:136:19
+    134|             expect((rows as any)[0]?.count).toBe(1);
+    135|           } catch (err: any) {
+    136|             throw new Error(`Erro ao verificar ${table}.${col}: ${err.ÔÇª
+       |                   ^
+    137|           }
+    138|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[37/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Tenants master table > tabela tenants deve existir
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ÔØ» server/tests/schema-consistency.test.ts:150:39
+    148|       );
+    149| 
+    150|       expect((rows as any)[0]?.count).toBe(1);
+       |                                       ^
+    151|     });
+    152| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[38/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Tenants master table > deve existir pelo menos 1 tenant configurado
+Error: Table 'test.tenants' doesn't exist
+ ÔØ» PromiseConnection.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/connection.js:29:22
+ ÔØ» server/tests/schema-consistency.test.ts:154:39
+    152| 
+    153|     it('deve existir pelo menos 1 tenant configurado', async () => {
+    154|       const [rows] = await connection.query('SELECT COUNT(*) as count ÔÇª
+       |                                       ^
+    155|       expect((rows as any)[0]?.count).toBeGreaterThan(0);
+    156|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Tenants master table > tenant default (id=1) deve existir
+Error: Table 'test.tenants' doesn't exist
+ ÔØ» PromiseConnection.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/connection.js:29:22
+ ÔØ» server/tests/schema-consistency.test.ts:159:39
+    157| 
+    158|     it('tenant default (id=1) deve existir', async () => {
+    159|       const [rows] = await connection.query('SELECT COUNT(*) as count ÔÇª
+       |                                       ^
+    160|       expect((rows as any)[0]?.count).toBe(1);
+    161|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[40/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Data integrity > todas as linhas de vendedores devem ter tenant_id not null
+Error: Table 'test.vendedores' doesn't exist
+ ÔØ» PromiseConnection.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/connection.js:29:22
+ ÔØ» server/tests/schema-consistency.test.ts:188:39
+    186|   describe('Data integrity', () => {
+    187|     it('todas as linhas de vendedores devem ter tenant_id not null', aÔÇª
+    188|       const [rows] = await connection.query(
+       |                                       ^
+    189|         'SELECT COUNT(*) as count FROM vendedores WHERE tenant_id IS NÔÇª
+    190|       );
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[41/65]ÔÄ»
+
+ FAIL  server/tests/schema-consistency.test.ts > Schema Consistency Tests > Data integrity > todas as linhas de users devem ter tenant_id not null
+Error: Table 'test.users' doesn't exist
+ ÔØ» PromiseConnection.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/connection.js:29:22
+ ÔØ» server/tests/schema-consistency.test.ts:196:39
+    194| 
+    195|     it('todas as linhas de users devem ter tenant_id not null', async ÔÇª
+    196|       const [rows] = await connection.query(
+       |                                       ^
+    197|         'SELECT COUNT(*) as count FROM users WHERE tenant_id IS NULL'
+    198|       );
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[42/65]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > upsertUser deve respeitar o tenantId fornecido
+Error: Failed query: select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = ? and `users`.`open_id` = ?) limit ?
+params: 2001,test-user-1775484982364,1
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:18
+ ÔØ» Module.getUserByOpenId server/services/users.service.ts:92:18
+     90|   if (!dbConn) return null;
+     91|   
+     92|   const result = await dbConn
+       |                  ^
+     93|     .select()
+     94|     .from(users)
+ ÔØ» server/tests/multitenant/tenant-service.test.ts:35:19
+
+Caused by: Error: Table 'test.users' doesn't exist
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/infra/mysql-instrumentation.ts:27:44
+ ÔØ» Module.measureDatabaseOperation server/_core/opentelemetry.ts:140:26
+ ÔØ» PromisePool.pool.query server/infra/mysql-instrumentation.ts:25:12
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_NO_SUCH_TABLE', errno: 1146, sql: 'select `id`, `tenant_id`, `open_id`, `name`, `email`, `login_method`, `role`, `created_at`, `updated_at`, `last_signed_in` from `users` where (`users`.`tenant_id` = 2001 and `users`.`open_id` = \'test-user-1775484982364\') limit 1', sqlState: '42S02', sqlMessage: 'Table \'test.users\' doesn\'t exist' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[43/65]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > createProduto deve vincular o tenantId corretamente
+Error: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 1775484982414,50
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16
+ ÔØ» Module.createProduto server/services/inventory.service.ts:75:20
+     73|     if (!dbConn) throw new Error("Database not available");
+     74|     
+     75|     const result = await dbConn.insert(produtos).values({
+       |                    ^
+     76|       ...data,
+     77|       tenantId,
+ ÔØ» server/tests/multitenant/tenant-service.test.ts:51:18
+
+Caused by: Error: Table 'test.produtos' doesn't exist
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/infra/mysql-instrumentation.ts:27:44
+ ÔØ» Module.measureDatabaseOperation server/_core/opentelemetry.ts:140:26
+ ÔØ» PromisePool.pool.query server/infra/mysql-instrumentation.ts:25:12
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_NO_SUCH_TABLE', errno: 1146, sql: 'insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, 2001, \'Prod T1 1775484982414\', default, default, default, default, default, default, default, default, default, default, default, 50, default, default, default, default, default, default)', sqlState: '42S02', sqlMessage: 'Table \'test.produtos\' doesn\'t exist' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[44/65]ÔÄ»
+
+ FAIL  server/tests/multitenant/tenant-service.test.ts > Valida├º├úo Direta de Filtros em Servi├ºos > updateEstoqueProduto deve falhar se o produto n├úo pertencer ao tenant
+Error: Failed query: insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, ?, ?, default, default, default, default, default, default, default, default, default, default, default, ?, default, default, default, default, default, default)
+params: 2001,Prod T1 para Estoque,10
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:16
+ ÔØ» Module.createProduto server/services/inventory.service.ts:75:20
+     73|     if (!dbConn) throw new Error("Database not available");
+     74|     
+     75|     const result = await dbConn.insert(produtos).values({
+       |                    ^
+     76|       ...data,
+     77|       tenantId,
+ ÔØ» server/tests/multitenant/tenant-service.test.ts:70:18
+
+Caused by: Error: Table 'test.produtos' doesn't exist
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/infra/mysql-instrumentation.ts:27:44
+ ÔØ» Module.measureDatabaseOperation server/_core/opentelemetry.ts:140:26
+ ÔØ» PromisePool.pool.query server/infra/mysql-instrumentation.ts:25:12
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:101:25
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:100:27
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_NO_SUCH_TABLE', errno: 1146, sql: 'insert into `produtos` (`id`, `tenant_id`, `descricao`, `marca`, `fornecedor`, `categoria`, `custo`, `desconto_fabrica`, `ipi`, `frete`, `montagem`, `lucro`, `comissao`, `juros_cartao`, `valor_venda`, `prazo_garantia`, `grupo_id`, `estoque`, `ativo`, `created_at`, `updated_at`) values (default, 2001, \'Prod T1 para Estoque\', default, default, default, default, default, default, default, default, default, default, default, 10, default, default, default, default, default, default)', sqlState: '42S02', sqlMessage: 'Table \'test.produtos\' doesn\'t exist' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[45/65]ÔÄ»
+
+ FAIL  server/tests/security/leo-pedidos-isolation.test.ts > LEO / pedidos ÔÇö isolamento e permiss├Áes > getPedidoByNumeroForActor: sem registro retorna null
+Error: Failed query: select `id`, `tenant_id`, `numero`, `vendedor_id`, `cliente_id`, `cliente_nome`, `cliente_telefone`, `cliente_telefone_recado`, `cliente_rua`, `cliente_numero`, `cliente_bairro`, `cliente_cidade`, `cliente_uf`, `cliente_referencia`, `cliente_condominio`, `cliente_bloco`, `cliente_apartamento`, `subtotal`, `desconto`, `frete`, `acrescimo`, `total`, `data_criacao`, `status`, `forma_pagamento`, `data_entrega`, `garantia_inicio`, `observacoes`, `conferido_em`, `created_at`, `updated_at` from `pedidos` where (`pedidos`.`tenant_id` = ? and `pedidos`.`numero` = ?) limit ?
+params: 999999,1,1
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:79:11
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:18
+ ÔØ» Module.getPedidoByNumeroForActor server/services/orders.service.ts:638:18
+    636|   const dbConn = await getDb();
+    637|   if (!dbConn) return null;
+    638|   const result = await dbConn
+       |                  ^
+    639|     .select()
+    640|     .from(pedidos)
+ ÔØ» server/tests/security/leo-pedidos-isolation.test.ts:56:15
+
+Caused by: Error: Table 'test.pedidos' doesn't exist
+ ÔØ» PromisePool.query node_modules/.pnpm/mysql2@3.17.1/node_modules/mysql2/lib/promise/pool.js:36:22
+ ÔØ» server/infra/mysql-instrumentation.ts:27:44
+ ÔØ» Module.measureDatabaseOperation server/_core/opentelemetry.ts:140:26
+ ÔØ» PromisePool.pool.query server/infra/mysql-instrumentation.ts:25:12
+ ÔØ» server/middleware/slow-query-logger.ts:133:36
+ ÔØ» monitorQuery server/middleware/slow-query-logger.ts:26:10
+ ÔØ» PromisePool.connection.query server/middleware/slow-query-logger.ts:133:14
+ ÔØ» node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:133:24
+ ÔØ» MySql2PreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql-core/session.ts:77:18
+ ÔØ» MySql2PreparedQuery.execute node_modules/.pnpm/drizzle-orm@0.44.7_@opentel_d920935e9e58717c74da5a47505635c6/node_modules/src/mysql2/session.ts:132:29
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Serialized Error: { code: 'ER_NO_SUCH_TABLE', errno: 1146, sql: 'select `id`, `tenant_id`, `numero`, `vendedor_id`, `cliente_id`, `cliente_nome`, `cliente_telefone`, `cliente_telefone_recado`, `cliente_rua`, `cliente_numero`, `cliente_bairro`, `cliente_cidade`, `cliente_uf`, `cliente_referencia`, `cliente_condominio`, `cliente_bloco`, `cliente_apartamento`, `subtotal`, `desconto`, `frete`, `acrescimo`, `total`, `data_criacao`, `status`, `forma_pagamento`, `data_entrega`, `garantia_inicio`, `observacoes`, `conferido_em`, `created_at`, `updated_at` from `pedidos` where (`pedidos`.`tenant_id` = 999999 and `pedidos`.`numero` = 1) limit 1', sqlState: '42S02', sqlMessage: 'Table \'test.pedidos\' doesn\'t exist' }
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[46/65]ÔÄ»
+
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1m[7m Unhandled Errors [27m[22mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+[31m[1m
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ» Unhandled Rejection ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Error: TENANT_ID ├® obrigat├│rio para inicializar admin sem hardcode.
+ ÔØ» Module.ensureInitialAdmin server/_core/admin-init.ts:14:11
+     12|   const tenantIdRaw = Number(process.env.TENANT_ID || "");
+     13|   if (!Number.isFinite(tenantIdRaw) || tenantIdRaw <= 0) {
+     14|     throw new Error("TENANT_ID ├® obrigat├│rio para inicializar admin seÔÇª
+       |           ^
+     15|   }
+     16|   const tenantId = tenantIdRaw;
+ ÔØ» tests/auth-security.test.ts:116:13
+ ÔØ» Proxy.assertThrows node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:2767:5
+ ÔØ» Proxy.methodWrapper node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:1686:25
+ ÔØ» Proxy.<anonymous> node_modules/.pnpm/@vitest+expect@2.1.9/node_modules/@vitest/expect/dist/index.js:1029:16
+ ÔØ» Proxy.overwritingMethodWrapper node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:1735:33
+ ÔØ» Proxy.<anonymous> node_modules/.pnpm/@vitest+expect@2.1.9/node_modules/@vitest/expect/dist/index.js:1509:21
+ ÔØ» Proxy.<anonymous> node_modules/.pnpm/@vitest+expect@2.1.9/node_modules/@vitest/expect/dist/index.js:972:17
+ ÔØ» Proxy.methodWrapper node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:1686:25
+ ÔØ» tests/auth-security.test.ts:117:8
+
+This error originated in "tests/auth-security.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+The latest test that might've caused the error is "tests/auth-security.test.ts". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+[2m Test Files [22m [1m[31m23 failed[39m[22m[2m | [22m[1m[32m20 passed[39m[22m[90m (43)[39m
+[2m      Tests [22m [1m[31m46 failed[39m[22m[2m | [22m[1m[32m219 passed[39m[22m[2m | [22m[33m19 skipped[39m[90m (284)[39m
+[2m     Errors [22m [1m[31m1 error[39m[22m
+[2m   Start at [22m 11:16:12
+[2m   Duration [22m 13.00s[2m (transform 10.62s, setup 931ms, collect 77.55s, tests 10.14s, environment 51ms, prepare 10.55s)[22m
+
+ÔÇëELIFECYCLEÔÇë Test failed. See above for more details.

@@ -356,9 +356,9 @@ class LeoDesktopSandbox {
     const successfulActions = totalActions - blockedActions;
     
     const avgExecutionTime = this.auditLog
-      .filter((entry: any) => entry.result.executionTime)
-      .reduce((sum: any, entry: any) => sum + (entry.result.executionTime || 0), 0) / 
-      (this.auditLog.filter((entry: any) => entry.result.executionTime).length || 1);
+      .filter((entry) => entry.result.executionTime)
+      .reduce((sum, entry) => sum + (entry.result.executionTime || 0), 0) / 
+      (this.auditLog.filter((entry) => entry.result.executionTime).length || 1);
 
     // Aplicações mais usadas
     const appCounts = new Map<string, number>();
@@ -376,9 +376,9 @@ class LeoDesktopSandbox {
 
     // Ações bloqueadas recentes
     const recentBlockedActions = this.auditLog
-      .filter((entry: any) => !entry.result.success && entry.result.blockedReason)
+      .filter((entry) => !entry.result.success && entry.result.blockedReason)
       .slice(-10)
-      .map((entry: any) => ({
+      .map((entry) => ({
         timestamp: entry.timestamp,
         action: `${entry.action.type}: ${entry.action.target}`,
         reason: entry.result.blockedReason || 'Desconhecido'

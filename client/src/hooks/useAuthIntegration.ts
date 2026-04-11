@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import * as authService from "../services/auth.service";
+import { ValidationError, InfrastructureError } from "../lib/errors/typed-errors.js";
 
 export interface AuthUser {
   id: number;
@@ -100,9 +101,9 @@ export function useAuthIntegration() {
           toast.success("Login realizado com sucesso!");
           return true;
         }
-        throw new Error("Não foi possível carregar o usuário após o login");
+        throw new InfrastructureError("Não foi possível carregar o usuário após o login");
       }
-      throw new Error(response.error || "Falha no login");
+      throw new ValidationError(response.error || "Falha no login");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao fazer login";
       setState({

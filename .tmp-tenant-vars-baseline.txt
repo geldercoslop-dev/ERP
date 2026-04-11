@@ -1,0 +1,86 @@
+scripts\check-tenant.ts:214: regex: /\bDEFAULT_TENANT_ID\b/g,
+scripts\check-tenant.ts:215: message: "Forbidden tenant fallback: DEFAULT_TENANT_ID",
+scripts\test-cache-performance.ts:37: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+scripts\test-db-performance.mjs:46: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+scripts\test-error-handling.ts:41: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
+scripts\test-error-handling.ts:235: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99)
+scripts\test-error-handling.ts:307: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
+scripts\test-safe-cache.ts:38: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+server\leo\actions\leo-automation.ts:291: const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+server\leo\actions\leo-automation.ts:294: return { success: false, message: 'tenantId não configurado (contexto ou DEFAULT_TENANT_ID)' };
+server\leo\actions\leo-automation.ts:332: const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+server\leo\actions\leo-automation.ts:335: return { success: false, message: 'tenantId não configurado (contexto ou DEFAULT_TENANT_ID)' };
+server\leo\memory\leo-memory.service.ts:5: const tenantId = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+server\scripts\seed-admin.ts:22: const tenantId = Number(process.env.SEED_TENANT_ID ?? process.env.TEST_TENANT_ID ?? 1);
+server\scripts\seed-massa-teste.ts:49: const tenantIdRaw = Number(process.env.SEED_TENANT_ID || process.env.TEST_TENANT_ID || "");
+server\scripts\seed-massa-teste.ts:51: writeErr(`${PREFIX} SEED_TENANT_ID (ou TEST_TENANT_ID) é obrigatório para seed sem hardcode.`);
+server\services\ai\leo-action-logger.ts:60: const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+server\services\leo-action-log.service.ts:15: : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+server\tests\concurrency-test.ts:12: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+server\tests\concurrency-test.ts:112: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+server\tests\database-consistency.test.ts:39: private tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+server\tests\idempotency-simple-test.ts:7: const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+server\tests\idempotency-simple-test.ts:36: tenantId: TEST_TENANT_ID,
+server\tests\idempotency-simple-test.ts:104: tenantId: TEST_TENANT_ID,
+server\tests\run-core-tests.ts:23: const testTenantId = Number(process.env.TEST_TENANT_ID) || Number(tenantPick[0]?.tenantId);
+server\tests\run-core-tests.ts:25: console.error("[test:core] Defina TEST_TENANT_ID ou insira produtos com tenant_id.");
+server\tests\simple-idempotency-test.ts:8: const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+server\tests\simple-idempotency-test.ts:37: tenantId: TEST_TENANT_ID,
+server\tests\simple-idempotency-test.ts:100: tenantId: TEST_TENANT_ID,
+server\tools\system-diagnostic.ts:15: const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
+tests\integration\ownership.test.ts:35: const TEST_TENANT_ID = 999;
+tests\integration\ownership.test.ts:68: tenantId: TEST_TENANT_ID,
+tests\integration\ownership.test.ts:77: tenantId: TEST_TENANT_ID,
+tests\integration\ownership.test.ts:86: tenantId: TEST_TENANT_ID,
+tests\integration\ownership.test.ts:95: tenantId: TEST_TENANT_ID,
+tests\integration\ownership.test.ts:106: const clienteAResult = await clientesService.createCliente(TEST_TENANT_ID, {
+tests\integration\ownership.test.ts:114: const clienteBResult = await clientesService.createCliente(TEST_TENANT_ID, {
+tests\integration\ownership.test.ts:122: const pedidoAResult = await createPedidoSafe(TEST_TENANT_ID, {
+tests\integration\ownership.test.ts:147: const pedidoBResult = await createPedidoSafe(TEST_TENANT_ID, {
+tests\integration\ownership.test.ts:176: const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorA, clienteAId);
+tests\integration\ownership.test.ts:183: const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorA, clienteBId);
+tests\integration\ownership.test.ts:188: const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorB, clienteBId);
+tests\integration\ownership.test.ts:195: const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorB, clienteAId);
+tests\integration\ownership.test.ts:200: const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorAdmin, clienteAId);
+tests\integration\ownership.test.ts:206: const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorAdmin, clienteBId);
+tests\integration\ownership.test.ts:212: const result = await clientesService.listClientes(TEST_TENANT_ID, actorVendedorA, {});
+tests\integration\ownership.test.ts:220: clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteBId, { nome: "Cliente B Editado" })
+tests\integration\ownership.test.ts:225: const result = await clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteAId, {
+tests\integration\ownership.test.ts:232: const pedido = await getPedidoById(TEST_TENANT_ID, pedidoClienteAId);
+tests\integration\ownership.test.ts:235: await expect(assertPedidoMutableByActor(TEST_TENANT_ID, actorVendedorA, pedidoClienteAId)).resolves.toBeUndefined();
+tests\integration\ownership.test.ts:239: await expect(assertPedidoMutableByActor(TEST_TENANT_ID, actorVendedorA, pedidoClienteBId)).rejects.toThrow(
+tests\integration\ownership.test.ts:245: const pedido = await getPedidoById(TEST_TENANT_ID, pedidoClienteBId);
+tests\integration\ownership.test.ts:247: await expect(assertPedidoMutableByActor(TEST_TENANT_ID, actorVendedorB, pedidoClienteBId)).resolves.toBeUndefined();
+tests\integration\ownership.test.ts:251: await expect(assertPedidoMutableByActor(TEST_TENANT_ID, actorVendedorB, pedidoClienteAId)).rejects.toThrow(
+tests\integration\ownership.test.ts:257: await expect(assertPedidoMutableByActor(TEST_TENANT_ID, actorAdmin, pedidoClienteAId)).resolves.toBeUndefined();
+tests\integration\ownership.test.ts:261: await expect(assertPedidoMutableByActor(TEST_TENANT_ID, actorAdmin, pedidoClienteBId)).resolves.toBeUndefined();
+tests\integration\ownership.test.ts:265: const r = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorA, clienteBId);
+tests\integration\ownership.test.ts:271: clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteBId, { nome: "Teste" })
+tests\integration\ownership.test.ts:276: await expect(assertPedidoMutableByActor(TEST_TENANT_ID, actorVendedorA, pedidoClienteBId)).rejects.toSatisfy(
+tests\integration\ownership.test.ts:292: .where(and(eq(contasReceber.tenantId, TEST_TENANT_ID), inArray(contasReceber.pedidoNumero, numeros)));
+tests\integration\ownership.test.ts:294: await dbConn.delete(pedidos).where(and(eq(pedidos.tenantId, TEST_TENANT_ID), inArray(pedidos.id, pids)));
+tests\integration\ownership.test.ts:303: await dbConn.delete(clientes).where(and(eq(clientes.tenantId, TEST_TENANT_ID), inArray(clientes.id, cids)));
+tests\integration\ownership.test.ts:312: await dbConn.delete(vendedores).where(and(eq(vendedores.tenantId, TEST_TENANT_ID), inArray(vendedores.id, vids)));
+tests\integration\ownership.test.ts:321: await dbConn.delete(users).where(and(eq(users.tenantId, TEST_TENANT_ID), inArray(users.id, uids)));
+tests\performance\concurrency-test.ts:12: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
+tests\performance\load-test.ts:70: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
+tests\performance\resilience-test.ts:72: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
+tests\performance\tracing-test.ts:62: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
+tests\routers\validation.test.ts:8: tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
+tests\setup.ts:44: process.env.DEFAULT_TENANT_ID = '1';
+tests\test-database-integrity.ts:28: const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+tests\test-database-integrity.ts:145: .where(and(itensPedido.id.isNull(), eq(pedidos.tenantId, TEST_TENANT_ID)))
+tests\test-database-integrity.ts:158: .where(and(sql`${produtos.estoque} < 0`, eq(produtos.tenantId, TEST_TENANT_ID)))
+tests\test-database-integrity.ts:171: const pedidosCount = (await db.select({ count: count() }).from(pedidos).where(eq(pedidos.tenantId, TEST_TENANT_ID)))[0]
+tests\test-database-integrity.ts:174: await db.select({ count: count() }).from(itensPedido).where(eq(itensPedido.tenantId, TEST_TENANT_ID))
+tests\test-database-integrity.ts:180: .where(eq(contasReceber.tenantId, TEST_TENANT_ID))
+tests\test-database-integrity.ts:219: const countBefore = (await db.select({ count: count() }).from(pedidos).where(eq(pedidos.tenantId, TEST_TENANT_ID)))[0]
+tests\test-database-integrity.ts:227: tenantId: TEST_TENANT_ID,
+tests\test-database-integrity.ts:247: const countAfter = (await db.select({ count: count() }).from(pedidos).where(eq(pedidos.tenantId, TEST_TENANT_ID)))[0]
+tests\test-database-integrity.ts:295: where: eq(pedidos.tenantId, TEST_TENANT_ID),
+tests\test-fluxo-erp.ts:17: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+tests\test-fluxo-erp.ts:116: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+tests\test-fluxo-erp.ts:155: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+tests\test-services-manual.ts:21: const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+eslint.config.mjs:93: selector: "Identifier[name='DEFAULT_TENANT_ID']",
+eslint.config.mjs:94: message: "Fallback de tenant proibido: DEFAULT_TENANT_ID.",

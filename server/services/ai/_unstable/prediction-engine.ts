@@ -5,6 +5,8 @@ import * as db from "../../../db/index.js";
 import * as ordersService from "../../orders.service.js";
 import { eq, sql, and, desc, ne } from "drizzle-orm";
 import { PedidoStatus } from "../../../shared/domain-status.js";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
+import { InfrastructureError } from "../../../_core/errors/typed-errors.js";
 
 const DIAS_HISTORICO = 30;
 
@@ -49,7 +51,7 @@ export async function previsaoVendas(tenantId: number): Promise<{
   const fallback = { mediaDiaria: 0, totalPeriodo: 0, diasComVenda: 0, projecaoProximoMes: 0 };
   try {
     const conn = await db.getDb();
-    if (!conn) return fallback;
+    assertDbConnection(conn);
     const fim = new Date();
     const inicio = new Date();
     inicio.setDate(inicio.getDate() - DIAS_HISTORICO);
@@ -77,7 +79,7 @@ export async function previsaoRupturaEstoque(tenantId: number): Promise<
 > {
   try {
     const conn = await db.getDb();
-    if (!conn) return [];
+    assertDbConnection(conn);
   const inicio = new Date();
   inicio.setDate(inicio.getDate() - DIAS_HISTORICO);
   const saidaPorProduto = await conn
@@ -121,7 +123,7 @@ export async function previsaoRupturaEstoque(tenantId: number): Promise<
     return resultado.sort((a, b) => a.diasAteRuptura - b.diasAteRuptura);
   } catch (e: unknown) {
     console.error("[LEO prediction-engine] Erro em previsaoRupturaEstoque:", (e as Error)?.message ?? e);
-    return [];
+    throw new InfrastructureError('Falha na previsão de ruptura de estoque', { cause: e });
   }
 }
 
@@ -130,7 +132,7 @@ export async function previsaoRupturaEstoque(tenantId: number): Promise<
  */
 export async function preverDemandaProduto(tenantId: number, produtoIds?: number[]): Promise<PrevisaoDemanda[]> {
   const conn = await db.getDb();
-  if (!conn) return [];
+  assertDbConnection(conn);
 
   try {
     // Análise dos últimos 90 dias para identificar sazonalidade
@@ -194,7 +196,7 @@ export async function preverDemandaProduto(tenantId: number, produtoIds?: number
     return previsoes.sort((a, b) => b.previsao30Dias - a.previsao30Dias);
   } catch (e: unknown) {
     console.error("[LEO prediction-engine] Erro em preverDemandaProduto:", (e as Error)?.message ?? e);
-    return [];
+    throw new InfrastructureError('Falha na previsão de demanda', { cause: e });
   }
 }
 
@@ -203,7 +205,7 @@ export async function preverDemandaProduto(tenantId: number, produtoIds?: number
  */
 export async function preverFaturamentoMensal(tenantId: number): Promise<PrevisaoFaturamento[]> {
   const conn = await db.getDb();
-  if (!conn) return [];
+  assertDbConnection(conn);
 
   try {
     // Análise histórica dos últimos 12 meses
@@ -251,7 +253,7 @@ export async function preverFaturamentoMensal(tenantId: number): Promise<Previsa
     return previsoes;
   } catch (e: unknown) {
     console.error("[LEO prediction-engine] Erro em preverFaturamentoMensal:", (e as Error)?.message ?? e);
-    return [];
+    throw new InfrastructureError('Falha na previsão de faturamento mensal', { cause: e });
   }
 }
 

@@ -2,6 +2,7 @@ import * as db from "../db/index.js";
 import type { Database } from "../db/index.js";
 import type { InProgressResponse } from "../../shared/idempotency.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../_core/service-entry-guard.js";
+import { InfrastructureError } from "../_core/errors/typed-errors.js";
 
 type StoredCommandResult = { traceId?: string } & Record<string, unknown>;
 
@@ -22,7 +23,7 @@ export async function executeIdempotentCommandInService<T extends StoredCommandR
   return runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
     const conn = await db.getDb();
     if (!conn) {
-      throw new Error("Database not available");
+      throw new InfrastructureError("Database not available");
     }
 
     return (conn as unknown as {

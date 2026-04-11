@@ -9,6 +9,7 @@ import type { Payload } from '../../../shared/types/index.js';
 import { leoErpObserver } from '../perception/leo-erp-observer.js';
 import { leoTaskQueue } from '../tasks/leo-task-queue.js';
 import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
+import { InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
 
@@ -370,7 +371,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise completa:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise completa', { cause: error });
     }
   }
 
@@ -508,7 +509,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise de vendas:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise de vendas', { cause: error });
     }
   }
 
@@ -619,7 +620,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise de estoque:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise de estoque', { cause: error });
     }
   }
 
@@ -726,7 +727,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise de clientes:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise de clientes', { cause: error });
     }
   }
 
@@ -814,7 +815,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise financeira:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise financeira', { cause: error });
     }
   }
 
@@ -906,7 +907,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise de logística:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise de logística', { cause: error });
     }
   }
 
@@ -973,7 +974,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise de performance:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise de performance', { cause: error });
     }
   }
 
@@ -1030,7 +1031,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na geração de previsões:', error);
-      return [];
+      throw new InfrastructureError('Falha na geração de previsões', { cause: error });
     }
   }
 
@@ -1085,7 +1086,7 @@ class LeoInsights {
       return insights;
     } catch (error) {
       console.error('[LeoInsights] Erro na análise de tendências:', error);
-      return [];
+      throw new InfrastructureError('Falha na análise de tendências', { cause: error });
     }
   }
 

@@ -57,7 +57,7 @@ export async function gerarBackupCompleto(tenantId: string): Promise<{ success: 
       db.select().from(schema.clientes).where(eq(schema.clientes.tenantId, tenantIdNum)),
       db.select().from(schema.vendedores).where(eq(schema.vendedores.tenantId, tenantIdNum)),
       db.select().from(schema.pedidos).where(eq(schema.pedidos.tenantId, tenantIdNum)),
-      db.select().from(schema.cores),
+      db.select().from(schema.cores).where(eq(schema.cores.tenantId, tenantIdNum)),
       db.select().from(schema.planoContas).where(eq(schema.planoContas.tenantId, tenantIdNum)),
       db.select().from(schema.contasFixas).where(eq(schema.contasFixas.tenantId, tenantIdNum)),
       db.select().from(schema.contasPagar).where(eq(schema.contasPagar.tenantId, tenantIdNum)),

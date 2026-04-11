@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 // Schema para resposta da API Groq
 const GroqResponseSchema = z.object({
@@ -121,7 +122,7 @@ export class GroqProvider {
       });
 
       if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+        throw new InfrastructureError(`Groq API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -148,7 +149,7 @@ export class GroqProvider {
 
     } catch (error) {
       console.error('Groq Provider Error:', error);
-      throw new Error(`Falha na comunicação com Groq: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      throw new InfrastructureError(`Falha na comunicação com Groq: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
 
@@ -250,7 +251,7 @@ export function createGroqProvider(config?: Partial<GroqConfig>): GroqProvider {
   const apiKey = config?.apiKey || process.env.GROQ_API_KEY;
   
   if (!apiKey) {
-    throw new Error('Groq API key is required. Set GROQ_API_KEY environment variable or pass apiKey in config.');
+    throw new ValidationError('Groq API key is required. Set GROQ_API_KEY environment variable or pass apiKey in config.');
   }
 
   return new GroqProvider({
@@ -263,7 +264,7 @@ export function createGroqProvider(config?: Partial<GroqConfig>): GroqProvider {
 /**
  * Função de conveniência para gerar resposta
  */
-export async function generateGroqResponse(prompt: string, tools?: any[]): Promise<GroqResponse> {
+export async function generateGroqResponse(prompt: string, tools?: GroqToolDef[]): Promise<GroqResponse> {
   const provider = createGroqProvider();
   return provider.generateResponse(prompt, tools);
 }

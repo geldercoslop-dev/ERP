@@ -1,8 +1,73 @@
+// Type guard para validar objeto
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" && data !== null;
+}
+
+// Type guard para dados de auditoria
+interface AuditData {
+  action: string;
+  userId?: number;
+}
+function isAuditData(data: unknown): data is AuditData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "action" in data
+  );
+}
+
 import { Request, Response, NextFunction } from 'express';
 import { createLogger } from '../infra/structured-logger.js';
 import { insertAuditLog } from '../services/audit-service.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
+// Tipo JWTPayload local para evitar dependência externa
+interface JWTPayload {
+  userId: number;
+  tenantId: number;
+  email: string;
+  role: 'admin' | 'user' | 'operator';
+  sessionId: string;
+  iat?: number;
+  exp?: number;
+}
 
 const logger = createLogger('security-audit');
+
+// Interfaces para type safety
+interface AuthenticatedRequest extends Request {
+  tenantId?: number;
+  user?: JWTPayload;
+  vendedor?: { id: number };
+}
+
+interface ResponseData {
+  id?: number;
+  numero?: number;
+  data?: { id?: number };
+  user?: { id: number };
+  vendedor?: { id: number };
+  success?: boolean;
+  [key: string]: unknown;
+}
+
+interface SanitizedData {
+  [key: string]: unknown;
+}
+
+// Type guards
+function isResponseData(data: unknown): data is ResponseData {
+  return isRecord(data);
+}
+
+function isSanitizedData(data: unknown): data is SanitizedData {
+  return isRecord(data);
+}
+
+interface CriticalOperation {
+  path: string;
+  method?: string;
+  action: string;
+}
 
 /**
  * Middleware de auditoria crítica
@@ -11,14 +76,16 @@ const logger = createLogger('security-audit');
 export function criticalAuditMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Intercepta res.json para auditoria
-    const originalJson = res.json;
-    res.json = function(data: any, ...args: any[]) {
+    const originalJson = res.json.bind(res);
+    
+    res.json = ((body: unknown) => {
       // Auditoria de operações críticas
-      auditCriticalOperation(req, res, data);
+      if (isRecord(body)) {
+        auditCriticalOperation(req, res, body as Record<string, unknown>);
+      }
       
-      // Chama método original
-      return originalJson.call(this, data);
-    };
+      return originalJson(body);
+    }) as typeof res.json;
     
     next();
   };
@@ -27,13 +94,13 @@ export function criticalAuditMiddleware() {
 /**
  * Função para auditar operações críticas
  */
-async function auditCriticalOperation(req: Request, res: Response, responseData: any): Promise<void> {
+async function auditCriticalOperation(req: Request, res: Response, responseData: ResponseData): Promise<void> {
   try {
     const path = req.path;
     const method = req.method;
-    const tenantId = (req as any).tenantId;
-    const userId = (req as any).user?.id;
-    const vendedorId = (req as any).vendedor?.id;
+    const tenantId = (req as AuthenticatedRequest).tenantId;
+    const userId = (req as AuthenticatedRequest).user?.userId;
+    const vendedorId = (req as AuthenticatedRequest).vendedor?.id;
     
     // Operações críticas para auditoria
     const criticalOperations = [
@@ -64,7 +131,7 @@ async function auditCriticalOperation(req: Request, res: Response, responseData:
     }
     
     // Prepara dados para auditoria
-    const auditData = {
+    const auditDataRaw = {
       tenantId,
       action: criticalOp.action,
       entity: criticalOp.path.split('/')[1] || 'UNKNOWN',
@@ -83,9 +150,13 @@ async function auditCriticalOperation(req: Request, res: Response, responseData:
         timestamp: new Date().toISOString(),
       },
     };
-    
+
+    if (!isAuditData(auditDataRaw)) {
+      throw new ValidationError('Audit inválido');
+    }
+
     // Registra auditoria
-    await insertAuditLog(auditData);
+    await insertAuditLog(auditDataRaw);
     
     // Log adicional para operações de alto risco
     if (['LOGIN_ATTEMPT', 'USER_CREATED', 'USER_DELETED', 'CLIENTE_DELETED'].includes(criticalOp.action)) {
@@ -110,7 +181,7 @@ async function auditCriticalOperation(req: Request, res: Response, responseData:
       metadata: {
         path: req.path,
         method: req.method,
-        tenantId: (req as any).tenantId,
+        tenantId: (req as AuthenticatedRequest).tenantId,
       },
     });
   }
@@ -119,7 +190,7 @@ async function auditCriticalOperation(req: Request, res: Response, responseData:
 /**
  * Extrai ID da entidade da resposta
  */
-function extractEntityId(responseData: any, req: Request): number | undefined {
+function extractEntityId(responseData: ResponseData, req: Request): number | undefined {
   if (!responseData || typeof responseData !== 'object') {
     return undefined;
   }
@@ -153,11 +224,14 @@ function extractEntityId(responseData: any, req: Request): number | undefined {
 /**
  * Sanitiza dados do request para auditoria
  */
-function sanitizeRequestData(body: any): any {
-  if (!body || typeof body !== 'object') {
-    return body;
+function sanitizeRequestData(body: unknown): SanitizedData {
+  if (!isRecord(body)) {
+    if (isSanitizedData(body)) {
+      return body;
+    }
+    return {} as SanitizedData;
   }
-  
+
   const sanitized = { ...body };
   
   // Remove dados sensíveis
@@ -182,11 +256,14 @@ function sanitizeRequestData(body: any): any {
 /**
  * Sanitiza dados da resposta para auditoria
  */
-function sanitizeResponseData(data: any): any {
-  if (!data || typeof data !== 'object') {
-    return data;
+function sanitizeResponseData(data: unknown): SanitizedData {
+  if (!isRecord(data)) {
+    if (isSanitizedData(data)) {
+      return data;
+    }
+    return {} as SanitizedData;
   }
-  
+
   const sanitized = { ...data };
   
   // Remove dados sensíveis da resposta
@@ -206,15 +283,18 @@ export function loginAuditMiddleware() {
       return next();
     }
     
-    const originalJson = res.json;
-    res.json = function(data: any, ...args: any[]) {
+    const originalJson = res.json.bind(res);
+    
+    res.json = ((body: unknown) => {
       // Auditoria de tentativa de login
-      auditLoginAttempt(req, res, data).catch(error => {
-        console.error('Error auditing login attempt:', error);
-      });
+      if (isResponseData(body)) {
+        auditLoginAttempt(req, res, body).catch(error => {
+          console.error('Error auditing login attempt:', error);
+        });
+      }
       
-      return originalJson.call(this, data);
-    };
+      return originalJson(body);
+    }) as typeof res.json;
     
     next();
   };
@@ -223,9 +303,9 @@ export function loginAuditMiddleware() {
 /**
  * Auditoria específica para tentativas de login
  */
-async function auditLoginAttempt(req: Request, res: Response, responseData: any): Promise<void> {
+async function auditLoginAttempt(req: Request, res: Response, responseData: ResponseData): Promise<void> {
   try {
-    const tenantId = (req as any).tenantId;
+    const tenantId = (req as AuthenticatedRequest).tenantId;
     if (!tenantId) {
       return;
     }
@@ -285,15 +365,18 @@ export function financialAuditMiddleware() {
       return next();
     }
     
-    const originalJson = res.json;
-    res.json = function(data: any, ...args: any[]) {
+    const originalJson = res.json.bind(res);
+    
+    res.json = ((body: unknown) => {
       // Auditoria de operações financeiras
-      auditFinancialOperation(req, res, data).catch(error => {
-        console.error('Error auditing financial operation:', error);
-      });
+      if (isResponseData(body)) {
+        auditFinancialOperation(req, res, body).catch(error => {
+          console.error('Error auditing financial operation:', error);
+        });
+      }
       
-      return originalJson.call(this, data);
-    };
+      return originalJson(body);
+    }) as typeof res.json;
     
     next();
   };
@@ -302,11 +385,11 @@ export function financialAuditMiddleware() {
 /**
  * Auditoria específica para operações financeiras
  */
-async function auditFinancialOperation(req: Request, res: Response, responseData: any): Promise<void> {
+async function auditFinancialOperation(req: Request, res: Response, responseData: ResponseData): Promise<void> {
   try {
-    const tenantId = (req as any).tenantId;
-    const userId = (req as any).user?.id;
-    const vendedorId = (req as any).vendedor?.id;
+    const tenantId = (req as AuthenticatedRequest).tenantId;
+    const userId = (req as AuthenticatedRequest).user?.userId;
+    const vendedorId = (req as AuthenticatedRequest).vendedor?.id;
     
     if (!tenantId) {
       return;
@@ -385,7 +468,7 @@ function getFinancialAction(path: string, method: string): string | undefined {
 /**
  * Extrai valor monetário da resposta
  */
-function extractValor(data: any): number | undefined {
+function extractValor(data: ResponseData): number | undefined {
   if (!data || typeof data !== 'object') {
     return undefined;
   }

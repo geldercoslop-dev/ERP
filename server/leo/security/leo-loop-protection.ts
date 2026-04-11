@@ -44,7 +44,14 @@ export interface LoopAlert {
   description: string;
   timestamp: number;
   action: 'blocked' | 'warning' | 'monitored';
-  details: any;
+  details: unknown;
+}
+
+interface SuspiciousPatternMatch {
+  pattern: string;
+  threshold: number;
+  timeWindow: number;
+  executions: number;
 }
 
 /**
@@ -203,7 +210,7 @@ class LeoLoopProtection {
       
       // Manter apenas últimos 5 minutos
       const fiveMinutesAgo = now - 300000;
-      const recentTimestamps = timestamps.filter((t: any) => t > fiveMinutesAgo);
+      const recentTimestamps = timestamps.filter((t: number) => t > fiveMinutesAgo);
       
       // Verificar se excedeu limite por minuto
       if (recentTimestamps.length > this.config.maxSimilarActionsPerMinute) {
@@ -245,7 +252,7 @@ class LeoLoopProtection {
     const cutoff = Date.now() - maxAge;
     const initialCount = this.alerts.length;
     
-    this.alerts = this.alerts.filter((alert: any) => alert.timestamp > cutoff);
+    this.alerts = this.alerts.filter((alert) => alert.timestamp > cutoff);
     
     return initialCount - this.alerts.length;
   }
@@ -329,12 +336,12 @@ class LeoLoopProtection {
   /**
    * Detecta padrões suspeitos de execução
    */
-  private detectSuspiciousPattern(history: TaskExecutionHistory): any {
+  private detectSuspiciousPattern(history: TaskExecutionHistory): SuspiciousPatternMatch | null {
     const now = Date.now();
-    const recentExecutions = history.executions.filter((e: any) => now - e.timestamp < 600000); // Últimos 10 minutos
+    const recentExecutions = history.executions.filter((e) => now - e.timestamp < 600000); // Últimos 10 minutos
 
     for (const pattern of this.config.suspiciousPatterns) {
-      const patternExecutions = recentExecutions.filter((e: any) => now - e.timestamp < pattern.timeWindow);
+      const patternExecutions = recentExecutions.filter((e) => now - e.timestamp < pattern.timeWindow);
       
       if (patternExecutions.length >= pattern.threshold) {
         return {
@@ -350,7 +357,7 @@ class LeoLoopProtection {
   /**
    * Lida com padrão suspeito detectado
    */
-  private async handleSuspiciousPattern(taskId: string, taskType: string, pattern: any): Promise<void> {
+  private async handleSuspiciousPattern(taskId: string, taskType: string, pattern: SuspiciousPatternMatch): Promise<void> {
     const alert: LoopAlert = {
       id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'pattern_loop',
@@ -390,7 +397,7 @@ class LeoLoopProtection {
    */
   private async handleTaskFailure(taskId: string, history: TaskExecutionHistory, error?: string): Promise<void> {
     const recentFailures = history.executions
-      .filter((e: any) => !e.success && Date.now() - e.timestamp < 300000) // Últimos 5 minutos
+      .filter((e) => !e.success && Date.now() - e.timestamp < 300000) // Últimos 5 minutos
       .length;
 
     if (recentFailures >= this.config.maxFailuresPerTask) {
@@ -519,7 +526,7 @@ class LeoLoopProtection {
     const cutoff = Date.now() - (24 * 60 * 60 * 1000); // 24 horas
     
     for (const [taskId, history] of Array.from(this.taskHistory.entries())) {
-      history.executions = history.executions.filter((e: any) => e.timestamp > cutoff);
+      history.executions = history.executions.filter((e) => e.timestamp > cutoff);
       
       // Remover histórico se não tiver execuções recentes
       if (history.executions.length === 0 && !history.isBlocked) {
@@ -529,7 +536,7 @@ class LeoLoopProtection {
 
     // Limpar histórico de ações
     for (const [action, timestamps] of Array.from(this.actionHistory.entries())) {
-      const recentTimestamps = timestamps.filter((t: any) => t > cutoff);
+      const recentTimestamps = timestamps.filter((t) => t > cutoff);
       if (recentTimestamps.length === 0) {
         this.actionHistory.delete(action);
       } else {
@@ -611,10 +618,10 @@ class LeoLoopProtection {
     averageExecutionsPerTask: number;
   } {
     const tasks = Array.from(this.taskHistory.values());
-    const blockedTasks = tasks.filter((t: any) => t.isBlocked).length;
-    const criticalAlerts = this.alerts.filter((a: any) => a.severity === 'critical').length;
+    const blockedTasks = tasks.filter((t) => t.isBlocked).length;
+    const criticalAlerts = this.alerts.filter((a) => a.severity === 'critical').length;
     const averageExecutions = tasks.length > 0 
-      ? tasks.reduce((sum: any, t: any) => sum + t.executions.length, 0) / tasks.length 
+      ? tasks.reduce((sum: number, t) => sum + t.executions.length, 0) / tasks.length 
       : 0;
 
     return {

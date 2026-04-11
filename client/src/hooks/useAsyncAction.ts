@@ -7,6 +7,7 @@
  * - Logging estruturado
  * - Type-safe
  */
+import { ValidationError } from '../lib/errors/typed-errors.js';
 
 import { useCallback, useRef, useState } from "react";
 import { frontendLogger } from "../monitoring/frontend-logger";
@@ -92,7 +93,7 @@ export function useAsyncAction<T, A extends any[]>(
         } catch (err) {
           // Se abortado por usuário, não trata como erro
           if (abortControllerRef.current?.signal.aborted) {
-            throw new Error('Cancelled by user');
+            throw new ValidationError('Cancelled by user');
           }
 
           // Retry logic

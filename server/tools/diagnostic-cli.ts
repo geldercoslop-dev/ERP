@@ -46,10 +46,24 @@ class DiagnosticCLI {
       return;
     }
 
-    console.log('\n🔍 INICIANDO DIAGNÓSTICO COMPLETO DO ERP...\n');
+    // Exigir tenantId via argumento CLI: --tenant <id>
+    const tenantArgIndex = args.findIndex(arg => arg === '--tenant' || arg === '-t');
+    let tenantId: number | undefined = undefined;
+    if (tenantArgIndex !== -1 && args[tenantArgIndex + 1]) {
+      const parsed = Number(args[tenantArgIndex + 1]);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        tenantId = parsed;
+      }
+    }
+    if (!tenantId) {
+      console.error('\n❌ É obrigatório informar o tenantId para diagnóstico: use --tenant <id>');
+      process.exit(2);
+    }
+
+    console.log(`\n🔍 INICIANDO DIAGNÓSTICO COMPLETO DO ERP PARA TENANT ${tenantId}...\n`);
 
     try {
-      const diagnostic = await runSystemDiagnostic();
+      const diagnostic = await runSystemDiagnostic(tenantId);
 
       if (options.json) {
         console.log(JSON.stringify(diagnostic, null, 2));
@@ -89,7 +103,6 @@ class DiagnosticCLI {
 
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
-      
       switch (arg) {
         case '-v':
         case '--verbose':
@@ -103,6 +116,10 @@ class DiagnosticCLI {
         case '--help':
           options.help = true;
           break;
+        case '-t':
+        case '--tenant':
+          i++; // pular o valor do tenantId
+          break;
         default:
           if (arg.startsWith('-')) {
             console.error(`Opção desconhecida: ${arg}`);
@@ -111,7 +128,6 @@ class DiagnosticCLI {
           }
       }
     }
-
     return options;
   }
 
@@ -287,10 +303,12 @@ class DiagnosticCLI {
 USO:
   pnpm diagnostic [opções]
 
+
 OPÇÕES:
   -v, --verbose     Modo verboso com detalhes completos
-  -j, --json       Saída em formato JSON
+  -j, --json        Saída em formato JSON
   -h, --help        Exibe esta ajuda
+  -t, --tenant <id> TenantId obrigatório para diagnóstico
 
 EXEMPLOS:
   pnpm diagnostic                    # Diagnóstico simples

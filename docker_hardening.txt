@@ -1,0 +1,27 @@
+IMAGENS:
+db=mysql:8
+redis=redis:7
+api=(sem image - build)
+
+LATEST_CHECK:
+OK: nenhuma imagem com latest
+
+RESTART:
+db=OK
+redis=OK
+api=OK
+
+HEALTHCHECK:
+db=OK
+redis=OK
+api=OK
+
+RESOURCES:
+db=FALTA
+redis=FALTA
+api=FALTA
+
+VOLUMES:
+db=COM_PERSISTENCIA
+redis=SEM_PERSISTENCIA
+api=SEM_PERSISTENCIA

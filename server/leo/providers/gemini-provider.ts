@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 // Schema para resposta da API Gemini
 const GeminiResponseSchema = z.object({
@@ -47,7 +48,7 @@ export interface GeminiResponse {
   content: string;
   toolCalls?: Array<{
     toolName: string;
-    input: Record<string, any>;
+    input: Record<string, unknown>;
     reasoning: string;
   }>;
   usage?: {
@@ -57,6 +58,12 @@ export interface GeminiResponse {
   };
   model: string;
   processingTime: number;
+}
+
+export interface GeminiToolDef {
+  name?: string;
+  description?: string;
+  inputSchema?: unknown;
 }
 
 export class GeminiProvider {
@@ -76,12 +83,12 @@ export class GeminiProvider {
   /**
    * Gera resposta usando Gemini API
    */
-  async generateResponse(prompt: string, tools?: any[]): Promise<GeminiResponse> {
+  async generateResponse(prompt: string, tools?: GeminiToolDef[]): Promise<GeminiResponse> {
     const startTime = Date.now();
 
     try {
       // Preparar payload para API
-      const contents: any[] = [
+      const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [
         {
           role: 'user',
           parts: [
@@ -93,7 +100,13 @@ export class GeminiProvider {
       ];
 
       // Preparar tools se disponíveis
-      let toolsDeclaration: any[] = [];
+      let toolsDeclaration: Array<{
+        functionDeclaration: {
+          name?: string;
+          description?: string;
+          parameters?: unknown;
+        };
+      }> = [];
       if (tools && tools.length > 0) {
         toolsDeclaration = tools.map(tool => ({
           functionDeclaration: {
@@ -154,7 +167,7 @@ export class GeminiProvider {
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorData}`);
+        throw new InfrastructureError(`Gemini API error: ${response.status} ${response.statusText} - ${errorData}`);
       }
 
       const data = await response.json();
@@ -163,12 +176,12 @@ export class GeminiProvider {
       // Extrair conteúdo e tool calls
       const candidate = validatedData.candidates[0];
       if (!candidate) {
-        throw new Error('No candidates returned from Gemini API');
+        throw new InfrastructureError('No candidates returned from Gemini API');
       }
       const parts = candidate.content.parts;
       
       let content = '';
-      const toolCalls: Array<any> = [];
+      const toolCalls: NonNullable<GeminiResponse['toolCalls']> = [];
 
       for (const part of parts) {
         if (part.text) {
@@ -199,7 +212,7 @@ export class GeminiProvider {
 
     } catch (error) {
       console.error('Gemini Provider Error:', error);
-      throw new Error(`Falha na comunicação com Gemini: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      throw new InfrastructureError(`Falha na comunicação com Gemini: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
 
@@ -233,7 +246,7 @@ export class GeminiProvider {
   /**
    * Streaming response (para respostas longas)
    */
-  async *generateStreamingResponse(prompt: string, tools?: any[]): AsyncGenerator<string, void, unknown> {
+  async *generateStreamingResponse(prompt: string, tools?: GeminiToolDef[]): AsyncGenerator<string, void, unknown> {
     // Implementação de streaming para Gemini
     // Em produção, usar Server-Sent Events ou WebSocket
     const response = await this.generateResponse(prompt, tools);
@@ -254,7 +267,7 @@ export function createGeminiProvider(config?: Partial<GeminiConfig>): GeminiProv
   const apiKey = config?.apiKey || process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
-    throw new Error('Gemini API key is required. Set GEMINI_API_KEY environment variable or pass apiKey in config.');
+    throw new ValidationError('Gemini API key is required. Set GEMINI_API_KEY environment variable or pass apiKey in config.');
   }
 
   return new GeminiProvider({
@@ -267,7 +280,7 @@ export function createGeminiProvider(config?: Partial<GeminiConfig>): GeminiProv
 /**
  * Função de conveniência para gerar resposta
  */
-export async function generateGeminiResponse(prompt: string, tools?: any[]): Promise<GeminiResponse> {
+export async function generateGeminiResponse(prompt: string, tools?: GeminiToolDef[]): Promise<GeminiResponse> {
   const provider = createGeminiProvider();
   return provider.generateResponse(prompt, tools);
 }

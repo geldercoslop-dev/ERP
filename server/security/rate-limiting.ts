@@ -2,15 +2,9 @@ import { Request } from 'express';
 import type { JWTPayload } from './jwt-auth.js';
 import { securityLogger } from '../_core/logger.js';
 import { createRedisRateLimitMiddleware } from './redis-rate-limit.js';
+import type { RequestWithTenant } from '../types/request-with-tenant.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
-type TenantAwareRequest = Request & { tenantId?: string | number };
-
-function getTenantId(req: Request): string {
-  const tenantId = (req as TenantAwareRequest).tenantId;
-  if (typeof tenantId === "number" && Number.isFinite(tenantId)) return String(tenantId);
-  if (typeof tenantId === "string" && tenantId.trim() !== "") return tenantId.trim();
-  return "anonymous";
-}
 
 function isLoopbackIp(ip: string | undefined): boolean {
   if (!ip) return false;
@@ -50,7 +44,10 @@ export function createTenantRateLimit(options: {
     code: 'TENANT_RATE_LIMIT',
     message,
     keySuffix: (req: Request) => {
-      const tenantId = getTenantId(req);
+      const tenantId = (req as RequestWithTenant).user?.tenantId;
+      if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError("tenantId obrigatório para rate limiting");
+      }
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       return `${tenantId}:${ip}`;
     },
@@ -70,7 +67,10 @@ export function createTenantRateLimit(options: {
       return !shouldSkip;
     },
     onBlocked: (req: Request) => {
-      const tenantId = getTenantId(req);
+      const tenantId = (req as RequestWithTenant).user?.tenantId;
+      if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError("tenantId obrigatório para rate limiting");
+      }
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       
       securityLogger.warn({
@@ -106,13 +106,19 @@ export function createCriticalRateLimit(options: {
     code: 'CRITICAL_RATE_LIMIT',
     message,
     keySuffix: (req: Request) => {
-      const tenantId = getTenantId(req);
+      const tenantId = (req as RequestWithTenant).user?.tenantId;
+      if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError("tenantId obrigatório para rate limiting");
+      }
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       return `critical:${tenantId}:${ip}`;
     },
     shouldApply: () => true,
     onBlocked: (req: Request) => {
-      const tenantId = getTenantId(req);
+      const tenantId = (req as RequestWithTenant).user?.tenantId;
+      if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError("tenantId obrigatório para rate limiting");
+      }
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       
       securityLogger.error({

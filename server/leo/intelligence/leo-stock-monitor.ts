@@ -1,6 +1,7 @@
 import { logInfo, logError } from '../../_core/logger.js';
 import * as inventoryService from '../../services/inventory.service.js';
 import { LeoTaskPriority } from '../../../shared/types/index.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 export interface StockAlert {
   productId: number;
@@ -16,15 +17,7 @@ export interface StockAlert {
  * Obtém tenantId do ambiente ou lança erro se não disponível
  * CRÍTICO: Não permite fallback para tenant fixo
  */
-function getTenantId(): number {
-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
-  
-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new Error('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
-  }
-  
-  return tenantId;
-}
+
 
 export class LeoStockMonitor {
   private static instance: LeoStockMonitor;
@@ -39,13 +32,12 @@ export class LeoStockMonitor {
     return LeoStockMonitor.instance;
   }
 
-  async checkLowStock(): Promise<StockAlert[]> {
+  async checkLowStock(tenantId: number): Promise<StockAlert[]> {
+    if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
     try {
-      if (!Number.isFinite(getTenantId()) || getTenantId() <= 0) {
-        throw new Error('Tenant ID inválido para estoque');
-      }
-
-      const rows = await inventoryService.listProdutosBaixoEstoqueLeo(getTenantId(), 20);
+      const rows = await inventoryService.listProdutosBaixoEstoqueLeo(tenantId, 20);
 
       const alerts: StockAlert[] = rows.map((product) => {
         const currentStock = Number(product.estoque || 0);
@@ -97,9 +89,9 @@ export class LeoStockMonitor {
     }
   }
 
-  async getProductsNeedingRestock(): Promise<StockAlert[]> {
+  async getProductsNeedingRestock(tenantId: number): Promise<StockAlert[]> {
     try {
-      const alerts = await this.checkLowStock();
+      const alerts = await this.checkLowStock(tenantId);
 
       const result = alerts.filter((alert) => alert.status === 'critical' || alert.status === 'out');
 

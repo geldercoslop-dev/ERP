@@ -1,0 +1,29 @@
+import { getDb } from "../db/index.js";
+import type { Database } from "../db/core.js";
+
+export const tenantDbMap = new Map<number, Database>();
+
+function assertTenantId(tenantId: number): void {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error("TENANT_REQUIRED");
+  }
+}
+
+export function setTenantDb(tenantId: number, db: Database): void {
+  assertTenantId(tenantId);
+  tenantDbMap.set(tenantId, db);
+}
+
+export function clearTenantDb(tenantId: number): void {
+  assertTenantId(tenantId);
+  tenantDbMap.delete(tenantId);
+}
+
+export async function getDbByTenant(tenantId: number): Promise<Database | null> {
+  assertTenantId(tenantId);
+
+  const mappedDb = tenantDbMap.get(tenantId);
+  if (mappedDb) return mappedDb;
+
+  return getDb();
+}

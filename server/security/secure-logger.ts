@@ -1,6 +1,11 @@
 import { createLogger } from '../infra/structured-logger.js';
 import { getObservabilityContext } from "../infra/observability-context.js";
 
+// Type guard para validar objeto
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === 'object' && data !== null;
+}
+
 /**
  * Logger Seguro - Remove dados sensíveis automaticamente
  */
@@ -25,10 +30,8 @@ export class SecureLogger {
   /**
    * Remove dados sensíveis de objetos
    */
-  static sanitizeObject(obj: any): any {
-    if (!obj || typeof obj !== 'object') {
-      return obj;
-    }
+  static sanitizeObject(obj: unknown): Record<string, unknown> | unknown[] | undefined {
+    if (!isRecord(obj) && !Array.isArray(obj)) return undefined;
 
     if (obj instanceof Error) {
       return {
@@ -42,7 +45,11 @@ export class SecureLogger {
       return obj.map(item => this.sanitizeObject(item));
     }
 
-    const sanitized: any = {};
+    if (!isRecord(obj)) {
+      return obj;
+    }
+
+    const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
       const lowerKey = key.toLowerCase();
@@ -95,54 +102,69 @@ export class SecureLogger {
   /**
    * Logger seguro para informações
    */
-  static info(message: string, meta?: any) {
+  static info(message: string, meta?: unknown) {
     const logger = createLogger('secure-logger');
     logger.info(message, {
-      metadata: meta ? this.sanitizeObject(meta) : undefined
+      metadata: (() => {
+        const metaSanitized = this.sanitizeObject(meta);
+        return isRecord(metaSanitized) ? metaSanitized : undefined;
+      })()
     });
   }
 
   /**
    * Logger seguro para warnings
    */
-  static warn(message: string, meta?: any) {
+  static warn(message: string, meta?: unknown) {
     const logger = createLogger('secure-logger');
     logger.warn(message, {
-      metadata: meta ? this.sanitizeObject(meta) : undefined
+      metadata: (() => {
+        const metaSanitized = this.sanitizeObject(meta);
+        return isRecord(metaSanitized) ? metaSanitized : undefined;
+      })()
     });
   }
 
   /**
    * Logger seguro para erros
    */
-  static error(message: string, error?: Error, meta?: any) {
+  static error(message: string, error?: Error, meta?: unknown) {
     const logger = createLogger('secure-logger');
     logger.error(message, error, {
-      metadata: meta ? this.sanitizeObject(meta) : undefined
+      metadata: (() => {
+        const metaSanitized = this.sanitizeObject(meta);
+        return isRecord(metaSanitized) ? metaSanitized : undefined;
+      })()
     });
   }
 
   /**
    * Logger seguro para debug (apenas em desenvolvimento)
    */
-  static debug(message: string, meta?: any) {
+  static debug(message: string, meta?: unknown) {
     if (process.env.NODE_ENV !== 'development') {
       return;
     }
 
     const logger = createLogger('secure-logger');
     logger.info(`[DEBUG] ${message}`, {
-      metadata: meta ? this.sanitizeObject(meta) : undefined
+      metadata: (() => {
+        const metaSanitized = this.sanitizeObject(meta);
+        return isRecord(metaSanitized) ? metaSanitized : undefined;
+      })()
     });
   }
 
   /**
    * Logger para auditoria de segurança
    */
-  static security(message: string, meta?: any) {
+  static security(message: string, meta?: unknown) {
     const logger = createLogger('security-audit');
     logger.warn(`[SECURITY] ${message}`, {
-      metadata: meta ? this.sanitizeObject(meta) : undefined,
+      metadata: (() => {
+        const metaSanitized = this.sanitizeObject(meta);
+        return isRecord(metaSanitized) ? metaSanitized : undefined;
+      })(),
       severity: 'HIGH'
     });
   }
@@ -150,10 +172,13 @@ export class SecureLogger {
   /**
    * Logger para eventos críticos
    */
-  static critical(message: string, meta?: any) {
+  static critical(message: string, meta?: unknown) {
     const logger = createLogger('critical-events');
     logger.error(`[CRITICAL] ${message}`, undefined, {
-      metadata: meta ? this.sanitizeObject(meta) : undefined,
+      metadata: (() => {
+        const metaSanitized = this.sanitizeObject(meta);
+        return isRecord(metaSanitized) ? metaSanitized : undefined;
+      })(),
       severity: 'CRITICAL'
     });
   }
@@ -168,7 +193,7 @@ export function secureConsoleMiddleware() {
   const originalWarn = console.warn.bind(console);
   const bridgeLogger = createLogger("console-bridge");
 
-  const buildContext = (args: any[]) => {
+  const buildContext = (args: unknown[]) => {
     const obs = getObservabilityContext();
     const safeArgs = args.map((arg) => {
       if (typeof arg === "string") return SecureLogger.sanitizeString(arg);
@@ -191,13 +216,13 @@ export function secureConsoleMiddleware() {
     };
   };
 
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
     const { msg, ctx } = buildContext(args);
     bridgeLogger.info(msg, ctx);
     if (process.env.NODE_ENV !== "production") originalLog(...args);
   };
 
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const { msg, ctx } = buildContext(args);
     bridgeLogger.error(msg, {
       ...ctx,
@@ -206,7 +231,7 @@ export function secureConsoleMiddleware() {
     if (process.env.NODE_ENV !== "production") originalError(...args);
   };
 
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     const { msg, ctx } = buildContext(args);
     bridgeLogger.warn(msg, ctx);
     if (process.env.NODE_ENV !== "production") originalWarn(...args);

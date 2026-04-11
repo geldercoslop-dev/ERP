@@ -1,0 +1,1428 @@
+-----
+ import { performance } from 'perf_hooks';
+ 
+ // Carregar vari├íveis de ambiente
+ dotenv.config();
+ 
+ // Configura├º├úo
+ const API_BASE_URL = process.env.API_URL || 'http://localhost:3001';
+ const AUTH_TOKEN = process.env.AUTH_TOKEN || '';
+-const TENANT_ID = process.env.TENANT_ID || '1';
++const TENANT_ID = process.argv[2];
++if (!TENANT_ID) {
++  throw new Error('TENANT_REQUIRED');
++}
+ const NUM_CONCURRENT_REQUESTS = 10;
+ const NUM_ITERATIONS = 5;
+ 
+ // Cliente HTTP com token de autentica├º├úo
+ const apiClient = axios.create({
+   baseURL: API_BASE_URL,
+   headers: {
+     'Authorization': `Bearer ${AUTH_TOKEN}`,
+diff --git a/server/_core/admin-init.ts b/server/_core/admin-init.ts
+index 50dfd5f4..1774903f 100644
+--- a/server/_core/admin-init.ts
++++ b/server/_core/admin-init.ts
+-----
+ import * as db from "../db/index.js";
+ import bcrypt from 'bcryptjs';
+ 
+ /**
+  * Cria usu├írio admin inicial se n├úo existir
+  * Usa ADMIN_INITIAL_PASSWORD do ambiente ou gera erro
+  */
+-export async function ensureInitialAdmin(): Promise<void> {
+-  const tenantIdRaw = Number(process.env.TENANT_ID || "");
+-  if (!Number.isFinite(tenantIdRaw) || tenantIdRaw <= 0) {
++export async function ensureInitialAdmin(tenantId: number): Promise<void> {
++  if (!tenantId) throw new Error('TENANT_REQUIRED')
++  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+     throw new Error("TENANT_ID ├® obrigat├│rio para inicializar admin sem hardcode.");
+   }
+-  const tenantId = tenantIdRaw;
+   const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+   
+   if (!adminPassword) {
+     console.error('[ensureInitialAdmin] ADMIN_INITIAL_PASSWORD n├úo definido nas vari├íveis de ambiente');
+     console.error('[ensureInitialAdmin] Defina a vari├ível: export ADMIN_INITIAL_PASSWORD="sua_senha_segura"');
+     throw new Error('ADMIN_INITIAL_PASSWORD n├úo configurado');
+   }
+ 
+diff --git a/server/_core/dev-process-exit.ts b/server/_core/dev-process-exit.ts
+-----
+@@ -1,50 +1,57 @@
+ import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
+ import type { Express, Request, Response } from "express";
+ import * as db from "../db/index.js";
+ import { getSessionCookieOptions } from "./cookies.js";
+ import { sdk } from "./sdk.js";
+ 
+ export function getTenantFromRequest(req: any): number {
+-  const raw = Number(process.env.TENANT_ID || "");
+-  if (!Number.isFinite(raw) || raw <= 0) {
+-    throw new Error("TENANT_ID obrigat├│rio no request ou ambiente.");
++  const raw = Number(req?.tenantId ?? req?.headers?.["x-tenant-id"] ?? req?.query?.tenantId ?? req?.body?.tenantId);
++  if (!raw || Number.isNaN(raw) || raw <= 0) {
++    throw new Error("TENANT_REQUIRED");
+   }
+   return raw;
+ }
+ 
+ function getQueryParam(req: Request, key: string): string | undefined {
+   const value = req.query[key];
+   return typeof value === "string" ? value : undefined;
+ }
+ 
+ export function registerOAuthRoutes(app: Express) {
+   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
+-----
+       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+ 
+       if (!userInfo.openId) {
+         res.status(400).json({ error: "openId missing from user info" });
+         return;
+       }
+-
+-      const tenantId = Number(process.env.TENANT_ID || "");
+-      if (!Number.isFinite(tenantId) || tenantId <= 0) {
+-        throw new Error("TENANT_ID obrigat├│rio no ambiente.");
+-      }
+       await db.upsertUser(tenantId, {
+         tenantId,
+         openId: userInfo.openId,
+         name: userInfo.name || null,
+         email: userInfo.email ?? null,
+         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+         lastSignedIn: new Date(),
+       });
+diff --git a/server/_core/ownership.ts b/server/_core/ownership.ts
+index e3cc62b4..4d0ac884 100644
+--- a/server/_core/ownership.ts
++++ b/server/_core/ownership.ts
+@@ -35,20 +35,23 @@ export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vended
+-----
+   }
+   if (ctx.vendedor?.userId != null && ctx.vendedor.userId > 0) {
+     return ctx.vendedor.userId;
+   }
+   if (ctx.session?.tokenKind === "user") {
+     return ctx.user.id;
+   }
+   const tenantId = (ctx.user as TrpcContext["user"])?.tenantId;
+-  if (!tenantId || tenantId <= 0) {
++  if (!tenantId) {
+     throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
+   }
+-  const vByPk = await db.getVendedorById(String(tenantId), ctx.user.id);
++  if (tenantId <= 0) {
++    throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
++  }
++  const vByPk = await db.getVendedorById(ctx.user.id);
+   if (vByPk?.userId != null && vByPk.userId > 0) {
+     return vByPk.userId;
+   }
+   const u = await db.getUserById(ctx.user.id);
+   if (u) {
+     return ctx.user.id;
+   }
+   throw new TRPCError({
+-----
+     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sess├úo necess├íria." });
+   }
+   if (ctx.user.role === "admin") {
+     return;
+   }
+ 
+   switch (entity) {
+     case "pedido": {
+-      if (!ctx.tenantId || ctx.tenantId <= 0) {
++      if (!ctx.tenantId) {
++        throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
++      }
++      if (ctx.tenantId <= 0) {
+         throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
+       }
+-      const pedido = await db.getPedidoById(String(ctx.tenantId), entityId);
++      const pedido = await db.getPedidoById(entityId);
+       if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido n├úo encontrado." });
+       const pedidoTenantId = getOptionalNumberField(pedido, "tenantId");
+       if (ctx.tenantId != null && pedidoTenantId != null && pedidoTenantId !== ctx.tenantId) {
+         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+       }
+       const clienteRow = await db.getClienteOwnerRowById(pedido.clienteId);
+       if (!clienteRow) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente n├úo encontrado." });
+       if (ctx.tenantId != null && clienteRow.tenantId !== ctx.tenantId) {
+-----
+       }
+       const ownerUid = await resolveOwnerUserId(ctx);
+       if (clienteRow.userId == null || clienteRow.userId !== ownerUid) {
+         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+       }
+       return;
+     }
+     case "conta_receber": {
+-      if (!ctx.tenantId || ctx.tenantId <= 0) {
++      if (!ctx.tenantId) {
++        throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
++      }
++      if (ctx.tenantId <= 0) {
+         throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
+       }
+-      const conta = await db.getContaReceberById(String(ctx.tenantId), entityId);
++      const conta = await db.getContaReceberById(entityId);
+       if (!conta) throw new TRPCError({ code: "NOT_FOUND", message: "Conta n├úo encontrada." });
+       const vendedorId = getOptionalNumberField(conta, "vendedorId");
+       if (vendedorId == null || vendedorId !== ctx.user.id) {
+         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
+       }
+       return;
+     }
+     case "boleto": {
+-----
+   openId: string;
+   appId: string;
+   name: string;
+ };
+ 
+ type DbUser = typeof users.$inferSelect;
+ 
+ export function getTenantId(): number {
+-  const raw = Number(process.env.TENANT_ID || "");
+-  if (!Number.isFinite(raw) || raw <= 0) {
+-    throw new Error("TENANT_ID obrigat├│rio no ambiente.");
+-  }
+-  return raw;
++  throw new Error('tenantId must be provided');
+ }
+ 
+ const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
+ const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
+ const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
+ 
+ class OAuthService {
+   constructor(private client: ReturnType<typeof axios.create>) {
+@@ -142,22 +138,28 @@ class SDKServer {
+    * Get user information using access token
+    * @example
+-----
+     const sessionUserId = session.openId;
+     const signedInAt = new Date();
+     let user = await db.getUserByOpenId(sessionUserId);
+ 
+     // If user not in DB, sync from OAuth server automatically
+     if (!user) {
+       try {
+         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
+-        const tenantId = Number(process.env.TENANT_ID || "");
+         if (!Number.isFinite(tenantId) || tenantId <= 0) {
+           throw new Error("TENANT_ID obrigat├│rio no ambiente.");
+         }
+         await db.upsertUser(tenantId, {
+           tenantId,
+           openId: userInfo.openId,
+           name: userInfo.name || null,
+           email: userInfo.email ?? null,
+@@ -305,23 +313,16 @@ class SDKServer {
+         throw ForbiddenError("Failed to sync user info");
+       }
+     }
+ 
+     if (!user) {
+       throw ForbiddenError("User not found");
+     }
+-----
+       }
+     }
+ 
+     if (!user) {
+       throw ForbiddenError("User not found");
+     }
+ 
+-    const tenantId = (user as UserWithTenant).tenantId ?? (() => {
+-      const envTenantId = Number(process.env.TENANT_ID || "");
+-      if (!Number.isFinite(envTenantId) || envTenantId <= 0) {
+-        throw new Error("TENANT_ID obrigat├│rio no ambiente.");
+-      }
+-      return envTenantId;
+-    })();
+     await db.upsertUser(tenantId, {
+       tenantId,
+       openId: user.openId,
+       lastSignedIn: signedInAt,
+     });
+ 
+     return user;
+   }
+diff --git a/server/_core/service-actor.ts b/server/_core/service-actor.ts
+index f52d1ad8..1c207662 100644
+--- a/server/_core/service-actor.ts
+-----
+  */
+ export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vendedor" | "session" | "tenantId">): Promise<ServiceActor> {
+   if (!ctx.user) {
+     throw new Error("Usu├írio n├úo autenticado");
+   }
+   if (ctx.user.role === "admin") {
+     return { role: "admin", userId: ctx.user.id };
+   }
+-  if (!ctx.tenantId || ctx.tenantId <= 0) {
++  if (!ctx.tenantId) {
++    throw new Error("tenantId obrigat├│rio para resolver actor de servi├ºo");
++  }
++  if (ctx.tenantId <= 0) {
+     throw new Error("tenantId obrigat├│rio para resolver actor de servi├ºo");
+   }
+   const tenantId = String(ctx.tenantId);
+   const v =
+     ctx.vendedor ??
+-    (await db.getVendedorByUserId(tenantId, ctx.user.id)) ??
+-    (await db.getVendedorById(tenantId, ctx.user.id));
++    (await db.getVendedorByUserId(ctx.user.id)) ??
++    (await db.getVendedorById(ctx.user.id));
+   if (!v) {
+     throw new Error("N├úo foi poss├¡vel resolver o vendedor para este usu├írio");
+   }
+-----
+  * Valida├º├úo obrigat├│ria para qualquer opera├º├úo de banco
+  * @param tenantId ID do tenant (obrigat├│rio)
+  * @param actor Contexto do usu├írio (obrigat├│rio)
+  * @returns true se v├ílido, lan├ºa erro se inv├ílido
+  */
+ export function validateTenantAccess(tenantId?: number, actor?: ServiceActor): TenantValidation {
+   assertServiceEntryIfEnabled();
+   // VALIDA├ç├âO CR├ìTICA - N├âO PERMITIR OPERA├ç├òES SEM TENANT
+-  if (!tenantId || tenantId <= 0) {
++  if (!tenantId) {
++    throw new Error('TENANT_ID_REQUIRED: Opera├º├úo de banco exige tenantId v├ílido');
++  }
++  if (tenantId <= 0) {
+     throw new Error('TENANT_ID_REQUIRED: Opera├º├úo de banco exige tenantId v├ílido');
+   }
+   
+   if (!actor) {
+     throw new Error('ACTOR_REQUIRED: Opera├º├úo de banco exige contexto do usu├írio');
+   }
+   
+   if (!actor.role || !['admin', 'vendedor'].includes(actor.role)) {
+@@ -57,17 +60,20 @@ export function validateQueryTenantIsolation(query: string): boolean {
+ 
+ /**
+  * Valida├º├úo de seguran├ºa para queries din├ómicas
+-----
+ 
+ /**
+  * Valida├º├úo de seguran├ºa para queries din├ómicas
+  * @param query Query SQL
+  * @param tenantId ID do tenant
+  * @returns true se seguro, false se vulner├ível
+  */
+ export function validateSecureQuery(query: string, tenantId?: number): boolean {
+-  if (!tenantId || tenantId <= 0) {
++  if (!tenantId) {
++    return false; // Sempre requer tenantId
++  }
++  if (tenantId <= 0) {
+     return false; // Sempre requer tenantId
+   }
+   
+   // Verificar se query tem filtro de tenant
+   const hasTenantClause = validateQueryTenantIsolation(query);
+   
+   // Verificar se n├úo h├í SELECT sem WHERE (query completa)
+   const hasWhereClause = query.includes('WHERE');
+diff --git a/server/_core/types/manusTypes.ts b/server/_core/types/manusTypes.ts
+index 89a38192..672f9e33 100644
+--- a/server/_core/types/manusTypes.ts
++++ b/server/_core/types/manusTypes.ts
+-----
+  */
+ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeContext, parametros?: Payload): Promise<LeoActionResult> {
+   const startTime = Date.now();
+   
+   try {
+     console.log(`­ƒöì [LeoActions] Executando consulta: ${action.description || action.action}`);
+-    
+-    const tid = Number((context as unknown as { tenantId?: number }).tenantId);
+-    const fromEnv = Number(process.env.TENANT_ID || 0);
+-    const tenantId = Number.isFinite(tid) && tid > 0 ? tid : fromEnv;
+-    if (!tenantId) {
+-      return {
+-        success: false,
+-        message: "tenantId obrigat├│rio no contexto LEO ou ambiente (TENANT_ID)",
+-        executionTime: Date.now() - startTime,
+-      };
++
++    const input = asRecord(context);
++    if (!input || (input.tenantId !== undefined && typeof input.tenantId !== 'number')) {
++      throw new Error('invalid input');
++    }
++    const tenantId = Number(input.tenantId);
++    if (!input.tenantId) {
++      throw new Error('TENANT_REQUIRED');
++    }
+-----
+ 
+   /**
+    * Checa estoque e gera alertas
+    */
+   private async checarEstoque(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
+     try {
+       console.log('[LeoAutomation] Checando estoque');
+-      const fromPayload = Number(dados.tenantId);
+-      const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+-      const tenantId = Number.isFinite(fromPayload) && fromPayload > 0 ? fromPayload : fromEnv;
+-      if (!tenantId) {
+-        return { success: false, message: 'tenantId n├úo configurado (contexto ou DEFAULT_TENANT_ID)' };
++      const tenantId = Number(dados.tenantId);
++      if (!dados.tenantId) {
++        throw new Error('TENANT_REQUIRED');
++      }
++      if (Number.isNaN(tenantId) || tenantId <= 0) {
++        throw new Error('TENANT_REQUIRED');
+       }
+       const resultado = await leoErpService.getEstoque(tenantId, { alertaBaixo: true });
+       
+       if (resultado.success && resultado.alertas) {
+         const { estoqueBaixo, estoqueCritico } = resultado.alertas;
+         
+         if (estoqueCritico > 0) {
+-----
+ 
+   /**
+    * Analisa vendas
+    */
+   private async analisarVendas(dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
+     try {
+       console.log('[LeoAutomation] Analisando vendas');
+-      const fromPayload = Number(dados.tenantId);
+-      const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+-      const tenantId = Number.isFinite(fromPayload) && fromPayload > 0 ? fromPayload : fromEnv;
+-      if (!tenantId) {
+-        return { success: false, message: 'tenantId n├úo configurado (contexto ou DEFAULT_TENANT_ID)' };
++      const tenantId = Number(dados.tenantId);
++      if (!dados.tenantId) {
++        throw new Error('TENANT_REQUIRED');
++      }
++      if (Number.isNaN(tenantId) || tenantId <= 0) {
++        throw new Error('TENANT_REQUIRED');
+       }
+       // Obter pedidos dos ├║ltimos 7 dias
+       const seteDiasAtras = new Date();
+       seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
+       
+       const resultado = await leoErpService.getPedidos(tenantId, ADMIN_ACTOR, {
+         dataInicio: seteDiasAtras,
+-----
++import { orderAnalyticsTool } from '../../tools/order-analytics.tool.js';
+ import { logInfo, logError } from '../../_core/logger.js';
+ 
+-/**
+- * Obt├®m tenantId do ambiente ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
++function requireTenantId(tenantId: number): number {
++  if (!Number.isInteger(tenantId) || tenantId <= 0) {
++    throw new Error('tenantId inv├ílido');
+   }
+-  
++
+   return tenantId;
+ }
+ 
+ export class LeoSalesAnalysis {
+   private readonly name = 'SalesAnalysis';
+ 
+-  async calculateAverageTicket(vendedorId?: number, period?: string): Promise<number> {
+-----
+ 
+-/**
+- * Obt├®m tenantId do ambiente ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
++function requireTenantId(tenantId: number): number {
++  if (!Number.isInteger(tenantId) || tenantId <= 0) {
++    throw new Error('tenantId inv├ílido');
+   }
+-  
++
+   return tenantId;
+ }
+ 
+ export class LeoSalesAnalysis {
+   private readonly name = 'SalesAnalysis';
+ 
+-  async calculateAverageTicket(vendedorId?: number, period?: string): Promise<number> {
++  async calculateAverageTicket(tenantId: number, vendedorId?: number, period?: string): Promise<number> {
+     try {
+-----
+   priority: LeoTaskPriority;
+ }
+ 
+-/**
+- * Obt├®m tenantId do ambiente ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
++function requireTenantId(tenantId: number): number {
++  if (!Number.isInteger(tenantId) || tenantId <= 0) {
++    throw new Error('tenantId inv├ílido');
+   }
+-  
++
+   return tenantId;
+ }
+ 
+ export class LeoStockMonitor {
+   private static instance: LeoStockMonitor;
+   private name = 'LeoStockMonitor';
+ 
+-----
+ 
+-/**
+- * Obt├®m tenantId do ambiente ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
++function requireTenantId(tenantId: number): number {
++  if (!Number.isInteger(tenantId) || tenantId <= 0) {
++    throw new Error('tenantId inv├ílido');
+   }
+-  
++
+   return tenantId;
+ }
+ 
+ export class LeoStockMonitor {
+   private static instance: LeoStockMonitor;
+   private name = 'LeoStockMonitor';
+ 
+   private constructor() {}
+ 
+-----
+index abab2b53..5c907c0a 100644
+--- a/server/leo/memory/leo-memory.service.ts
++++ b/server/leo/memory/leo-memory.service.ts
+@@ -1,53 +1,58 @@
+ import * as configuracoesService from "../../services/configuracoes.service.js";
+ 
+ const PREFIX = "leo_memory_";
+-function getDefaultTenantId(): number {
+-  const tenantId = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+-  if (!tenantId || tenantId <= 0) {
+-    throw new Error("Tenant ID obrigat├│rio para mem├│ria do LEO");
+-  }
+-  return tenantId;
+-}
+ 
+ function key(tenantId: number, usuario: string, chave: string): string {
+   return `${PREFIX}${tenantId}_${usuario}_${chave}`;
+ }
+ 
+-export async function getMemoria(usuario: string, chave: string, tenantId: number = getDefaultTenantId()): Promise<string | null> {
++export async function getMemoria(usuario: string, chave: string, tenantId: number): Promise<string | null> {
++  if (!tenantId) {
++    throw new Error('TENANT_REQUIRED');
++  }
+   try {
+-----
+--- a/server/leo/memory/leo-memory.service.ts
++++ b/server/leo/memory/leo-memory.service.ts
+@@ -1,53 +1,58 @@
+ import * as configuracoesService from "../../services/configuracoes.service.js";
+ 
+ const PREFIX = "leo_memory_";
+-function getDefaultTenantId(): number {
+-  const tenantId = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+-  if (!tenantId || tenantId <= 0) {
+-    throw new Error("Tenant ID obrigat├│rio para mem├│ria do LEO");
+-  }
+-  return tenantId;
+-}
+ 
+ function key(tenantId: number, usuario: string, chave: string): string {
+   return `${PREFIX}${tenantId}_${usuario}_${chave}`;
+ }
+ 
+-export async function getMemoria(usuario: string, chave: string, tenantId: number = getDefaultTenantId()): Promise<string | null> {
++export async function getMemoria(usuario: string, chave: string, tenantId: number): Promise<string | null> {
++  if (!tenantId) {
++    throw new Error('TENANT_REQUIRED');
++  }
+   try {
+     const valor = await configuracoesService.getConfig(key(tenantId, usuario, chave));
+-----
+ };
+ 
+-/**
+- * Obt├®m tenantId do contexto ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  // Em ambiente real, isso viria do contexto da requisi├º├úo ou sistema
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
+-  }
+-  
+-  return tenantId;
+-}
+-
+-async function verificarVendasDoDia(): Promise<TarefaResult> {
++async function verificarVendasDoDia(tenantId: number): Promise<TarefaResult> {
+   try {
+-    const tenantId = getTenantId();
+     const hoje = new Date();
+     hoje.setHours(0, 0, 0, 0);
+     const fim = new Date(hoje);
+     fim.setHours(23, 59, 59, 999);
+-----
+-/**
+- * Obt├®m tenantId do contexto ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  // Em ambiente real, isso viria do contexto da requisi├º├úo ou sistema
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
+-  }
+-  
+-  return tenantId;
+-}
+-
+-async function verificarVendasDoDia(): Promise<TarefaResult> {
++async function verificarVendasDoDia(tenantId: number): Promise<TarefaResult> {
+   try {
+-    const tenantId = getTenantId();
+     const hoje = new Date();
+     hoje.setHours(0, 0, 0, 0);
+     const fim = new Date(hoje);
+     fim.setHours(23, 59, 59, 999);
+     const res = await ordersService.getReportVendasPeriodo(tenantId, { dataInicio: hoje, dataFim: fim });
+     const total = Number(res.totalValor ?? 0);
+-----
+ const PEDIDO_GRANDE_MIN = Number(process.env.LEO_PEDIDO_GRANDE_MIN) || 3000;
+ const FRETE_ATRASADO_DIAS = 7;
+ 
+-/**
+- * Obt├®m tenantId do contexto ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
+-  }
+-  
+-  return tenantId;
+-}
+-
+-export async function enviarNotificacoesInteligentes(tarefasResumos: { nome: string; resumo?: string }[]): Promise<void> {
++export async function enviarNotificacoesInteligentes(tarefasResumos: { nome: string; resumo?: string }[], tenantId: number): Promise<void> {
+   const token = process.env.TELEGRAM_BOT_TOKEN;
+   const chatId = process.env.TELEGRAM_CHAT_ID;
+   if (!token || !chatId) return;
+ 
+   const linhas: string[] = [];
+ 
+-----
+ 
+-/**
+- * Obt├®m tenantId do contexto ou lan├ºa erro se n├úo dispon├¡vel
+- * CR├ìTICO: N├úo permite fallback para tenant fixo
+- */
+-function getTenantId(): number {
+-  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+-  
+-  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+-    throw new Error('TENANT_ID n├úo configurado ou inv├ílido. Configure a vari├ível de ambiente Tenant ID.');
+-  }
+-  
+-  return tenantId;
+-}
+-
+-export async function enviarNotificacoesInteligentes(tarefasResumos: { nome: string; resumo?: string }[]): Promise<void> {
++export async function enviarNotificacoesInteligentes(tarefasResumos: { nome: string; resumo?: string }[], tenantId: number): Promise<void> {
+   const token = process.env.TELEGRAM_BOT_TOKEN;
+   const chatId = process.env.TELEGRAM_CHAT_ID;
+   if (!token || !chatId) return;
+ 
+   const linhas: string[] = [];
+ 
+   const boletoTask = tarefasResumos.find((t) => t.nome === "boletos_vencidos" && t.resumo && !t.resumo.startsWith("Nenhum"));
+   if (boletoTask?.resumo) linhas.push(`­ƒôï ${boletoTask.resumo}`);
+-----
+           [paymentData.pedidoId]
+         );
+ 
+         console.log(`[SafePayment] Pedido #${pedidoData.numero} marcado como PAGO`);
+       }
+     }
+ 
+     // 5. Registrar auditoria
+-    if (!paymentData.tenantId || paymentData.tenantId <= 0) {
++    if (!paymentData.tenantId) {
++      throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de pagamento');
++    }
++    if (paymentData.tenantId <= 0) {
+       throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de pagamento');
+     }
+     const auditRecord = await insertAuditLog({
+       tenantId: paymentData.tenantId,
+       action: 'PAGAMENTO_REGISTRO',
+       entity: 'pagamento',
+       entityId: String(paymentId),
+       payloadJson: JSON.stringify({
+@@ -229,17 +232,20 @@ export async function cancelPaymentSafe(
+ 
+     // 4. Cancelar pagamento
+     await tx.execute(
+-----
+   itensProcessados?: number;
+ }
+ 
+ /**
+  * Cria carga de forma segura com valida├º├Áes completas
+  */
+ export async function createShipmentSafe(shipmentData: CreateShipmentData): Promise<ShipmentResult> {
+   // Valida├º├úo de tenantId obrigat├│rio
+-  if (!shipmentData.tenantId || shipmentData.tenantId <= 0) {
++  if (!shipmentData.tenantId) {
++    return {
++      success: false,
++      message: 'TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio',
++    };
++  }
++  if (shipmentData.tenantId <= 0) {
+     return {
+       success: false,
+       message: 'TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio',
+     };
+   }
+ 
+   return runTransaction(async (tx: TransactionConnection) => {
+     console.log(`[SafeShipment] Criando carga - Placa: ${shipmentData.placa}, Motorista: ${shipmentData.motorista}`);
+@@ -179,17 +185,23 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
+-----
+       // Atualizar status do pedido
+       await tx.execute(
+         `UPDATE pedidos SET status = 'EM_CARGA', updated_at = NOW() WHERE id = ?`,
+         [item.pedidoId]
+       );
+     }
+ 
+     // 6. Registrar auditoria
+-    if (!shipmentData.tenantId || shipmentData.tenantId <= 0) {
++    if (!shipmentData.tenantId) {
++      throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de carga');
++    }
++    if (shipmentData.tenantId <= 0) {
++      throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de carga');
++    }
++    if (shipmentData.tenantId <= 0) {
+       throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de carga');
+     }
+     const auditRecord = await insertAuditLog({
+       tenantId: shipmentData.tenantId,
+       action: 'CARGA_CRIACAO',
+       entity: 'carga',
+       entityId: String(shipmentId),
+       payloadJson: JSON.stringify({
+@@ -258,17 +270,20 @@ export async function startShipmentSafe(
+-----
+   }
+ });
+ 
+ // Endpoint para criar pedido (teste de gera├º├úo de n├║mero)
+ router.post('/pedidos', async (req, res) => {
+   try {
+     const pedidoData = req.body;
+     
+-    if (!pedidoData.tenantId || !pedidoData.vendedorId || !pedidoData.clienteId) {
++    if (!pedidoData.tenantId) {
++      return res.status(400).json({ 
++        success: false, 
++        message: 'Dados do pedido incompletos' 
++      });
++    }
++    if (!pedidoData.vendedorId || !pedidoData.clienteId) {
+       return res.status(400).json({ 
+         success: false, 
+         message: 'Dados do pedido incompletos' 
+       });
+     }
+     
+     const result = await createPedidoSafe(
+       pedidoData.tenantId,
+       pedidoData,
+-----
+-async function main(): Promise<any> {
++async function main(tenantIdInput?: string): Promise<any> {
+   const conn = await db.getDb();
+   if (!conn) {
+     console.error(`${PREFIX} Banco indispon├¡vel. Configure DATABASE_URL ou DB_*.`);
+     process.exit(1);
+   }
+ 
+-  const tenantIdRaw = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || "");
+-  if (!Number.isFinite(tenantIdRaw) || tenantIdRaw <= 0) {
+-    console.error(`${PREFIX} DEFAULT_TENANT_ID (ou TENANT_ID) ├® obrigat├│rio para seed sem hardcode.`);
++  const tenantId = Number(tenantIdInput);
++  if (!tenantIdInput || Number.isNaN(tenantId) || tenantId <= 0) {
++    console.error(`${PREFIX} TENANT_REQUIRED`);
+     process.exit(1);
+   }
+-  const tenantId = tenantIdRaw;
+-  const vendedores = await db.getAllVendedores(String(tenantId));
++  const vendedores = await db.getAllVendedores();
+   const vendedorId = vendedores.length > 0 ? vendedores[0].id : undefined;
+   if (!vendedorId) {
+     console.warn(`${PREFIX} Nenhum vendedor encontrado. Rode npm run seed:admin antes. Clientes ser├úo criados sem v├¡nculo.`);
+   }
+ 
+   // Clientes de teste (telefones ├║nicos)
+-----
+ }
+ 
+ export async function perguntar(
+   tenantId: number,
+   pergunta: string,
+   usuario?: string,
+   options?: LeoAiSessionOptions
+ ): Promise<{ success: boolean; data?: RespostaLeo; error?: string }> {
+-  if (!tenantId || tenantId <= 0) {
++  if (!tenantId) {
++    return { success: false, error: "Tenant ID inv├ílido ou ausente" };
++  }
++  if (tenantId <= 0) {
+     return { success: false, error: "Tenant ID inv├ílido ou ausente" };
+   }
+   if (!options?.userId || options.userId <= 0) {
+     return { success: false, error: "userId obrigat├│rio para o LEO" };
+   }
+   if (!options?.actor) {
+     return { success: false, error: "actor obrigat├│rio para o LEO" };
+   }
+diff --git a/server/services/ai/leo-action-logger.ts b/server/services/ai/leo-action-logger.ts
+index 3dc91dff..bf3ddac3 100644
+--- a/server/services/ai/leo-action-logger.ts
++++ b/server/services/ai/leo-action-logger.ts
+-----
+ 
+ /**
+  * Compatibilidade com chamadas legadas do LEO.
+  * Mant├®m o mesmo nome de fun├º├úo esperada nos m├│dulos antigos.
+  */
+ export async function insertLeoActionLogCompat(params: LegacyLeoActionLogInput): Promise<void> {
+   try {
+     const tenantMatch = params.usuario.match(/tenant:(\d+)/i);
+-    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+-    if (!tenantId || tenantId <= 0) return;
++    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number.NaN;
++    if (!tenantId) {
++      throw new Error('TENANT_REQUIRED');
++    }
++    if (Number.isNaN(tenantId) || tenantId <= 0) {
++      throw new Error('TENANT_REQUIRED');
++    }
+     await logAction({
+       tool: params.acao || "unknown",
+       input: params.dados ?? "",
+       result: params.resultado,
+       success: String(params.resultado || "").toUpperCase() === "SUCESSO",
+       executionTime: 0,
+       ctx: { tenantId },
+     });
+-----
+ /**
+  * Compatibilidade com chamadas legadas do LEO.
+  * Mant├®m o mesmo nome de fun├º├úo esperada nos m├│dulos antigos.
+  */
+ export async function insertLeoActionLogCompat(params: LegacyLeoActionLogInput): Promise<void> {
+   try {
+     const tenantMatch = params.usuario.match(/tenant:(\d+)/i);
+-    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+-    if (!tenantId || tenantId <= 0) return;
++    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number.NaN;
++    if (!tenantId) {
++      throw new Error('TENANT_REQUIRED');
++    }
++    if (Number.isNaN(tenantId) || tenantId <= 0) {
++      throw new Error('TENANT_REQUIRED');
++    }
+     await logAction({
+       tool: params.acao || "unknown",
+       input: params.dados ?? "",
+       result: params.resultado,
+       success: String(params.resultado || "").toUpperCase() === "SUCESSO",
+       executionTime: 0,
+       ctx: { tenantId },
+     });
+diff --git a/server/services/ai/leo-memory.ts b/server/services/ai/leo-memory.ts
+-----
+  */
+ export async function insertAuditLog(data: AuditLogData): Promise<{ success: boolean; message: string }> {
+   return await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
+     try {
+       const dbConnection = await getDb();
+       if (!dbConnection) {
+         return createResponse(false, 'Banco indispon├¡vel');
+       }
+-      if (!data.tenantId || data.tenantId <= 0) {
++      if (!data.tenantId) {
++        return createResponse(false, 'tenantId obrigat├│rio para auditoria');
++      }
++      if (data.tenantId <= 0) {
+         return createResponse(false, 'tenantId obrigat├│rio para auditoria');
+       }
+ 
+       const record = {
+         tenantId: data.tenantId,
+         actorUserId: data.actorUserId ?? null,
+         actorVendedorId: data.actorVendedorId ?? null,
+         action: data.action,
+diff --git a/server/services/client.service.ts b/server/services/client.service.ts
+index f4a45a9e..86d5aa5f 100644
+--- a/server/services/client.service.ts
++++ b/server/services/client.service.ts
+-----
+ } from "./orders.service.js";
+ import * as financeService from "./finance.service.js";
+ import { PedidoStatus } from "../shared/domain-status.js";
+ import { BoletoStatus } from "../shared/domain-status.js";
+ import { nanoid } from "nanoid";
+ import { ADMIN_ACTOR } from "../_core/service-actor.js";
+ 
+ const RUN = process.env.RUN_REAL_CORE_TESTS !== "0" && process.env.RUN_REAL_CORE_TESTS !== "false";
+-const TENANT_ID = Number(process.env.TEST_CORE_TENANT_ID || 99001);
++const TENANT_ID_INPUT = process.argv[2];
++if (!TENANT_ID_INPUT) {
++  throw new Error('TENANT_REQUIRED');
++}
++const TENANT_ID = Number(TENANT_ID_INPUT);
++if (Number.isNaN(TENANT_ID) || TENANT_ID <= 0) {
++  throw new Error('TENANT_REQUIRED');
++}
+ 
+ let dbAvailable = false;
+ let testStart = new Date(0);
+ let vendedorId = 0;
+ let produtoId = 0;
+ let clienteBaseId = 0;
+ /** Estoque inicial do produto de teste (ajustado no beforeAll). */
+ let estoqueInicial = 0;
+-----
+   acao: string;
+   entidade: string;
+   dados?: string | null;
+   resultado: string;
+ }): Promise<void> {
+   const tenantMatch = params.usuario.match(/tenant:(\d+)/i);
+-  const tenantId = tenantMatch
+-    ? Number(tenantMatch[1])
+-    : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+-  if (!Number.isFinite(tenantId) || tenantId <= 0) return;
++  const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number.NaN;
++  if (!tenantId) {
++    throw new Error('TENANT_REQUIRED');
++  }
++  if (Number.isNaN(tenantId) || tenantId <= 0) {
++    throw new Error('TENANT_REQUIRED');
++  }
+   try {
+     await insertLeoActionLogCore({
+       tenantId,
+       usuario: params.usuario,
+       acao: params.acao,
+       entidade: params.entidade,
+       dados: params.dados ?? null,
+       resultado: params.resultado,
+-----
++    if (!payload.tenantId) {
++      throw new Error('tenantId required');
++    }
+     const payment = {
+       id: Math.floor(Math.random() * 1000) + 1,
+       tipo: payload.tipo,
+       valor: payload.valor,
+       status: payload.status || 'pending',
+-      tenantId: payload.tenantId || 1,
++      tenantId: payload.tenantId,
+       pedidoId: payload.pedidoId || null,
+       formaPagamento: payload.formaPagamento || null,
+       descricao: payload.descricao || '',
+       dataVencimento: payload.dataVencimento || null,
+       createdAt: new Date().toISOString(),
+       updatedAt: new Date().toISOString()
+     };
+     
+     return { success: true, data: payment };
+   }
+ 
+   /**
+    * List payments with filters
++   * @param payload Filtros e pagina├º├úo
++   * @param actor Ator da opera├º├úo (userId, role)
+-----
++      throw new Error('tenantId required');
++    }
+     const payments = [
+       {
+         id: 1,
+         tipo: 'receita',
+         valor: 100.00,
+         status: 'pending',
+-        tenantId: tenantId || 1,
++        tenantId: filterTenantId,
+         pedidoId: 1,
+         formaPagamento: 'dinheiro',
+         descricao: 'Pagamento do pedido #1',
+         dataVencimento: '2024-12-31',
+         createdAt: '2024-01-01T00:00:00.000Z',
+         updatedAt: '2024-01-01T00:00:00.000Z'
+       },
+       {
+         id: 2,
+         tipo: 'despesa',
+         valor: 50.00,
+         status: 'paid',
+-        tenantId: tenantId || 1,
++        tenantId: filterTenantId,
+         pedidoId: null,
+-----
+         createdAt: '2024-01-01T00:00:00.000Z',
+         updatedAt: '2024-01-01T00:00:00.000Z'
+       },
+       {
+         id: 2,
+         tipo: 'despesa',
+         valor: 50.00,
+         status: 'paid',
+-        tenantId: tenantId || 1,
++        tenantId: filterTenantId,
+         pedidoId: null,
+         formaPagamento: 'cartao',
+         descricao: 'Despesa de escrit├│rio',
+         dataVencimento: '2024-12-15',
+         createdAt: '2024-01-02T00:00:00.000Z',
+         updatedAt: '2024-01-02T00:00:00.000Z'
+       }
+     ];
+@@ -116,30 +143,43 @@ export class PaymentService {
+         total: filtered.length,
+         pages: Math.ceil(filtered.length / limit)
+       }
+     }};
+   }
+ 
+-----
++    if (!payload.tenantId) {
++      throw new Error('tenantId required');
++    }
+     const payment = {
+       id: payload.id,
+       tipo: payload.tipo || 'receita',
+       valor: payload.valor || 0,
+       status: payload.status || 'pending',
+-      tenantId: payload.tenantId || 1,
++      tenantId: payload.tenantId,
+       pedidoId: payload.pedidoId || null,
+       formaPagamento: payload.formaPagamento || null,
+       descricao: payload.descricao || '',
+       dataVencimento: payload.dataVencimento || null,
+       valorConciliado: payload.valorConciliado || null,
+       dataConciliacao: payload.dataConciliacao || null,
+       observacoes: payload.observacoes || null,
+       updatedAt: new Date().toISOString()
+diff --git a/server/services/product.service.ts b/server/services/product.service.ts
+index 2cb19bd4..6f548680 100644
+--- a/server/services/product.service.ts
++++ b/server/services/product.service.ts
+@@ -1,26 +1,36 @@
+ import { ServiceList, ServiceSingle, ServiceCreateResponse } from '../types/service-safety.js';
++import type { ServiceActor } from '../_core/service-actor.js';
+-----
+ /**
+  * GERA├ç├âO DE RELAT├ôRIO LEO (AI Assistant)
+  */
+ export async function gerarRelatorioLeoPDF(
+   tenantId: number,
+   tipo: 'estoque' | 'vendas' | 'clientes',
+   actor?: ServiceActor
+ ): Promise<{ dataUri: string; nomeArquivo: string }> {
+-  if (!tenantId || tenantId <= 0) {
++  if (!tenantId) {
++    throw new Error("tenantId ├® obrigat├│rio para relat├│rio LEO");
++  }
++  if (tenantId <= 0) {
+     throw new Error("tenantId ├® obrigat├│rio para relat├│rio LEO");
+   }
+   
+   switch (tipo) {
+     case 'estoque':
+       return await gerarEstoquePDF(tenantId);
+     case 'vendas':
+       const dataFim = new Date();
+diff --git a/server/services/safe-stock.ts b/server/services/safe-stock.ts
+index edf75ae4..e35b5b9a 100644
+--- a/server/services/safe-stock.ts
++++ b/server/services/safe-stock.ts
+-----
+       "create",
+       "pedidos",
+       { 
+         pedidoId: meta.insertId,
+         dados: pedidoOp.dados,
+         operation: 'criar_pedido'
+       },
+       {
+-        tenantId: pedidoOp.tenantId || 1,
++        tenantId: pedidoOp.tenantId,
+         entityId: meta.insertId != null ? String(meta.insertId) : undefined,
+         actorUserId: pedidoOp.actorUserId,
+         actorVendedorId: pedidoOp.actorVendedorId
+       }
+     );
+     
+     return {
+       success: true,
+@@ -424,26 +437,29 @@ class SafeTransactionService {
+         ...pedidoOp.dados,
+         updatedAt: new Date(),
+       } as never)
+       .where(eq(pedidos.id, pedidoOp.pedidoId));
+ 
+     const meta = readMysqlExecResult(result);
+-----
+       "update",
+       "pedidos",
+       { 
+         pedidoId: pedidoOp.pedidoId,
+         dados: pedidoOp.dados,
+         operation: 'atualizar_pedido'
+       },
+       {
+-        tenantId: pedidoOp.tenantId || 1,
++        tenantId: pedidoOp.tenantId,
+         entityId: pedidoOp.pedidoId.toString(),
+         actorUserId: pedidoOp.actorUserId,
+         actorVendedorId: pedidoOp.actorVendedorId
+       }
+     );
+     
+     return {
+       success: true,
+@@ -465,26 +481,29 @@ class SafeTransactionService {
+         observacoes: typeof motivo === "string" ? motivo : undefined,
+         updatedAt: new Date(),
+       })
+       .where(eq(pedidos.id, pedidoOp.pedidoId));
+ 
+     const meta = readMysqlExecResult(result);
+-----
+       "cancel",
+       "pedidos",
+       { 
+         pedidoId: pedidoOp.pedidoId,
+         motivo: pedidoOp.dados?.motivo,
+         operation: 'cancelar_pedido'
+       },
+       {
+-        tenantId: pedidoOp.tenantId || 1,
++        tenantId: pedidoOp.tenantId,
+         entityId: pedidoOp.pedidoId.toString(),
+         actorUserId: pedidoOp.actorUserId,
+         actorVendedorId: pedidoOp.actorVendedorId
+       }
+     );
+     
+     return {
+       success: true,
+diff --git a/server/services/stock-safety.service.ts b/server/services/stock-safety.service.ts
+index beb9b6fa..212857e0 100644
+--- a/server/services/stock-safety.service.ts
++++ b/server/services/stock-safety.service.ts
+@@ -537,27 +537,27 @@ export async function getStockMovements(
+     }
+ 
+-----
+ }
+ 
+ /**
+  * Busca usu├írio pelo OpenID
+  * @param tenantId - ID do tenant
+  * @param openId - OpenID do usu├írio
+  */
+ export async function getUserByOpenId(tenantId: number, openId: string): Promise<User | null> {
+-  if (!tenantId || !openId) return null;
++  if (!tenantId) return null;
++  if (!openId) return null;
+   
+   const dbConn = await getDb();
+   if (!dbConn) return null;
+   
+   const result = await dbConn
+     .select()
+     .from(users)
+     .where(and(eq(users.tenantId, tenantId), eq(users.openId, openId)))
+@@ -197,71 +202,73 @@ export async function listUsers(
+       limit
+     }
+   };
+ }
+ 
+-----
+  * Este teste simula 2 requests simult├óneos para criar o mesmo pedido
+  * e verifica se apenas 1 ├® criado (idempot├¬ncia funcionando)
+  */
+-async function testIdempotencyReal() {
++async function testIdempotencyReal(tenantId: number): Promise<boolean> {
++  if (!tenantId) throw new Error('TENANT_REQUIRED')
++  
+   console.log('­ƒº¬ INICIANDO TESTE REAL DE IDEMPOT├èNCIA...');
+-  const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+   const pedidoData = {
+     vendedorId: 1,
+     clienteId: 1,
+     cliente: {
+       nome: 'Cliente Teste',
+       telefone: '11999999999',
+       rua: 'Rua Teste',
+       numero: '123',
+@@ -67,18 +68,18 @@ async function testIdempotencyReal() {
+           status: result.value.status
+         });
+       } else {
+         console.log(`Request ${index + 1} ERROR:`, result.reason);
+       }
+     });
+ 
+-----
+ /**
+  * TESTE DE LOCK NO ESTOQUE
+  */
+-async function testEstoqueLock() {
++async function testEstoqueLock(tenantId: number): Promise<boolean> {
++  if (!tenantId) throw new Error('TENANT_REQUIRED')
++  
+   console.log('\n­ƒöÆ TESTANDO LOCK NO ESTOQUE...');
+-  const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+   const pedidoDataEstoqueBaixo = {
+     vendedorId: 1,
+     clienteId: 1,
+     cliente: {
+       nome: 'Cliente Teste Estoque',
+       telefone: '11999999998',
+       rua: 'Rua Teste',
+       numero: '456',
+@@ -161,26 +163,34 @@ async function testEstoqueLock() {
+     return false;
+   }
+ }
+ 
+ /**
+  * EXECUTAR TODOS OS TESTES
+  */
+-----
+   itensPedidoCount: number;
+   produtoEstoqueTotal: number;
+   contasReceberCount: number;
+   stateHash: string;
+ }
+ 
+ export class DatabaseConsistencyTester {
+   private db: any = null;
+-  private tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
++  private tenantId: number;
+   private results: TestResult[] = [];
+ 
++  constructor(tenantId: number) {
++    if (!tenantId) throw new Error('TENANT_REQUIRED')
++    this.tenantId = tenantId;
++  }
++
+   async initialize() {
+     this.db = await getDb();
+     if (!this.db) throw new Error('Database n├úo dispon├¡vel');
+     logger.info('Database tester initialized');
+   }
+ 
+   /**
+    * TESTE 1: Erro No Meio Da Transa├º├úo
+-----
++++ b/server/tests/idempotency-simple-test.ts
+@@ -1,15 +1,22 @@
+ /**
+  * TESTE SIMPLES DE IDEMPOT├èNCIA - VALIDA├ç├âO L├ôGICA
+  */
+ import { createHash } from 'crypto';
+ 
+ console.log('­ƒÜÇ INICIANDO TESTE DE IDEMPOT├èNCIA...');
+-const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
++const TEST_TENANT_ID_INPUT = process.argv[2];
++if (!TEST_TENANT_ID_INPUT) {
++  throw new Error('TENANT_REQUIRED');
++}
++const TEST_TENANT_ID = Number(TEST_TENANT_ID_INPUT);
++if (Number.isNaN(TEST_TENANT_ID) || TEST_TENANT_ID <= 0) {
++  throw new Error('TENANT_REQUIRED');
++}
+ 
+ // Simular fun├º├úo de gera├º├úo de chave
+ function generatePedidoIdempotencyKey(
+   tenantId: number,
+   vendedorId: number,
+   clienteId: number,
+   itens: Array<{ produtoId?: number; quantidade: number; valorUnitario: number }>
+ ): string {
+-----
+   // 1) Conex├úo
+   const conn = await db.getDb();
+   if (!conn) {
+     console.error("[test:core] Falha: banco indispon├¡vel. Rode npm run test:db.");
+     process.exit(1);
+   }
+ 
+-  const tenantPick = await conn.select({ tenantId: db.produtos.tenantId }).from(db.produtos).limit(1);
+-  const testTenantId = Number(process.env.TEST_TENANT_ID) || Number(tenantPick[0]?.tenantId);
+-  if (!testTenantId) {
+-    console.error("[test:core] Defina TEST_TENANT_ID ou insira produtos com tenant_id.");
+-    process.exit(1);
+-  }
+-
+   // 2) Baixa estoque: impedir negativo
+   try {
+     const produtosList = await conn
+       .select({ id: db.produtos.id, estoque: db.produtos.estoque, tenantId: db.produtos.tenantId })
+       .from(db.produtos)
+       .where(db.eq(db.produtos.tenantId, testTenantId))
+       .limit(1);
+     if (produtosList.length > 0) {
+@@ -138,18 +134,25 @@ async function main() {
+   try {
+     const key = `test-idem-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+-----
+@@ -1,16 +1,23 @@
+ /**
+  * TESTE SIMPLES DE IDEMPOT├èNCIA - VALIDA├ç├âO L├ôGICA
+  */
+ import { createHash } from "crypto";
+ import { pathToFileURL } from "node:url";
+ 
+ console.log("­ƒÜÇ INICIANDO TESTE DE IDEMPOT├èNCIA...");
+-const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
++const TEST_TENANT_ID_INPUT = process.argv[2];
++if (!TEST_TENANT_ID_INPUT) {
++  throw new Error('TENANT_REQUIRED');
++}
++const TEST_TENANT_ID = Number(TEST_TENANT_ID_INPUT);
++if (Number.isNaN(TEST_TENANT_ID) || TEST_TENANT_ID <= 0) {
++  throw new Error('TENANT_REQUIRED');
++}
+ 
+ function generatePedidoIdempotencyKey(
+   tenantId: number,
+   vendedorId: number,
+   clienteId: number,
+   itens: Array<{ produtoId?: number; quantidade: number; valorUnitario: number }>
+ ): string {
+   const keyData = {
+-----
+ 
+ import { logger, systemLogger } from '../_core/logger.js';
+ import {
+   checkDiagnosticDatabaseHealth,
+   registerDiagnosticAudit,
+ } from '../services/system-diagnostic.service.js';
+ 
+-function getDiagnosticTenantId(): number | null {
+-  const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
+-  const value = Number(raw);
+-  return Number.isFinite(value) && value > 0 ? value : null;
++function getDiagnosticTenantId(tenantId?: number | string): number | null {
++  const value = Number(tenantId);
++  if (!tenantId) {
++    throw new Error('TENANT_REQUIRED');
++  }
++  if (Number.isNaN(value) || value <= 0) {
++    throw new Error('TENANT_REQUIRED');
++  }
++  return value;
+ }
+ 
+ export interface DiagnosticResult {
+   timestamp: Date;
+   systemHealth: {
+-----
+@@ -1,16 +1,16 @@
+ // ­ƒÜÇ E2E TEST SCRIPT - REAL ERP VALIDATION
+ const axios = require('axios');
+ const { performance } = require('perf_hooks');
+ 
+ // Config
+ const BASE_URL = 'http://localhost:3005';
+ let authToken = '';
+-let tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
++let tenantId;
+ let createdIds = {
+   cliente: null,
+   produto: null,
+   pedido: null,
+   financeiro: null
+ };
+ 
+ // Metrics
+@@ -73,17 +73,20 @@ async function testFluxoCompleto() {
+   });
+   
+   if (!loginResult.success) {
+     console.error('ÔØî Falha no login:', loginResult.error);
+     return false;
+   }
+-----
+   });
+   
+   if (!loginResult.success) {
+     console.error('ÔØî Falha no login:', loginResult.error);
+     return false;
+   }
+   
+   authToken = loginResult.data.token;
+-  tenantId = loginResult.data.user?.tenantId || Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
++  tenantId = loginResult.data.user?.tenantId;
++  if (!tenantId) {
++    throw new Error('TENANT_REQUIRED');
++  }
+   console.log('Ô£à Login realizado');
+   
+   // 1. Criar cliente
+   console.log('­ƒæñ Criando cliente...');
+   const clienteResult = await makeRequest('POST', '/api/clientes', {
+     nome: 'Cliente E2E Test',
+     email: `cliente-e2e-${Date.now()}@test.com`,
+     telefone: '11999999999',
+
+

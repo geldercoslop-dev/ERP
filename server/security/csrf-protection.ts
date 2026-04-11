@@ -2,6 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import * as crypto from 'crypto';
 import { constantTimeCompare } from './timing-safe.js';
 
+// Interface para Request com session
+interface RequestWithSession extends Request {
+  session?: Record<string, unknown>;
+}
+
 /**
  * CSRF Protection Middleware
  * Protege contra ataques CSRF em endpoints state-changing
@@ -29,7 +34,7 @@ export class CSRFProtection {
         return next();
       }
 
-      const session = (req as any).session as Record<string, unknown> | undefined;
+      const session = (req as RequestWithSession).session;
       const cookieToken = req.cookies?.[CSRFProtection.COOKIE_NAME] as string | undefined;
 
       // Token esperado: preferir cookie (stateless CSRF), fallback para sessão.
@@ -77,7 +82,7 @@ export class CSRFProtection {
       const headerToken = req.headers?.[CSRFProtection.HEADER_NAME];
 
       // Esperado: preferir token em sessão (se existir) ou em cookie (caso sem session middleware).
-      const sessionToken = (req as any).session?.[CSRFProtection.SESSION_KEY] as string | undefined;
+      const sessionToken = (req as RequestWithSession).session?.[CSRFProtection.SESSION_KEY] as string | undefined;
       const expectedToken = sessionToken || (cookieToken as string | undefined);
 
       // Verificar se token esperado existe
@@ -143,7 +148,7 @@ export class CSRFProtection {
    */
   static csrfTokenEndpoint() {
     return (req: Request, res: Response) => {
-      const session = (req as any).session;
+      const session = (req as RequestWithSession).session;
       const cookieToken = req.cookies?.[CSRFProtection.COOKIE_NAME] as string | undefined;
       const token =
         cookieToken ||

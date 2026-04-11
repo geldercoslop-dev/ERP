@@ -57,7 +57,7 @@ type LegacyLeoActionLogInput = {
 export async function insertLeoActionLogCompat(params: LegacyLeoActionLogInput): Promise<void> {
   try {
     const tenantMatch = params.usuario.match(/tenant:(\d+)/i);
-    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+    const tenantId = tenantMatch ? Number(tenantMatch[1]) : null;
     if (!tenantId || tenantId <= 0) return;
     await logAction({
       tool: params.acao || "unknown",

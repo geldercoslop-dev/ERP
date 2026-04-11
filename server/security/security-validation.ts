@@ -210,7 +210,7 @@ export function securityLoggingMiddleware() {
     
     // Intercepta resposta
     const originalJson = res.json;
-    res.json = function(data: any, ...args: any[]) {
+    res.json = function(data: unknown, ...args: unknown[]) {
       const duration = Date.now() - startTime;
       const statusCode = res.statusCode;
       

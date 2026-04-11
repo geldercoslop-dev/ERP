@@ -1,0 +1,1329 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-09T20:24:30.438Z",
+  "criticalPaths": [
+    "server/routes/",
+    "server/routers/",
+    "server/controllers/",
+    "server/services/",
+    "server/middleware/",
+    "server/middlewares/",
+    "server/leo/"
+  ],
+  "entries": [
+    {
+      "file": "server/controllers/client.controller.ts",
+      "kind": "as-any",
+      "snippet": "const client = Array.isArray(result) ? result.find(c => (c as any).id === id) : null;",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/client.controller.ts",
+      "kind": "as-any",
+      "snippet": "const tenantId = (req as any).tenantId;",
+      "count": 3
+    },
+    {
+      "file": "server/controllers/client.controller.ts",
+      "kind": "as-any",
+      "snippet": "const tenantId = (req as any).tenantId; // From tenant middleware",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/client.controller.ts",
+      "kind": "as-any",
+      "snippet": "tenantId: (req as any).tenantId",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "} as any);",
+      "count": 3
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "const order = Array.isArray(result) ? result.find(o => (o as any).id === id) : null;",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "const result = await createOrderSafe(payload as any);",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "const tenantId = (req as any).tenantId;",
+      "count": 5
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "const tenantId = (req as any).tenantId; // From tenant middleware",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "hasTenantId: !!(req as any).tenantId,",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "hasUser: !!(req as any).user,",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "hasUserId: !!(req as any).userId,",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "tenantId: (req as any).tenantId",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "tenantId: (req as any).tenantId,",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "user: (req as any).user,",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "userId: (req as any).userId,",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/order.controller.ts",
+      "kind": "as-any",
+      "snippet": "usuarioId: (req as any).userId",
+      "count": 3
+    },
+    {
+      "file": "server/controllers/payment.controller.ts",
+      "kind": "as-any",
+      "snippet": "const payment = Array.isArray(result) ? result.find(p => (p as any).id === id) : null;",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/payment.controller.ts",
+      "kind": "as-any",
+      "snippet": "const tenantId = (req as any).tenantId;",
+      "count": 5
+    },
+    {
+      "file": "server/controllers/payment.controller.ts",
+      "kind": "as-any",
+      "snippet": "const tenantId = (req as any).tenantId; // From tenant middleware",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/payment.controller.ts",
+      "kind": "as-any",
+      "snippet": "tenantId: (req as any).tenantId",
+      "count": 1
+    },
+    {
+      "file": "server/controllers/system-test.controller.ts",
+      "kind": "as-any",
+      "snippet": "const produtoData = (produto as any[])[0];",
+      "count": 2
+    },
+    {
+      "file": "server/leo/actions/desktop-automation-config.ts",
+      "kind": "as-any",
+      "snippet": ".filter(([key, value]) => typeof value === 'object' && (value as any).enabled)",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/desktop-automation-config.ts",
+      "kind": "as-any",
+      "snippet": "(libConfig as any).enabled = true;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/desktop-automation-config.ts",
+      "kind": "as-any",
+      "snippet": "const libConfig = (this.config as any)[library];",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-actions.ts",
+      "kind": "as-any",
+      "snippet": "const automation = (action.context as any)?.automation || 'iniciar_loop';",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-actions.ts",
+      "kind": "as-any",
+      "snippet": "const entity = (action.context as any)?.entity || 'cliente';",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-actions.ts",
+      "kind": "as-any",
+      "snippet": "const params = parametros as any;",
+      "count": 4
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "colon-any",
+      "snippet": "private async executarAcao(acao: string, dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "colon-any",
+      "snippet": "private async executarBackupAutomatico(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "colon-any",
+      "snippet": "private async executarScriptPersonalizado(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "colon-any",
+      "snippet": "private async limparLogsAntigos(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "colon-any",
+      "snippet": "private async verificarEventosAutomaticos(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "generic-any",
+      "snippet": "private async executarAcao(acao: string, dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "generic-any",
+      "snippet": "private async executarBackupAutomatico(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "generic-any",
+      "snippet": "private async executarScriptPersonalizado(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "generic-any",
+      "snippet": "private async limparLogsAntigos(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-automation.ts",
+      "kind": "generic-any",
+      "snippet": "private async verificarEventosAutomaticos(dados: any): Promise<{ success: boolean; message: string; data?: any }> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-computer-control-stub.ts",
+      "kind": "colon-any",
+      "snippet": "data?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-desktop-control-stub.ts",
+      "kind": "colon-any",
+      "snippet": "data?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-desktop-control.ts",
+      "kind": "angle-any",
+      "snippet": "private async getRobot(): Promise<any> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/actions/leo-desktop-control.ts",
+      "kind": "generic-any",
+      "snippet": "private async getRobot(): Promise<any> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/core/task-queue.ts",
+      "kind": "colon-any",
+      "snippet": ".filter((task: any) =>",
+      "count": 1
+    },
+    {
+      "file": "server/leo/core/task-queue.ts",
+      "kind": "colon-any",
+      "snippet": ".map((task: any) => task.id);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/core/task-queue.ts",
+      "kind": "colon-any",
+      "snippet": ".reduce((sum: any, t: any) => sum + (t.executionTime || 0), 0);",
+      "count": 2
+    },
+    {
+      "file": "server/leo/core/task-queue.ts",
+      "kind": "colon-any",
+      "snippet": "tasks = tasks.filter((t: any) => t.priority === filter.priority);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/core/task-queue.ts",
+      "kind": "colon-any",
+      "snippet": "tasks = tasks.filter((t: any) => t.status === filter.status);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/core/task-queue.ts",
+      "kind": "colon-any",
+      "snippet": "tasks = tasks.filter((t: any) => t.type === filter.type);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/core/task-queue.ts",
+      "kind": "colon-any",
+      "snippet": "tasks = tasks.filter((t: any) => t.userId === filter.userId);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/app-controller.ts",
+      "kind": "colon-any",
+      "snippet": "data?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/app-controller.ts",
+      "kind": "generic-any",
+      "snippet": "async execute(action: string, parameters?: Record<string, any>): Promise<AppResult> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/app-controller.ts",
+      "kind": "generic-any",
+      "snippet": "parameters?: Record<string, any>;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/app-controller.ts",
+      "kind": "generic-any",
+      "snippet": "private runningProcesses: Map<string, any> = new Map();",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/browser-controller.ts",
+      "kind": "colon-any",
+      "snippet": "data?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/browser-controller.ts",
+      "kind": "generic-any",
+      "snippet": "async execute(action: string, parameters?: Record<string, any>): Promise<BrowserResult> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/browser-controller.ts",
+      "kind": "generic-any",
+      "snippet": "parameters?: Record<string, any>;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/browser-controller.ts",
+      "kind": "generic-any",
+      "snippet": "private browserProcesses: Map<string, any> = new Map();",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/desktop-controller.ts",
+      "kind": "generic-any",
+      "snippet": "async openApp(appName: string, parameters?: Record<string, any>): Promise<DesktopResult> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/desktop-controller.ts",
+      "kind": "generic-any",
+      "snippet": "parameters?: Record<string, any>;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/system-controller.ts",
+      "kind": "colon-any",
+      "snippet": "data?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/system-controller.ts",
+      "kind": "generic-any",
+      "snippet": "async execute(action: string, parameters?: Record<string, any>): Promise<SystemResult> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/desktop/system-controller.ts",
+      "kind": "generic-any",
+      "snippet": "parameters?: Record<string, any>;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/engine/leo-loop.ts",
+      "kind": "as-any",
+      "snippet": "health: systemHealth as any,",
+      "count": 1
+    },
+    {
+      "file": "server/leo/engine/leo-scheduler.ts",
+      "kind": "colon-any",
+      "snippet": "const promises = tasksToRun.map((task: any) => this.runScheduledTask(task));",
+      "count": 1
+    },
+    {
+      "file": "server/leo/engine/leo-scheduler.ts",
+      "kind": "colon-any",
+      "snippet": "private static matchesCron(date: Date, cron: any): boolean {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/engine/leo-supervisor.ts",
+      "kind": "colon-any",
+      "snippet": "this.actionTimestamps = this.actionTimestamps.filter((timestamp: any) => timestamp > oneMinuteAgo);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/engine/leo-supervisor.ts",
+      "kind": "colon-any",
+      "snippet": "this.metrics.averageExecutionTime = this.executionTimes.reduce((a: any, b: any) => a + b, 0) / this.executionTimes.length;",
+      "count": 2
+    },
+    {
+      "file": "server/leo/intelligence/leo-pattern-detection.ts",
+      "kind": "generic-any",
+      "snippet": "async analyzeCustomerFrequency(): Promise<any[]> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/intelligence/leo-pattern-detection.ts",
+      "kind": "generic-any",
+      "snippet": "async detectSeasonalPatterns(): Promise<any[]> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const average = values.reduce((a: any, b: any) => a + b, 0) / values.length;",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const avgTickets = salesData.map((d: any) => d.avgTicket).filter((t: any) => t > 0);",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const categories: { [key: string]: any[] } = {};",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const cheapAvgSales = cheapProducts.reduce((sum: any, p: any) => sum + (p.vendas || 0), 0) / cheapProducts.length;",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const criticalStock = inventoryData.filter((p: any) => p.estoqueAtual < p.estoqueMinimo);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const expensiveAvgSales = expensiveProducts.reduce((sum: any, p: any) => sum + (p.vendas || 0), 0) / expensiveProducts.length;",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const insights: any[] = [];",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const issues: any[] = [];",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const noSalesProducts = pricingData.filter((p: any) => p.vendas === 0);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const olderTotal = older.reduce((sum: any, day: any) => sum + day.total, 0);",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const overallAvg = avgTickets.reduce((a: any, b: any) => a + b, 0) / avgTickets.length;",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const peakDays = dailyAverages.filter((day: any) => day.sales > day.average * 1.5);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const recentAvg = avgTickets.slice(0, 7).reduce((a: any, b: any) => a + b, 0) / Math.min(7, avgTickets.length);",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "const recentTotal = recent.reduce((sum: any, day: any) => sum + day.total, 0);",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private analyzeAverageTicket(salesData: any[]): { insight?: string } {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private analyzeCategoryStock(inventoryData: any[]): any[] {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private analyzePriceDemandCorrelation(pricingData: any[]): any[] {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private async analyzeSalesPerformance(salesData: any[]): Promise<void> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private async detectInventoryPatterns(inventoryData: any[]): Promise<void> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private async detectPricingPatterns(pricingData: any[]): Promise<void> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private async identifyAtRiskCustomers(customerData: any[]): Promise<void> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private async identifySlowMovingProducts(inventoryData: any[]): Promise<void> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private calculateDailyAverages(salesData: any[]): any[] {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "private calculateSalesTrend(salesData: any[]): { trend: string; percentage: number } {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "public getLearningStatus(): any {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/learning/leo-learning-engine.ts",
+      "kind": "colon-any",
+      "snippet": "return days.map((day: any) => {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-events.ts",
+      "kind": "colon-any",
+      "snippet": "async createSystemErrorEvent(error: Error, context?: any): Promise<LeoEvent> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory-persistence.ts",
+      "kind": "colon-any",
+      "snippet": "memories = memories.filter((m: any) =>",
+      "count": 2
+    },
+    {
+      "file": "server/leo/memory/leo-memory-persistence.ts",
+      "kind": "colon-any",
+      "snippet": "memories = memories.filter((m: any) => m.timestamp <= filters.dateTo!.getTime());",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory-persistence.ts",
+      "kind": "colon-any",
+      "snippet": "memories = memories.filter((m: any) => m.timestamp >= filters.dateFrom!.getTime());",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory-persistence.ts",
+      "kind": "colon-any",
+      "snippet": "memories = memories.filter((m: any) => m.type === filters.type);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory-persistence.ts",
+      "kind": "colon-any",
+      "snippet": "this.decisions = this.decisions.filter((d: any) => d.timestamp >= cutoffTime);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory.ts",
+      "kind": "colon-any",
+      "snippet": ".filter((d: any) => {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory.ts",
+      "kind": "colon-any",
+      "snippet": ".filter((d: any) => d.action === action)",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory.ts",
+      "kind": "colon-any",
+      "snippet": "async findSimilarDecisions(action: string, context?: any, limit: number = 5): Promise<MemoryDecision[]> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory.ts",
+      "kind": "colon-any",
+      "snippet": "async predictSuccess(action: string, context?: any): Promise<number> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/leo-memory.ts",
+      "kind": "colon-any",
+      "snippet": "const successCount = similarDecisions.filter((d: any) => d.success).length;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/memory-manager.ts",
+      "kind": "colon-any",
+      "snippet": "data: any,",
+      "count": 2
+    },
+    {
+      "file": "server/leo/memory/memory-manager.ts",
+      "kind": "colon-any",
+      "snippet": "data: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/memory/memory-manager.ts",
+      "kind": "colon-any",
+      "snippet": "private calculateSize(data: any): number {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/operator/leo-operator-controller.ts",
+      "kind": "colon-any",
+      "snippet": "getConfig(): any {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/operator/leo-operator-mode.ts",
+      "kind": "colon-any",
+      "snippet": "capacidades: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/operator/leo-operator-mode.ts",
+      "kind": "colon-any",
+      "snippet": "performance: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/operator/leo-operator-mode.ts",
+      "kind": "colon-any",
+      "snippet": "private async logAction(acao: string, descricao: string, dados?: any): Promise<void> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/perception/leo-erp-observer.ts",
+      "kind": "colon-any",
+      "snippet": "dados?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "${relatorio.insights.map((insight: any) => `",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "alta: eventosPeriodo.filter((e: any) => e.prioridade === 'alta').length,",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "baixa: eventosPeriodo.filter((e: any) => e.prioridade === 'baixa').length,",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "const abertos = eventosPeriodo.filter((e: any) => e.status === 'aberto').length;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "const criticos = errosPeriodo.filter((e: any) => e.prioridade === 'critica').length;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "const criticos = eventosPeriodo.filter((e: any) => e.prioridade === 'critica').length;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "const resolvidos = eventosPeriodo.filter((e: any) => e.status === 'resolvido').length;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "critica: eventosPeriodo.filter((e: any) => e.prioridade === 'critica').length,",
+      "count": 1
+    },
+    {
+      "file": "server/leo/planning/leo-daily-report.ts",
+      "kind": "colon-any",
+      "snippet": "media: eventosPeriodo.filter((e: any) => e.prioridade === 'media').length,",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "angle-any",
+      "snippet": "const toolCalls: Array<any> = [];",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "colon-any",
+      "snippet": "async *generateStreamingResponse(prompt: string, tools?: any[]): AsyncGenerator<string, void, unknown> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "colon-any",
+      "snippet": "async generateResponse(prompt: string, tools?: any[]): Promise<GeminiResponse> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "colon-any",
+      "snippet": "const contents: any[] = [",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "colon-any",
+      "snippet": "export async function generateGeminiResponse(prompt: string, tools?: any[]): Promise<GeminiResponse> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "colon-any",
+      "snippet": "let toolsDeclaration: any[] = [];",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "generic-any",
+      "snippet": "const toolCalls: Array<any> = [];",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/gemini-provider.ts",
+      "kind": "generic-any",
+      "snippet": "input: Record<string, any>;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/providers/groq-provider.ts",
+      "kind": "colon-any",
+      "snippet": "export async function generateGroqResponse(prompt: string, tools?: any[]): Promise<GroqResponse> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-desktop-sandbox-stub.ts",
+      "kind": "colon-any",
+      "snippet": "data?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-desktop-sandbox.ts",
+      "kind": "colon-any",
+      "snippet": ".filter((entry: any) => !entry.result.success && entry.result.blockedReason)",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-desktop-sandbox.ts",
+      "kind": "colon-any",
+      "snippet": ".filter((entry: any) => entry.result.executionTime)",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-desktop-sandbox.ts",
+      "kind": "colon-any",
+      "snippet": ".map((entry: any) => ({",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-desktop-sandbox.ts",
+      "kind": "colon-any",
+      "snippet": ".reduce((sum: any, entry: any) => sum + (entry.result.executionTime || 0), 0) /",
+      "count": 2
+    },
+    {
+      "file": "server/leo/security/leo-desktop-sandbox.ts",
+      "kind": "colon-any",
+      "snippet": "(this.auditLog.filter((entry: any) => entry.result.executionTime).length || 1);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "? tasks.reduce((sum: any, t: any) => sum + t.executions.length, 0) / tasks.length",
+      "count": 2
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": ".filter((e: any) => !e.success && Date.now() - e.timestamp < 300000) // Últimos 5 minutos",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "const blockedTasks = tasks.filter((t: any) => t.isBlocked).length;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "const criticalAlerts = this.alerts.filter((a: any) => a.severity === 'critical').length;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "const patternExecutions = recentExecutions.filter((e: any) => now - e.timestamp < pattern.timeWindow);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "const recentExecutions = history.executions.filter((e: any) => now - e.timestamp < 600000); // Últimos 10 minutos",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "const recentTimestamps = timestamps.filter((t: any) => t > cutoff);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "const recentTimestamps = timestamps.filter((t: any) => t > fiveMinutesAgo);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "details: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "history.executions = history.executions.filter((e: any) => e.timestamp > cutoff);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "private async handleSuspiciousPattern(taskId: string, taskType: string, pattern: any): Promise<void> {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "private detectSuspiciousPattern(history: TaskExecutionHistory): any {",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-loop-protection.ts",
+      "kind": "colon-any",
+      "snippet": "this.alerts = this.alerts.filter((alert: any) => alert.timestamp > cutoff);",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/leo-sandbox.ts",
+      "kind": "colon-any",
+      "snippet": "result?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/security/test-security.ts",
+      "kind": "colon-any",
+      "snippet": "details?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/leo/utils/leo-actions-log.ts",
+      "kind": "colon-any",
+      "snippet": "const sanitized: any = {};",
+      "count": 2
+    },
+    {
+      "file": "server/leo/utils/leo-actions-log.ts",
+      "kind": "colon-any",
+      "snippet": "private static sanitizeInput(input: any): any {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/utils/leo-actions-log.ts",
+      "kind": "colon-any",
+      "snippet": "private static sanitizeOutput(output: any): any {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/utils/leo-command-interpreter.ts",
+      "kind": "colon-any",
+      "snippet": "const highPriority = restock.filter((r: any) => r.priority === 'high');",
+      "count": 1
+    },
+    {
+      "file": "server/leo/utils/leo-log-manager.ts",
+      "kind": "colon-any",
+      "snippet": ".filter((file: any) => file.startsWith('leo-') && file.endsWith('.log'))",
+      "count": 1
+    },
+    {
+      "file": "server/leo/utils/leo-log-manager.ts",
+      "kind": "colon-any",
+      "snippet": ".map((file: any) => ({",
+      "count": 1
+    },
+    {
+      "file": "server/leo/utils/leo-log-manager.ts",
+      "kind": "colon-any",
+      "snippet": "} catch (error: any) {",
+      "count": 2
+    },
+    {
+      "file": "server/leo/utils/leo-log-manager.ts",
+      "kind": "colon-any",
+      "snippet": "const logFiles = files.filter((file: any) => file.startsWith('leo-') && file.endsWith('.log'));",
+      "count": 1
+    },
+    {
+      "file": "server/leo/utils/leo-log-manager.ts",
+      "kind": "colon-any",
+      "snippet": "data?: any;",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/auth.middleware.ts",
+      "kind": "as-any",
+      "snippet": "(req as any).user = decoded;",
+      "count": 2
+    },
+    {
+      "file": "server/middleware/auth.middleware.ts",
+      "kind": "as-any",
+      "snippet": "(req as any).userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);",
+      "count": 2
+    },
+    {
+      "file": "server/middleware/error-handler.middleware.ts",
+      "kind": "as-any",
+      "snippet": "tenantId: (req as any).tenantId,",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/error-handler.middleware.ts",
+      "kind": "as-any",
+      "snippet": "user: (req as any).user,",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/safe-defaults.middleware.ts",
+      "kind": "colon-any",
+      "snippet": "const sanitized: any = {};",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/safe-defaults.middleware.ts",
+      "kind": "colon-any",
+      "snippet": "const sanitizeObject = (obj: any): any => {",
+      "count": 2
+    },
+    {
+      "file": "server/middleware/safe-response.ts",
+      "kind": "as-any",
+      "snippet": "(next as any) = function(err?: any): void {",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/safe-response.ts",
+      "kind": "colon-any",
+      "snippet": "(next as any) = function(err?: any): void {",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/safe-response.ts",
+      "kind": "colon-any",
+      "snippet": "function safeJson(res: SafeResponse, data: any, statusCode: number = 200): boolean {",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/safe-response.ts",
+      "kind": "colon-any",
+      "snippet": "res.end = function(this: SafeResponse, chunk?: any, encoding?: any, cb?: any): SafeResponse {",
+      "count": 3
+    },
+    {
+      "file": "server/middleware/safe-response.ts",
+      "kind": "colon-any",
+      "snippet": "res.json = function(this: SafeResponse, body?: any): SafeResponse {",
+      "count": 1
+    },
+    {
+      "file": "server/middleware/safe-response.ts",
+      "kind": "colon-any",
+      "snippet": "res.send = function(this: SafeResponse, body?: any): SafeResponse {",
+      "count": 1
+    },
+    {
+      "file": "server/middlewares/rate-limit.ts",
+      "kind": "as-any",
+      "snippet": "if (res.req.protocol === 'https' || (res.req as any).secure) {",
+      "count": 1
+    },
+    {
+      "file": "server/middlewares/rbac-middleware.ts",
+      "kind": "as-any",
+      "snippet": "(req as any).userPermissions = userPermissions;",
+      "count": 1
+    },
+    {
+      "file": "server/middlewares/request-id.ts",
+      "kind": "as-any",
+      "snippet": "(global as any).correlationId = correlationId;",
+      "count": 1
+    },
+    {
+      "file": "server/middlewares/security.ts",
+      "kind": "as-any",
+      "snippet": "if (req.protocol === 'https' || (req as any).secure) {",
+      "count": 1
+    },
+    {
+      "file": "server/routers/admin/system-health.ts",
+      "kind": "generic-any",
+      "snippet": "stats: Record<string, any>;",
+      "count": 2
+    },
+    {
+      "file": "server/routers/financeiro.router.ts",
+      "kind": "as-any",
+      "snippet": ") as any);",
+      "count": 2
+    },
+    {
+      "file": "server/routers/financeiro.router.ts",
+      "kind": "as-any",
+      "snippet": "await (tx as any).delete(db.planoContas).where(db.eq(db.planoContas.id, input.id));",
+      "count": 1
+    },
+    {
+      "file": "server/routers/financeiro.router.ts",
+      "kind": "as-any",
+      "snippet": "await (tx as any).update(db.planoContas).set({ nome: data.nome, tipo: data.tipo }).where(db.eq(db.planoContas.id, data.id));",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin-dashboard.ts",
+      "kind": "as-any",
+      "snippet": "prioridade: 'media' as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin-dashboard.ts",
+      "kind": "as-any",
+      "snippet": "priority: input.priority as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin-dashboard.ts",
+      "kind": "as-any",
+      "snippet": "status: 'pending' as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin-dashboard.ts",
+      "kind": "as-any",
+      "snippet": "tipo: 'comando' as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin-dashboard.ts",
+      "kind": "as-any",
+      "snippet": "type: input.type as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin.ts",
+      "kind": "as-any",
+      "snippet": "priority: input.priority as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin.ts",
+      "kind": "as-any",
+      "snippet": "status: 'pending' as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo-admin.ts",
+      "kind": "as-any",
+      "snippet": "type: input.type as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/leo.router.ts",
+      "kind": "as-any",
+      "snippet": "mensagem: (fallbackResponse as any).response,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/logistica.ts",
+      "kind": "as-any",
+      "snippet": "cidadeRota: (carga as any).cidadeRota,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/logistica.ts",
+      "kind": "as-any",
+      "snippet": "dataEntrega: (carga as any).dataEntrega,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/logistica.ts",
+      "kind": "as-any",
+      "snippet": "numero: (carga as any).numero,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/logistica.ts",
+      "kind": "as-any",
+      "snippet": "status: (carga as any).status,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/produtos.router.ts",
+      "kind": "as-any",
+      "snippet": "const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;",
+      "count": 2
+    },
+    {
+      "file": "server/routers/produtos.router.ts",
+      "kind": "as-any",
+      "snippet": "const res = await (tx as any).insert(db.gruposPrecificacao).values({ ...data });",
+      "count": 1
+    },
+    {
+      "file": "server/routers/produtos.router.ts",
+      "kind": "as-any",
+      "snippet": "createdBy: (ctx.user as any)?.id,",
+      "count": 1
+    },
+    {
+      "file": "server/routers/produtos.router.ts",
+      "kind": "colon-any",
+      "snippet": "} catch (e: any) {",
+      "count": 1
+    },
+    {
+      "file": "server/routers/produtos.router.ts",
+      "kind": "colon-any",
+      "snippet": "const patch: any = {",
+      "count": 1
+    },
+    {
+      "file": "server/routers/produtos.ts",
+      "kind": "as-any",
+      "snippet": "usuario: (ctx as any).user?.name || \"Sistema\",",
+      "count": 1
+    },
+    {
+      "file": "server/routers/smart-auth.ts",
+      "kind": "as-any",
+      "snippet": "requestId: (ctx as any).requestId,",
+      "count": 1
+    },
+    {
+      "file": "server/routes/pedidos.ts",
+      "kind": "as-any",
+      "snippet": "}, [] as any[])",
+      "count": 1
+    },
+    {
+      "file": "server/routes/pedidos.ts",
+      "kind": "as-any",
+      "snippet": "status: status as any,",
+      "count": 1
+    },
+    {
+      "file": "server/routes/pedidos.ts",
+      "kind": "colon-any",
+      "snippet": "const itensIndisponiveis: any[] = [];",
+      "count": 1
+    },
+    {
+      "file": "server/routes/pedidos.ts",
+      "kind": "colon-any",
+      "snippet": "function verificarEstoqueDisponivel(itens: PedidoItem[]): { disponivel: boolean; itensIndisponiveis: any[] } {",
+      "count": 1
+    },
+    {
+      "file": "server/routes/produtos.ts",
+      "kind": "as-any",
+      "snippet": "} as any);",
+      "count": 1
+    },
+    {
+      "file": "server/routes/produtos.ts",
+      "kind": "as-any",
+      "snippet": "const { cores, variacoes, ...rest } = data as any;",
+      "count": 1
+    },
+    {
+      "file": "server/routes/produtos.ts",
+      "kind": "colon-any",
+      "snippet": "} catch (e: any) {",
+      "count": 3
+    },
+    {
+      "file": "server/routes/produtos.ts",
+      "kind": "colon-any",
+      "snippet": "const baixo = produtos.filter((p: any) => Number(p.estoque) <= 0);",
+      "count": 1
+    },
+    {
+      "file": "server/routes/produtos.ts",
+      "kind": "colon-any",
+      "snippet": "const filtrados = produtos.filter((p: any) =>",
+      "count": 1
+    },
+    {
+      "file": "server/routes/produtos.ts",
+      "kind": "colon-any",
+      "snippet": "const patch: any = { ...rest };",
+      "count": 1
+    },
+    {
+      "file": "server/routes/test-monitoring.ts",
+      "kind": "as-any",
+      "snippet": "(global as any).memoryLeakTest = leak;",
+      "count": 1
+    },
+    {
+      "file": "server/routes/test-monitoring.ts",
+      "kind": "as-any",
+      "snippet": "(global as any).memoryLeakTest = null;",
+      "count": 1
+    },
+    {
+      "file": "server/routes/test-monitoring.ts",
+      "kind": "colon-any",
+      "snippet": "const leak: any[] = [];",
+      "count": 1
+    },
+    {
+      "file": "server/services/financial-idempotency.ts",
+      "kind": "generic-any",
+      "snippet": "additionalData?: Record<string, any>",
+      "count": 1
+    },
+    {
+      "file": "server/services/financial-idempotency.ts",
+      "kind": "generic-any",
+      "snippet": "metadata?: Record<string, any>",
+      "count": 1
+    },
+    {
+      "file": "server/services/financial-idempotency.ts",
+      "kind": "generic-any",
+      "snippet": "metadata?: Record<string, any>;",
+      "count": 1
+    },
+    {
+      "file": "server/services/financial-idempotency.ts",
+      "kind": "generic-any",
+      "snippet": "operationData?: Record<string, any>",
+      "count": 2
+    }
+  ]
+}

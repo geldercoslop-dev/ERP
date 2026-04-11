@@ -65,7 +65,7 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
  */
 export async function notifyOwner(
   payload: NotificationPayload
-): Promise<boolean> {
+): Promise<{ success: boolean; reason?: string }> {
   const { title, content } = validatePayload(payload);
 
   if (!ENV.forgeApiUrl) {
@@ -103,12 +103,18 @@ export async function notifyOwner(
           detail ? `: ${detail}` : ""
         }`
       );
-      return false;
+      return { 
+        success: false, 
+        reason: `HTTP ${response.status}: ${response.statusText}${detail ? ` - ${detail}` : ''}` 
+      };
     }
 
-    return true;
+    return { success: true };
   } catch (error) {
     console.warn("[Notification] Error calling notification service:", error);
-    return false;
+    return { 
+      success: false, 
+      reason: error instanceof Error ? error.message : 'Unknown error' 
+    };
   }
 }

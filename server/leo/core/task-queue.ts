@@ -11,6 +11,7 @@ import {
   TaskFilter,
   QueueStats,
 } from '../types/index.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { LeoTaskStatus } from '../../../shared/types/index.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 
@@ -224,7 +225,7 @@ export class LeoTaskQueue extends EventEmitter implements TaskQueue {
       case 'emergency':
         return this.executeEmergencyTask(task);
       default:
-        throw new Error(`Unknown task type: ${task.type}`);
+        throw new ValidationError(`Unknown task type: ${task.type}`);
     }
   }
 
@@ -320,16 +321,16 @@ export class LeoTaskQueue extends EventEmitter implements TaskQueue {
 
     if (filter) {
       if (filter.type) {
-        tasks = tasks.filter((t: any) => t.type === filter.type);
+        tasks = tasks.filter((t) => t.type === filter.type);
       }
       if (filter.status) {
-        tasks = tasks.filter((t: any) => t.status === filter.status);
+        tasks = tasks.filter((t) => t.status === filter.status);
       }
       if (filter.priority) {
-        tasks = tasks.filter((t: any) => t.priority === filter.priority);
+        tasks = tasks.filter((t) => t.priority === filter.priority);
       }
       if (filter.userId) {
-        tasks = tasks.filter((t: any) => t.userId === filter.userId);
+        tasks = tasks.filter((t) => t.userId === filter.userId);
       }
     }
 
@@ -359,7 +360,7 @@ export class LeoTaskQueue extends EventEmitter implements TaskQueue {
 
     const totalExecutionTime = completed
       .concat(failed)
-      .reduce((sum: any, t: any) => sum + (t.executionTime || 0), 0);
+      .reduce((sum: number, t: LeoTask) => sum + (t.executionTime || 0), 0);
 
     const avgExecutionTime = completed.length > 0 ? totalExecutionTime / completed.length : 0;
     const successRate = completed.length > 0 ? completed.length / (completed.length + failed.length) : 0;
@@ -423,12 +424,12 @@ export class LeoTaskQueue extends EventEmitter implements TaskQueue {
   private async cleanupOldTasks(): Promise<void> {
     const tasksArray = Array.from(this.tasks.values());
     const oldTasks = tasksArray
-      .filter((task: any) => 
+      .filter((task: LeoTask) => 
         (task.status === LeoTaskStatus.DONE || task.status === LeoTaskStatus.ERROR) &&
         task.processedAt &&
         Date.now() - task.processedAt.getTime() > 24 * 60 * 60 * 1000 // 24 horas
       )
-      .map((task: any) => task.id);
+      .map((task: LeoTask) => task.id);
 
     oldTasks.forEach(taskId => this.tasks.delete(taskId));
     

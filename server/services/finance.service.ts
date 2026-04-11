@@ -9,6 +9,8 @@ import {
   generateIdempotencyKey,
   markOperationProcessed
 } from "./financial-idempotency.js";
+import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
+import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
 import {
   BoletoStatus,
   BoletoStatusValues,
@@ -80,13 +82,13 @@ export type CreateContaPagarInput = {
 
 function assertRequiredId(value: number, fieldName: string): void {
   if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${fieldName} obrigatório`);
+    throw new ValidationError(`${fieldName} obrigatório`);
   }
 }
 
 function assertRequiredPayload<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
-    throw new Error(message);
+    throw new ValidationError(message);
   }
 
   return value;
@@ -116,18 +118,18 @@ export async function baixarPedidoDireto(
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(pedidoId, "pedidoId");
   assertRequiredPayload(data, "Dados de baixa obrigatórios");
-  if (!data.entradaForma) throw new Error("Forma de entrada obrigatória");
+  if (!data.entradaForma) throw new ValidationError("Forma de entrada obrigatória");
 
   const dbTx = tx ?? await getDb();
-  if (!dbTx) throw new Error("Banco de dados indisponível");
+  if (!dbTx) throw new InfrastructureError("Banco de dados indisponível");
 
   const boletoIds: number[] = [];
 
-  if (!hasTransaction(dbTx)) throw new Error("Transação indisponível para baixa de pedido");
+  if (!hasTransaction(dbTx)) throw new InfrastructureError("Transação indisponível para baixa de pedido");
   return await dbTx.transaction(async (tx: DbTx) => {
     // 1. Buscar dados do pedido
     const pedidoRows = await tx.select().from(pedidos).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId))).for("update").limit(1);
-    if (pedidoRows.length === 0) throw new Error('Pedido não encontrado');
+    if (pedidoRows.length === 0) throw new ValidationError('Pedido não encontrado');
     const pedido = pedidoRows[0];
 
     if (actor?.role === "vendedor") {
@@ -139,11 +141,11 @@ export async function baixarPedidoDireto(
           eq(clienteVendedores.vendedorId, actor.vendedorId)
         )).limit(1);
       if (clienteRows.length === 0) {
-        throw new Error("Cliente não encontrado.");
+        throw new ValidationError("Cliente não encontrado.");
       }
       const cliente = clienteRows[0];
       if (cliente.clienteId !== pedido.clienteId) {
-        throw new Error("Acesso negado: cliente de outro proprietário.");
+        throw new ValidationError("Acesso negado: cliente de outro proprietário.");
       }
     }
 
@@ -151,19 +153,19 @@ export async function baixarPedidoDireto(
     const entradaValor = typeof data.entradaValor === 'number' ? data.entradaValor : valorTotal;
     
     if (typeof data.segundaValor !== 'number' || data.segundaValor < 0) {
-      throw new Error("segundaValor deve ser número >= 0");
+      throw new ValidationError("segundaValor deve ser número >= 0");
     }
     
     const segundaValor = data.segundaValor;
     
     if (typeof data.boletoParcelas !== 'number' || data.boletoParcelas <= 0) {
-      throw new Error("boletoParcelas deve ser número > 0");
+      throw new ValidationError("boletoParcelas deve ser número > 0");
     }
     
     const boletoParcelas = Math.max(1, Math.floor(data.boletoParcelas));
     
     if (data.boletoPrimeiroVencimento === undefined) {
-      throw new Error("boletoPrimeiroVencimento é obrigatório");
+      throw new ValidationError("boletoPrimeiroVencimento é obrigatório");
     }
     
     const boletoPrimeiroVenc = data.boletoPrimeiroVencimento;
@@ -206,7 +208,7 @@ export async function baixarPedidoDireto(
         });
         const boletoId = getInsertId(result);
         if (!Number.isInteger(boletoId) || boletoId <= 0) {
-          throw new Error("Falha ao gerar boleto");
+          throw new InfrastructureError("Falha ao gerar boleto");
         }
         boletoIds.push(boletoId);
       }
@@ -310,7 +312,7 @@ export async function baixarBoletoParcial(
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(boletoId, "boletoId");
   if (!Number.isFinite(valorPago) || valorPago <= 0) {
-    throw new Error("valorPago obrigatório");
+    throw new ValidationError("valorPago obrigatório");
   }
 
   // 1. IDEMPOTÊNCIA: Verificar se operação já foi processada
@@ -334,13 +336,13 @@ export async function baixarBoletoParcial(
       };
     }
     
-    throw new Error("Boleto não encontrado");
+    throw new ValidationError("Boleto não encontrado");
   }
 
   const dbTx = await getDb();
-  if (!dbTx) throw new Error("Banco de dados indisponível");
+  if (!dbTx) throw new InfrastructureError("Banco de dados indisponível");
 
-  if (!hasTransaction(dbTx)) throw new Error("Transação indisponível para baixa de boleto");
+  if (!hasTransaction(dbTx)) throw new InfrastructureError("Transação indisponível para baixa de boleto");
   
   // 2. EXECUTAR COM IDEMPOTÊNCIA E LOCK FOR UPDATE
   return await executeWithIdempotency(
@@ -355,25 +357,25 @@ export async function baixarBoletoParcial(
           .for("update")
           .limit(1);
         
-        if (!bRows.length) throw new Error("Boleto não encontrado");
+        if (!bRows.length) throw new ValidationError("Boleto não encontrado");
         const b = bRows[0];
 
         // 4. VALIDAR STATUS: Bloquear se não estiver ABERTO
         if (b.status !== BoletoStatus.ABERTO && b.status !== BoletoStatus.PARCIAL) {
-          throw new Error(`Boleto não pode ser baixado. Status atual: ${b.status}. Status esperado: ABERTO ou PARCIAL`);
+          throw new ValidationError(`Boleto não pode ser baixado. Status atual: ${b.status}. Status esperado: ABERTO ou PARCIAL`);
         }
 
         // 5. VALIDAR VALOR: Não permitir pagar mais que o valor aberto
         const valorAbertoAtual = Number(b.valorAberto);
         if (valorPago > valorAbertoAtual) {
-          throw new Error(`Valor pago (${valorPago}) maior que valor aberto (${valorAbertoAtual})`);
+          throw new ValidationError(`Valor pago (${valorPago}) maior que valor aberto (${valorAbertoAtual})`);
         }
 
         const novoAberto = Math.max(0, valorAbertoAtual - valorPago);
         const novoStatus: (typeof BoletoStatusValues)[number] = novoAberto <= 0 ? BoletoStatus.PAGO : BoletoStatus.PARCIAL;
         
         if (!BoletoStatusValues.includes(novoStatus)) {
-          throw new Error("Status inválido de boleto");
+          throw new ValidationError("Status inválido de boleto");
         }
 
         // 6. ATUALIZAR BOLETO
@@ -434,7 +436,7 @@ export async function getBoletosByVendedor(
   if (!Number.isInteger(tenantId) || tenantId <= 0) return { items: [], total: 0, page: 1, pageSize: 50 };
   if (!Number.isInteger(vendedorId) || vendedorId <= 0) return { items: [], total: 0, page: 1, pageSize: 50 };
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertDbConnection(dbConn);
 
   const page = opts?.page ?? 1;
   const pageSize = Math.min(opts?.pageSize ?? 50, 100);
@@ -465,7 +467,7 @@ export async function getBoletoById(tenantId: number, id: number): Promise<Bolet
   if (!Number.isInteger(tenantId) || tenantId <= 0) return null;
   if (!Number.isInteger(id) || id <= 0) return null;
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   const rows = await dbConn.select().from(boletos).where(and(eq(boletos.tenantId, tenantId), eq(boletos.id, id))).limit(1);
   // Se encontrou um resultado, retorna o objeto garantido, caso contrário retorna null
   return rows.length > 0 ? ensureObject(rows[0]) : null;
@@ -479,12 +481,12 @@ export async function marcarContaRecebida(
 ): Promise<{ success: boolean }> {
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(id, "contaReceberId");
-  if (!dataRecebimento) throw new Error("dataRecebimento obrigatória");
-  if (!formaPagamento?.trim()) throw new Error("formaPagamento obrigatória");
+  if (!dataRecebimento) throw new ValidationError("dataRecebimento obrigatória");
+  if (!formaPagamento?.trim()) throw new ValidationError("formaPagamento obrigatória");
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   const conta = await dbConn.select().from(contasReceber).where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id))).limit(1);
-  if (!conta.length) throw new Error("Conta a receber não encontrada");
+  if (!conta.length) throw new ValidationError("Conta a receber não encontrada");
   await dbConn.update(contasReceber)
     .set({
       status: ContaReceberStatus.RECEBIDA,
@@ -493,7 +495,7 @@ export async function marcarContaRecebida(
     })
     .where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id)));
   const after = await dbConn.select().from(contasReceber).where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id))).limit(1);
-  if (!after.length || after[0]?.status !== ContaReceberStatus.RECEBIDA) throw new Error("Falha ao marcar conta como recebida");
+  if (!after.length || after[0]?.status !== ContaReceberStatus.RECEBIDA) throw new InfrastructureError("Falha ao marcar conta como recebida");
 
   // Auditoria Logger
   auditLog({
@@ -511,9 +513,9 @@ export async function deleteContaReceber(tenantId: number, id: number): Promise<
     assertRequiredId(tenantId, "tenantId");
     assertRequiredId(id, "contaReceberId");
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Banco de dados indisponível");
+    assertDbConnection(dbConn);
     const conta = await dbConn.select().from(contasReceber).where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id))).limit(1);
-    if (!conta.length) throw new Error("Conta a receber não encontrada");
+    if (!conta.length) throw new ValidationError("Conta a receber não encontrada");
     await dbConn.delete(contasReceber).where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id)));
 
     // Auditoria Logger
@@ -525,7 +527,7 @@ export async function deleteContaReceber(tenantId: number, id: number): Promise<
     });
 
     const after = await dbConn.select().from(contasReceber).where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, id))).limit(1);
-    if (after.length > 0) throw new Error("Falha ao excluir conta a receber");
+    if (after.length > 0) throw new InfrastructureError("Falha ao excluir conta a receber");
     return { success: true };
   } catch (error) {
     console.error("Erro ao excluir conta a receber:", error);
@@ -540,7 +542,7 @@ export async function getCaixaMensal(
 ): Promise<{ items: CaixaMensal[]; total: number; page: number; pageSize: number; }> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertDbConnection(dbConn);
   
   const page = opts?.page ?? 1;
   const pageSize = Math.min(opts?.pageSize ?? 50, 100);
@@ -581,7 +583,7 @@ export async function getPlanoContas(
 ): Promise<{ items: PlanoConta[]; total: number; page: number; pageSize: number; }> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertDbConnection(dbConn);
   
   const page = opts?.page ?? 1;
   const pageSize = Math.min(opts?.pageSize ?? 50, 100);
@@ -614,11 +616,11 @@ export async function createPlanoContas(tenantId: number, data: Omit<PlanoConta,
     assertRequiredId(tenantId, "tenantId");
     assertRequiredPayload(data, "Dados do plano de contas obrigatórios");
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Banco de dados indisponível");
+    assertDbConnection(dbConn);
     const result = await dbConn.insert(planoContas).values({ ...data, tenantId });
     const id = getInsertId(result);
     if (!Number.isInteger(id) || id <= 0) {
-      throw new Error("Falha ao criar plano de contas");
+      throw new InfrastructureError("Falha ao criar plano de contas");
     }
     // Garantir que o retorno tenha um ID válido
     return ensureCreatedResult({ id });
@@ -628,21 +630,37 @@ export async function createPlanoContas(tenantId: number, data: Omit<PlanoConta,
   }
 }
 
+export async function updatePlanoContas(tenantId: number, id: number, data: { nome: string; tipo: "RECEITA" | "DESPESA" }): Promise<void> {
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(id, "id");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  await dbConn.update(planoContas).set({ nome: data.nome, tipo: data.tipo }).where(and(eq(planoContas.tenantId, tenantId), eq(planoContas.id, id)));
+}
+
+export async function deletePlanoContas(tenantId: number, id: number): Promise<void> {
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(id, "id");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  await dbConn.delete(planoContas).where(and(eq(planoContas.tenantId, tenantId), eq(planoContas.id, id)));
+}
+
 export async function pagarConta(tenantId: number, id: number, valorPago: number): Promise<{ success: boolean }> {
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(id, "contaPagarId");
   if (!Number.isFinite(valorPago) || valorPago <= 0) {
-    throw new Error("valorPago obrigatório");
+    throw new ValidationError("valorPago obrigatório");
   }
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   const conta = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
-  if (!conta.length) throw new Error("Conta a pagar não encontrada");
+  if (!conta.length) throw new ValidationError("Conta a pagar não encontrada");
   await dbConn.update(contasPagar)
     .set({ status: ContaPagarStatus.PAGO, dataPagamento: new Date() })
     .where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id)));
   const after = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
-  if (!after.length || after[0]?.status !== ContaPagarStatus.PAGO) throw new Error("Falha ao pagar conta");
+  if (!after.length || after[0]?.status !== ContaPagarStatus.PAGO) throw new InfrastructureError("Falha ao pagar conta");
   return { success: true };
 }
 
@@ -650,12 +668,12 @@ export async function deleteContaPagar(tenantId: number, id: number): Promise<{ 
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(id, "contaPagarId");
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   const conta = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
-  if (!conta.length) throw new Error("Conta a pagar não encontrada");
+  if (!conta.length) throw new ValidationError("Conta a pagar não encontrada");
   await dbConn.delete(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id)));
   const after = await dbConn.select().from(contasPagar).where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, id))).limit(1);
-  if (after.length > 0) throw new Error("Falha ao excluir conta a pagar");
+  if (after.length > 0) throw new InfrastructureError("Falha ao excluir conta a pagar");
   return { success: true };
 }
 
@@ -665,7 +683,7 @@ export async function listContasFixas(
 ): Promise<{ items: ContaFixa[]; total: number; page: number; pageSize: number; }> {
   assertRequiredId(tenantId, "tenantId");
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertDbConnection(dbConn);
   
   const page = opts?.page ?? 1;
   const pageSize = Math.min(opts?.pageSize ?? 50, 100);
@@ -691,20 +709,20 @@ export async function createContaFixa(tenantId: number, data: Omit<ContaFixa, 'i
   assertRequiredId(tenantId, "tenantId");
   assertRequiredPayload(data, "Dados da conta fixa obrigatórios");
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   const result = await dbConn.insert(contasFixas).values({ ...data, tenantId, ativo: true });
   const id = getInsertId(result);
   if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("Falha ao criar conta fixa");
+    throw new InfrastructureError("Falha ao criar conta fixa");
   }
   return { id };
 }
 
 export async function gerarContasFixasMes(tenantId: number, mesAno: string): Promise<{ success: boolean; count: number }> {
   assertRequiredId(tenantId, "tenantId");
-  if (!mesAno?.trim()) throw new Error("mesAno obrigatório");
+  if (!mesAno?.trim()) throw new ValidationError("mesAno obrigatório");
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
 
   const { items: fixas } = await listContasFixas(tenantId, { page: 1, pageSize: 500 });
   const results: Awaited<ReturnType<typeof createContaPagar>>[] = [];
@@ -730,17 +748,23 @@ export async function gerarContasFixasMes(tenantId: number, mesAno: string): Pro
  */
 
 export async function getAllComissoes(tenantId: number): Promise<Comissao[]> {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) return [];
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId is required");
+  }
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);;
   return await dbConn.select().from(comissoes).where(eq(comissoes.tenantId, tenantId)).orderBy(desc(comissoes.createdAt)) as Comissao[];
 }
 
 export async function getComissoesByVendedor(tenantId: number, vendedorId: number): Promise<Comissao[]> {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) return [];
-  if (!Number.isInteger(vendedorId) || vendedorId <= 0) return [];
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId is required");
+  }
+  if (!Number.isInteger(vendedorId) || vendedorId <= 0) {
+    throw new ValidationError("vendedorId is required");
+  }
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);;
   return await dbConn.select().from(comissoes).where(and(eq(comissoes.tenantId, tenantId), eq(comissoes.vendedorId, vendedorId))).orderBy(desc(comissoes.createdAt)) as Comissao[];
 }
 
@@ -748,9 +772,9 @@ export async function marcarComissaoPaga(tenantId: number, id: number): Promise<
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(id, "comissaoId");
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   const comissao = await dbConn.select().from(comissoes).where(and(eq(comissoes.tenantId, tenantId), eq(comissoes.id, id))).limit(1);
-  if (!comissao.length) throw new Error("Comissão não encontrada");
+  if (!comissao.length) throw new ValidationError("Comissão não encontrada");
   await dbConn.update(comissoes)
     .set({ status: ComissaoStatus.PAGA, dataPagamento: new Date() })
     .where(and(eq(comissoes.tenantId, tenantId), eq(comissoes.id, id)));
@@ -765,7 +789,7 @@ export async function createContaReceber(tenantId: number, data: CreateContaRece
   assertRequiredId(tenantId, "tenantId");
   assertRequiredPayload(data, "Dados da conta a receber obrigatórios");
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   
   const statusCr = validateStatus(data.status, ContaReceberStatusValues, "contaReceber.status");
   const result = await dbConn.insert(contasReceber).values({
@@ -781,7 +805,7 @@ export async function createContaReceber(tenantId: number, data: CreateContaRece
   });
   const contaId = getInsertId(result);
   if (!Number.isInteger(Number(contaId)) || Number(contaId) <= 0) {
-    throw new Error("Falha ao criar conta a receber");
+    throw new InfrastructureError("Falha ao criar conta a receber");
   }
 
   // Registrar auditoria
@@ -801,7 +825,7 @@ export async function createContaPagar(tenantId: number, data: CreateContaPagarI
   assertRequiredId(tenantId, "tenantId");
   assertRequiredPayload(data, "Dados da conta a pagar obrigatórios");
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Banco de dados indisponível");
+  assertDbConnection(dbConn);
   
   const statusCp = validateStatus(data.status, ContaPagarStatusValues, "contaPagar.status");
   const result = await dbConn.insert(contasPagar).values({
@@ -815,7 +839,7 @@ export async function createContaPagar(tenantId: number, data: CreateContaPagarI
   });
   const contaId = getInsertId(result);
   if (!Number.isInteger(Number(contaId)) || Number(contaId) <= 0) {
-    throw new Error("Falha ao criar conta a pagar");
+    throw new InfrastructureError("Falha ao criar conta a pagar");
   }
 
   // Registrar auditoria
@@ -847,7 +871,7 @@ export async function getContaReceberByIdForTenant(
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(id, "contaReceberId");
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select()
     .from(contasReceber)
@@ -861,9 +885,9 @@ export async function listContasReceber(
   actor: ServiceActor,
   filtros?: ListContasReceberFiltros
 ): Promise<{ items: ContaReceber[]; total: number; page: number; pageSize: number }> {
-  if (!tenantId) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertDbConnection(dbConn);;
 
   const scope = financeScopeVendedorId(actor);
 
@@ -918,13 +942,13 @@ export async function listContasPagar(
 ): Promise<{ items: ContaPagar[]; total: number; page: number; pageSize: number }> {
   const page = filtros?.page ?? 1;
   const pageSize = Math.min(filtros?.pageSize ?? 50, 100);
-  if (!tenantId) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertTenantId(tenantId);
   if (actor.role === "vendedor") {
-    return { items: [], total: 0, page, pageSize };
+    throw new ValidationError("Vendedor não tem acesso a contas a pagar");
   }
 
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0, page: 1, pageSize: 50 };
+  assertDbConnection(dbConn);
 
   const conditions = [eq(contasPagar.tenantId, tenantId)];
   if (filtros?.status) {
@@ -967,10 +991,10 @@ export async function atualizarCaixaMensal(
   idempotencyKey?: string // Chave para evitar duplicação
 ): Promise<void> {
   assertRequiredId(tenantId, "tenantId");
-  if (!mesAno?.trim()) throw new Error("mesAno obrigatório");
-  if (!Number.isFinite(valor) || valor < 0) throw new Error("valor inválido");
+  if (!mesAno?.trim()) throw new ValidationError("mesAno obrigatório");
+  if (!Number.isFinite(valor) || valor < 0) throw new ValidationError("valor inválido");
   const dbTx = tx ?? await getDb();
-  if (!dbTx) throw new Error("Database not available");
+  if (!dbTx) throw new InfrastructureError("Database not available");
 
   // IDEMPOTÊNCIA: Verificar se operação já foi processada
   if (idempotencyKey) {
@@ -1038,9 +1062,9 @@ export async function getResumoFinanceiro(
   tenantId: number,
   actor: ServiceActor
 ): Promise<{ aReceber: number; aPagar: number; vencidas: number; aVencer: number }> {
-  if (!tenantId) return { aReceber: 0, aPagar: 0, vencidas: 0, aVencer: 0 };
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return { aReceber: 0, aPagar: 0, vencidas: 0, aVencer: 0 };
+  assertDbConnection(dbConn);;
 
   const scope = financeScopeVendedorId(actor);
 
@@ -1087,4 +1111,101 @@ export async function getResumoFinanceiro(
     .reduce((sum: number, conta: ContaPagar) => sum + Number(conta.valor), 0);
 
   return { aReceber, aPagar, vencidas, aVencer };
+}
+
+export async function listBoletos(
+  tenantId: number,
+  params: {
+    vendedorId?: number;
+    busca?: string;
+    page?: number;
+    pageSize?: number;
+  } = {}
+): Promise<Array<{
+  id: number;
+  numeroPedido: number | null;
+  valorOriginal: string | null;
+  valorAberto: string | null;
+  dataVencimento: Date | null;
+  status: string | null;
+  createdAt: Date | null;
+  clientId: number | null;
+  clienteNome: string | null;
+}>> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId is required");
+  }
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);;
+
+  const page = params.page ?? 1;
+  const pageSize = Math.min(params.pageSize ?? 100, 100);
+  const offset = (page - 1) * pageSize;
+
+  const whereParts = [eq(boletos.tenantId, tenantId)];
+
+  if (params.vendedorId !== undefined) {
+    whereParts.push(eq(boletos.vendedorId, params.vendedorId));
+  }
+
+  const busca = (params.busca ?? "").trim();
+  if (busca) {
+    if (/^\d+$/.test(busca)) {
+      const n = Number(busca);
+      whereParts.push(sql`(${boletos.id} = ${n} OR ${boletos.numeroPedido} = ${n})`);
+    } else {
+      const normalized = busca.replace(/\s/g, "");
+      const cleaned = normalized.replace(/\./g, "").replace(",", ".");
+      const isMoney = /^\d+(\.\d{1,2})?$/.test(cleaned);
+      if (isMoney) {
+        const v = Number(cleaned);
+        if (Number.isFinite(v)) {
+          const val = v.toFixed(2);
+          whereParts.push(sql`(${boletos.valorOriginal} = ${val} OR ${boletos.valorAberto} = ${val})`);
+        }
+      } else {
+        const term = `%${busca}%`;
+        whereParts.push(sql`${clientes.nome} LIKE ${term}`);
+      }
+    }
+  }
+
+  const where = whereParts.length === 1 ? whereParts[0] : and(...whereParts);
+
+  return ensureArray(await dbConn
+    .select({
+      id: boletos.id,
+      numeroPedido: boletos.numeroPedido,
+      valorOriginal: boletos.valorOriginal,
+      valorAberto: boletos.valorAberto,
+      dataVencimento: boletos.dataVencimento,
+      status: boletos.status,
+      createdAt: boletos.createdAt,
+      clientId: boletos.clienteId,
+      clienteNome: clientes.nome,
+    })
+    .from(boletos)
+    .innerJoin(clientes, eq(boletos.clienteId, clientes.id))
+    .where(where!)
+    .orderBy(desc(boletos.createdAt))
+    .limit(pageSize)
+    .offset(offset));
+}
+
+export async function checkPedidosBelongToVendedor(
+  tenantId: number,
+  pedidoIds: number[],
+  vendedorId: number
+): Promise<boolean> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) return false;
+  if (!pedidoIds.length) return false;
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const rows = await dbConn
+    .select({ vendedorId: pedidos.vendedorId })
+    .from(pedidos)
+    .where(and(inArray(pedidos.id, pedidoIds), eq(pedidos.tenantId, tenantId)));
+
+  return rows.every((r) => r.vendedorId === vendedorId);
 }

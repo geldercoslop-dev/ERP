@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { createLogger } from '../infra/structured-logger.js';
 import { createLeoRateLimit } from './rate-limiting.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 const logger = createLogger('leo-protection');
 
@@ -286,8 +287,11 @@ export function leoRateLimitMiddleware() {
       return next();
     }
     
-    const tenantId = (req as any).tenantId;
-    const userId = (req as any).user?.id;
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
+    const { userId, tenantId } = req.user;
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     
     const result = LeoProtection.canMakeRequest(tenantId, userId, ip);
@@ -331,8 +335,11 @@ export function leoAbuseDetectionMiddleware() {
       return next();
     }
     
-    const tenantId = (req as any).tenantId;
-    const userId = (req as any).user?.id;
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
+    const { userId, tenantId } = req.user;
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.get('User-Agent') || '';
     
@@ -415,7 +422,7 @@ export function getLeoStats(req: Request, res: Response) {
 export function resetLeoStats(req: Request, res: Response) {
   try {
     // Verifica se é admin
-    const user = (req as any).user;
+    const user = req.user;
     if (!user || user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -428,7 +435,7 @@ export function resetLeoStats(req: Request, res: Response) {
     
     logger.info('LEO stats reset by admin', {
       metadata: {
-        adminId: user.id,
+        adminId: user.userId,
         timestamp: new Date().toISOString(),
       },
     });

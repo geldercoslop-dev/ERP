@@ -13,6 +13,7 @@ import type { CreateClienteInput } from "./clientes.service.js";
 import type { Cliente } from "../db/core.js";
 import { logInfo } from "../_core/service-logger.js";
 import type { ServiceActor } from "../_core/service-actor.js";
+import { ValidationError } from "../_core/errors/typed-errors.js";
 
 // Nome do serviço para logs e invalidação
 const SERVICE_NAME = 'clientes';
@@ -124,7 +125,7 @@ export async function createCliente(tenantId: number, data: CreateClienteWithVen
   });
 
   if (!result.success || !result.data) {
-    throw new Error(result.error ?? "Falha ao criar cliente");
+    throw new ValidationError(result.error ?? "Falha ao criar cliente");
   }
 
   return result.data;

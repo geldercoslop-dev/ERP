@@ -6,6 +6,8 @@ import { ADMIN_ACTOR } from "../_core/service-actor.js";
 import { ensureObject } from "../_core/service-response.js";
 import { CargaStatus, CargaStatusValues, PedidoStatus, type CargaStatusValue } from "../shared/domain-status.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
+import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
+import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
@@ -19,16 +21,16 @@ type DbConn = Database;
  * Libera carga para rota (marca status EM_ROTA)
  */
 export async function liberarCargaParaRota(tenantId: number, cargaId: number) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
 
   return await dbConn.transaction(async (tx: DbTx) => {
     const pedidosCargaRows = await tx.select({ pedidoId: pedidosCarga.pedidoId })
       .from(pedidosCarga)
       .where(eq(pedidosCarga.cargaId, cargaId));
     const pedidoIds = pedidosCargaRows.map((r) => r.pedidoId);
-    if (pedidoIds.length === 0) throw new Error("Carga sem pedidos.");
+    if (pedidoIds.length === 0) throw new ValidationError("Carga sem pedidos.");
 
     // 2. Atualizar status da carga
     await tx.update(cargas).set({ status: CargaStatus.EM_ROTA, updatedAt: new Date() }).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId)));
@@ -59,31 +61,31 @@ export async function liberarCargaParaRota(tenantId: number, cargaId: number) {
  * Baixa um pedido de uma carga (entrega realizada)
  */
 export async function baixarPedidoCarga(tenantId: number, pedidoCargaId: number, data: financeService.BaixaPedidoInput) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
 
   return await dbConn.transaction(async (tx: DbTx) => {
-    const rel = await tx.select().from(pedidosCarga).where(eq(pedidosCarga.id, pedidoCargaId)).limit(1);
-    if (rel.length === 0) throw new Error("Relação carga-pedido não encontrada");
+    const rel = await tx.select().from(pedidosCarga).where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.id, pedidoCargaId))).limit(1);
+    if (rel.length === 0) throw new ValidationError("Relação carga-pedido não encontrada");
     const cargaIdRel = rel[0].cargaId;
     const cargaRow = await tx.select({ id: cargas.id, status: cargas.status, tenantId: cargas.tenantId })
       .from(cargas)
-      .where(eq(cargas.id, cargaIdRel))
+      .where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaIdRel)))
       .limit(1);
-    
-    if (!cargaRow.length || cargaRow[0].tenantId !== tenantId) {
-      throw new Error('Carga não encontrada ou acesso negado');
+
+    if (!cargaRow.length) {
+      throw new ValidationError('Carga não encontrada ou acesso negado');
     }
 
     if (cargaRow[0].status !== CargaStatus.EM_ROTA) {
-      throw new Error('Esta carga ainda não foi liberada para rota.');
+      throw new ValidationError('Esta carga ainda não foi liberada para rota.');
     }
 
     await tx.update(pedidosCarga).set({
       entregue: true,
       dataBaixa: new Date(),
-    }).where(eq(pedidosCarga.id, pedidoCargaId));
+    }).where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.id, pedidoCargaId)));
     
     // 2. Baixar o pedido no fluxo único (financeiro + comissão + contas)
     const result = await financeService.baixarPedidoDireto(tenantId, rel[0].pedidoId, data, {
@@ -131,9 +133,9 @@ export type UpdateCargaStatusInput = {
  * Cria uma nova carga
  */
 export async function createCarga(tenantId: number, data: CreateCargaInput) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
   
   const result = await dbConn.insert(cargas).values({
     ...data,
@@ -182,9 +184,9 @@ export type CargaComPedidos = Record<string, unknown> & {
  * Busca carga por ID (inclui pedidos da carga).
  */
 export async function getCargaById(tenantId: number, id: number): Promise<CargaComPedidos | null> {
-  if (!tenantId) return null;
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
 
   const result = await dbConn
     .select()
@@ -248,9 +250,9 @@ export async function listCargas(tenantId: number, filtros?: {
   page?: number;
   pageSize?: number;
 }) {
-  if (!tenantId) return { items: [], total: 0 };
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0 };
+  assertDbConnection(dbConn);
 
   // Aplicar filtros
   const conditions = [eq(cargas.tenantId, tenantId)];
@@ -290,9 +292,9 @@ export async function listCargas(tenantId: number, filtros?: {
  * Atualiza status de uma carga
  */
 export async function updateCargaStatus(tenantId: number, data: UpdateCargaStatusInput) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
   
   const statusVal = validateStatus(data.status, CargaStatusValues, "carga.status");
   const updateData: { status: typeof statusVal; updatedAt: Date } = {
@@ -320,24 +322,25 @@ export async function updateCargaStatus(tenantId: number, data: UpdateCargaStatu
  * Adiciona pedidos a uma carga
  */
 export async function addPedidosToCarga(tenantId: number, cargaId: number, pedidoIds: number[]) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
 
   return await dbConn.transaction(async (tx: DbTx) => {
     // Verificar se carga existe e está em status adequado
     const carga = await tx.select().from(cargas).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId))).limit(1);
     if (!carga.length) {
-      throw new Error("Carga não encontrada");
+      throw new ValidationError("Carga não encontrada");
     }
 
     if (carga[0].status !== CargaStatus.GERADO) {
-      throw new Error("Apenas cargas com status GERADO podem receber pedidos");
+      throw new ValidationError("Apenas cargas com status GERADO podem receber pedidos");
     }
 
     // Inserir pedidos na carga
     for (const pedidoId of pedidoIds) {
       await tx.insert(pedidosCarga).values({
+        tenantId,
         cargaId,
         pedidoId,
       });
@@ -373,15 +376,15 @@ export async function addPedidosToCarga(tenantId: number, cargaId: number, pedid
  * Remove pedidos de uma carga
  */
 export async function removePedidosFromCarga(tenantId: number, cargaId: number, pedidoIds: number[]) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
 
   return await dbConn.transaction(async (tx: DbTx) => {
     // Verificar se carga existe
     const carga = await tx.select().from(cargas).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId))).limit(1);
     if (!carga.length) {
-      throw new Error("Carga não encontrada");
+      throw new ValidationError("Carga não encontrada");
     }
 
     // Remover pedidos da carga
@@ -435,9 +438,9 @@ export async function updatePedidoCarga(tenantId: number, pedidoCargaId: number,
   observacao?: string;
   entregue?: boolean | null;
 }) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
 
   // Validar que o pedidoCarga pertence a uma carga do tenant
   const pc = await dbConn.select({ cargaId: pedidosCarga.cargaId })
@@ -447,7 +450,7 @@ export async function updatePedidoCarga(tenantId: number, pedidoCargaId: number,
     .limit(1);
 
   if (!pc.length) {
-    throw new Error("Pedido de carga não encontrado ou acesso negado");
+    throw new ValidationError("Pedido de carga não encontrado ou acesso negado");
   }
 
   const updateData: Partial<typeof pedidosCarga.$inferInsert> = {};
@@ -458,7 +461,7 @@ export async function updatePedidoCarga(tenantId: number, pedidoCargaId: number,
     }
   }
   if (Object.keys(updateData).length > 0) {
-    await dbConn.update(pedidosCarga).set(updateData).where(eq(pedidosCarga.id, pedidoCargaId));
+    await dbConn.update(pedidosCarga).set(updateData).where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.id, pedidoCargaId)));
   }
 
   // Registrar auditoria
@@ -478,19 +481,19 @@ export async function updatePedidoCarga(tenantId: number, pedidoCargaId: number,
  * Finaliza uma carga (marca como ENTREGUE)
  */
 export async function finalizarCarga(tenantId: number, cargaId: number) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
 
   return await dbConn.transaction(async (tx: DbTx) => {
     // Verificar se carga existe e está EM_ROTA
     const carga = await tx.select().from(cargas).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId))).limit(1);
     if (!carga.length) {
-      throw new Error("Carga não encontrada");
+      throw new ValidationError("Carga não encontrada");
     }
 
     if (carga[0].status !== CargaStatus.EM_ROTA) {
-      throw new Error("Apenas cargas EM_ROTA podem ser finalizadas");
+      throw new ValidationError("Apenas cargas EM_ROTA podem ser finalizadas");
     }
 
     const updateData: { status: string; dataEntrega: Date; updatedAt: Date } = {
@@ -536,7 +539,7 @@ export async function listHistoricoRotas(tenantId: number, filtros?: {
 }) {
   // TODO: Implementar quando tabela historicoRotas for criada
   console.log('[logistica.service] listHistoricoRotas temporariamente desabilitado');
-  return [];
+  return []; // Ausência legítima - funcionalidade não implementada
 }
 
 /**
@@ -554,13 +557,11 @@ export async function getPedidosParaCarga(
   },
   options?: { page?: number; pageSize?: number }
 ) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   const pageEarly = options?.page ?? 1;
   const pageSizeEarly = Math.min(options?.pageSize ?? 50, 100);
-  if (!dbConn) {
-    return { items: [], total: 0, page: pageEarly, pageSize: pageSizeEarly };
-  }
+  assertDbConnection(dbConn);
 
   const conditions = [
     eq(pedidos.tenantId, tenantId),
@@ -602,9 +603,9 @@ export async function getPedidosParaCarga(
  * Obtém pontos para o mapa de logística
  */
 export async function getPontosMapa(tenantId: number) {
-  if (!tenantId) throw new Error("tenantId is required");
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
 
   // Buscar cargas EM_ROTA com pedidos (filtrado por tenantId)
   const cargasEmRota = await dbConn
@@ -664,4 +665,37 @@ export async function getPontosMapa(tenantId: number) {
   }
 
   return pontos;
+}
+
+/**
+ * Retorna pedidos de uma carga para o relatório de entrega.
+ */
+export async function getRelatorioEntrega(tenantId: number, cargaId: number): Promise<Array<{
+  pedido: number;
+  cliente: string | null;
+  valor: string | null;
+  bairro: string;
+  entregue: boolean | null;
+}>> {
+  assertTenantId(tenantId);
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const rows = await dbConn
+    .select({
+      pedido: pedidos,
+      pedidoCarga: pedidosCarga,
+    })
+    .from(pedidosCarga)
+    .innerJoin(pedidos, eq(pedidos.id, pedidosCarga.pedidoId))
+    .innerJoin(cargas, eq(cargas.id, pedidosCarga.cargaId))
+    .where(and(eq(pedidosCarga.cargaId, cargaId), eq(cargas.tenantId, tenantId)));
+
+  return rows.map((row) => ({
+    pedido: row.pedido.numero,
+    cliente: row.pedido.clienteNome,
+    valor: row.pedido.total,
+    bairro: row.pedido.clienteBairro ?? "N/A",
+    entregue: row.pedidoCarga.entregue,
+  }));
 }

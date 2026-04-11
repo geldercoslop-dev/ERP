@@ -5,6 +5,7 @@
  */
 
 import type { SecureRole } from '../../_core/secure-context.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 export interface PermissionRule {
   toolName: string;
@@ -406,7 +407,7 @@ export class AgentPermissions {
     );
     
     if (isRestricted) {
-      throw new Error('Acesso negado a diretório restrito');
+      throw new ValidationError('Acesso negado a diretório restrito');
     }
     
     return cleanPath;

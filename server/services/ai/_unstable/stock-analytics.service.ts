@@ -4,9 +4,11 @@
  * Motor de análise de estoque para detectar produtos críticos, sem giro e com alto giro
  */
 
-import * as db from "../../db/index.js";
 import * as db from "../../../db/index.js";
 import { PedidoStatus } from "../../../shared/domain-status.js";
+import { eq, and, sql, ne } from "drizzle-orm";
+import { assertDbConnection } from "../../../_core/errors/assertions.js";
+import { InfrastructureError } from "../../../_core/errors/typed-errors.js";
 
 export type EstoqueCritico = {
   produtoId: number;
@@ -56,7 +58,7 @@ export type StockAnalytics = {
  */
 export async function getEstoqueCritico(tenantId: number): Promise<EstoqueCritico[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const produtos = await dbConnection
@@ -118,7 +120,7 @@ export async function getEstoqueCritico(tenantId: number): Promise<EstoqueCritic
     return estoqueCritico.sort((a, b) => b.prioridade - a.prioridade);
   } catch (error: unknown) {
     console.error('[LEO Stock Analytics] Erro em getEstoqueCritico:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter estoque crítico', { cause: error });
   }
 }
 
@@ -127,7 +129,7 @@ export async function getEstoqueCritico(tenantId: number): Promise<EstoqueCritic
  */
 export async function getProdutosSemGiro(tenantId: number, diasParado: number = 60): Promise<ProdutoSemGiro[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const dataLimite = new Date();
@@ -191,7 +193,7 @@ export async function getProdutosSemGiro(tenantId: number, diasParado: number = 
     return produtosSemGiro.sort((a, b) => b.diasSemMovimento - a.diasSemMovimento);
   } catch (error: unknown) {
     console.error('[LEO Stock Analytics] Erro em getProdutosSemGiro:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter produtos sem giro', { cause: error });
   }
 }
 
@@ -200,7 +202,7 @@ export async function getProdutosSemGiro(tenantId: number, diasParado: number = 
  */
 export async function getProdutosAltoGiro(tenantId: number): Promise<ProdutoAltoGiro[]> {
   const dbConnection = await db.getDb();
-  if (!dbConnection) return [];
+  assertDbConnection(dbConnection);
 
   try {
     const trintaDiasAtras = new Date();
@@ -261,7 +263,7 @@ export async function getProdutosAltoGiro(tenantId: number): Promise<ProdutoAlto
       .slice(0, 20);
   } catch (error: unknown) {
     console.error('[LEO Stock Analytics] Erro em getProdutosAltoGiro:', error instanceof Error ? error.message : String(error));
-    return [];
+    throw new InfrastructureError('Falha ao obter produtos com alto giro', { cause: error });
   }
 }
 

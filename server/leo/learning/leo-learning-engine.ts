@@ -9,6 +9,8 @@
  * - Resultados obtidos
  */
 
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
+
 import * as ordersService from '../../services/orders.service.js';
 import * as clientesService from '../../services/clientes.service.js';
 import * as inventoryService from '../../services/inventory.service.js';
@@ -54,7 +56,7 @@ export class LeoLearningEngine {
   /**
    * Inicia o processo de aprendizado contínuo
    */
-  public startLearning(intervalMs: number = 3600000): void { // 1 hora
+  public startLearning(tenantId: number, intervalMs: number = 3600000): void { // 1 hora
     if (this.isLearning) {
       console.log('🧠 Leo Learning Engine já está rodando');
       return;
@@ -64,11 +66,11 @@ export class LeoLearningEngine {
     this.isLearning = true;
 
     // Executa primeira vez imediatamente
-    this.executeLearningCycle();
+    this.executeLearningCycle(tenantId);
 
     // Configura execução periódica
     this.learningInterval = setInterval(() => {
-      this.executeLearningCycle();
+      this.executeLearningCycle(tenantId);
     }, intervalMs);
 
     console.log(`✅ Learning iniciado com intervalo de ${intervalMs}ms`);
@@ -97,30 +99,18 @@ export class LeoLearningEngine {
   /**
    * Executa um ciclo completo de aprendizado
    */
-  private async executeLearningCycle(): Promise<void> {
+  private async executeLearningCycle(tenantId: number): Promise<void> {
     try {
       console.log('🔄 Executando ciclo de aprendizado...');
-      
       const startTime = Date.now();
-      
-      // 1. Aprender com vendas
-      await this.learnFromSales();
-      
-      // 2. Aprender com clientes
-      await this.learnFromCustomers();
-      
-      // 3. Aprender com estoque
-      await this.learnFromInventory();
-      
-      // 4. Aprender com preços
-      await this.learnFromPricing();
-      
-      // 5. Gerar insights combinados
-      await this.generateCombinedInsights();
-      
+      if (!Number.isFinite(tenantId)) throw new ValidationError("tenantId obrigatório");
+      await this.generateCrossSellInsights(tenantId);
+      await this.learnFromCustomers(tenantId);
+      await this.generateDemandForecast(tenantId);
+      await this.learnFromPricing(tenantId);
+      await this.generateStrategicRecommendations(tenantId);
       const duration = Date.now() - startTime;
       console.log(`✅ Ciclo de aprendizado concluído em ${duration}ms`);
-      
     } catch (error) {
       console.error('❌ Erro no ciclo de aprendizado:', error);
     }
@@ -129,10 +119,10 @@ export class LeoLearningEngine {
   /**
    * Aprende com o histórico de vendas
    */
-  private async learnFromSales(): Promise<void> {
+  private async learnFromSales(tenantId: number): Promise<void> {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const rows = await ordersService.leoAggregatePedidosByDayAndVendedor(DEFAULT_LEO_TENANT_ID, thirtyDaysAgo);
+      const rows = await ordersService.leoAggregatePedidosByDayAndVendedor(tenantId, thirtyDaysAgo);
       const salesData: Record<string, unknown>[] = rows.map((r) => ({
         date: r.day,
         count: r.count,
@@ -150,11 +140,11 @@ export class LeoLearningEngine {
   /**
    * Aprende com o histórico de clientes
    */
-  private async learnFromCustomers(): Promise<void> {
+  private async learnFromCustomers(tenantId: number): Promise<void> {
     try {
-      const rows = await clientesService.listClientesComMetricasPedidos(DEFAULT_LEO_TENANT_ID, ADMIN_ACTOR, 500);
+      const rows = await clientesService.listClientesComMetricasPedidos(tenantId, ADMIN_ACTOR, 500);
       if (!rows.success || !rows.data) {
-        throw new Error(rows.error ?? 'Falha ao carregar métricas de clientes');
+        throw new InfrastructureError(rows.error ?? 'Falha ao carregar métricas de clientes');
       }
       const customerData: Record<string, unknown>[] = rows.data.map((c) => ({
         id: c.id,
@@ -174,9 +164,9 @@ export class LeoLearningEngine {
   /**
    * Aprende com o histórico de estoque
    */
-  private async learnFromInventory(): Promise<void> {
+  private async learnFromInventory(tenantId: number): Promise<void> {
     try {
-      const rows = await inventoryService.listProdutosResumoLeoLearning(DEFAULT_LEO_TENANT_ID);
+      const rows = await inventoryService.listProdutosResumoLeoLearning(tenantId);
       const inventoryData: Record<string, unknown>[] = rows.map((p) => ({
         id: p.id,
         descricao: p.descricao,
@@ -195,17 +185,27 @@ export class LeoLearningEngine {
   /**
    * Aprende com estratégias de preços
    */
-  private async learnFromPricing(): Promise<void> {
+  private async learnFromPricing(tenantId: number): Promise<void> {
     try {
-      const rows = await inventoryService.listProdutoVendasStatsLeoLearning(DEFAULT_LEO_TENANT_ID);
-      const pricingData: Record<string, unknown>[] = rows.map((p) => ({
-        produtoId: p.produtoId,
-        descricao: p.descricao,
-        preco: Number(p.preco),
-        categoria: p.categoria,
-        vendas: p.vendasCount,
-        receita: p.receita,
-      }));
+      const rows = await inventoryService.listProdutoVendasStatsLeoLearning(tenantId);
+      const pricingData: Array<{
+        produtoId: number;
+        descricao: string | null;
+        preco: number;
+        categoria: string | null;
+        vendas: number;
+        receita: number;
+      }> = [];
+      for (const p of rows) {
+        pricingData.push({
+          produtoId: p.produtoId,
+          descricao: p.descricao,
+          preco: Number(p.preco),
+          categoria: p.categoria,
+          vendas: p.vendasCount,
+          receita: p.receita
+        });
+      }
       await this.detectPricingPatterns(pricingData);
     } catch (error) {
       console.error('Erro ao aprender com preços:', error);
@@ -219,7 +219,7 @@ export class LeoLearningEngine {
     try {
       // Padrão 1: Dias de pico de vendas
       const dailyAverages = this.calculateDailyAverages(salesData);
-      const peakDays = dailyAverages.filter((day: any) => day.sales > day.average * 1.5);
+      const peakDays = dailyAverages.filter((day: { sales: number; average: number }) => day.sales > day.average * 1.5);
       
       if (peakDays.length > 0) {
         await leoLongMemory.savePattern(
@@ -230,15 +230,15 @@ export class LeoLearningEngine {
         );
       }
 
-      const trend = this.calculateSalesTrend(salesData);
-      if (trend.trend !== 'stable') {
-        await leoLongMemory.savePattern(
-          DEFAULT_LEO_TENANT_ID,
-          `Tendência de vendas: ${trend.trend} (${trend.percentage.toFixed(1)}%)`,
-          `Análise de tendência dos últimos 30 dias`,
-          trend.trend === 'increasing' ? 'high' : 'critical'
-        );
-      }
+        const trend = this.calculateSalesTrend(salesData);
+        if (trend.trend !== 'stable') {
+          await leoLongMemory.savePattern(
+            DEFAULT_LEO_TENANT_ID,
+            `Tendência de vendas: ${trend.trend} (${trend.percentage.toFixed(1)}%)`,
+            `Análise de tendência dos últimos 30 dias`,
+            trend.trend === 'increasing' ? 'high' : 'critical'
+          );
+        }
 
       const avgTicketPattern = this.analyzeAverageTicket(salesData);
       if (avgTicketPattern.insight) {
@@ -293,10 +293,10 @@ export class LeoLearningEngine {
   /**
    * Detecta padrões de estoque
    */
-  private async detectInventoryPatterns(inventoryData: any[]): Promise<void> {
+  private async detectInventoryPatterns(inventoryData: Record<string, unknown>[]): Promise<void> {
     try {
       // Padrão 1: Estoque crítico
-      const criticalStock = inventoryData.filter((p: any) => p.estoqueAtual < p.estoqueMinimo);
+      const criticalStock = inventoryData.filter((p: { estoqueAtual?: unknown; estoqueMinimo?: unknown }) => Number(p.estoqueAtual ?? 0) < Number(p.estoqueMinimo ?? 0));
       
       const defaultTenantId = 1;
       if (criticalStock.length > 0) {
@@ -328,10 +328,10 @@ export class LeoLearningEngine {
   /**
    * Detecta padrões de precificação
    */
-  private async detectPricingPatterns(pricingData: any[]): Promise<void> {
+  private async detectPricingPatterns(pricingData: Record<string, unknown>[]): Promise<void> {
     try {
       // Padrão 1: Produtos sem vendas
-      const noSalesProducts = pricingData.filter((p: any) => p.vendas === 0);
+      const noSalesProducts = pricingData.filter((p: { vendas?: unknown }) => Number(p.vendas ?? 0) === 0);
       
       if (noSalesProducts.length > 0) {
         await leoLongMemory.saveAlert(
@@ -360,95 +360,94 @@ export class LeoLearningEngine {
   /**
    * Gera insights combinados
    */
-  private async generateCombinedInsights(): Promise<void> {
+  private async generateCombinedInsights(tenantId: number): Promise<void> {
     try {
       // Insight 1: Oportunidades de cross-selling
-      await this.generateCrossSellInsights();
+      await this.generateCrossSellInsights(tenantId);
       
       // Insight 2: Previsão de demanda
-      await this.generateDemandForecast();
+      await this.generateDemandForecast(tenantId);
       
       // Insight 3: Recomendações estratégicas
-      await this.generateStrategicRecommendations();
+      await this.generateStrategicRecommendations(tenantId);
       
     } catch (error) {
       console.error('Erro ao gerar insights combinados:', error);
     }
   }
 
+    /**
+     * Calcula tendência de vendas
+     */
+    private calculateSalesTrend(salesData: Array<{ total?: number }>): { trend: string, percentage: number } {
+      if (!salesData || salesData.length < 2) {
+        return { trend: 'stable', percentage: 0 };
+      }
+      const half = Math.floor(salesData.length / 2);
+      const recent = salesData.slice(0, half);
+      const older = salesData.slice(half);
+      const recentTotal = recent.reduce((sum, day) => sum + Number(day.total ?? 0), 0);
+      const olderTotal = older.reduce((sum, day) => sum + Number(day.total ?? 0), 0);
+      if (olderTotal === 0) {
+        return { trend: 'stable', percentage: 0 };
+      }
+      const change = ((recentTotal - olderTotal) / olderTotal) * 100;
+      if (change > 5) {
+        return { trend: 'increasing', percentage: change };
+      } else if (change < -5) {
+        return { trend: 'decreasing', percentage: Math.abs(change) };
+      } else {
+        return { trend: 'stable', percentage: 0 };
+      }
+    }
   /**
    * Calcula médias diárias de vendas
    */
-  private calculateDailyAverages(salesData: any[]): any[] {
+  private calculateDailyAverages(salesData: Record<string, unknown>[]): Array<{ day: string; sales: number; average: number; ratio: number }> {
     const dailySales: { [key: string]: number[] } = {};
     
     // Agrupa vendas por dia da semana
     salesData.forEach(sale => {
-      const date = new Date(sale.date);
+      const dateRaw = sale.date;
+      const countRaw = sale.count;
+      const date = new Date(typeof dateRaw === 'string' || typeof dateRaw === 'number' || dateRaw instanceof Date ? dateRaw : Date.now());
+      const count = Number(countRaw ?? 0);
       const dayOfWeek = date.toLocaleDateString('pt-BR', { weekday: 'long' });
       
       if (!dailySales[dayOfWeek]) {
         dailySales[dayOfWeek] = [];
       }
-      dailySales[dayOfWeek].push(sale.count);
+      dailySales[dayOfWeek].push(count);
     });
 
     // Calcula médias
     const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    return days.map((day: any) => {
+    return days.map((day: string) => {
       const values = dailySales[day] || [0];
-      const average = values.reduce((a: any, b: any) => a + b, 0) / values.length;
-      
+      const average = values.reduce((a: number, b: number) => a + b, 0) / values.length;
       return {
         day,
-        sales: values[values.length - 1] || 0,
+        sales: values.reduce((a: number, b: number) => a + b, 0),
         average,
-        ratio: average > 0 ? (values[values.length - 1] || 0) / average : 0
+        ratio: values.length > 0 ? values[0] / average : 0
       };
     });
   }
 
   /**
-   * Calcula tendência de vendas
-   */
-  private calculateSalesTrend(salesData: any[]): { trend: string; percentage: number } {
-    if (salesData.length < 2) {
-      return { trend: 'stable', percentage: 0 };
-    }
-
-    const recent = salesData.slice(0, Math.floor(salesData.length / 2));
-    const older = salesData.slice(Math.floor(salesData.length / 2));
-
-    const recentTotal = recent.reduce((sum: any, day: any) => sum + day.total, 0);
-    const olderTotal = older.reduce((sum: any, day: any) => sum + day.total, 0);
-
-    if (olderTotal === 0) {
-      return { trend: 'stable', percentage: 0 };
-    }
-
-    const change = ((recentTotal - olderTotal) / olderTotal) * 100;
-    
-    if (change > 5) {
-      return { trend: 'increasing', percentage: change };
-    } else if (change < -5) {
-      return { trend: 'decreasing', percentage: Math.abs(change) };
-    } else {
-      return { trend: 'stable', percentage: 0 };
-    }
-  }
-
-  /**
    * Analisa ticket médio
    */
-  private analyzeAverageTicket(salesData: any[]): { insight?: string } {
-    const avgTickets = salesData.map((d: any) => d.avgTicket).filter((t: any) => t > 0);
+  private analyzeAverageTicket(salesData: Array<{ avgTicket?: number }>): { insight?: string } {
+    const avgTickets = salesData
+      .map((d: { avgTicket?: number }) => Number(d.avgTicket ?? 0))
+      .filter((t: number) => t > 0);
     
     if (avgTickets.length < 2) {
-      return {};
+      return { insight: undefined };
     }
 
-    const overallAvg = avgTickets.reduce((a: any, b: any) => a + b, 0) / avgTickets.length;
-    const recentAvg = avgTickets.slice(0, 7).reduce((a: any, b: any) => a + b, 0) / Math.min(7, avgTickets.length);
+    const overallAvg = avgTickets.reduce((a: number, b: number) => a + b, 0) / avgTickets.length;
+    const recentAvg = avgTickets.slice(0, 7).reduce((a: number, b: number) => a + b, 0) / Math.min(7, avgTickets.length);
 
     const change = ((recentAvg - overallAvg) / overallAvg) * 100;
 
@@ -457,14 +456,14 @@ export class LeoLearningEngine {
         insight: `Ticket médio ${change > 0 ? 'aumentou' : 'diminuiu'} ${Math.abs(change).toFixed(1)}% recentemente`
       };
     }
-
-    return {};
+  
+    return { insight: undefined };
   }
 
   /**
    * Analisa estoque por categoria
    */
-  private analyzeCategoryStock(inventoryData: any[]): any[] {
+  private analyzeCategoryStock(inventoryData: Array<{ categoria?: string; estoqueAtual?: number; estoqueMinimo?: number }>): Array<{ category: string; issue: string }> {
     const categoryStats: { [key: string]: { total: number; critical: number; outOfStock: number } } = {};
     
     inventoryData.forEach(product => {
@@ -476,14 +475,17 @@ export class LeoLearningEngine {
       
       categoryStats[category].total++;
       
-      if (product.estoqueAtual === 0) {
+      const estoqueAtual = Number(product.estoqueAtual ?? 0);
+      const estoqueMinimo = Number(product.estoqueMinimo ?? 0);
+
+      if (estoqueAtual === 0) {
         categoryStats[category].outOfStock++;
-      } else if (product.estoqueAtual < product.estoqueMinimo) {
+      } else if (estoqueAtual < estoqueMinimo) {
         categoryStats[category].critical++;
       }
     });
 
-    const issues: any[] = [];
+    const issues: Array<{ category: string; issue: string }> = [];
     
     Object.entries(categoryStats).forEach(([category, stats]) => {
       const criticalRatio = stats.critical / stats.total;
@@ -510,11 +512,11 @@ export class LeoLearningEngine {
   /**
    * Analisa correlação preço x demanda
    */
-  private analyzePriceDemandCorrelation(pricingData: any[]): any[] {
-    const insights: any[] = [];
+  private analyzePriceDemandCorrelation(pricingData: Array<{ categoria?: string; preco?: number; vendas?: number }>): Array<{ insight: string }> {
+    const insights: Array<{ insight: string }> = [];
     
     // Agrupa por categoria
-    const categories: { [key: string]: any[] } = {};
+    const categories: { [key: string]: Array<{ categoria?: string; preco?: number; vendas?: number }> } = {};
     
     pricingData.forEach(product => {
       const category = product.categoria || 'Sem Categoria';
@@ -531,14 +533,14 @@ export class LeoLearningEngine {
       if (products.length < 2) return;
       
       // Ordena por preço
-      products.sort((a, b) => a.preco - b.preco);
+      products.sort((a, b) => Number(a.preco ?? 0) - Number(b.preco ?? 0));
       
       // Verifica se produtos mais caros vendem menos
       const expensiveProducts = products.slice(-Math.floor(products.length / 2));
       const cheapProducts = products.slice(0, Math.floor(products.length / 2));
       
-      const expensiveAvgSales = expensiveProducts.reduce((sum: any, p: any) => sum + (p.vendas || 0), 0) / expensiveProducts.length;
-      const cheapAvgSales = cheapProducts.reduce((sum: any, p: any) => sum + (p.vendas || 0), 0) / cheapProducts.length;
+      const expensiveAvgSales = expensiveProducts.reduce((sum: number, p: { vendas?: number }) => sum + Number(p.vendas ?? 0), 0) / expensiveProducts.length;
+      const cheapAvgSales = cheapProducts.reduce((sum: number, p: { vendas?: number }) => sum + Number(p.vendas ?? 0), 0) / cheapProducts.length;
       
       if (expensiveAvgSales < cheapAvgSales * 0.5) {
         insights.push({
@@ -553,9 +555,9 @@ export class LeoLearningEngine {
   /**
    * Gera insights de cross-selling
    */
-  private async generateCrossSellInsights(): Promise<void> {
+    private async generateCrossSellInsights(tenantId: number): Promise<void> {
     await leoLongMemory.saveStrategy(
-      DEFAULT_LEO_TENANT_ID,
+        tenantId,
       'Cross-selling: Analisar padrões de compra conjunta para recomendar produtos',
       'Estratégia de vendas',
       'medium'
@@ -565,10 +567,10 @@ export class LeoLearningEngine {
   /**
    * Gera previsão de demanda
    */
-  private async generateDemandForecast(): Promise<void> {
+    private async generateDemandForecast(tenantId: number): Promise<void> {
     // Implementação futura com algoritmos de séries temporais
     await leoLongMemory.saveInsight(
-      DEFAULT_LEO_TENANT_ID,
+        tenantId,
       'Previsão de demanda: Implementar modelo preditivo baseado em histórico',
       'Previsão de negócios',
       'high'
@@ -578,9 +580,9 @@ export class LeoLearningEngine {
   /**
    * Gera recomendações estratégicas
    */
-  private async generateStrategicRecommendations(): Promise<void> {
+    private async generateStrategicRecommendations(tenantId: number): Promise<void> {
     await leoLongMemory.saveStrategy(
-      DEFAULT_LEO_TENANT_ID,
+        tenantId,
       'Estratégia: Focar em clientes inativos e produtos com baixo giro',
       'Recomendações estratégicas',
       'high'
@@ -590,28 +592,28 @@ export class LeoLearningEngine {
   /**
    * Analisa performance de vendas por vendedor
    */
-  private async analyzeSalesPerformance(salesData: any[]): Promise<void> {
+  private async analyzeSalesPerformance(salesData: Record<string, unknown>[]): Promise<void> {
     // Implementação futura para análise por vendedor
   }
 
   /**
    * Identifica clientes em risco
    */
-  private async identifyAtRiskCustomers(customerData: any[]): Promise<void> {
+  private async identifyAtRiskCustomers(customerData: Record<string, unknown>[]): Promise<void> {
     // Implementação futura para identificação de churn
   }
 
   /**
    * Identifica produtos parados
    */
-  private async identifySlowMovingProducts(inventoryData: any[]): Promise<void> {
+  private async identifySlowMovingProducts(inventoryData: Record<string, unknown>[]): Promise<void> {
     // Implementação futura para análise de giro de estoque
   }
 
   /**
    * Obtém status do motor de aprendizado
    */
-  public getLearningStatus(): any {
+  public getLearningStatus(): { isLearning: boolean; uptime: number } {
     return {
       isLearning: this.isLearning,
       uptime: this.isLearning ? process.uptime() : 0

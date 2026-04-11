@@ -1,0 +1,441 @@
+FILE=scripts/test-load-performance.mjs
+LINE_BEFORE=14
+BEFORE=const TENANT_ID = process.env.TENANT_ID || '1';
+AFTER=const TENANT_ID = process.argv[2];
+if (!TENANT_ID) {
+  throw new Error('TENANT_REQUIRED');
+}
+---
+FILE=server/_core/admin-init.ts
+LINE_BEFORE=12
+BEFORE=  const tenantIdRaw = Number(process.env.TENANT_ID || "");
+AFTER=export async function ensureInitialAdmin(tenantId: number): Promise<void> {
+  if (!tenantId) throw new Error('TENANT_REQUIRED')
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+---
+FILE=server/_core/oauth.ts
+LINE_BEFORE=8
+BEFORE=  const raw = Number(process.env.TENANT_ID || "");
+AFTER=  const raw = Number(req?.tenantId ?? req?.headers?.["x-tenant-id"] ?? req?.query?.tenantId ?? req?.body?.tenantId);
+  if (!raw || Number.isNaN(raw) || raw <= 0) {
+    throw new Error("TENANT_REQUIRED");
+---
+FILE=server/_core/oauth.ts
+LINE_BEFORE=39
+BEFORE=      const tenantId = Number(process.env.TENANT_ID || "");
+AFTER=
+---
+FILE=server/_core/ownership.ts
+LINE_BEFORE=43
+BEFORE=  if (!tenantId || tenantId <= 0) {
+AFTER=  if (!tenantId) {
+---
+FILE=server/_core/ownership.ts
+LINE_BEFORE=78
+BEFORE=      if (!ctx.tenantId || ctx.tenantId <= 0) {
+AFTER=      if (!ctx.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
+      }
+      if (ctx.tenantId <= 0) {
+---
+FILE=server/_core/ownership.ts
+LINE_BEFORE=99
+BEFORE=      if (!ctx.tenantId || ctx.tenantId <= 0) {
+AFTER=      if (!ctx.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
+      }
+      if (ctx.tenantId <= 0) {
+---
+FILE=server/_core/sdk.ts
+LINE_BEFORE=31
+BEFORE=  const raw = Number(process.env.TENANT_ID || "");
+AFTER=  throw new Error('tenantId must be provided');
+---
+FILE=server/_core/sdk.ts
+LINE_BEFORE=290
+BEFORE=        const tenantId = Number(process.env.TENANT_ID || "");
+AFTER=
+---
+FILE=server/_core/sdk.ts
+LINE_BEFORE=314
+BEFORE=      const envTenantId = Number(process.env.TENANT_ID || "");
+AFTER=
+---
+FILE=server/_core/service-actor.ts
+LINE_BEFORE=38
+BEFORE=  if (!ctx.tenantId || ctx.tenantId <= 0) {
+AFTER=  if (!ctx.tenantId) {
+    throw new Error("tenantId obrigat├│rio para resolver actor de servi├ºo");
+  }
+  if (ctx.tenantId <= 0) {
+---
+FILE=server/_core/tenant-validator.ts
+LINE_BEFORE=23
+BEFORE=  if (!tenantId || tenantId <= 0) {
+AFTER=  if (!tenantId) {
+    throw new Error('TENANT_ID_REQUIRED: Opera├º├úo de banco exige tenantId v├ílido');
+  }
+  if (tenantId <= 0) {
+---
+FILE=server/_core/tenant-validator.ts
+LINE_BEFORE=65
+BEFORE=  if (!tenantId || tenantId <= 0) {
+AFTER=  if (!tenantId) {
+    return false; // Sempre requer tenantId
+  }
+  if (tenantId <= 0) {
+---
+FILE=server/leo/actions/leo-actions.ts
+LINE_BEFORE=140
+BEFORE=    const fromEnv = Number(process.env.TENANT_ID || 0);
+AFTER=
+    const input = asRecord(context);
+    if (!input || (input.tenantId !== undefined && typeof input.tenantId !== 'number')) {
+      throw new Error('invalid input');
+---
+FILE=server/leo/actions/leo-automation.ts
+LINE_BEFORE=291
+BEFORE=      const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+AFTER=      const tenantId = Number(dados.tenantId);
+      if (!dados.tenantId) {
+        throw new Error('TENANT_REQUIRED');
+      }
+      if (Number.isNaN(tenantId) || tenantId <= 0) {
+        throw new Error('TENANT_REQUIRED');
+---
+FILE=server/leo/actions/leo-automation.ts
+LINE_BEFORE=332
+BEFORE=      const fromEnv = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+AFTER=      const tenantId = Number(dados.tenantId);
+      if (!dados.tenantId) {
+        throw new Error('TENANT_REQUIRED');
+      }
+      if (Number.isNaN(tenantId) || tenantId <= 0) {
+        throw new Error('TENANT_REQUIRED');
+---
+FILE=server/leo/intelligence/leo-sales-analysis.ts
+LINE_BEFORE=9
+BEFORE=  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+AFTER=function requireTenantId(tenantId: number): number {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error('tenantId inv├ílido');
+---
+FILE=server/leo/intelligence/leo-sales-analysis.ts
+LINE_BEFORE=11
+BEFORE=  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+AFTER=function requireTenantId(tenantId: number): number {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error('tenantId inv├ílido');
+---
+FILE=server/leo/intelligence/leo-stock-monitor.ts
+LINE_BEFORE=20
+BEFORE=  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+AFTER=function requireTenantId(tenantId: number): number {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error('tenantId inv├ílido');
+---
+FILE=server/leo/intelligence/leo-stock-monitor.ts
+LINE_BEFORE=22
+BEFORE=  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+AFTER=function requireTenantId(tenantId: number): number {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error('tenantId inv├ílido');
+---
+FILE=server/leo/memory/leo-memory.service.ts
+LINE_BEFORE=5
+BEFORE=  const tenantId = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+AFTER=
+---
+FILE=server/leo/memory/leo-memory.service.ts
+LINE_BEFORE=6
+BEFORE=  if (!tenantId || tenantId <= 0) {
+AFTER=export async function getMemoria(usuario: string, chave: string, tenantId: number): Promise<string | null> {
+---
+FILE=server/leo/planning/leo-scheduler.ts
+LINE_BEFORE=30
+BEFORE=  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+AFTER=async function verificarVendasDoDia(tenantId: number): Promise<TarefaResult> {
+---
+FILE=server/leo/planning/leo-scheduler.ts
+LINE_BEFORE=32
+BEFORE=  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+AFTER=async function verificarVendasDoDia(tenantId: number): Promise<TarefaResult> {
+---
+FILE=server/leo/utils/leo-notifier.ts
+LINE_BEFORE=24
+BEFORE=  const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
+AFTER=export async function enviarNotificacoesInteligentes(tarefasResumos: { nome: string; resumo?: string }[], tenantId: number): Promise<void> {
+---
+FILE=server/leo/utils/leo-notifier.ts
+LINE_BEFORE=26
+BEFORE=  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+AFTER=export async function enviarNotificacoesInteligentes(tarefasResumos: { nome: string; resumo?: string }[], tenantId: number): Promise<void> {
+---
+FILE=server/modules/safe-payment.module.ts
+LINE_BEFORE=147
+BEFORE=    if (!paymentData.tenantId || paymentData.tenantId <= 0) {
+AFTER=    if (!paymentData.tenantId) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de pagamento');
+    }
+    if (paymentData.tenantId <= 0) {
+---
+FILE=server/modules/safe-payment.module.ts
+LINE_BEFORE=237
+BEFORE=    if (!auditTenantId || auditTenantId <= 0) {
+AFTER=    if (!auditTenantId) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indispon├¡vel para auditoria de cancelamento');
+    }
+    if (auditTenantId <= 0) {
+---
+FILE=server/modules/safe-payment.module.ts
+LINE_BEFORE=328
+BEFORE=    if (!resolvedTenantId || resolvedTenantId <= 0) {
+AFTER=    if (!resolvedTenantId) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indispon├¡vel para auditoria de concilia├º├úo');
+    }
+    if (resolvedTenantId <= 0) {
+---
+FILE=server/modules/safe-shipment.module.ts
+LINE_BEFORE=50
+BEFORE=  if (!shipmentData.tenantId || shipmentData.tenantId <= 0) {
+AFTER=  if (!shipmentData.tenantId) {
+    return {
+      success: false,
+      message: 'TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio',
+    };
+  }
+  if (shipmentData.tenantId <= 0) {
+---
+FILE=server/modules/safe-shipment.module.ts
+LINE_BEFORE=187
+BEFORE=    if (!shipmentData.tenantId || shipmentData.tenantId <= 0) {
+AFTER=    if (!shipmentData.tenantId) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de carga');
+    }
+    if (shipmentData.tenantId <= 0) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId ├® obrigat├│rio para auditoria de carga');
+    }
+    if (shipmentData.tenantId <= 0) {
+---
+FILE=server/modules/safe-shipment.module.ts
+LINE_BEFORE=266
+BEFORE=    if (!auditTenantId || auditTenantId <= 0) {
+AFTER=    if (!auditTenantId) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indispon├¡vel para auditoria de in├¡cio de carga');
+    }
+    if (auditTenantId <= 0) {
+---
+FILE=server/modules/safe-shipment.module.ts
+LINE_BEFORE=347
+BEFORE=    if (!auditTenantId || auditTenantId <= 0) {
+AFTER=    if (!auditTenantId) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indispon├¡vel para auditoria de in├¡cio de carga');
+    }
+    if (auditTenantId <= 0) {
+---
+FILE=server/modules/safe-shipment.module.ts
+LINE_BEFORE=445
+BEFORE=    if (!auditTenantId || auditTenantId <= 0) {
+AFTER=    if (!auditTenantId) {
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indispon├¡vel para auditoria de in├¡cio de carga');
+    }
+    if (auditTenantId <= 0) {
+---
+FILE=server/routes/concurrency-test.ts
+LINE_BEFORE=91
+BEFORE=    if (!pedidoData.tenantId || !pedidoData.vendedorId || !pedidoData.clienteId) {
+AFTER=    if (!pedidoData.tenantId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Dados do pedido incompletos' 
+      });
+    }
+    if (!pedidoData.vendedorId || !pedidoData.clienteId) {
+---
+FILE=server/scripts/seed-massa-teste.ts
+LINE_BEFORE=20
+BEFORE=  const tenantIdRaw = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || "");
+AFTER=  const tenantId = Number(tenantIdInput);
+  if (!tenantIdInput || Number.isNaN(tenantId) || tenantId <= 0) {
+    console.error(`${PREFIX} TENANT_REQUIRED`);
+---
+FILE=server/services/ai/erp-ai.service.ts
+LINE_BEFORE=97
+BEFORE=  if (!tenantId || tenantId <= 0) {
+AFTER=  if (!tenantId) {
+    return { success: false, error: "Tenant ID inv├ílido ou ausente" };
+  }
+  if (tenantId <= 0) {
+---
+FILE=server/services/ai/leo-action-logger.ts
+LINE_BEFORE=60
+BEFORE=    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+AFTER=    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number.NaN;
+    if (!tenantId) {
+      throw new Error('TENANT_REQUIRED');
+    }
+    if (Number.isNaN(tenantId) || tenantId <= 0) {
+      throw new Error('TENANT_REQUIRED');
+    }
+---
+FILE=server/services/ai/leo-action-logger.ts
+LINE_BEFORE=61
+BEFORE=    if (!tenantId || tenantId <= 0) return;
+AFTER=    const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number.NaN;
+    if (!tenantId) {
+      throw new Error('TENANT_REQUIRED');
+    }
+    if (Number.isNaN(tenantId) || tenantId <= 0) {
+      throw new Error('TENANT_REQUIRED');
+    }
+---
+FILE=server/services/audit-service.ts
+LINE_BEFORE=284
+BEFORE=      if (!data.tenantId || data.tenantId <= 0) {
+AFTER=      if (!data.tenantId) {
+        return createResponse(false, 'tenantId obrigat├│rio para auditoria');
+      }
+      if (data.tenantId <= 0) {
+---
+FILE=server/services/core-business-real.test.ts
+LINE_BEFORE=38
+BEFORE=const TENANT_ID = Number(process.env.TEST_CORE_TENANT_ID || 99001);
+AFTER=const TENANT_ID_INPUT = process.argv[2];
+if (!TENANT_ID_INPUT) {
+  throw new Error('TENANT_REQUIRED');
+}
+const TENANT_ID = Number(TENANT_ID_INPUT);
+if (Number.isNaN(TENANT_ID) || TENANT_ID <= 0) {
+  throw new Error('TENANT_REQUIRED');
+}
+---
+FILE=server/services/leo-action-log.service.ts
+LINE_BEFORE=15
+BEFORE=    : Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || 0);
+AFTER=  const tenantId = tenantMatch ? Number(tenantMatch[1]) : Number.NaN;
+  if (!tenantId) {
+    throw new Error('TENANT_REQUIRED');
+  }
+  if (Number.isNaN(tenantId) || tenantId <= 0) {
+    throw new Error('TENANT_REQUIRED');
+  }
+---
+FILE=server/services/payment.service.ts
+LINE_BEFORE=32
+BEFORE=      tenantId: payload.tenantId || 1,
+AFTER=      tenantId: payload.tenantId,
+---
+FILE=server/services/payment.service.ts
+LINE_BEFORE=66
+BEFORE=        tenantId: tenantId || 1,
+AFTER=        tenantId: filterTenantId,
+---
+FILE=server/services/payment.service.ts
+LINE_BEFORE=79
+BEFORE=        tenantId: tenantId || 1,
+AFTER=        tenantId: filterTenantId,
+---
+FILE=server/services/payment.service.ts
+LINE_BEFORE=137
+BEFORE=      tenantId: payload.tenantId || 1,
+AFTER=      tenantId: payload.tenantId,
+---
+FILE=server/services/reports/pdf.service.ts
+LINE_BEFORE=725
+BEFORE=  if (!tenantId || tenantId <= 0) {
+AFTER=  if (!tenantId) {
+    throw new Error("tenantId ├® obrigat├│rio para relat├│rio LEO");
+  }
+  if (tenantId <= 0) {
+---
+FILE=server/services/safe-transaction.ts
+LINE_BEFORE=403
+BEFORE=        tenantId: pedidoOp.tenantId || 1,
+AFTER=        tenantId: pedidoOp.tenantId,
+---
+FILE=server/services/safe-transaction.ts
+LINE_BEFORE=441
+BEFORE=        tenantId: pedidoOp.tenantId || 1,
+AFTER=        tenantId: pedidoOp.tenantId,
+---
+FILE=server/services/safe-transaction.ts
+LINE_BEFORE=482
+BEFORE=        tenantId: pedidoOp.tenantId || 1,
+AFTER=        tenantId: pedidoOp.tenantId,
+---
+FILE=server/services/users.service.ts
+LINE_BEFORE=87
+BEFORE=  if (!tenantId || !openId) return null;
+AFTER=  if (!tenantId) return null;
+  if (!openId) return null;
+---
+FILE=server/tests/concurrency-test.ts
+LINE_BEFORE=12
+BEFORE=  const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+AFTER=
+---
+FILE=server/tests/concurrency-test.ts
+LINE_BEFORE=112
+BEFORE=  const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+AFTER=
+---
+FILE=server/tests/database-consistency.test.ts
+LINE_BEFORE=39
+BEFORE=  private tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+AFTER=  private tenantId: number;
+---
+FILE=server/tests/idempotency-simple-test.ts
+LINE_BEFORE=7
+BEFORE=const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+AFTER=const TEST_TENANT_ID_INPUT = process.argv[2];
+if (!TEST_TENANT_ID_INPUT) {
+  throw new Error('TENANT_REQUIRED');
+}
+const TEST_TENANT_ID = Number(TEST_TENANT_ID_INPUT);
+if (Number.isNaN(TEST_TENANT_ID) || TEST_TENANT_ID <= 0) {
+  throw new Error('TENANT_REQUIRED');
+}
+---
+FILE=server/tests/run-core-tests.ts
+LINE_BEFORE=23
+BEFORE=  const testTenantId = Number(process.env.TEST_TENANT_ID) || Number(tenantPick[0]?.tenantId);
+AFTER=
+---
+FILE=server/tests/simple-idempotency-test.ts
+LINE_BEFORE=8
+BEFORE=const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+AFTER=const TEST_TENANT_ID_INPUT = process.argv[2];
+if (!TEST_TENANT_ID_INPUT) {
+  throw new Error('TENANT_REQUIRED');
+}
+const TEST_TENANT_ID = Number(TEST_TENANT_ID_INPUT);
+if (Number.isNaN(TEST_TENANT_ID) || TEST_TENANT_ID <= 0) {
+  throw new Error('TENANT_REQUIRED');
+}
+---
+FILE=server/tools/system-diagnostic.ts
+LINE_BEFORE=15
+BEFORE=  const raw = process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID;
+AFTER=function getDiagnosticTenantId(tenantId?: number | string): number | null {
+  const value = Number(tenantId);
+  if (!tenantId) {
+    throw new Error('TENANT_REQUIRED');
+  }
+  if (Number.isNaN(value) || value <= 0) {
+    throw new Error('TENANT_REQUIRED');
+  }
+  return value;
+---
+FILE=tests/test-e2e-script.cjs
+LINE_BEFORE=8
+BEFORE=let tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+AFTER=let tenantId;
+---
+FILE=tests/test-e2e-script.cjs
+LINE_BEFORE=81
+BEFORE=  tenantId = loginResult.data.user?.tenantId || Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+AFTER=  tenantId = loginResult.data.user?.tenantId;
+  if (!tenantId) {
+    throw new Error('TENANT_REQUIRED');
+  }
+---

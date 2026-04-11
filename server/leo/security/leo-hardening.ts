@@ -8,6 +8,7 @@
 import { leoLogManager } from '../utils/leo-log-manager.js';
 import type { Payload } from "../../../shared/types/index.js";
 import { join } from 'path';
+import { InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 /** Registro de ação LEO (stub; usar import de db quando disponível) */
 async function insertLeoActionLog(_params: { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string }): Promise<void> {
@@ -514,7 +515,7 @@ class LeoHardening {
             cb.successCount = 0;
             cb.failureCount = 0;
           } else {
-            throw new Error(`Circuit breaker aberto para ${operationName}`);
+            throw new InfrastructureError(`Circuit breaker aberto para ${operationName}`);
           }
         }
 

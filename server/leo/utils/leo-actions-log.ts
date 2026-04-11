@@ -93,8 +93,8 @@ export class LeoActionsLog {
   /**
    * Limpa dados sensíveis do input para logging
    */
-  private static sanitizeInput(input: any): any {
-    if (!input) return {};
+  private static sanitizeInput(input: unknown): Record<string, unknown> | string | unknown {
+    if (!input) return { empty: true, sanitized: null };
     
     if (typeof input === 'string') {
       // Remove senhas e dados sensíveis
@@ -102,7 +102,7 @@ export class LeoActionsLog {
     }
     
     if (typeof input === 'object' && input !== null) {
-      const sanitized: any = {};
+      const sanitized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(input)) {
         if (key.toLowerCase().includes('password') || 
             key.toLowerCase().includes('senha') ||
@@ -122,8 +122,8 @@ export class LeoActionsLog {
   /**
    * Limpa dados sensíveis do output para logging
    */
-  private static sanitizeOutput(output: any): any {
-    if (!output) return {};
+  private static sanitizeOutput(output: unknown): Record<string, unknown> | string | unknown {
+    if (!output) return { empty: true, sanitized: null };
     
     if (typeof output === 'string') {
       // Remove informações pessoais
@@ -131,7 +131,7 @@ export class LeoActionsLog {
     }
     
     if (typeof output === 'object' && output !== null) {
-      const sanitized: any = {};
+      const sanitized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(output)) {
         if (key.toLowerCase().includes('cpf') ||
             key.toLowerCase().includes('cnpj') ||

@@ -11,6 +11,8 @@ import {
 import { PendenciaStatus } from "../shared/domain-status.js";
 import { nanoid } from "nanoid";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
+import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
+import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
@@ -29,37 +31,41 @@ export type UpdateEstoqueInput = {
 /**
  * CORES
  */
-export async function listCores(_tenantId: number) {
+export async function listCores(tenantId: number) {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return [];
-  const result = await dbConn.select().from(cores).orderBy(asc(cores.nome));
+  assertDbConnection(dbConn);
+  const result = await dbConn.select().from(cores).where(eq(cores.tenantId, tenantId)).orderBy(asc(cores.nome));
   // Garantir que o retorno seja sempre um array
   return ensureArray(result);
 }
 
-export async function createCor(_tenantId: number, data: InsertCor): Promise<{ id: number }> {
+export async function createCor(tenantId: number, data: InsertCor): Promise<{ id: number }> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
-  const result = await dbConn.insert(cores).values(data);
+  assertDbConnection(dbConn);
+  const result = await dbConn.insert(cores).values({ ...data, tenantId });
   const corId = getInsertId(result);
   return ensureCreatedResult({ id: corId });
 }
 
-export async function updateCor(_tenantId: number, id: number, data: Partial<InsertCor>): Promise<{ success: boolean }> {
+export async function updateCor(tenantId: number, id: number, data: Partial<InsertCor>): Promise<{ success: boolean }> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
-  await dbConn.update(cores).set(data).where(eq(cores.id, id));
-  const after = await dbConn.select().from(cores).where(eq(cores.id, id)).limit(1);
-  if (!after.length) throw new Error("Falha ao atualizar cor");
+  assertDbConnection(dbConn);
+  await dbConn.update(cores).set(data).where(and(eq(cores.tenantId, tenantId), eq(cores.id, id)));
+  const after = await dbConn.select().from(cores).where(and(eq(cores.tenantId, tenantId), eq(cores.id, id))).limit(1);
+  if (!after.length) throw new InfrastructureError("Falha ao atualizar cor");
   return { success: true };
 }
 
-export async function deleteCor(_tenantId: number, id: number): Promise<{ success: boolean }> {
+export async function deleteCor(tenantId: number, id: number): Promise<{ success: boolean }> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
-  await dbConn.delete(cores).where(eq(cores.id, id));
-  const after = await dbConn.select().from(cores).where(eq(cores.id, id)).limit(1);
-  if (after.length > 0) throw new Error("Falha ao excluir cor");
+  assertDbConnection(dbConn);
+  await dbConn.delete(cores).where(and(eq(cores.tenantId, tenantId), eq(cores.id, id)));
+  const after = await dbConn.select().from(cores).where(and(eq(cores.tenantId, tenantId), eq(cores.id, id))).limit(1);
+  if (after.length > 0) throw new InfrastructureError("Falha ao excluir cor");
   return { success: true };
 }
 
@@ -68,9 +74,9 @@ export async function deleteCor(_tenantId: number, id: number): Promise<{ succes
  */
 export async function createProduto(tenantId: number, data: CreateProdutoInput) {
   try {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Database not available");
+    assertDbConnection(dbConn);
     
     const result = await dbConn.insert(produtos).values({
       ...data,
@@ -97,9 +103,9 @@ export async function createProduto(tenantId: number, data: CreateProdutoInput) 
 }
 
 export async function getProdutoById(tenantId: number, id: number) {
-  if (!tenantId) return null;
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return null;
+  assertDbConnection(dbConn);
   
   const result = await dbConn.select().from(produtos).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, id))).limit(1);
   // Se encontrou um resultado, retorna o objeto, caso contrário retorna null
@@ -107,23 +113,20 @@ export async function getProdutoById(tenantId: number, id: number) {
 }
 
 export async function getAllProdutos(tenantId: number) {
-  if (!tenantId) return [];
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   
-  const result = await dbConn.select()
-    .from(produtos)
-    .where(and(eq(produtos.tenantId, tenantId), eq(produtos.ativo, true)))
-    .orderBy(asc(produtos.descricao));
+  const result = await dbConn.select().from(produtos).where(eq(produtos.tenantId, tenantId)).orderBy(asc(produtos.descricao));
   
   // Garantir que o retorno seja sempre um array
   return ensureArray(result);
 }
 
 export async function getAllProdutosComPrecoVigente(tenantId: number, refDate: Date = new Date()) {
-  if (!tenantId) return [];
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   const sqlRunner = dbConn as unknown as {
     execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
   };
@@ -214,9 +217,9 @@ export async function getProdutosComPrecoVigentePaged(
   tenantId: number,
   opts: GetProdutosComPrecoVigentePagedOpts
 ): Promise<{ items: Awaited<ReturnType<typeof getAllProdutosComPrecoVigente>>; total: number }> {
-  if (!tenantId) return { items: [], total: 0 };
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0 };
+  assertDbConnection(dbConn);
   const sqlRunner = dbConn as unknown as {
     execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
   };
@@ -342,14 +345,14 @@ export async function updateEstoqueProduto(
   input: { id: number; quantidade: number; audit?: UpdateEstoqueInput["audit"] & { usuario?: string } }
 ): Promise<Record<string, unknown>> {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
   const res = await dbConn
     .select({ estoque: produtos.estoque })
     .from(produtos)
     .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, input.id)))
     .limit(1);
   const current = res[0];
-  if (!current) throw new Error("Produto não encontrado ou acesso negado");
+  if (!current) throw new ValidationError("Produto não encontrado ou acesso negado");
   const saldoAtual = Number(current.estoque ?? 0);
   const isAbsolute = input.audit?.motivo === "Ajuste manual";
   const delta = isAbsolute ? input.quantidade - saldoAtual : input.quantidade;
@@ -363,9 +366,9 @@ export async function getProdutosEstoqueBaixo(
   tenantId: number,
   limite: number
 ): Promise<{ items: Array<Record<string, unknown>>; total: number }> {
-  if (!tenantId) return { items: [], total: 0 };
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return { items: [], total: 0 };
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select()
     .from(produtos)
@@ -383,21 +386,21 @@ export async function getProdutosEstoqueBaixo(
 
 export async function updateProduto(tenantId: number, id: number, data: UpdateProdutoInput, version?: number) {
   try {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Database not available");
+    assertDbConnection(dbConn);
     
     if (version !== undefined) {
       const produtoAtual = await dbConn.select().from(produtos).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, id))).limit(1);
-      if (produtoAtual.length === 0) throw new Error("Produto não encontrado");
+      if (produtoAtual.length === 0) throw new ValidationError("Produto não encontrado");
       const updatedAt = produtoAtual[0].updatedAt;
       const versionDate = new Date(version);
-      if (updatedAt && updatedAt > versionDate) throw new Error(`O produto foi modificado por outro usuário desde que você o abriu.`);
+      if (updatedAt && updatedAt > versionDate) throw new ValidationError(`O produto foi modificado por outro usuário desde que você o abriu.`);
     }
     
     await dbConn.update(produtos).set({ ...data, updatedAt: new Date() }).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, id)));
     const after = await getProdutoById(tenantId, id);
-    if (!after) throw new Error("Falha ao atualizar produto");
+    if (!after) throw new InfrastructureError("Falha ao atualizar produto");
     return { success: true };
   } catch (error) {
     console.error("Erro ao atualizar produto:", error);
@@ -407,12 +410,12 @@ export async function updateProduto(tenantId: number, id: number, data: UpdatePr
 
 export async function deleteProduto(tenantId: number, id: number) {
   try {
-    if (!tenantId) throw new Error("tenantId is required");
+    assertTenantId(tenantId);
     const dbConn = await getDb();
-    if (!dbConn) throw new Error("Database not available");
+    assertDbConnection(dbConn);
     await dbConn.update(produtos).set({ ativo: false, updatedAt: new Date() }).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, id)));
     const after = await getProdutoById(tenantId, id);
-    if (!after || after.ativo !== false) throw new Error("Falha ao excluir logicamente produto");
+    if (!after || after.ativo !== false) throw new InfrastructureError("Falha ao excluir logicamente produto");
     return { success: true };
   } catch (error) {
     console.error("Erro ao excluir produto:", error);
@@ -431,16 +434,16 @@ export async function ajusteRapidoEstoque(
   audit?: { actorUserId?: number; actorVendedorId?: number; traceId?: string; motivo?: string }
 ) {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
   
   const ajuste = tipo === "entrada" ? quantidade : -quantidade;
   const res = await dbConn.select({ estoque: produtos.estoque, descricao: produtos.descricao }).from(produtos).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, produtoId))).limit(1);
   const row = res[0];
-  if (!row) throw new Error("Produto não encontrado");
+  if (!row) throw new ValidationError("Produto não encontrado");
   const saldoAnterior = Number(row.estoque ?? 0);
 
   if (tipo === "saida" && quantidade > 0 && saldoAnterior < quantidade) {
-    throw new Error(`Estoque insuficiente para saída do produto "${row.descricao}". Saldo atual: ${saldoAnterior}.`);
+    throw new ValidationError(`Estoque insuficiente para saída do produto "${row.descricao}". Saldo atual: ${saldoAnterior}.`);
   }
   
   // Primeiro obter o estoque atual
@@ -450,7 +453,7 @@ export async function ajusteRapidoEstoque(
     .limit(1);
   
   if (produtoAtual.length === 0) {
-    throw new Error(`Produto não encontrado: ID ${produtoId}`);
+    throw new ValidationError(`Produto não encontrado: ID ${produtoId}`);
   }
   
   const estoqueAtual = Number(produtoAtual[0].estoque || 0);
@@ -516,7 +519,7 @@ export async function criarNotaEntrada(tenantId: number, input: {
   createdBy?: number;
 }) {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error('Database not available');
+  assertDbConnection(dbConn);
   const txSqlRunner = (tx: unknown) =>
     tx as { execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]> };
 
@@ -528,7 +531,7 @@ export async function criarNotaEntrada(tenantId: number, input: {
     );
     const notaPacket = notaRes as { insertId?: number };
     const notaId = Number(notaPacket.insertId ?? 0);
-    if (!notaId) throw new Error("Falha ao criar nota de entrada");
+    if (!notaId) throw new InfrastructureError("Falha ao criar nota de entrada");
 
     // 2. Financeiro
     if (['PIX', 'DINHEIRO', 'CARTAO'].includes(input.formaPagamento)) {
@@ -550,7 +553,7 @@ export async function criarNotaEntrada(tenantId: number, input: {
         .limit(1);
       
       if (produtoAtual.length === 0) {
-        throw new Error(`Produto não encontrado: ID ${it.produtoId}`);
+        throw new ValidationError(`Produto não encontrado: ID ${it.produtoId}`);
       }
       
       const estoqueAtual = Number(produtoAtual[0].estoque || 0);
@@ -583,12 +586,12 @@ export type UpdateGrupoPrecificacaoInput = {
 };
 
 export async function updateGrupoPrecificacao(
-  _tenantId: number,
+  tenantId: number,
   id: number,
   data: UpdateGrupoPrecificacaoInput
 ) {
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
+  assertDbConnection(dbConn);
   const set: Record<string, string | number> = {
     nome: data.nome,
     descontoFabrica: String(data.descontoFabrica ?? 0),
@@ -600,20 +603,21 @@ export async function updateGrupoPrecificacao(
     jurosCartao: String(data.jurosCartao ?? 0),
     prazoGarantia: data.prazoGarantia ?? 90,
   };
-  await dbConn.update(gruposPrecificacao).set(set).where(eq(gruposPrecificacao.id, id));
+  await dbConn.update(gruposPrecificacao).set(set).where(and(eq(gruposPrecificacao.tenantId, tenantId), eq(gruposPrecificacao.id, id)));
 }
 
-export async function deleteGrupoPrecificacao(_tenantId: number, id: number) {
+export async function deleteGrupoPrecificacao(tenantId: number, id: number) {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) throw new Error("Database not available");
-  await dbConn.delete(gruposPrecificacao).where(eq(gruposPrecificacao.id, id));
+  assertDbConnection(dbConn);
+  await dbConn.delete(gruposPrecificacao).where(and(eq(gruposPrecificacao.tenantId, tenantId), eq(gruposPrecificacao.id, id)));
   return { success: true };
 }
 
 export async function countProdutosAtivosEstoqueAte(tenantId: number, maxInclusive: number): Promise<number> {
-  if (!tenantId) return 0;
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return 0;
+  assertDbConnection(dbConn);
   const [row] = await dbConn
     .select({ c: sql<number>`COUNT(*)`.as("c") })
     .from(produtos)
@@ -626,13 +630,10 @@ export async function countProdutosAtivosEstoqueZero(tenantId: number): Promise<
   return countProdutosAtivosEstoqueAte(tenantId, 0);
 }
 
-export async function listProdutosBaixoEstoqueLeo(
-  tenantId: number,
-  maxInclusive: number
-): Promise<Array<{ id: number; descricao: string | null; estoque: number }>> {
-  if (!tenantId) return [];
+export async function getProdutosComEstoqueAte(tenantId: number, maxInclusive: number): Promise<Array<{ id: number; descricao: string | null; estoque: number }>> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   return dbConn
     .select({ id: produtos.id, descricao: produtos.descricao, estoque: produtos.estoque })
     .from(produtos)
@@ -643,9 +644,9 @@ export async function listProdutosBaixoEstoqueLeo(
 export async function listProdutosResumoLeoLearning(tenantId: number): Promise<
   Array<{ id: number; descricao: string | null; estoque: number; categoria: string | null; valorVenda: string }>
 > {
-  if (!tenantId) return [];
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   return dbConn
     .select({
       id: produtos.id,
@@ -658,6 +659,31 @@ export async function listProdutosResumoLeoLearning(tenantId: number): Promise<
     .where(eq(produtos.tenantId, tenantId));
 }
 
+export async function listGruposPrecificacao(tenantId: number) {
+  assertTenantId(tenantId);
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  return await dbConn.select().from(gruposPrecificacao).where(eq(gruposPrecificacao.tenantId, tenantId)) ?? [];
+}
+
+export async function listProdutosBaixoEstoqueLeo(tenantId: number, limite: number): Promise<Array<{ id: number; descricao: string | null; estoque: number; categoria: string | null; valorVenda: string }>> {
+  assertTenantId(tenantId);
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  
+  return dbConn
+    .select({
+      id: produtos.id,
+      descricao: produtos.descricao,
+      estoque: produtos.estoque,
+      categoria: produtos.categoria,
+      valorVenda: produtos.valorVenda,
+    })
+    .from(produtos)
+    .where(and(eq(produtos.tenantId, tenantId), eq(produtos.ativo, true), lte(produtos.estoque, limite)))
+    .orderBy(asc(produtos.estoque));
+}
+
 export async function listProdutoVendasStatsLeoLearning(tenantId: number): Promise<
   Array<{
     produtoId: number;
@@ -668,9 +694,9 @@ export async function listProdutoVendasStatsLeoLearning(tenantId: number): Promi
     receita: number;
   }>
 > {
-  if (!tenantId) return [];
+  assertTenantId(tenantId);
   const dbConn = await getDb();
-  if (!dbConn) return [];
+  assertDbConnection(dbConn);
   const rows = await dbConn
     .select({
       produtoId: produtos.id,
