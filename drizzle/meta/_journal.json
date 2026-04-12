@@ -176,6 +176,13 @@
       "when": 1771132000000,
       "tag": "0024_align_users_vendedores_snake_case",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1771132100000,
+      "tag": "0025_audit_logs",
+      "breakpoints": true
     }
   ]
 }

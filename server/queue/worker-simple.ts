@@ -6,7 +6,6 @@
  */
 
 import { Worker, Job } from 'bullmq';
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { getRedisClient } from '../infra/redis.js';
 import { logInfo, logError, logWarn } from '../_core/logger.js';
 import { QUEUE_NAMES, JobData, JobResult } from './queue.js';
@@ -54,7 +53,7 @@ class WorkerManager {
     try {
       const redisClient = getRedisClient();
       if (!redisClient) {
-        throw new InfrastructureError('Cliente Redis não disponível');
+        throw new Error('Cliente Redis não disponível');
       }
 
       // Criar workers para cada fila

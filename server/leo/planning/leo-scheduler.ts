@@ -32,7 +32,7 @@ export type TarefaResult = {
 //   const tenantId = process.env.TENANT_ID ? Number(process.env.TENANT_ID) : null;
 //   
 //   if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
-//     throw new ValidationError('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
+//     throw new Error('TENANT_ID não configurado ou inválido. Configure a variável de ambiente Tenant ID.');
 //   }
 //   
 //   return tenantId;
@@ -40,11 +40,7 @@ export type TarefaResult = {
 
 async function verificarVendasDoDia(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    if (!req.user) {
-      throw new ValidationError("Usuário não autenticado");
-    }
-
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user?.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
@@ -63,11 +59,7 @@ async function verificarVendasDoDia(req: RequestWithTenant): Promise<TarefaResul
 
 async function verificarEstoqueBaixo(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    if (!req.user) {
-      throw new ValidationError("Usuário não autenticado");
-    }
-
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user?.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
@@ -84,11 +76,7 @@ async function verificarEstoqueBaixo(req: RequestWithTenant): Promise<TarefaResu
 
 async function verificarBoletosVencidos(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    if (!req.user) {
-      throw new ValidationError("Usuário não autenticado");
-    }
-
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user?.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
@@ -106,11 +94,7 @@ async function verificarBoletosVencidos(req: RequestWithTenant): Promise<TarefaR
 
 async function verificarPedidosParados(req: RequestWithTenant): Promise<TarefaResult> {
   try {
-    if (!req.user) {
-      throw new ValidationError("Usuário não autenticado");
-    }
-
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user?.tenantId;
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }

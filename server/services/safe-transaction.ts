@@ -6,7 +6,7 @@
  */
 
 import { getDb } from '../db/index.js';
-import { eq, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { pedidos, produtos, contasReceber, contasPagar } from '../../drizzle/schema.js';
 import { ContaPagarStatus, ContaReceberStatus, PedidoStatus, PedidoStatusValues } from "../shared/domain-status.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
@@ -49,6 +49,8 @@ export interface FinanceiroOperation {
   tipo: 'conta_receber' | 'conta_pagar';
   acao: 'criar' | 'atualizar' | 'baixar' | 'cancelar';
   dados: Record<string, unknown>;
+  /** Sempre definido internamente por `buildTransactionSteps` a partir do tenant da transação. */
+  tenantId?: number;
 }
 
 /** Resultado bruto de insert/update MySQL2 (Drizzle). */
@@ -68,6 +70,27 @@ function readMysqlExecResult(result: unknown): { insertId?: number; affectedRows
     };
   }
   return {};
+}
+
+/** Nenhuma mutação em pedido sem linha do tenant — evita sucesso silencioso cross-tenant. */
+function assertPedidoMutated(meta: { affectedRows?: number }, operation: string): void {
+  if ((meta.affectedRows ?? 0) < 1) {
+    throw new Error(`Pedido não encontrado ou acesso negado (${operation})`);
+  }
+}
+
+function assertFinanceRowMutated(meta: { affectedRows?: number }, operation: string): void {
+  if ((meta.affectedRows ?? 0) < 1) {
+    throw new Error(`Registro financeiro não encontrado ou acesso negado (${operation})`);
+  }
+}
+
+function resolveFinanceTenantId(finOp: FinanceiroOperation): number {
+  const tenantId = finOp.tenantId;
+  if (tenantId === undefined || !Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId obrigatório para operação financeira");
+  }
+  return tenantId;
 }
 
 /**
@@ -250,7 +273,7 @@ class SafeTransactionService {
           type: 'financeiro',
           order: TRANSACTION_ORDER.financeiro + (index * 0.1), // Ordem relativa
           operation: finOp.acao,
-          data: finOp,
+          data: { ...finOp, tenantId },
         });
       });
     }
@@ -397,6 +420,7 @@ class SafeTransactionService {
     // Por enquanto, simulação
     const result = await tx.insert(pedidos).values({
       ...pedidoOp.dados,
+      tenantId: pedidoOp.tenantId,
       status: PedidoStatus.GERADO,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -431,21 +455,24 @@ class SafeTransactionService {
   /**
    * Atualizar pedido
    */
-  private async atualizarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+  public async atualizarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
     // Validate tenantId
     if (!pedidoOp.tenantId || !Number.isInteger(pedidoOp.tenantId) || pedidoOp.tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório para atualização de pedido");
     }
-    
     const result = await tx
       .update(pedidos)
       .set({
         ...pedidoOp.dados,
         updatedAt: new Date(),
       } as never)
-      .where(eq(pedidos.id, pedidoOp.pedidoId));
+      .where(and(
+        eq(pedidos.tenantId, pedidoOp.tenantId),
+        eq(pedidos.id, pedidoOp.pedidoId)
+      ));
 
     const meta = readMysqlExecResult(result);
+    assertPedidoMutated(meta, "atualizar_pedido");
     
     // Auditoria de atualização de pedido
     await logAuditAction(
@@ -475,12 +502,11 @@ class SafeTransactionService {
   /**
    * Cancelar pedido
    */
-  private async cancelarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+  public async cancelarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
     // Validate tenantId
     if (!pedidoOp.tenantId || !Number.isInteger(pedidoOp.tenantId) || pedidoOp.tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório para cancelamento de pedido");
     }
-    
     const motivo = pedidoOp.dados?.motivo;
     const result = await tx
       .update(pedidos)
@@ -489,9 +515,13 @@ class SafeTransactionService {
         observacoes: typeof motivo === "string" ? motivo : undefined,
         updatedAt: new Date(),
       })
-      .where(eq(pedidos.id, pedidoOp.pedidoId));
+      .where(and(
+        eq(pedidos.tenantId, pedidoOp.tenantId),
+        eq(pedidos.id, pedidoOp.pedidoId)
+      ));
 
     const meta = readMysqlExecResult(result);
+    assertPedidoMutated(meta, "cancelar_pedido");
     
     // Auditoria de cancelamento de pedido
     await logAuditAction(
@@ -521,7 +551,10 @@ class SafeTransactionService {
   /**
    * Atualizar status do pedido
    */
-  private async atualizarStatusPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+  public async atualizarStatusPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
+    if (!pedidoOp.tenantId || !Number.isInteger(pedidoOp.tenantId) || pedidoOp.tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório para atualização de status de pedido");
+    }
     const novoStatus = validateStatus(pedidoOp.dados?.status, PedidoStatusValues, "pedido.status");
     const result = await tx
       .update(pedidos)
@@ -529,9 +562,13 @@ class SafeTransactionService {
         status: novoStatus,
         updatedAt: new Date(),
       })
-      .where(eq(pedidos.id, pedidoOp.pedidoId));
+      .where(and(
+        eq(pedidos.tenantId, pedidoOp.tenantId),
+        eq(pedidos.id, pedidoOp.pedidoId)
+      ));
 
     const meta = readMysqlExecResult(result);
+    assertPedidoMutated(meta, "atualizar_status_pedido");
     return {
       success: true,
       pedidoId: pedidoOp.pedidoId,
@@ -544,10 +581,12 @@ class SafeTransactionService {
    * Executar operação de conta a receber
    */
   private async executeContaReceberStep(tx: DbTx, finOp: FinanceiroOperation): Promise<Record<string, unknown>> {
+    const tenantId = resolveFinanceTenantId(finOp);
     switch (finOp.acao) {
       case 'criar':
         const result = await tx.insert(contasReceber).values({
           ...finOp.dados,
+          tenantId,
           status: ContaReceberStatus.PENDENTE,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -569,8 +608,9 @@ class SafeTransactionService {
             dataRecebimento: new Date(),
             updatedAt: new Date(),
           })
-          .where(eq(contasReceber.id, contaId));
+          .where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, contaId)));
         const metaUp = readMysqlExecResult(updateResult);
+        assertFinanceRowMutated(metaUp, "baixar_conta_receber");
         return {
           success: true,
           operation: 'baixar_conta_receber',
@@ -587,10 +627,12 @@ class SafeTransactionService {
    * Executar operação de conta a pagar
    */
   private async executeContaPagarStep(tx: DbTx, finOp: FinanceiroOperation): Promise<Record<string, unknown>> {
+    const tenantId = resolveFinanceTenantId(finOp);
     switch (finOp.acao) {
       case 'criar':
         const result = await tx.insert(contasPagar).values({
           ...finOp.dados,
+          tenantId,
           status: ContaPagarStatus.PENDENTE,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -612,8 +654,9 @@ class SafeTransactionService {
             dataPagamento: new Date(),
             updatedAt: new Date(),
           })
-          .where(eq(contasPagar.id, contaPagarId));
+          .where(and(eq(contasPagar.tenantId, tenantId), eq(contasPagar.id, contaPagarId)));
         const metaUp = readMysqlExecResult(updateResult);
+        assertFinanceRowMutated(metaUp, "baixar_conta_pagar");
         return {
           success: true,
           operation: 'baixar_conta_pagar',

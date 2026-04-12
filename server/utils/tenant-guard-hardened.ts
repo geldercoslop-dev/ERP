@@ -3,13 +3,11 @@
  * REFORÇO: Tenant validation com anti-bypass completo
  * 
  * Garantias:
- * - TenantId SEMPRE obrigatório (sem fallback)
- * - Validação em 3 níveis (tipo, valor, origem)
- * - Nenhum helper retorna default
- * - Requer contexto de requisição (não manual)
+ * - ✅ TenantId SEMPRE obrigatório (sem fallback)
+ * - ✅ Validação em 3 níveis (tipo, valor, origem)
+ * - ✅ Nenhum helper retorna default
+ * - ✅ Requer contexto de requisição (não manual)
  */
-
-import { ValidationError } from '../_core/errors/typed-errors.js';
 
 /**
  * CRITICAL: Valida tenantId com regras INFLEXÍVEIS
@@ -30,14 +28,14 @@ export function assertTenant(
 ): string | number {
   // Fail fast: tipo incorreto
   if (typeof tenantId !== 'string' && typeof tenantId !== 'number') {
-    throw new ValidationError(
+    throw new Error(
       `TENANT_INVALID_TYPE: ${typeof tenantId} (expected string|number) ${context ? `@ ${context}` : ''}`
     );
   }
   
   // Fail fast: valor vazio
   if (tenantId === null || tenantId === undefined || tenantId === '' || tenantId === 0 || tenantId === '0') {
-    throw new ValidationError(
+    throw new Error(
       `TENANT_REQUIRED: tenantId é obrigatório e não pode ser vazio/falsy ${context ? `@ ${context}` : ''}`
     );
   }
@@ -46,7 +44,7 @@ export function assertTenant(
   const proibidos = ['default', 'DEFAULT', 'test', 'TEST', 'seed', 'SEED', 'admin', 'ADMIN'];
   const strValue = String(tenantId).toLowerCase();
   if (proibidos.some(p => strValue === p.toLowerCase())) {
-    throw new ValidationError(
+    throw new Error(
       `TENANT_FORBIDDEN_VALUE: "${tenantId}" é reservado ${context ? `@ ${context}` : ''}`
     );
   }
@@ -92,7 +90,7 @@ export function assertTenantSource(
 ): string | number {
   const validSources = ['request', 'param', 'body'];
   if (!validSources.includes(source)) {
-    throw new ValidationError(
+    throw new Error(
       `TENANT_INVALID_SOURCE: "${source}" - deve vir de requisição, não ${source}`
     );
   }
@@ -105,10 +103,6 @@ export function assertTenantSource(
  * 
  * Padrão esperado:
  * req.tenantId (middleware)
- if (!req.user) {
-   throw new ValidationError("Usuário não autenticado");
- }
-
  * req.user.tenantId (auth payload)
  * req.params.tenantId (URL)
  * 
@@ -126,7 +120,7 @@ export function extractTenantFromRequest(req: unknown): string | number {
     r?.query?.tenantId;
   
   if (!tenantId) {
-    throw new ValidationError(
+    throw new Error(
       'TENANT_NOT_FOUND: request sem tenantId em (tenantId|user.tenantId|params.tenantId|query.tenantId)'
     );
   }
@@ -144,14 +138,14 @@ export function extractTenantFromRequest(req: unknown): string | number {
  */
 export function assertTenantsArray(tenantIds: (string | number | undefined)[]): (string | number)[] {
   if (!Array.isArray(tenantIds) || tenantIds.length === 0) {
-    throw new ValidationError('TENANTS_ARRAY_INVALID: deve ser array não-vazio');
+    throw new Error('TENANTS_ARRAY_INVALID: deve ser array não-vazio');
   }
   
   return tenantIds.map((t, i) => {
     try {
       return assertTenant(t, `array[${i}]`);
     } catch (err) {
-      throw new ValidationError(`TENANTS_ARRAY_INVALID at index ${i}: ${String(err)}`);
+      throw new Error(`TENANTS_ARRAY_INVALID at index ${i}: ${String(err)}`);
     }
   });
 }

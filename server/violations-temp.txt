@@ -1,0 +1,816 @@
+=== SHIELD - Detector de Casts Perigosos ===
+Verificando arquivos TypeScript em server/...
+Encontrados 569 arquivos TypeScript para verificar
+
+=== RESULTADO: FALHA ===
+Encontrados 316 ocorrências de casts perigosos:
+
+
+Arquivo: /cache/api-cache.ts
+  Linha 31: <unknown>
+  Conteúdo: const store = new Map<string, Entry<unknown>>();
+
+Arquivo: /concurrency/pedido-control.ts
+  Linha 159: as any
+  Conteúdo: (this as any).pedidoId = pedidoId;
+  Linha 160: as any
+  Conteúdo: (this as any).numero = numero;
+  Linha 168: as any
+  Conteúdo: const pedidoId = (error as any).pedidoId as number;
+  Linha 169: as any
+  Conteúdo: const numero = (error as any).numero as number;
+
+Arquivo: /config/database.ts
+  Linha 256: as any
+  Conteúdo: errno: (error as any)?.errno,
+  Linha 257: as any
+  Conteúdo: sqlState: (error as any)?.sqlState,
+  Linha 258: as any
+  Conteúdo: fatal: (error as any)?.fatal,
+  Linha 335: as any
+  Conteúdo: const result = await conn.query(query, params as any[]);
+
+Arquivo: /db/core.ts
+  Linha 88: as unknown as
+  Conteúdo: }) as unknown as Database;
+  Linha 226: as unknown as
+  Conteúdo: return { id: getInsertId(result as unknown as Record<string, unknown>) };
+  Linha 278: as unknown as
+  Conteúdo: return { id: getInsertId(result as unknown as Record<string, unknown>) };
+
+Arquivo: /index.ts
+  Linha 40: as any
+  Conteúdo: (process as any).isTsx === true ||
+
+Arquivo: /infra/circuit-breaker.ts
+  Linha 21: <unknown>
+  Conteúdo: fallback?: () => Promise<unknown>; // função fallback quando OPEN
+  Linha 59: <unknown>
+  Conteúdo: private readonly fallbackFn?: () => Promise<unknown>;
+
+Arquivo: /infra/metrics-middleware.ts
+  Linha 26: as any
+  Conteúdo: userId: (req as any).user?.id,
+  Linha 27: as any
+  Conteúdo: tenantId: (req as any).tenantId,
+  Linha 44: as any
+  Conteúdo: (req as any).recordDbMetric = (query: string, duration: number, success: boolean, error?: string) => {
+  Linha 51: as any
+  Conteúdo: tenantId: (req as any).tenantId,
+
+Arquivo: /infra/request-tracing.ts
+  Linha 55: as any
+  Conteúdo: const originalJson = res.json as any;
+  Linha 56: as any
+  Conteúdo: const originalSend = res.send as any;
+  Linha 57: as any
+  Conteúdo: const originalEnd = res.end as any;
+
+Arquivo: /infra/response-optimizer.ts
+  Linha 52: as any
+  Conteúdo: delete (optimized as any)[field];
+  Linha 67: as any
+  Conteúdo: (truncated as any)[key] = value.substring(0, 1000) + '... (truncated)';
+  Linha 69: as any
+  Conteúdo: (truncated as any)[key] = value.slice(0, 100);
+  Linha 72: as any
+  Conteúdo: (truncated as any)[key] = optimizeResponse(value, options);
+  Linha 74: as any
+  Conteúdo: (truncated as any)[key] = value;
+
+Arquivo: /infra/storage/storage.ts
+  Linha 61: as any
+  Conteúdo: : new Blob([data as any], { type: contentType });
+
+Arquivo: /infra/tracing-integration.ts
+  Linha 11: as any
+  Conteúdo: const parentSpan = (req as any).traceSpan;
+  Linha 21: as any
+  Conteúdo: 'route.method': (req as any).method,
+  Linha 22: as any
+  Conteúdo: 'route.path': (req as any).path,
+  Linha 23: as any
+  Conteúdo: 'route.params': JSON.stringify((req as any).params),
+  Linha 24: as any
+  Conteúdo: 'route.query': JSON.stringify((req as any).query),
+  Linha 31: as any
+  Conteúdo: traceId: (req as any).traceId,
+  Linha 33: as any
+  Conteúdo: method: (req as any).method,
+  Linha 34: as any
+  Conteúdo: path: (req as any).path,
+  Linha 82: as any
+  Conteúdo: const parentSpan = (req as any).traceSpan;
+  Linha 105: as any
+  Conteúdo: const parentSpan = (req as any).traceSpan;
+  Linha 163: as any
+  Conteúdo: const parentSpan = (req as any).traceSpan;
+  Linha 222: as any
+  Conteúdo: const parentSpan = (req as any).traceSpan;
+
+Arquivo: /infra/tracing.ts
+  Linha 181: as any
+  Conteúdo: (span as any).otelSpan = otelSpan;
+  Linha 222: as any
+  Conteúdo: const otelSpan = (span as any).otelSpan;
+
+Arquivo: /integrations/freight.service.ts
+  Linha 73: as any
+  Conteúdo: const data = (await res.json()) as any;
+  Linha 104: as any
+  Conteúdo: const data = (await res.json()) as any;
+
+Arquivo: /integrations/ocr.service.ts
+  Linha 40: as any
+  Conteúdo: const data = (await res.json()) as any;
+
+Arquivo: /integrations/superfrete.service.ts
+  Linha 79: as any
+  Conteúdo: const data = (await res.json()) as any;
+  Linha 113: as any
+  Conteúdo: const data = (await res.json()) as any;
+  Linha 144: as any
+  Conteúdo: const data = (await res.json()) as any;
+
+Arquivo: /integrations/telegram.service.ts
+  Linha 33: as any
+  Conteúdo: const data = (await res.json()) as any;
+
+Arquivo: /integrations/tracking.service.ts
+  Linha 25: as any
+  Conteúdo: const data = (await res.json()) as any;
+
+Arquivo: /integrations/whatsapp.service.ts
+  Linha 38: as any
+  Conteúdo: const data = (await res.json()) as any;
+
+Arquivo: /leo/actions/leo-actions.ts
+  Linha 265: as unknown as
+  Conteúdo: const tenantId = Number((context as unknown as Payload).tenantId);
+  Linha 330: as unknown as
+  Conteúdo: const resultado = await leoErpService.ajustarEstoque((parametros ?? {}) as unknown as import('../../services/leo-service.js').EstoqueInput, userId);
+  Linha 146: as any
+  Conteúdo: const entity = (action.context as any)?.entity || 'cliente';
+  Linha 165: as any
+  Conteúdo: const params = parametros as any;
+  Linha 180: as any
+  Conteúdo: const params = parametros as any;
+  Linha 195: as any
+  Conteúdo: const params = parametros as any;
+  Linha 220: as any
+  Conteúdo: const params = parametros as any;
+  Linha 448: as any
+  Conteúdo: const automation = (action.context as any)?.automation || 'iniciar_loop';
+
+Arquivo: /leo/agent/tool-registry.ts
+  Linha 42: as unknown as
+  Conteúdo: return (await desktopController.openApp(i.appName, i.parameters)) as unknown as Payload;
+  Linha 55: as unknown as
+  Conteúdo: return (await desktopController.closeApp(i.appName, i.force)) as unknown as Payload;
+  Linha 68: as unknown as
+  Conteúdo: return (await desktopController.openBrowser(i.url, i.incognito)) as unknown as Payload;
+  Linha 81: as unknown as
+  Conteúdo: return (await desktopController.navigateUrl(i.url, i.tabId)) as unknown as Payload;
+  Linha 94: as unknown as
+  Conteúdo: return (await desktopController.readFile(i.filePath, i.encoding)) as unknown as Payload;
+  Linha 108: as unknown as
+  Conteúdo: return (await desktopController.writeFile(i.filePath, i.content, i.append)) as unknown as Payload;
+  Linha 122: as unknown as
+  Conteúdo: return (await desktopController.runTerminalCommand(i.command, i.workingDirectory, i.timeout)) as unknown as Payload;
+  Linha 136: as unknown as
+  Conteúdo: return (await desktopController.takeScreenshot(i.region, i.windowTitle, i.savePath)) as unknown as Payload;
+  Linha 150: as unknown as
+  Conteúdo: return (await desktopController.getSystemStatus(i.category ?? 'all')) as unknown as Payload;
+  Linha 159: as unknown as
+  Conteúdo: return (await desktopController.getCpuUsage()) as unknown as Payload;
+  Linha 168: as unknown as
+  Conteúdo: return (await desktopController.getMemoryUsage()) as unknown as Payload;
+  Linha 180: as unknown as
+  Conteúdo: return (await desktopController.getRunningApps(i.filter)) as unknown as Payload;
+
+Arquivo: /leo/core/task-queue.ts
+  Linha 213: <unknown>
+  Conteúdo: private async executeTaskLogic(task: LeoTask): Promise<unknown> {
+  Linha 235: <unknown>
+  Conteúdo: private async executeAnalysisTask(task: LeoTask): Promise<unknown> {
+  Linha 243: <unknown>
+  Conteúdo: private async executeMonitoringTask(task: LeoTask): Promise<unknown> {
+  Linha 251: <unknown>
+  Conteúdo: private async executeAutomationTask(task: LeoTask): Promise<unknown> {
+  Linha 259: <unknown>
+  Conteúdo: private async executeLearningTask(task: LeoTask): Promise<unknown> {
+  Linha 267: <unknown>
+  Conteúdo: private async executeCleanupTask(task: LeoTask): Promise<unknown> {
+  Linha 275: <unknown>
+  Conteúdo: private async executeEmergencyTask(task: LeoTask): Promise<unknown> {
+
+Arquivo: /leo/leo-watchdog.ts
+  Linha 486: <unknown>
+  Conteúdo: process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+
+Arquivo: /leo/memory/leo-events.ts
+  Linha 113: as unknown as
+  Conteúdo: (event as unknown as Record<string, unknown>).usuarioCriador = input.usuarioCriador;
+  Linha 114: as unknown as
+  Conteúdo: (event as unknown as Record<string, unknown>).createdAt = now;
+  Linha 115: as unknown as
+  Conteúdo: (event as unknown as Record<string, unknown>).updatedAt = now;
+  Linha 149: as unknown as
+  Conteúdo: (event as unknown as Record<string, unknown>).resolvidoEm = new Date();
+
+Arquivo: /leo/runtime/leo-session-gate.ts
+  Linha 39: <unknown>
+  Conteúdo: private readonly tails = new Map<string, Promise<unknown>>();
+
+Arquivo: /leo/security/leo-hardening.ts
+  Linha 157: <unknown>
+  Conteúdo: process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+
+Arquivo: /leo/security/leo-sandbox.ts
+  Linha 507: <unknown>
+  Conteúdo: private async executeAllowedAction(action: LeoSandboxAction): Promise<unknown> {
+  Linha 523: <unknown>
+  Conteúdo: private async executeShellAction(action: LeoSandboxAction): Promise<unknown> {
+  Linha 538: <unknown>
+  Conteúdo: private async executeFileAccessAction(action: LeoSandboxAction): Promise<unknown> {
+  Linha 557: <unknown>
+  Conteúdo: private async executeAutomationAction(action: LeoSandboxAction): Promise<unknown> {
+
+Arquivo: /leo/tools/analytics/index.ts
+  Linha 7: <unknown>
+  Conteúdo: const analyticsTools: LeoToolDefinition<unknown>[] = [];
+
+Arquivo: /leo/types/index.ts
+  Linha 48: <unknown>
+  Conteúdo: retrieve(key: string): Promise<unknown>;
+
+Arquivo: /middleware/auth.middleware.ts
+  Linha 55: as unknown as
+  Conteúdo: authReq.user = decoded as unknown as Request['user'];
+  Linha 93: as unknown as
+  Conteúdo: authReq.user = decoded as unknown as Request['user'];
+
+Arquivo: /middleware/safe-defaults.middleware.ts
+  Linha 68: <unknown>
+  Conteúdo: export function safeHandler(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
+
+Arquivo: /middleware/slow-query-logger.ts
+  Linha 103: <unknown>
+  Conteúdo: execute: (query: unknown, ...args: unknown[]) => Promise<unknown>;
+  Linha 104: <unknown>
+  Conteúdo: query?: (query: unknown, ...args: unknown[]) => Promise<unknown>;
+  Linha 123: <unknown>
+  Conteúdo: connection.execute = function (this: T, query: unknown, ...rest: unknown[]): Promise<unknown> {
+  Linha 130: <unknown>
+  Conteúdo: connection.query = function (this: T, query: unknown, ...rest: unknown[]): Promise<unknown> {
+
+Arquivo: /middlewares/rate-limit.ts
+  Linha 180: as any
+  Conteúdo: if (res.req.protocol === 'https' || (res.req as any).secure) {
+
+Arquivo: /middlewares/rbac-middleware.ts
+  Linha 273: as any
+  Conteúdo: (req as any).userPermissions = userPermissions;
+
+Arquivo: /middlewares/request-id.ts
+  Linha 243: as any
+  Conteúdo: (global as any).correlationId = correlationId;
+
+Arquivo: /middlewares/security.ts
+  Linha 203: as any
+  Conteúdo: if (req.protocol === 'https' || (req as any).secure) {
+
+Arquivo: /modules/logistica/carga.service.ts
+  Linha 9: <unknown>
+  Conteúdo: export async function listarCargas(tenantId: number): Promise<unknown> {
+  Linha 13: <unknown>
+  Conteúdo: export async function obterCargaPorId(tenantId: number, id: number): Promise<unknown> {
+  Linha 17: <unknown>
+  Conteúdo: export async function criarCarga(tenantId: number, data: { cidadeRota: string; dataEntrega: Date }): Promise<unknown> {
+  Linha 25: <unknown>
+  Conteúdo: export async function atualizarPedidosDaCarga(tenantId: number, cargaId: number, changes: { addIds?: number[]; removeIds?: number[] }): Promise<unknown> {
+  Linha 36: <unknown>
+  Conteúdo: export async function fecharCarga(tenantId: number, cargaId: number): Promise<unknown> {
+  Linha 40: <unknown>
+  Conteúdo: export async function finalizarCarga(tenantId: number, cargaId: number): Promise<unknown> {
+  Linha 44: <unknown>
+  Conteúdo: export async function gerarRelatorioViagemPDF(tenantId: number, cargaId: number): Promise<unknown> {
+  Linha 49: <unknown>
+  Conteúdo: export async function atualizarOrdemEntrega(tenantId: number, cargaId: number, itens: { pedidoCargaId: number; ordemEntrega: number }[]): Promise<unknown> {
+  Linha 57: <unknown>
+  Conteúdo: export async function atualizarHorarioPrevisto(tenantId: number, pedidoCargaId: number, horarioPrevisto: string | null): Promise<unknown> {
+
+Arquivo: /modules/safe-order.module.ts
+  Linha 136: as any
+  Conteúdo: pedidoNumero = (numeroResult as any[])[0]?.proximoNumero || 1;
+  Linha 162: as any
+  Conteúdo: const pedidoId = (pedidoResult as any).insertId;
+  Linha 176: as any
+  Conteúdo: id: (itemResult as any).insertId
+  Linha 245: as any
+  Conteúdo: if (!pedido || !(pedido as any[])[0]) {
+  Linha 249: as any
+  Conteúdo: const pedidoData = (pedido as any[])[0];
+  Linha 266: as any
+  Conteúdo: const itensPedido = (itens as any[]);
+  Linha 342: as any
+  Conteúdo: if (!pedido || !(pedido as any[])[0]) {
+  Linha 346: as any
+  Conteúdo: const pedidoData = (pedido as any[])[0];
+
+Arquivo: /modules/safe-payment.module.ts
+  Linha 66: as any
+  Conteúdo: if (!pedido || !(pedido as any[])[0]) {
+  Linha 70: as any
+  Conteúdo: const pedidoData = (pedido as any[])[0];
+  Linha 82: as any
+  Conteúdo: const totalPago = Number((pagamentosExistentes as any[])[0]?.totalPago || 0);
+  Linha 116: as any
+  Conteúdo: const paymentId = (paymentResult as any).insertId;
+  Linha 125: as any
+  Conteúdo: const pedidoData = (pedido as any[])[0];
+  Linha 134: as any
+  Conteúdo: const totalPago = Number((totalPagoResult as any[])[0]?.totalPago || 0);
+  Linha 199: as any
+  Conteúdo: if (!payment || !(payment as any[])[0]) {
+  Linha 203: as any
+  Conteúdo: const paymentData = (payment as any[])[0];
+  Linha 217: as any
+  Conteúdo: const pedidoData = (pedido as any[])[0];
+  Linha 295: as any
+  Conteúdo: if (!paymentRecord || !(paymentRecord as any[])[0]) {
+  Linha 300: as any
+  Conteúdo: const paymentData = (paymentRecord as any[])[0];
+
+Arquivo: /modules/safe-shipment.module.ts
+  Linha 163: as any
+  Conteúdo: const shipmentId = (shipmentResult as any).insertId;
+  Linha 240: as any
+  Conteúdo: if (!shipment || !(shipment as any[])[0]) {
+  Linha 244: as any
+  Conteúdo: const shipmentData = (shipment as any[])[0];
+  Linha 315: as any
+  Conteúdo: if (!shipment || !(shipment as any[])[0]) {
+  Linha 319: as any
+  Conteúdo: const shipmentData = (shipment as any[])[0];
+  Linha 398: as any
+  Conteúdo: if (!shipment || !(shipment as any[])[0]) {
+  Linha 402: as any
+  Conteúdo: const shipmentData = (shipment as any[])[0];
+  Linha 415: as any
+  Conteúdo: const estaNaCarga = (pedidoNaCarga as any[])[0]?.total || 0;
+
+Arquivo: /monitoring/error-alerter.ts
+  Linha 88: as any
+  Conteúdo: const lastAlertTime = (entry as any).lastAlertTime;
+  Linha 94: as any
+  Conteúdo: (entry as any).lastAlertTime = now;
+
+Arquivo: /monitoring/health-watchdog.ts
+  Linha 25: <unknown>
+  Conteúdo: query(sql: string): Promise<unknown>;
+
+Arquivo: /pdf.ts
+  Linha 286: as any
+  Conteúdo: const numero = String((carga as any).numero || '').padStart(4, '0');
+  Linha 287: as any
+  Conteúdo: const cidade = String((carga as any).cidadeRota || '').toUpperCase();
+  Linha 288: as any
+  Conteúdo: const dataEntrega = (carga as any).dataEntrega ? new Date((carga as any).dataEntrega) : new Date();
+  Linha 288: as any
+  Conteúdo: const dataEntrega = (carga as any).dataEntrega ? new Date((carga as any).dataEntrega) : new Date();
+  Linha 362: as any
+  Conteúdo: const itens = Array.isArray((carga as any).pedidos) ? (carga as any).pedidos : [];
+  Linha 362: as any
+  Conteúdo: const itens = Array.isArray((carga as any).pedidos) ? (carga as any).pedidos : [];
+  Linha 465: as any
+  Conteúdo: const p = pedidoRows[0] as any;
+  Linha 598: as any
+  Conteúdo: for (const it of itens as any[]) {
+  Linha 755: as any
+  Conteúdo: const desc = (tipo === 'RECEBER' ? (item as any).clienteNome : (item as any).fornecedor) || 'S/D';
+  Linha 755: as any
+  Conteúdo: const desc = (tipo === 'RECEBER' ? (item as any).clienteNome : (item as any).fornecedor) || 'S/D';
+  Linha 757: as any
+  Conteúdo: const status = (item as any).status;
+
+Arquivo: /queue/jobs.ts
+  Linha 100: as unknown as
+  Conteúdo: const { imagePath, options } = data.payload as unknown as OcrJobPayload;
+  Linha 145: as unknown as
+  Conteúdo: const { options, area } = data.payload as unknown as ScreenshotJobPayload;
+  Linha 204: as unknown as
+  Conteúdo: const { analysisType, context, parameters } = data.payload as unknown as LeoAnalysisJobPayload;
+  Linha 249: as unknown as
+  Conteúdo: const { reportType, filters, format } = data.payload as unknown as ReportJobPayload;
+  Linha 294: as unknown as
+  Conteúdo: const { automationType, parameters, permissions } = data.payload as unknown as AutomationJobPayload;
+  Linha 339: as unknown as
+  Conteúdo: const { notificationType, recipients, message, channels } = data.payload as unknown as NotificationJobPayload;
+  Linha 384: as unknown as
+  Conteúdo: const { backupType, target, compression } = data.payload as unknown as BackupJobPayload;
+  Linha 429: as unknown as
+  Conteúdo: const { cleanupType, target, retention } = data.payload as unknown as CleanupJobPayload;
+
+Arquivo: /queue/worker-simple.ts
+  Linha 86: as any
+  Conteúdo: connection: getRedisClient() as any,
+
+Arquivo: /queue/worker.ts
+  Linha 152: as any
+  Conteúdo: // NOTA: connection usa 'as any' devido a conflito de versão ioredis
+  Linha 155: as any
+  Conteúdo: connection: connection as any,
+
+Arquivo: /resilience/db-fallback-middleware.ts
+  Linha 272: <unknown>
+  Conteúdo: await (pool as { query: (sql: string) => Promise<unknown> }).query('SELECT 1');
+
+Arquivo: /resilience/failure-simulator.ts
+  Linha 78: as any
+  Conteúdo: const error = new Error(`Internal Server Error: ${operationName}`) as any;
+  Linha 83: as any
+  Conteúdo: const rateError = new Error(`Rate limit exceeded: ${operationName}`) as any;
+
+Arquivo: /routers/leo-admin-dashboard.ts
+  Linha 302: as any
+  Conteúdo: type: input.type as any,
+  Linha 303: as any
+  Conteúdo: priority: input.priority as any,
+  Linha 305: as any
+  Conteúdo: status: 'pending' as any,
+  Linha 368: as any
+  Conteúdo: tipo: 'comando' as any,
+  Linha 371: as any
+  Conteúdo: prioridade: 'media' as any,
+
+Arquivo: /routers/leo-admin.ts
+  Linha 220: as any
+  Conteúdo: type: input.type as any,
+  Linha 221: as any
+  Conteúdo: priority: input.priority as any,
+  Linha 225: as any
+  Conteúdo: status: 'pending' as any,
+
+Arquivo: /routers/leo.router.ts
+  Linha 130: as any
+  Conteúdo: mensagem: (fallbackResponse as any).response,
+
+Arquivo: /routers/logistica.ts
+  Linha 249: as any
+  Conteúdo: numero: (carga as any).numero,
+  Linha 250: as any
+  Conteúdo: cidadeRota: (carga as any).cidadeRota,
+  Linha 251: as any
+  Conteúdo: dataEntrega: (carga as any).dataEntrega,
+  Linha 252: as any
+  Conteúdo: status: (carga as any).status,
+
+Arquivo: /routers/produtos.ts
+  Linha 205: as any
+  Conteúdo: usuario: (ctx as any).user?.name || "Sistema",
+
+Arquivo: /routers/smart-auth.ts
+  Linha 100: as any
+  Conteúdo: requestId: (ctx as any).requestId,
+
+Arquivo: /routers.ts
+  Linha 74: as any
+  Conteúdo: const bcryptModule: any = (bcryptImported as any).default ?? bcryptImported;
+  Linha 573: as any
+  Conteúdo: let data: Partial<db.InsertVendedor> = rest as any;
+  Linha 578: as any
+  Conteúdo: data = { ...(rest as any), senha: await bcrypt.hash(senha, 10) };
+  Linha 681: as any
+  Conteúdo: return await produtosRoutes.createProduto({ body: input, tenantId } as any);
+  Linha 730: as any
+  Conteúdo: return await produtosRoutes.deleteProduto({ params: { id: input.id.toString() }, tenantId } as any);
+  Linha 788: as any
+  Conteúdo: return await produtosRoutes.verificarEstoqueBaixo({ tenantId } as any);
+  Linha 795: as any
+  Conteúdo: return await promocoesRoutes.listar({} as any);
+  Linha 800: as any
+  Conteúdo: return await promocoesRoutes.detalhes({ params: { id: String(input.id) } } as any);
+  Linha 805: as any
+  Conteúdo: return await promocoesRoutes.criar({ body: input } as any);
+  Linha 810: as any
+  Conteúdo: return await promocoesRoutes.atualizar({ params: { id: String(input.id) }, body: input.data } as any);
+  Linha 815: as any
+  Conteúdo: return await promocoesRoutes.remover({ params: { id: String(input.id) } } as any);
+  Linha 850: as any
+  Conteúdo: createdBy: (ctx.user as any)?.id,
+  Linha 898: as any
+  Conteúdo: const res = await (tx as any).insert(db.gruposPrecificacao).values(data);
+  Linha 899: as any
+  Conteúdo: const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;
+  Linha 899: as any
+  Conteúdo: const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;
+  Linha 1492: as any
+  Conteúdo: const atual = pedido.status as any;
+  Linha 1493: as any
+  Conteúdo: const proximo = input.status as any;
+  Linha 1509: as any
+  Conteúdo: await (tx as any).update(db.pedidos).set({ status: proximo }).where(db.eq(db.pedidos.id, input.id));
+  Linha 1557: as any
+  Conteúdo: boletoVencimentos: (input as any).boletoVencimentos,
+  Linha 1761: as any
+  Conteúdo: const existing = await (tx as any).select({ id: db.clientes.id }).from(db.clientes)
+  Linha 1773: as any
+  Conteúdo: const created = await (tx as any).insert(db.clientes).values({
+  Linha 1790: as any
+  Conteúdo: } as any);
+  Linha 1791: as any
+  Conteúdo: clienteId = (created as any)[0]?.insertId;
+  Linha 1807: as any
+  Conteúdo: const [rows]: any = await (tx as any).execute(db.sql`
+  Linha 1822: as any
+  Conteúdo: await (tx as any).insert(db.counters).values({ tenantId: tenantIdForCounter, name: 'pedidos', seq: 1, free: null } as any);
+  Linha 1822: as any
+  Conteúdo: await (tx as any).insert(db.counters).values({ tenantId: tenantIdForCounter, name: 'pedidos', seq: 1, free: null } as any);
+  Linha 1829: as any
+  Conteúdo: await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
+  Linha 1829: as any
+  Conteúdo: await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
+  Linha 1833: as any
+  Conteúdo: await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
+  Linha 1833: as any
+  Conteúdo: await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
+  Linha 1924: as any
+  Conteúdo: const pedidoInsert = await (tx as any).insert(db.pedidos).values({
+  Linha 1941: as any
+  Conteúdo: subtotal: roundToTwo(input.subtotal) as any,
+  Linha 1942: as any
+  Conteúdo: desconto: roundToTwo(input.desconto) as any,
+  Linha 1943: as any
+  Conteúdo: frete: roundToTwo(input.frete) as any,
+  Linha 1944: as any
+  Conteúdo: total: roundToTwo(input.total) as any,
+  Linha 1948: as any
+  Conteúdo: } as any);
+  Linha 1950: as any
+  Conteúdo: const pedidoId = (pedidoInsert as any)[0]?.insertId;
+  Linha 1963: as any
+  Conteúdo: await (tx as any).insert(db.pendencias).values({
+  Linha 1971: as any
+  Conteúdo: } as any);
+  Linha 1975: as any
+  Conteúdo: await (tx as any).update(db.produtos)
+  Linha 1976: as any
+  Conteúdo: .set({ estoque: novoEstoque } as any)
+  Linha 2018: as any
+  Conteúdo: await (tx as any).insert(db.itensPedido).values(itensPedidoRows as any);
+  Linha 2018: as any
+  Conteúdo: await (tx as any).insert(db.itensPedido).values(itensPedidoRows as any);
+  Linha 2024: as any
+  Conteúdo: await (tx as any).insert(db.contasReceber).values({
+  Linha 2030: as any
+  Conteúdo: valor: roundToTwo(input.total) as any,
+  Linha 2035: as any
+  Conteúdo: } as any);
+  Linha 2183: as any
+  Conteúdo: boletoVencimentos: (input as any).boletoVencimentos,
+  Linha 2328: as any
+  Conteúdo: const pedidosIds = (carga as any).pedidos?.map((p: any) => p.id) ?? [];
+  Linha 2489: as any
+  Conteúdo: await (tx as any).update(db.planoContas).set({ nome: data.nome, tipo: data.tipo } as any).where(db.eq(db.planoContas.id, data.id));
+  Linha 2489: as any
+  Conteúdo: await (tx as any).update(db.planoContas).set({ nome: data.nome, tipo: data.tipo } as any).where(db.eq(db.planoContas.id, data.id));
+  Linha 2502: as any
+  Conteúdo: await (tx as any).delete(db.planoContas).where(db.eq(db.planoContas.id, input.id));
+
+Arquivo: /routes/pedidos.ts
+  Linha 311: as any
+  Conteúdo: status: status as any,
+
+Arquivo: /routes/test-monitoring.ts
+  Linha 109: as any
+  Conteúdo: (global as any).memoryLeakTest = leak;
+  Linha 138: as any
+  Conteúdo: (global as any).memoryLeakTest = null;
+
+Arquivo: /scripts/backupDb.ts
+  Linha 31: as any
+  Conteúdo: for (const table of tables as any[]) {
+
+Arquivo: /scripts/reset-admin-password.ts
+  Linha 39: as any
+  Conteúdo: const admins = adminRows as any[];
+  Linha 49: as any
+  Conteúdo: const users = userRows as any[];
+  Linha 60: as any
+  Conteúdo: const userId = (userResult as any).insertId;
+  Linha 73: as any
+  Conteúdo: console.log(`[reset-admin] Vendedor admin criado com ID: ${(vendedorResult as any).insertId}`);
+  Linha 89: as any
+  Conteúdo: console.log(`[reset-admin] Vendedor admin criado com ID: ${(vendedorResult as any).insertId}`);
+
+Arquivo: /scripts/seed-admin.ts
+  Linha 26: as any
+  Conteúdo: } as any);
+
+Arquivo: /scripts/seed-massa-teste.ts
+  Linha 50: as any
+  Conteúdo: if (e instanceof Error && e.message?.includes("Já existe") || (e as any)?.code === "ER_DUP_ENTRY") {
+  Linha 73: as any
+  Conteúdo: fornecedor: (p as any).fornecedor,
+
+Arquivo: /scripts/seed-multi-tenant-isolation.ts
+  Linha 18: as any
+  Conteúdo: const bcrypt: any = (bcryptImported as any).default ?? bcryptImported;
+  Linha 64: as any
+  Conteúdo: const maxTenantId = Array.isArray(maxRows) ? (maxRows as any)[0]?.maxTenantId : 0;
+
+Arquivo: /scripts/seed-tenant.ts
+  Linha 39: as any
+  Conteúdo: const tenantId = (tenantResult as any).insertId;
+  Linha 48: as any
+  Conteúdo: const userId = (userResult as any).insertId;
+  Linha 57: as any
+  Conteúdo: console.log(`[seed-tenant] Vendedor admin criado com ID: ${(vendedorResult as any).insertId}`);
+
+Arquivo: /scripts/validate-idempotency-table.ts
+  Linha 16: as any
+  Conteúdo: const [rows]: any = await (conn as any).execute(sql`
+  Linha 22: as any
+  Conteúdo: const [idx]: any = await (conn as any).execute(sql`
+
+Arquivo: /security/input-sanitization.ts
+  Linha 124: as any
+  Conteúdo: req.query = sanitized as any;
+  Linha 14: <unknown>
+  Conteúdo: run: (req: Request) => Promise<unknown>;
+
+Arquivo: /security/jwt-hardening.ts
+  Linha 429: as any
+  Conteúdo: (req as any).user = {
+  Linha 434: as any
+  Conteúdo: (req as any).tenantId = validation.payload!.tenantId;
+  Linha 435: as any
+  Conteúdo: (req as any).vendedorId = validation.payload!.vendedorId;
+  Linha 438: as any
+  Conteúdo: (req as any).tokenInfo = {
+
+Arquivo: /services/inventory.service.ts
+  Linha 24: <unknown>
+  Conteúdo: execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
+  Linha 525: <unknown>
+  Conteúdo: tx as { execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]> };
+
+Arquivo: /services/safe-stock.ts
+  Linha 217: <unknown>
+  Conteúdo: execute: (q: string, p?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
+
+Arquivo: /services/users.service.ts
+  Linha 329: <unknown>
+  Conteúdo: let orderBy: SQL<unknown>;
+
+Arquivo: /storage.ts
+  Linha 61: as any
+  Conteúdo: : new Blob([data as any], { type: contentType });
+
+Arquivo: /tests/setup-test-data.ts
+  Linha 60: as any
+  Conteúdo: produtoId = (result as any).insertId || 1;
+  Linha 92: as any
+  Conteúdo: clienteId = (result as any).insertId || 1;
+  Linha 116: as any
+  Conteúdo: vendedorId = (result as any).insertId || 1;
+
+Arquivo: /tools/client.tool.ts
+  Linha 52: as any
+  Conteúdo: id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+  Linha 97: as any
+  Conteúdo: count: typeof data === 'object' && data !== null && 'length' in data ? (data as any).length : 0,
+  Linha 142: as any
+  Conteúdo: id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+
+Arquivo: /tools/order.tool.ts
+  Linha 118: as any
+  Conteúdo: id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+
+Arquivo: /tools/product.tool.ts
+  Linha 104: as any
+  Conteúdo: id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+
+Arquivo: /types/database.types.ts
+  Linha 106: as any
+  Conteúdo: * Safe query result extractor - eliminates need for `as any` casts
+
+Arquivo: /types/service-audit.ts
+  Linha 17: as any
+  Conteúdo: issue: 'Usava (db as any).execute() sem validação de resultado',
+
+Arquivo: /types/service-guard.ts
+  Linha 107: as any
+  Conteúdo: return sanitizeGet(result) as any;
+  Linha 128: as any
+  Conteúdo: return sanitizeCreate(result, -1) as any;
+
+Arquivo: /types/service-safe-example.ts
+  Linha 29: as any
+  Conteúdo: * 1. (db as any).execute() retorna [[data], metadata]
+  Linha 37: as any
+  Conteúdo: if (!db) return [] as any[]; // ❌ Tipo incoerente
+  Linha 47: as any
+  Conteúdo: const variacoesResult: any = await (db as any).execute(sql`...`);
+  Linha 81: as any
+  Conteúdo: const variacoesResult: any = await (db as any).execute(sql`...`);
+  Linha 93: as any
+  Conteúdo: const promosResult: any = await (db as any).execute(sql`...`);
+  Linha 136: as any
+  Conteúdo: const variacoesResult: any = await (db as any).execute(sql`...`);
+  Linha 147: as any
+  Conteúdo: const promosResult: any = await (db as any).execute(sql`...`);
+  Linha 196: as any
+  Conteúdo: const variacoesResult: any = await (db as any).execute(sql`...`);
+  Linha 207: as any
+  Conteúdo: const promosResult: any = await (db as any).execute(sql`...`);
+  Linha 264: as any
+  Conteúdo: const variacoesResult: any = await (db as any).execute(sql`
+  Linha 284: as any
+  Conteúdo: const promosResult: any = await (db as any).execute(sql`
+  Linha 352: as any
+  Conteúdo: } as any;
+
+Arquivo: /types/service-safety.ts
+  Linha 74: as any
+  Conteúdo: typeof (value as any).id === 'number';
+  Linha 94: as any
+  Conteúdo: Array.isArray((value as any).items) &&
+  Linha 95: as any
+  Conteúdo: typeof (value as any).total === 'number' &&
+  Linha 96: as any
+  Conteúdo: typeof (value as any).page === 'number';
+  Linha 124: as any
+  Conteúdo: return { id: (value as any).id };
+  Linha 204: <unknown>
+  Conteúdo: fn: () => Promise<unknown>,
+
+Arquivo: /types/shutdown-globals.d.ts
+  Linha 13: <unknown>
+  Conteúdo: quit: () => Promise<unknown>;
+
+Arquivo: /_core/api-response.ts
+  Linha 416: <unknown>
+  Conteúdo: next: () => Promise<unknown>;
+  Linha 417: <unknown>
+  Conteúdo: }) => Promise<unknown>
+
+Arquivo: /_core/cache-manager.ts
+  Linha 80: as any
+  Conteúdo: payload: { user: (req as any).user?.name || "admin" }
+  Linha 89: as any
+  Conteúdo: payload: { user: (req as any).user?.name || "admin" }
+  Linha 108: as any
+  Conteúdo: payload: { user: (req as any).user?.name || "admin", count }
+  Linha 114: as any
+  Conteúdo: payload: { user: (req as any).user?.name || "admin", count }
+
+Arquivo: /_core/dataApi.ts
+  Linha 20: <unknown>
+  Conteúdo: ): Promise<unknown> {
+
+Arquivo: /_core/index.ts
+  Linha 909: as any
+  Conteúdo: (global as any).SERVER_PORT = port;
+
+Arquivo: /_core/request-middleware.ts
+  Linha 53: <unknown>
+  Conteúdo: return async ({ ctx, next }: { ctx: MiddlewareContext; next: () => Promise<unknown> }) => {
+  Linha 136: <unknown>
+  Conteúdo: return async ({ ctx, next }: { ctx: MiddlewareContext; next: () => Promise<unknown> }) => {
+  Linha 177: <unknown>
+  Conteúdo: return async ({ path, type, input, ctx, next }: { path: string; type: string; input: unknown; ctx: ProcedureContext; next: () => Promise<unknown> }) => {
+  Linha 230: <unknown>
+  Conteúdo: return async ({ ctx, next }: { ctx: PerformanceContext; next: () => Promise<unknown> }) => {
+  Linha 292: <unknown>
+  Conteúdo: return async ({ path, type, input, ctx, next }: { path: string; type: string; input: unknown; ctx: AuditContext; next: () => Promise<unknown> }) => {
+  Linha 369: <unknown>
+  Conteúdo: export function createMiddlewareChain(...middlewareFactories: Array<() => (ctx: ChainContext) => Promise<unknown>>) {
+
+Arquivo: /_core/sdk.ts
+  Linha 144: as any
+  Conteúdo: (data as any)?.platforms,
+  Linha 145: as any
+  Conteúdo: (data as any)?.platform ?? data.platform ?? null
+  Linha 148: as any
+  Conteúdo: ...(data as any),
+  Linha 255: as any
+  Conteúdo: (data as any)?.platforms,
+  Linha 256: as any
+  Conteúdo: (data as any)?.platform ?? data.platform ?? null
+  Linha 259: as any
+  Conteúdo: ...(data as any),
+
+Arquivo: /_core/service-safety.ts
+  Linha 418: as unknown as
+  Conteúdo: } as unknown as T[keyof T];
+  Linha 436: as unknown as
+  Conteúdo: } as unknown as T[keyof T];
+  Linha 454: as unknown as
+  Conteúdo: } as unknown as T[keyof T];
+
+=== AÇÃO NECESSÁRIA ===
+Corrija as ocorrências acima antes de continuar.
+Use type guards em vez de casts perigosos.
+Consulte docs/type-safety-rules.md

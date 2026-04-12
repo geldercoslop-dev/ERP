@@ -155,14 +155,7 @@ export function createLeoRateLimit(options: {
     code: 'LEO_RATE_LIMIT',
     message,
     keySuffix: (req: Request) => {
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-      const jwt = req.user;
+      const jwt = req.user as JWTPayload | undefined;
       const tenantId = jwt?.tenantId ?? "anonymous";
       const userId = jwt?.userId ?? "anonymous";
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
@@ -170,14 +163,7 @@ export function createLeoRateLimit(options: {
     },
     shouldApply: (req: Request) => trpcPathIncludesProcedure(req, "leo."),
     onBlocked: (req: Request) => {
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-      const jwt = req.user;
+      const jwt = req.user as JWTPayload | undefined;
       const tenantId = jwt?.tenantId ?? "anonymous";
       const userId = jwt?.userId ?? "anonymous";
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
@@ -267,14 +253,7 @@ export function createFinanceiroTrpcRateLimit(options: {
     code: 'FINANCEIRO_RATE_LIMIT',
     message,
     keySuffix: (req: Request) => {
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-      const jwt = req.user;
+      const jwt = req.user as JWTPayload | undefined;
       const tenantId = jwt?.tenantId ?? "anon";
       const userId = jwt?.userId ?? "anon";
       const ip = req.ip || req.connection.remoteAddress || "unknown";
@@ -310,14 +289,7 @@ export function createTrpcAuthenticatedRateLimit(options: {
     code: 'TRPC_AUTH_RATE_LIMIT',
     message,
     keySuffix: (req: Request) => {
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-
-      if (!req.user) {
-        throw new ValidationError("Usuário não autenticado");
-      }
-      const jwt = req.user;
+      const jwt = req.user as JWTPayload | undefined;
       const ip = req.ip || req.connection.remoteAddress || "unknown";
       if (jwt?.userId != null && jwt?.tenantId != null) {
         return `trpc-user:${jwt.tenantId}:${jwt.userId}:${ip}`;

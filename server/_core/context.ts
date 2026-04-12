@@ -3,6 +3,7 @@ import cookie from "cookie";
 import type { Vendedor } from "../db/index.js";
 import type { UserWithTenant, VendedorWithTenant } from "../types/schema-extended.js";
 import { resolveSessionPrincipal } from "../services/context-auth.service.js";
+import { validateTenantContextSafe } from "./tenant-validation-safe.js";
 
 export type SessionOrigin = "cookie" | "header" | "bearer" | "none";
 
@@ -138,6 +139,38 @@ export async function createContext(
       host,
       dica: hasSessionHeader ? "Header X-Session-Token veio mas valor pode ser inválido." : "Faça login na mesma URL (ex.: http://localhost:3000). O token é salvo em sessionStorage e enviado no header X-Session-Token.",
     });
+  }
+
+  const validation = validateTenantContextSafe({
+    user,
+    vendedor,
+    tenantId,
+    isImpersonating,
+    session,
+  });
+
+  // LOG DE SEGURANÇA SEM BLOQUEAR
+  if (!validation.valid) {
+    console.error("[SECURITY] Tenant context validation failed", {
+      severity: validation.severity,
+      issues: validation.issues,
+      tokenOrigin: validation.details.tokenOrigin,
+      tokenFormat: validation.details.tokenFormat,
+      isLegacy: validation.details.isLegacyToken,
+      userAgent: opts.req.headers["user-agent"],
+      ip: opts.req.ip,
+    });
+
+    // LOG ESPECÍFICO PARA TOKENS LEGADOS
+    if (validation.details.isLegacyToken) {
+      console.warn("[SECURITY] LEGACY_TOKEN_USED", {
+        tokenFormat: validation.details.tokenFormat,
+        tokenOrigin: validation.details.tokenOrigin,
+        userId: user?.id,
+        tenantId: tenantId,
+        ip: opts.req.ip,
+      });
+    }
   }
 
   return {

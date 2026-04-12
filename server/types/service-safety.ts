@@ -22,6 +22,8 @@ export type ServiceSingle<T> = T | null;
  */
 export interface ServiceCreateResponse {
   id: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /**

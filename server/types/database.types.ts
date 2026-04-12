@@ -6,7 +6,6 @@
  */
 
 import type * as mysql from 'mysql2/promise';
-import { ValidationError } from '../_core/errors/typed-errors.js';
 
 /**
  * Generic result type for any query returning rows
@@ -153,13 +152,13 @@ export function assertRow<T extends QueryRow = QueryRow>(
   requiredKeys?: string[]
 ): T {
   if (typeof row !== 'object' || row === null) {
-    throw new ValidationError(`Expected row object, got ${typeof row}`);
+    throw new Error(`Expected row object, got ${typeof row}`);
   }
 
   if (requiredKeys && requiredKeys.length > 0) {
     for (const key of requiredKeys) {
       if (!(key in row)) {
-        throw new ValidationError(`Missing required key: ${key}`);
+        throw new Error(`Missing required key: ${key}`);
       }
     }
   }
@@ -181,7 +180,7 @@ export function getInsertId(result: unknown): number {
     if (typeof id === 'number') return id;
     if (typeof id === 'bigint') return Number(id);
   }
-  throw new ValidationError('Could not extract insert ID from query result');
+  throw new Error('Could not extract insert ID from query result');
 }
 
 /**

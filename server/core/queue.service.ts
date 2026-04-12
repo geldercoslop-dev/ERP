@@ -1,5 +1,4 @@
 import { Queue, Worker, type Job, type JobsOptions } from "bullmq";
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { logger } from "../_core/logger.js";
 import { redis } from './redis.service.js';
 
@@ -18,13 +17,13 @@ const workerRegistry = new Map<string, Worker<TenantPayload>>();
 
 function assertTenantId(tenantId: number): void {
   if (!Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new InfrastructureError("TENANT_REQUIRED");
+    throw new Error("TENANT_REQUIRED");
   }
 }
 
 function assertTraceId(traceId: string): void {
   if (!traceId || traceId.trim().length === 0) {
-    throw new InfrastructureError("TRACE_ID_REQUIRED");
+    throw new Error("TRACE_ID_REQUIRED");
   }
 }
 

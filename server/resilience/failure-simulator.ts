@@ -1,5 +1,4 @@
 import { createLogger } from '../infra/structured-logger.js';
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import express from "express";
 
 const logger = createLogger('failure-simulator');
@@ -70,10 +69,10 @@ export class ExternalFailureSimulator {
     switch (this.currentFailureType) {
       case 'timeout':
         await new Promise(resolve => setTimeout(resolve, 100));
-        throw new InfrastructureError(`External API timeout: ${operationName}`);
+        throw new Error(`External API timeout: ${operationName}`);
 
       case 'network':
-        throw new InfrastructureError(`Network error: ECONNRESET - ${operationName}`);
+        throw new Error(`Network error: ECONNRESET - ${operationName}`);
 
       case '500':
         const error = new Error(`Internal Server Error: ${operationName}`) as any;
@@ -86,10 +85,10 @@ export class ExternalFailureSimulator {
         throw rateError;
 
       case 'circuit_open':
-        throw new InfrastructureError(`Circuit breaker is open: ${operationName}`);
+        throw new Error(`Circuit breaker is open: ${operationName}`);
 
       default:
-        throw new InfrastructureError(`Unknown failure type: ${operationName}`);
+        throw new Error(`Unknown failure type: ${operationName}`);
     }
   }
 

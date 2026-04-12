@@ -1,5 +1,4 @@
 import { createLogger } from '../infra/structured-logger.js';
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 const logger = createLogger('circuit-breaker');
 
@@ -286,7 +285,7 @@ class CircuitBreakerRegistry {
     if (!this.circuitBreakers.has(name)) {
       const breakerConfig = config || CIRCUIT_BREAKER_CONFIG[name];
       if (!breakerConfig) {
-        throw new InfrastructureError(`No circuit breaker config found for ${name}`);
+        throw new Error(`No circuit breaker config found for ${name}`);
       }
       
       this.circuitBreakers.set(name, new CircuitBreaker(name, breakerConfig));

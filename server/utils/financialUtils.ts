@@ -4,8 +4,6 @@
  * Evita erros de ponto flutuante do JavaScript usando arredondamento correto
  */
 
-import { ValidationError } from '../_core/errors/typed-errors.js';
-
 /**
  * Arredonda um valor para 2 casas decimais
  * @param value Valor a ser arredondado
@@ -53,7 +51,7 @@ export function multiplyWithPrecision(a: number, b: number): number {
  */
 export function divideWithPrecision(dividend: number, divisor: number): number {
   if (divisor === 0) {
-    throw new ValidationError("Divisão por zero");
+    throw new Error("Divisão por zero");
   }
   return roundToTwo(dividend / divisor);
 }

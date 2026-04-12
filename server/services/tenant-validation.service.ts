@@ -4,11 +4,9 @@ import { eq } from "drizzle-orm";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../_core/service-entry-guard.js";
 import type { UserWithTenant } from "../types/schema-extended.js";
 
-export interface TenantValidationResult {
-  valid: boolean;
-  tenantId?: number;
-  reason?: string;
-}
+export type TenantValidationResult =
+  | { valid: true; tenantId: number }
+  | { valid: false; reason: string };
 
 export async function validateTenantOwnershipByUserId(
   userId: number,
@@ -37,7 +35,7 @@ export async function validateTenantOwnershipByUserId(
 }
 
 export interface SecureTenantContext {
-  tenantId?: number;
+  tenantId: number;
   userId?: number;
   role: string;
 }

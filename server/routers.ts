@@ -1,5 +1,4 @@
 import cookie from "cookie";
-import { ValidationError } from './_core/errors/typed-errors.js';
 import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
@@ -35,7 +34,7 @@ import {
   PedidoAccessError,
 } from "./services/orders.service.js";
 import * as logisticaService from "./services/logistica.service.js";
-import { buscarRegistros } from "./services/audit-service.js";
+import auditService from "./services/audit-service.js";
 
 type ExpressRequest = import("express").Request;
 type BcryptModuleLike = {
@@ -100,13 +99,13 @@ async function getBcrypt(): Promise<{
     const bcryptImported = await import("bcryptjs");
     const candidate = (bcryptImported as { default?: unknown }).default ?? bcryptImported;
     if (!isBcryptModuleLike(candidate)) {
-      throw new ValidationError("Funções bcrypt não encontradas no módulo importado");
+      throw new Error("Funções bcrypt não encontradas no módulo importado");
     }
     const bcryptModule = candidate;
     
     // Verificar se as funções necessárias estão disponíveis
     if (typeof bcryptModule.hash !== 'function' || typeof bcryptModule.compare !== 'function') {
-      throw new ValidationError("Funções bcrypt não encontradas no módulo importado");
+      throw new Error("Funções bcrypt não encontradas no módulo importado");
     }
     
     // Testar as funções com um valor simples
@@ -116,13 +115,13 @@ async function getBcrypt(): Promise<{
       const testHash = await bcryptModule.hash(testValue, 1); // Usar rounds=1 para teste rápido
       
       if (!testHash || typeof testHash !== 'string' || !testHash.startsWith('$2')) {
-        throw new ValidationError(`Hash inválido gerado: ${testHash}`);
+        throw new Error(`Hash inválido gerado: ${testHash}`);
       }
       
       const testCompare = await bcryptModule.compare(testValue, testHash);
       
       if (!testCompare) {
-        throw new ValidationError("Comparação de teste falhou");
+        throw new Error("Comparação de teste falhou");
       }
       
       console.log("[getBcrypt] bcryptjs carregado e testado com sucesso");
@@ -153,12 +152,12 @@ async function getBcrypt(): Promise<{
     } catch (testError) {
       console.error("[getBcrypt] Teste de bcrypt falhou:", testError);
       const msg = testError instanceof Error ? testError.message : String(testError);
-      throw new ValidationError(`Teste de bcrypt falhou: ${msg}`);
+      throw new Error(`Teste de bcrypt falhou: ${msg}`);
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     // Bcrypt é obrigatório: sem fallback inseguro.
-    throw new ValidationError(`bcryptjs obrigatório e indisponível: ${msg}`);
+    throw new Error(`bcryptjs obrigatório e indisponível: ${msg}`);
   }
 }
 
@@ -2679,7 +2678,7 @@ pendencias: router({
             : input?.clienteId != null
               ? String(input.clienteId)
               : undefined;
-        const rows = await buscarRegistros({
+        const rows = await auditService.buscarRegistros({
           tenantId,
           tipo: input?.entity,
           acao: input?.action,
@@ -2688,7 +2687,7 @@ pendencias: router({
           dataFim: input?.dateTo,
           limit: input?.limit ?? 200,
         });
-        return rows.map((r) => ({
+        return rows.map((r: any) => ({
           id: r.id,
           createdAt:
             r.timestamp instanceof Date ? r.timestamp.toISOString() : String(r.timestamp),

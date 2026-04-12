@@ -104,13 +104,11 @@ export async function getUserByOpenId(tenantId: number, openId: string): Promise
  * @param id - ID do usuário
  * @param tenantId - Opcional (usado para isolamento ou validação)
  */
-export async function getUserById(id: number, tenantId?: number): Promise<User | null> {
+export async function getUserById(id: number, tenantId: number): Promise<User | null> {
+  if (!tenantId) throw new Error('[SEGURANÇA] tenantId obrigatório para getUserById');
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  
-  const result = tenantId
-    ? await dbConn.select().from(users).where(and(eq(users.tenantId, tenantId), eq(users.id, id))).limit(1)
-    : await dbConn.select().from(users).where(eq(users.id, id)).limit(1);
+  const result = await dbConn.select().from(users).where(and(eq(users.tenantId, tenantId), eq(users.id, id))).limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -284,13 +282,11 @@ export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor)
 /**
  * Busca vendedor pelo ID
  */
-export async function getVendedorById(id: number, tenantId?: number): Promise<Vendedor | null> {
+export async function getVendedorById(id: number, tenantId: number): Promise<Vendedor | null> {
+  if (!tenantId) throw new Error('[SEGURANÇA] tenantId obrigatório para getVendedorById');
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  
-  const result = tenantId
-    ? await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, id))).limit(1)
-    : await dbConn.select().from(vendedores).where(eq(vendedores.id, id)).limit(1);
+  const result = await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, id))).limit(1);
   return result.length > 0 ? result[0] : null;
 }
 

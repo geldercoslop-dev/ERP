@@ -29,9 +29,13 @@ function isLikelyJwt(token: string): boolean {
 
 function mapUserToJwtPayload(u: User): JWTPayload {
   const role: JWTPayload['role'] = u.role === 'admin' ? 'admin' : 'user';
+  const tenantId = u.tenantId;
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error('Utilizador sem tenant válido — acesso negado');
+  }
   return {
     userId: u.id,
-    tenantId: u.tenantId ?? 0,
+    tenantId,
     email: u.email ?? '',
     role,
     sessionId: `session-u-${u.id}`,
@@ -55,15 +59,17 @@ async function resolveSessionTokenToPayload(token: string): Promise<JWTPayload |
   if (token.startsWith('u:')) {
     const userId = parseInt(token.slice(2), 10);
     if (!Number.isFinite(userId)) return null;
-    const u = await usersService.getUserById(userId);
-    return u ? mapUserToJwtPayload(u) : null;
+    
+    // PROIBIDO: Buscar sem tenantId abre brecha de spoof
+    // OBRIGATÓRIO: User token DEVE ter tenantId ou é inválido
+    throw new Error(`User token ${token} inválido: formato u:userId não permite validação segura de tenant`);
   }
   if (token.startsWith('v:')) {
     const parts = token.split(':');
     const tenantId = Number(parts[1]);
     const id = Number(parts[2]);
     if (!Number.isInteger(tenantId) || tenantId <= 0 || !Number.isInteger(id) || id <= 0) return null;
-    const v = await usersService.getVendedorById(id);
+    const v = await usersService.getVendedorById(id, tenantId);
     if (!v?.ativo) return null;
     return mapVendedorToJwtPayload(v, tenantId);
   }
@@ -234,37 +240,46 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
  * Se não for válido ou não existir, continua sem usuário
  */
 export function optionalAuthentication(req: Request, res: Response, next: NextFunction): void {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = jwtAuth.extractTokenFromHeader(authHeader);
+  const authHeader = req.headers.authorization;
+  const token = jwtAuth.extractTokenFromHeader(authHeader);
 
-    if (token) {
-      const payload = jwtAuth.verifyAccessToken(token);
-      req.user = payload;
-      req.sessionId = payload.sessionId;
-
-      systemLogger.debug({
-        userId: payload.userId,
-        tenantId: payload.tenantId,
-        email: payload.email,
-        role: payload.role,
-        sessionId: payload.sessionId,
-        method: req.method,
-        url: req.url,
-        traceId: req.traceId
-      }, 'Optional authentication successful');
-    }
-  } catch (error) {
-    // Ignora erros de autenticação opcional
-    systemLogger.debug({
-      method: req.method,
-      url: req.url,
-      error: error instanceof Error ? error.message : String(error),
-      traceId: req.traceId
-    }, 'Optional authentication failed - continuing without user');
+  if (!token) {
+    next();
+    return;
   }
 
-  next();
+  try {
+    const payload = jwtAuth.verifyAccessToken(token);
+    req.user = payload;
+    req.sessionId = payload.sessionId;
+
+    systemLogger.debug({
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      email: payload.email,
+      role: payload.role,
+      sessionId: payload.sessionId,
+      method: req.method,
+      url: req.url,
+      traceId: req.traceId
+    }, 'Optional authentication successful');
+    next();
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Token inválido — acesso negado';
+    systemLogger.warn(
+      {
+        method: req.method,
+        url: req.url,
+        error: message,
+        traceId: req.traceId,
+      },
+      'Optional authentication failed — token presente mas inválido'
+    );
+    const e = new Error(`Token inválido — acesso negado: ${message}`) as Error & { status?: number };
+    e.status = 401;
+    throw e;
+  }
 }
 
 /**
@@ -352,12 +367,9 @@ export function requireRole(requiredRole: 'admin' | 'operator' | 'user') {
  */
 export function requireTenantAccess(req: Request, res: Response, next: NextFunction): void {
   if (!req.user) {
-    res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Authentication required',
-      code: 'AUTH_REQUIRED'
-    });
-    return;
+    const e = new Error('Autenticação obrigatória — acesso negado') as Error & { status?: number };
+    e.status = 401;
+    throw e;
   }
 
   const userTenantId = req.user.tenantId;
@@ -377,12 +389,9 @@ export function requireTenantAccess(req: Request, res: Response, next: NextFunct
       traceId: req.traceId
     }, 'Authorization failed - tenant override attempt');
 
-    res.status(403).json({
-      error: 'Forbidden',
-      message: 'Tenant override is not allowed',
-      code: 'TENANT_OVERRIDE_FORBIDDEN'
-    });
-    return;
+    const e = new Error('Tentativa de override de tenant — acesso negado') as Error & { status?: number };
+    e.status = 403;
+    throw e;
   }
 
   if (!Number.isFinite(userTenantId) || userTenantId <= 0) {
@@ -394,12 +403,9 @@ export function requireTenantAccess(req: Request, res: Response, next: NextFunct
       traceId: req.traceId
     }, 'Authorization failed - invalid user tenant');
 
-    res.status(403).json({
-      error: 'Forbidden',
-      message: 'Tenant access denied',
-      code: 'TENANT_INVALID'
-    });
-    return;
+    const e = new Error('Tenant inválido no contexto — acesso negado') as Error & { status?: number };
+    e.status = 403;
+    throw e;
   }
 
   next();

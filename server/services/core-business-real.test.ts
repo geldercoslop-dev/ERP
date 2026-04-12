@@ -47,7 +47,7 @@ let estoqueInicial = 0;
 
 async function seedVendedor(): Promise<number> {
   const db = await getDb();
-  if (!db) throw new ValidationError("no db");
+  if (!db) throw new Error("no db");
   const r = await db.insert(vendedores).values({
     tenantId: TENANT_ID,
     nome: `CoreTest Vendedor ${nanoid(6)}`,
@@ -56,11 +56,8 @@ async function seedVendedor(): Promise<number> {
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  const id = getInsertId(if (!isRecord(r)) {
-  throw new ValidationError("Invalid record");
-}
-const validatedRecord = r;<string, unknown>);
-  if (!id) throw new ValidationError("vendedor id");
+  const id = getInsertId(r as unknown as Record<string, unknown>);
+  if (!id) throw new Error("vendedor id");
   return id;
 }
 
@@ -161,7 +158,7 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
     expect(dup.length).toBe(9);
 
     const db = await getDb();
-    if (!db) throw new ValidationError("db");
+    if (!db) throw new Error("db");
     const pedidosMesmoCliente = await db
       .select({ id: pedidos.id })
       .from(pedidos)
@@ -181,7 +178,7 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
     expect(numeros.size).toBe(pedidosMesmoCliente.length);
 
     const db2 = await getDb();
-    if (!db2) throw new ValidationError("db");
+    if (!db2) throw new Error("db");
     const toDel = await db2
       .select({ id: pedidos.id })
       .from(pedidos)
@@ -200,7 +197,7 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
   it("2) Concorrência: 10 pedidos distintos (clientes diferentes) em paralelo — estoque não fica negativo", async () => {
     if (!dbAvailable) return;
     const db = await getDb();
-    if (!db) throw new ValidationError("db");
+    if (!db) throw new Error("db");
 
     await db
       .update(produtos)
@@ -249,7 +246,7 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
   it("3) Financeiro: baixa parcial de boleto em paralelo — estado final consistente (valorAberto 0)", async () => {
     if (!dbAvailable) return;
     const db = await getDb();
-    if (!db) throw new ValidationError("db");
+    if (!db) throw new Error("db");
 
     try {
       await db.execute(sql`SELECT 1 FROM financial_idempotency LIMIT 1`);
@@ -275,11 +272,8 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    const pedidoPk = getInsertId(if (!isRecord(ins)) {
-  throw new ValidationError("Invalid record");
-}
-const validatedRecord = ins;<string, unknown>);
-    if (!pedidoPk) throw new ValidationError("pedido");
+    const pedidoPk = getInsertId(ins as unknown as Record<string, unknown>);
+    if (!pedidoPk) throw new Error("pedido");
 
     const [bIns] = await db.insert(boletos).values({
       tenantId: TENANT_ID,
@@ -292,11 +286,8 @@ const validatedRecord = ins;<string, unknown>);
       dataVencimento: new Date(),
       status: BoletoStatus.ABERTO,
     });
-    const boletoId = getInsertId(if (!isRecord(bIns)) {
-  throw new ValidationError("Invalid record");
-}
-const validatedRecord = bIns;<string, unknown>);
-    if (!boletoId) throw new ValidationError("boleto");
+    const boletoId = getInsertId(bIns as unknown as Record<string, unknown>);
+    if (!boletoId) throw new Error("boleto");
 
     const parcelResults = await Promise.all(
       Array.from({ length: 10 }, () => financeService.baixarBoletoParcial(TENANT_ID, boletoId, 100))
@@ -334,7 +325,7 @@ const validatedRecord = bIns;<string, unknown>);
     expect(end).toBeNull();
 
     const db = await getDb();
-    if (!db) throw new ValidationError("db");
+    if (!db) throw new Error("db");
     await db.delete(clientes).where(eq(clientes.id, c.id));
   });
 

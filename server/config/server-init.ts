@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { ValidationError } from '../_core/errors/typed-errors.js';
 import { validateEnv, getEnv } from './env.js';
 import { ENV_SECRET_MIN_LENGTH } from '../_core/env-validator.js';
 import { createLogger } from '../infra/structured-logger.js';
@@ -57,15 +56,15 @@ function validateCriticalDependencies(): void {
   
   // Validar conexão com banco (simulada)
   if (!env.DATABASE_HOST || !env.DATABASE_USER || !env.DATABASE_PASSWORD) {
-    throw new ValidationError('Configuração de banco de dados incompleta');
+    throw new Error('Configuração de banco de dados incompleta');
   }
   
   if (!env.JWT_ACCESS_SECRET || env.JWT_ACCESS_SECRET.length < ENV_SECRET_MIN_LENGTH) {
-    throw new ValidationError('JWT_ACCESS_SECRET inválido ou muito curto');
+    throw new Error('JWT_ACCESS_SECRET inválido ou muito curto');
   }
 
   if (!env.JWT_REFRESH_SECRET || env.JWT_REFRESH_SECRET.length < ENV_SECRET_MIN_LENGTH) {
-    throw new ValidationError('JWT_REFRESH_SECRET inválido ou muito curto');
+    throw new Error('JWT_REFRESH_SECRET inválido ou muito curto');
   }
   
   logger.info('Critical dependencies validated');
@@ -79,11 +78,11 @@ function validateProductionSecurity(): void {
   
   // Segredos fortes em produção
   if (env.JWT_ACCESS_SECRET.length < ENV_SECRET_MIN_LENGTH) {
-    throw new ValidationError(`JWT_ACCESS_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`);
+    throw new Error(`JWT_ACCESS_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`);
   }
 
   if (env.JWT_REFRESH_SECRET.length < ENV_SECRET_MIN_LENGTH) {
-    throw new ValidationError(`JWT_REFRESH_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`);
+    throw new Error(`JWT_REFRESH_SECRET deve ter pelo menos ${ENV_SECRET_MIN_LENGTH} caracteres`);
   }
   
   logger.info('Production security validated');

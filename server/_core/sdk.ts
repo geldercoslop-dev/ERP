@@ -40,7 +40,7 @@ class OAuthService {
     //   console.error(
     //     "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
     //   );
-    //   throw new ValidationError("OAUTH_SERVER_URL is not configured");
+    //   throw new Error("OAUTH_SERVER_URL is not configured");
     // }
   }
 
