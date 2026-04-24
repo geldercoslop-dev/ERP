@@ -78,11 +78,9 @@ class JWTAuth {
 
     const accessSign: SignOptions = {
       algorithm: "HS256",
-      expiresIn: this.parseExpiryToSeconds(this.accessTokenExpiry),
     };
     const refreshSign: SignOptions = {
       algorithm: "HS256",
-      expiresIn: this.parseExpiryToSeconds(this.refreshTokenExpiry),
     };
     const accessToken = jwt.sign(accessTokenPayload, this.accessTokenSecret, accessSign);
     const refreshToken = jwt.sign(refreshTokenPayload, this.refreshTokenSecret, refreshSign);

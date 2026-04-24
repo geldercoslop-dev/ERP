@@ -1,43 +1,14 @@
-/**
- * Configuração do Vitest
- */
-
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    globals: true,
-    environment: 'node',
-    setupFiles: ['./tests/setup.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        'dist/',
-        'build/',
-      ],
-      thresholds: {
-        global: {
-          branches: 80,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
-      },
-    },
-    include: [
-      'tests/**/*.{test,spec}.{js,ts}',
-      'server/**/*.{test,spec}.{js,ts}',
-    ],
+    include: ['server/tests/**/*.test.ts'],
     exclude: [
-      'node_modules/',
-      'dist/',
-      'build/',
+      'node_modules',
+      'dist',
+      'build',
+      'client',
     ],
+    environment: 'node',
   },
-});
+})

@@ -99,11 +99,11 @@ async function userCanAccessCliente(
   
   if (!actor.userId && !actor.vendedorId) return false;
   
-  // Buscar cliente precisa verificar vendedorId
+  // Buscar cliente precisa verificar vendedorId E tenantId
   const row = await dbConn
     .select({ id: clientes.id })
     .from(clientes)
-    .where(eq(clientes.id, clienteId))
+    .where(and(eq(clientes.id, clienteId), eq(clientes.tenantId, tenantId)))
     .limit(1);
   
   if (row.length === 0) return false;
@@ -113,6 +113,11 @@ async function userCanAccessCliente(
   // Acesso via clienteVendedores (compatibilidade)
   if (actor.vendedorId) {
     return await vendedorLinkedToCliente(dbConn, tenantId, actor.vendedorId, clienteId);
+  }
+  
+  // Usuários comuns podem acessar clientes do próprio tenant
+  if (actor.userId) {
+    return true;
   }
   
   return false;

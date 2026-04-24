@@ -104,7 +104,6 @@ export const produtos = mysqlTable(
   },
   (table) => ({
     tenantIdIdx: index("produtos_tenant_id_idx").on(table.tenantId),
-    descricaoIdx: index("produtos_descricao_idx").on(table.descricao),
     marcaIdx: index("produtos_marca_idx").on(table.marca),
     ativoIdx: index("produtos_ativo_idx").on(table.ativo),
   }),
