@@ -143,7 +143,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
     }
 
     // Usar context para determinar a entidade
-    const entity = (action.context as any)?.entity || 'cliente';
+    const entity = (action.context as { entity?: string })?.entity || 'cliente';
 
     let actorConsulta;
     try {
@@ -162,7 +162,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
       case 'cliente':
         const resultadoClientes = await leoErpService.getClientes(tenantId, actorConsulta);
         if (parametros && typeof parametros === 'object') {
-          const params = parametros as any;
+          const params = parametros as { nome?: string };
           if (params.nome) {
             // TODO: Aplicar filtro por nome
           }
@@ -177,7 +177,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
       case 'pedido':
         const resultadoPedidos = await leoErpService.getPedidos(tenantId, actorConsulta);
         if (parametros && typeof parametros === 'object') {
-          const params = parametros as any;
+          const params = parametros as { status?: string };
           if (params.status) {
             // TODO: Aplicar filtro por status
           }
@@ -192,7 +192,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
       case 'estoque':
         const resultadoEstoque = await leoErpService.getEstoque(tenantId);
         if (parametros && typeof parametros === 'object') {
-          const params = parametros as any;
+          const params = parametros as { categoria?: string };
           if (params.categoria) {
             // TODO: Aplicar filtro por categoria
           }
@@ -217,7 +217,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
         }
         const resultadoFinanceiro = await leoErpService.getFinanceiro(tenantId, actor);
         if (parametros && typeof parametros === 'object') {
-          const params = parametros as any;
+          const params = parametros as { tipo?: string };
           if (params.tipo) {
             // TODO: Aplicar filtro por tipo
           }
@@ -256,13 +256,13 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
     console.log(`📋 [LeoActions] Executando operação ERP: ${action.description || action.action}`);
     
     // Usar context para determinar a entidade
-    const entity = ((action.context as Payload)?.entity as string | undefined) || 'pedido';
-    const operation = ((action.context as Payload)?.operation as string | undefined) || 'criar';
+    const entity = (action.context && typeof action.context === 'object' && 'entity' in action.context && typeof action.context.entity === 'string') ? action.context.entity : 'pedido';
+    const operation = (action.context && typeof action.context === 'object' && 'operation' in action.context && typeof action.context.operation === 'string') ? action.context.operation : 'criar';
     
     switch (entity) {
       case 'pedido':
         if (operation === 'criar_pedido') {
-          const tenantId = Number((context as unknown as Payload).tenantId);
+          const tenantId = context.tenantId;
           if (!Number.isFinite(tenantId) || tenantId <= 0) {
             return {
               success: false,
@@ -327,13 +327,39 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
       case 'estoque':
         if (operation === 'ajustar_estoque') {
           const userId = context.usuario?.id ?? 0;
-          const resultado = await leoErpService.ajustarEstoque((parametros ?? {}) as unknown as import('../../services/leo-service.js').EstoqueInput, userId);
-          return {
-            success: resultado.success,
-            message: resultado.message || 'Estoque ajustado com sucesso',
-            data: resultado.data,
-            executionTime: Date.now() - startTime,
-          };
+          const params = parametros ?? {};
+          // Validate required parameters for EstoqueInput
+          if (
+            typeof params === 'object' &&
+            params !== null &&
+            'produtoId' in params &&
+            typeof params.produtoId === 'number' &&
+            'quantidade' in params &&
+            typeof params.quantidade === 'number' &&
+            'tipo' in params &&
+            typeof params.tipo === 'string' &&
+            ['ENTRADA', 'SAIDA', 'AJUSTE'].includes(params.tipo)
+          ) {
+            const estoqueInput: import('../../services/leo-service.js').EstoqueInput = {
+              produtoId: params.produtoId,
+              quantidade: params.quantidade,
+              tipo: params.tipo as 'ENTRADA' | 'SAIDA' | 'AJUSTE',
+              motivo: 'motivo' in params && typeof params.motivo === 'string' ? params.motivo : undefined,
+            };
+            const resultado = await leoErpService.ajustarEstoque(estoqueInput, userId);
+            return {
+              success: resultado.success,
+              message: resultado.message || 'Estoque ajustado com sucesso',
+              data: resultado.data,
+              executionTime: Date.now() - startTime,
+            };
+          } else {
+            return {
+              success: false,
+              message: 'Parâmetros inválidos para ajuste de estoque. Requer: produtoId (number), quantidade (number), tipo (ENTRADA|SAIDA|AJUSTE)',
+              executionTime: Date.now() - startTime,
+            };
+          }
         }
         break;
 
@@ -445,7 +471,7 @@ async function executarAutomacao(action: LeoActionRequest, context: LeoRuntimeCo
     console.log(`🤖 [LeoActions] Executando automação: ${action.description || action.action}`);
     
     // Usar context para determinar a automação
-    const automation = (action.context as any)?.automation || 'iniciar_loop';
+    const automation = (action.context as { automation?: string })?.automation || 'iniciar_loop';
     
     switch (automation) {
       case 'iniciar_loop':

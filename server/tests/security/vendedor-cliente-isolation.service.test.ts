@@ -36,16 +36,17 @@ describe("Isolamento vendedor A vs B (clientes.service)", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    vendedorAId = getInsertId(ra as unknown as Record<string, unknown>);
-    vendedorBId = getInsertId(rb as unknown as Record<string, unknown>);
+    vendedorAId = getInsertId(ra);
+    vendedorBId = getInsertId(rb);
 
     const created = await clientesService.createCliente(TENANT, {
       nome: "Cliente Só A",
       telefone: "61999990001",
     });
-    clienteSoloId = created.id;
+    clienteSoloId = created.data?.id ?? 0;
 
     await db.insert(clienteVendedores).values({
+      tenantId: TENANT,
       clienteId: clienteSoloId,
       vendedorId: vendedorAId,
       tipo: "PRINCIPAL",
@@ -73,12 +74,12 @@ describe("Isolamento vendedor A vs B (clientes.service)", () => {
   it("vendedor B: searchClientesByNome não retorna cliente de A", async () => {
     const actorB = { role: "vendedor" as const, vendedorId: vendedorBId };
     const found = await clientesService.searchClientesByNome(TENANT, actorB, "Cliente Só", 20);
-    expect(found.some((c) => c.id === clienteSoloId)).toBe(false);
+    expect(found.data?.some((c: { id: number }) => c.id === clienteSoloId) ?? false).toBe(false);
   });
 
   it("admin: ainda vê o cliente", async () => {
     const row = await clientesService.getClienteById(TENANT, ADMIN_ACTOR, clienteSoloId);
-    expect(row).not.toBeNull();
-    expect(row?.id).toBe(clienteSoloId);
+    expect(row.data).not.toBeNull();
+    expect(row.data?.id).toBe(clienteSoloId);
   });
 });

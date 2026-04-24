@@ -246,10 +246,10 @@ export const logisticaRouter = router({
           success: true,
           data: {
             carga: {
-              numero: (carga as any).numero,
-              cidadeRota: (carga as any).cidadeRota,
-              dataEntrega: (carga as any).dataEntrega,
-              status: (carga as any).status,
+              numero: (carga as { numero?: number }).numero,
+              cidadeRota: (carga as { cidadeRota?: string }).cidadeRota,
+              dataEntrega: (carga as { dataEntrega?: string | Date }).dataEntrega,
+              status: (carga as { status?: string }).status,
             },
             pedidos: relatorio,
           },

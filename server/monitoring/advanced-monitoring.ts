@@ -372,7 +372,7 @@ export class AdvancedMonitoring {
       apis: this.apiMetrics.slice(-100), // últimas 100 métricas
       queues: [], // Preenchido pelo collectQueueMetrics
       system: this.systemMetrics[this.systemMetrics.length - 1] || {} as SystemMetrics,
-      circuitBreakers: CircuitBreakerManager.listCircuitBreakers() as unknown as Record<string, unknown>,
+      circuitBreakers: CircuitBreakerManager.listCircuitBreakers() as Record<string, unknown>,
       healthChecks: Array.from(this.healthChecks.values()),
       timestamp: new Date(),
     };

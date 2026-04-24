@@ -30,6 +30,8 @@ export interface ExchangeTokenResponse {
   refreshToken?: string;
   scope: string;
   idToken: string;
+  platforms?: string[];
+  platform?: string;
 }
 
 export interface GetUserInfoRequest {
@@ -43,6 +45,7 @@ export interface GetUserInfoResponse {
   email?: string | null;
   platform?: string | null;
   loginMethod?: string | null;
+  platforms?: string[];
 }
 
 export interface CanAccessRequest {
@@ -66,4 +69,5 @@ export interface GetUserInfoWithJwtResponse {
   email?: string | null;
   platform?: string | null;
   loginMethod?: string | null;
+  platforms?: string[];
 }

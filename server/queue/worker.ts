@@ -5,7 +5,7 @@
  * OCR, screenshots, análises do LEO, relatórios, etc.
  */
 
-import { Worker, Job } from 'bullmq';
+import { Worker, Job, ConnectionOptions } from 'bullmq';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { getRedisClient } from '../infra/redis.js';
 import { logInfo, logError, logWarn } from '../_core/logger.js';
@@ -150,10 +150,7 @@ class WorkerManager {
           return await this.processJob(job, queueName);
         },
         {
-          // NOTA: connection usa 'as any' devido a conflito de versão ioredis
-          // BullMQ@5.71.0 espera ioredis@5.9.3 mas o projeto usa @5.10.1
-          // Ambas as versões são compatíveis em runtime
-          connection: connection as any,
+          connection: connection as ConnectionOptions,
           concurrency: config.concurrency,
           maxStalledCount: config.maxStalledCount,
           stalledInterval: config.stalledInterval,

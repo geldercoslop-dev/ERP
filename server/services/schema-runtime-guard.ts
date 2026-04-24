@@ -38,8 +38,11 @@ export async function validateSchemaAtRuntime(db: Database): Promise<SchemaValid
         sql`SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'erp' AND TABLE_NAME = 'users' AND COLUMN_NAME = 'tenant_id'`
       );
       
+      const rows = usersCheck && typeof usersCheck === 'object' && 'rows' in usersCheck
+        ? (usersCheck as { rows?: unknown[] }).rows
+        : undefined;
       const countRow = safeGet<CountRow & Record<string, unknown>>(
-        (usersCheck as unknown as { rows?: unknown[] }).rows,
+        rows,
         0
       );
 
@@ -62,8 +65,11 @@ export async function validateSchemaAtRuntime(db: Database): Promise<SchemaValid
         sql`SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'erp' AND TABLE_NAME = 'vendedores' AND COLUMN_NAME = 'tenant_id'`
       );
       
+      const rows = vendedoresCheck && typeof vendedoresCheck === 'object' && 'rows' in vendedoresCheck
+        ? (vendedoresCheck as { rows?: unknown[] }).rows
+        : undefined;
       const countRow = safeGet<CountRow & Record<string, unknown>>(
-        (vendedoresCheck as unknown as { rows?: unknown[] }).rows,
+        rows,
         0
       );
 
@@ -86,8 +92,11 @@ export async function validateSchemaAtRuntime(db: Database): Promise<SchemaValid
         sql`SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'erp' AND TABLE_NAME = 'vendedores' AND COLUMN_NAME = 'user_id'`
       );
       
+      const rows = userIdCheck && typeof userIdCheck === 'object' && 'rows' in userIdCheck
+        ? (userIdCheck as { rows?: unknown[] }).rows
+        : undefined;
       const countRow = safeGet<CountRow & Record<string, unknown>>(
-        (userIdCheck as unknown as { rows?: unknown[] }).rows,
+        rows,
         0
       );
 
@@ -109,8 +118,11 @@ export async function validateSchemaAtRuntime(db: Database): Promise<SchemaValid
         sql`SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'erp' AND TABLE_NAME = 'users' AND COLUMN_NAME = 'open_id'`
       );
       
+      const rows = openIdCheck && typeof openIdCheck === 'object' && 'rows' in openIdCheck
+        ? (openIdCheck as { rows?: unknown[] }).rows
+        : undefined;
       const countRow = safeGet<CountRow & Record<string, unknown>>(
-        (openIdCheck as unknown as { rows?: unknown[] }).rows,
+        rows,
         0
       );
 
@@ -132,8 +144,11 @@ export async function validateSchemaAtRuntime(db: Database): Promise<SchemaValid
         sql`SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'erp' AND TABLE_NAME = 'tenants'`
       );
       
+      const rows = tenantsCheck && typeof tenantsCheck === 'object' && 'rows' in tenantsCheck
+        ? (tenantsCheck as { rows?: unknown[] }).rows
+        : undefined;
       const countRow = safeGet<CountRow & Record<string, unknown>>(
-        (tenantsCheck as unknown as { rows?: unknown[] }).rows,
+        rows,
         0
       );
 
@@ -145,8 +160,11 @@ export async function validateSchemaAtRuntime(db: Database): Promise<SchemaValid
         
         // Verificar se tem pelo menos 1 tenant
         const tenantsCount = await db.execute(sql`SELECT COUNT(*) as count FROM tenants`);
+        const countRows = tenantsCount && typeof tenantsCount === 'object' && 'rows' in tenantsCount
+          ? (tenantsCount as { rows?: unknown[] }).rows
+          : undefined;
         const tenantsCountRow = safeGet<CountRow & Record<string, unknown>>(
-          (tenantsCount as unknown as { rows?: unknown[] }).rows,
+          countRows,
           0
         );
         const count = tenantsCountRow?.count ?? 0;

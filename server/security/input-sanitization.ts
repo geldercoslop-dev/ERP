@@ -7,7 +7,24 @@ import { body, validationResult, query, param } from 'express-validator';
 import { ValidationError } from '../_core/errors/typed-errors.js';
 
 // Tipo ParsedQs compatível com Express
-type ParsedQs = Record<string, string | string[]> | undefined;
+type ParsedQs = Record<string, string | string[]>;
+
+// Converte Record<string, unknown> para ParsedQs de forma segura
+function toParsedQs(data: Record<string, unknown>): ParsedQs {
+  const result: Record<string, string | string[]> = {};
+  
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      result[key] = value;
+    } else if (Array.isArray(value)) {
+      result[key] = value.map(v => String(v));
+    } else if (value !== null && value !== undefined) {
+      result[key] = String(value);
+    }
+  }
+  
+  return result;
+}
 
 // Tipos reais para type safety
 interface Validation {
@@ -121,7 +138,7 @@ export function sanitizationMiddleware() {
           throw new ValidationError("Query inválida");
         }
         
-        req.query = sanitized as any;
+        req.query = toParsedQs(sanitized);
       }
       
       // Sanitiza body

@@ -340,7 +340,7 @@ export class FinancialInsightsQueries {
         LIMIT ?
       `;
 
-      const [rows] = await executeQuery(query, [dataLimite, limit] as unknown as Record<string, unknown>[]);
+      const [rows] = await executeQuery(query, [dataLimite, limit] as Record<string, unknown>[]);
       return if (!isRecord(rows)) {
   throw new ValidationError("Invalid record");
 }

@@ -45,7 +45,6 @@ export function createApiCorsOptions(): CorsOptions {
     allowedHeaders: [
       "Content-Type",
       "Authorization",
-      "X-Session-Token",
       "Origin",
       "X-Requested-With",
       "Accept",

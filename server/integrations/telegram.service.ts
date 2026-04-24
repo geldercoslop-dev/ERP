@@ -30,11 +30,11 @@ export async function enviarMensagemTelegram(
         parse_mode: "HTML",
       }),
     });
-    const data = (await res.json()) as any;
+    const data = await res.json() as { ok: boolean; description?: string };
     if (!data.ok) return { ok: false, erro: data.description ?? "Falha ao enviar." };
     return { ok: true };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao enviar mensagem Telegram." : e?.message ?? "Erro ao enviar Telegram.";
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao enviar mensagem Telegram." : (e instanceof Error ? e.message : "Erro ao enviar Telegram.");
     return { ok: false, erro: msg };
   }
 }

@@ -15,7 +15,7 @@ import { leoSystemMonitor } from '../leo/perception/leo-system-monitor.js';
 import { leoEvents } from '../leo/memory/leo-events.js';
 import { leoAutomation } from '../leo/actions/leo-automation.js';
 import type { LeoTask, LeoEvent, User } from "../../shared/types/index.js";
-import { LeoTaskStatus } from "../../shared/types/index.js";
+import { LeoTaskStatus, LeoTaskType, LeoTaskPriority } from "../../shared/types/index.js";
 
 /**
  * Router administrativo do Leo
@@ -217,12 +217,12 @@ export const leoAdminRouter = router({
         try {
           const result = await leoTaskQueue.addTask({
             id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            type: input.type as any,
-            priority: input.priority as any,
+            type: input.type as LeoTaskType,
+            priority: input.priority as LeoTaskPriority,
             payload: input.payload,
             maxAttempts: input.maxRetries,
             delay: input.scheduledAt,
-            status: 'pending' as any,
+            status: 'pending' as LeoTaskStatus,
           });
           return {
             success: true,

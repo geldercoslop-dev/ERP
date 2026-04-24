@@ -31,13 +31,15 @@ type CommandOptions = {
   idempotencyKey?: string | null;
 };
 
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
+
 /**
  * Executa o handler uma vez por (commandName, idempotencyKey).
  * Se a mesma key estiver em processamento: retorna objeto amigável (ok:false, inProgress:true) em vez de lançar erro.
  */
 export async function executeCommand<T extends CommandResult>(
   options: CommandOptions,
-  handler: (tx: Database) => Promise<T>
+  handler: (tx: DbTx) => Promise<T>
 ): Promise<T | InProgressResponse> {
   const traceId = nanoid(10);
   const { commandName, idempotencyKey } = options;

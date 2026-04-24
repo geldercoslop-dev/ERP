@@ -77,7 +77,7 @@ export function createCacheRouter(): express.Router {
   router.post("/clear", requireAdmin, (req, res) => {
     memoryCache.clear();
     logInfo("Cache limpo manualmente", { 
-      payload: { user: (req as any).user?.name || "admin" }
+      payload: { user: (req as { user?: { name?: string } }).user?.name || "admin" }
     });
     res.json({ success: true, message: "Cache limpo com sucesso" });
   });
@@ -86,7 +86,7 @@ export function createCacheRouter(): express.Router {
   router.post("/cleanup", requireAdmin, (req, res) => {
     memoryCache.cleanup();
     logInfo("Cache expirado limpo manualmente", { 
-      payload: { user: (req as any).user?.name || "admin" }
+      payload: { user: (req as { user?: { name?: string } }).user?.name || "admin" }
     });
     res.json({ success: true, message: "Cache expirado limpo com sucesso" });
   });
@@ -105,13 +105,13 @@ export function createCacheRouter(): express.Router {
       if (pattern) {
         count = memoryCache.invalidatePattern(pattern);
         logInfo(`Cache invalidado por padrão: ${pattern}`, { 
-          payload: { user: (req as any).user?.name || "admin", count }
+          payload: { user: (req as { user?: { name?: string } }).user?.name || "admin", count }
         });
       } else if (service && tenantId) {
         const servicePattern = new RegExp(`^${service}:.*:${tenantId}`);
         count = memoryCache.invalidatePattern(servicePattern);
         logInfo(`Cache invalidado por serviço: ${service} (tenant: ${tenantId})`, { 
-          payload: { user: (req as any).user?.name || "admin", count }
+          payload: { user: (req as { user?: { name?: string } }).user?.name || "admin", count }
         });
       }
       

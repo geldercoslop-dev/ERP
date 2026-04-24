@@ -13,7 +13,7 @@ export type OwnershipContext = {
 
 export type OwnableEntity = "pedido" | "conta_receber" | "boleto" | "cliente";
 
-export type OwnershipTrpcContext = Pick<TrpcContext, "user" | "vendedor" | "session" | "tenantId">;
+export type OwnershipTrpcContext = Pick<TrpcContext, "user" | "vendedor" | "tenantId">;
 
 function getOptionalNumberField(source: unknown, field: string): number | null {
   if (source == null || typeof source !== "object") return null;
@@ -26,7 +26,7 @@ function getOptionalNumberField(source: unknown, field: string): number | null {
  * Resolve o `users.id` dono da carteira para comparar com `clientes.userId`.
  * Não usar para admin (admin não passa por ownership de cliente).
  */
-export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vendedor" | "session">): Promise<number> {
+export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vendedor">): Promise<number> {
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão necessária." });
   }
@@ -35,9 +35,6 @@ export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vended
   }
   if (ctx.vendedor?.userId != null && ctx.vendedor.userId > 0) {
     return ctx.vendedor.userId;
-  }
-  if (ctx.session?.tokenKind === "user") {
-    return ctx.user.id;
   }
   const tenantId = (ctx.user as TrpcContext["user"])?.tenantId;
   if (!tenantId || tenantId <= 0) {

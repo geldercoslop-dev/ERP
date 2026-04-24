@@ -37,14 +37,17 @@ export async function lerDocumento(params: {
       body: form,
       signal: AbortSignal.timeout(30000),
     });
-    const data = (await res.json()) as any;
-    const text = data.ParsedResults?.[0]?.ParsedText;
-    if (data.OCRExitCode !== 1 || !text) {
-      return { ok: false, erro: data.ErrorMessage ?? "Nenhum texto reconhecido." };
+    const data = await res.json() as unknown;
+    const dataRecord = data as Record<string, unknown>;
+    const parsedResults = dataRecord.ParsedResults as unknown[];
+    const text = parsedResults?.[0] as Record<string, unknown> | undefined;
+    const parsedText = text?.ParsedText as string | undefined;
+    if (dataRecord.OCRExitCode !== 1 || !parsedText) {
+      return { ok: false, erro: String(dataRecord.ErrorMessage ?? "Nenhum texto reconhecido.") };
     }
-    return { ok: true, texto: text.trim() };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao processar OCR." : e?.message ?? "Erro ao processar OCR.";
+    return { ok: true, texto: parsedText.trim() };
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao processar OCR." : e instanceof Error ? e.message : "Erro ao processar OCR.";
     return { ok: false, erro: msg };
   }
 }

@@ -263,7 +263,7 @@ export const appRouter = router({
             vendedorId: ctx.vendedor?.id,
           }
         : null;
-      return { user, session: ctx.session };
+      return { user };
     }),
     login: publicProcedure
       .input(z.object({ username: z.string().min(1), password: z.string().min(1) }))
@@ -273,7 +273,6 @@ export const appRouter = router({
         const password = input.password;
         const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
         const ip = ctx.req.ip || ctx.req.socket?.remoteAddress || "unknown";
-        const rateLimitKey = `${ip}:${username}`;
         const audit = (success: boolean) =>
           logAuth({
             username,
@@ -282,8 +281,15 @@ export const appRouter = router({
             timestamp: Date.now(),
           });
 
+        const user = await db.getUserByOpenId(username);
+        if (!user) {
+          audit(false);
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário inválido" });
+        }
+
+        const rateLimitKey = `${ip}:${username}`;
         try {
-          await checkRateLimit(rateLimitKey);
+          await checkRateLimit(rateLimitKey, user.tenantId);
         } catch (error) {
           audit(false);
           const message = error instanceof Error ? error.message : "Too many attempts";
@@ -291,12 +297,6 @@ export const appRouter = router({
             code: "TOO_MANY_REQUESTS",
             message,
           });
-        }
-
-        const user = await db.getUserByOpenId(username);
-        if (!user) {
-          audit(false);
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário inválido" });
         }
 
         if (user.role === "admin" || user.openId === "admin") {
@@ -315,7 +315,7 @@ export const appRouter = router({
           ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
           ctx.res.cookie("session", sessionValue, cookieOptions);
           await db.touchLastSignedIn(user.id);
-          clearRateLimitForKey(rateLimitKey);
+          clearRateLimitForKey(rateLimitKey, user.tenantId);
           audit(true);
           if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (admin)`);
           return {
@@ -345,7 +345,7 @@ export const appRouter = router({
                 ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
                 ctx.res.cookie("session", sessionValue, cookieOptions);
                 await db.touchLastSignedIn(user.id);
-                clearRateLimitForKey(rateLimitKey);
+                clearRateLimitForKey(rateLimitKey, user.tenantId);
                 audit(true);
                 if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (vendedor)`);
                 return {
@@ -436,14 +436,14 @@ export const appRouter = router({
       const cookieOptions = getSessionCookieOptions(ctx.req);
       if (process.env.NODE_ENV !== "production") console.log("[auth.logout] Removendo cookies de sessão");
       // Limpar todos os possíveis cookies em todas as combinações de path/domain
-      const cookieNames = [COOKIE_NAME, "session", "auth_token", ADMIN_SESSION_COOKIE];
+      const cookieNames = [COOKIE_NAME, "session", ADMIN_SESSION_COOKIE];
       const domains = ["localhost", undefined];
       const paths = ["/", "/api", undefined];
-      
+
       for (const name of cookieNames) {
         for (const domain of domains) {
           for (const path of paths) {
-            ctx.res.clearCookie(name, { 
+            ctx.res.clearCookie(name, {
               ...cookieOptions,
               domain,
               path,
@@ -453,7 +453,7 @@ export const appRouter = router({
           }
         }
       }
-      
+
       // Definir um header para indicar que o logout foi bem-sucedido
       ctx.res.setHeader("X-Logout-Success", "true");
       if (process.env.NODE_ENV !== "production") console.log("[auth.logout] Cookies de sessão removidos");
@@ -1838,12 +1838,13 @@ export const appRouter = router({
           // 2) Número do pedido (travado para não duplicar, por tenant)
           const tenantIdForCounter = vendedor.tenantId;
           const readCounterForUpdate = async () => {
-            const [rows] = (await tx.execute(db.sql`
+            const result = await tx.execute(db.sql`
               SELECT seq FROM counters
               WHERE tenant_id = ${tenantIdForCounter} AND name = 'pedidos'
               FOR UPDATE
-            `)) as unknown as [CounterSelectRow[]];
-            return rows;
+            `);
+            const rows = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : [];
+            return rows as CounterSelectRow[];
           };
 
           let counterRows = await readCounterForUpdate();
@@ -1985,7 +1986,7 @@ export const appRouter = router({
             status: statusPedido,
             formaPagamento: pagamentoPlanejado,
             observacoes: input.observacoes || null,
-          } as unknown as never);
+          } as never);
 
           const pedidoId = db.getInsertId(pedidoInsert);
           if (!pedidoId) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Falha ao criar pedido.' });
@@ -2055,7 +2056,7 @@ export const appRouter = router({
             custo: i.custo,
             prazoGarantia: i.prazoGarantia,
           }));
-          await tx.insert(db.itensPedido).values(itensPedidoRows as unknown as never);
+          await tx.insert(db.itensPedido).values(itensPedidoRows as never);
           markPhase("itensBatchInsertMs", tMark);
           tMark = Date.now();
 
@@ -2072,7 +2073,7 @@ export const appRouter = router({
             status: 'PENDENTE',
             formaPagamento: null,
             observacoes: 'Gerada automaticamente no pedido. Será substituída/ajustada na baixa.',
-          } as unknown as never);
+          } as never);
           markPhase("contaReceberMs", tMark);
 
               return { ok: true, traceId: nanoid(10), pedidoId, numero, clienteId, gerouPendencia, pendenteEstoque: statusPedido === 'PENDENTE_ESTOQUE' };

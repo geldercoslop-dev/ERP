@@ -240,7 +240,7 @@ export function createCorrelationMiddleware() {
     
     // Adicionar ao contexto global se disponível
     if (typeof global !== 'undefined') {
-      (global as any).correlationId = correlationId;
+      (global as { correlationId?: string }).correlationId = correlationId;
     }
     
     // Adicionar headers de correlação

@@ -66,7 +66,7 @@ export interface OrderResult {
  * Cria pedido de forma segura com transação completa
  */
 export async function createOrderSafe(orderData: CreateOrderData): Promise<OrderResult> {
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     logInfo(`[SafeOrder] Iniciando criação segura do pedido - Cliente: ${orderData.clienteNome}`);
 
     // 1. Validar itens do pedido
@@ -134,7 +134,7 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
         `SELECT COALESCE(MAX(numero), 0) + 1 as proximoNumero FROM pedidos WHERE tenantId = ?`,
         [orderData.tenantId]
       );
-      pedidoNumero = (numeroResult as any[])[0]?.proximoNumero || 1;
+      pedidoNumero = (numeroResult as Array<{ proximoNumero?: number }>)[0]?.proximoNumero || 1;
     }
 
     // 6. Inserir pedido
@@ -160,7 +160,7 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
       ]
     );
 
-    const pedidoId = (pedidoResult as any).insertId;
+    const pedidoId = (pedidoResult as { insertId?: number }).insertId ?? 0;
 
     // 7. Inserir itens do pedido
     const itensInseridos: OrderItem[] = [];
@@ -174,7 +174,7 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
 
       itensInseridos.push({
         ...item,
-        id: (itemResult as any).insertId
+        id: (itemResult as { insertId?: number }).insertId
       } as OrderItem);
     }
 
@@ -234,7 +234,7 @@ export async function cancelOrderSafe(
   vendedorId?: number
 ): Promise<{ success: boolean; message: string; movimentacoes?: Record<string, unknown>[] }> {
   if (!tenantId) throw new ValidationError("tenantId is required");
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     logInfo(`[SafeOrder] Iniciando cancelamento seguro do pedido - Tenant: ${tenantId}, ID: ${pedidoId}`);
 
     // 1. Buscar dados do pedido com bloqueio e tenantId
@@ -243,18 +243,18 @@ export async function cancelOrderSafe(
       [tenantId, pedidoId]
     );
 
-    if (!pedido || !(pedido as any[])[0]) {
+    if (!pedido || !(pedido as Array<Record<string, unknown>>)[0]) {
       throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
     }
 
-    const pedidoData = (pedido as any[])[0];
+    const pedidoData = (pedido as Array<Record<string, unknown>>)[0];
 
     // 2. Validar status do pedido
-    if (pedidoData.status === 'CANCELADO') {
+    if ((pedidoData.status as string) === 'CANCELADO') {
       throw new ValidationError('PEDIDO_JA_CANCELADO: Pedido já está cancelado');
     }
 
-    if (pedidoData.status === 'ENTREGUE') {
+    if ((pedidoData.status as string) === 'ENTREGUE') {
       throw new ValidationError('PEDIDO_ENTREGUE: Pedido entregue não pode ser cancelado');
     }
 
@@ -264,12 +264,12 @@ export async function cancelOrderSafe(
       [pedidoId]
     );
 
-    const itensPedido = (itens as any[]);
+    const itensPedido = itens as Array<{ produtoId: number; quantidade: number }>;
 
     // 4. Devolver estoque (usando reserveStockForOrder que agora aceita tenantId)
     const movimentacoesEstoque = await reserveStockForOrder(
       tenantId,
-      itensPedido.map(item => ({
+      itensPedido.map((item: { produtoId: number; quantidade: number }) => ({
         produtoId: item.produtoId,
         quantidade: -item.quantidade // Devolução (quantidade negativa)
       })),
@@ -331,7 +331,7 @@ export async function updateOrderStatusSafe(
   vendedorId?: number
 ): Promise<{ success: boolean; message: string }> {
   if (!tenantId) throw new ValidationError("tenantId is required");
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     logInfo(`[SafeOrder] Atualizando status do pedido - Tenant: ${tenantId}, ID: ${pedidoId}, Status: ${novoStatus}`);
 
     // 1. Buscar pedido atual com bloqueio e tenantId
@@ -340,11 +340,11 @@ export async function updateOrderStatusSafe(
       [tenantId, pedidoId]
     );
 
-    if (!pedido || !(pedido as any[])[0]) {
+    if (!pedido || !(pedido as Array<Record<string, unknown>>)[0]) {
       throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
     }
 
-    const pedidoData = (pedido as any[])[0];
+    const pedidoData = (pedido as Array<Record<string, unknown>>)[0];
 
     // 2. Validar transição de status
     const statusValidos: Record<string, string[]> = {
@@ -357,9 +357,9 @@ export async function updateOrderStatusSafe(
       'CANCELADO': []
     };
 
-    const transicoesPermitidas = statusValidos[pedidoData.status] || [];
+    const transicoesPermitidas = statusValidos[(pedidoData.status as string)] || [];
     if (!transicoesPermitidas.includes(novoStatus)) {
-      throw new ValidationError(`TRANSICAO_INVALIDA: Não é possível mudar de ${pedidoData.status} para ${novoStatus}`);
+      throw new ValidationError(`TRANSICAO_INVALIDA: Não é possível mudar de ${(pedidoData.status as string)} para ${novoStatus}`);
     }
 
     // 3. Atualizar status com tenantId

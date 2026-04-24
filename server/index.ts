@@ -37,7 +37,7 @@ function validateProductionRuntime(): void {
   const isTsx = (
     process.argv[1]?.includes("tsx") ||
     process.argv[0]?.includes("tsx") ||
-    (process as any).isTsx === true ||
+    (process as { isTsx?: boolean }).isTsx === true ||
     process.env.TSX_DEV === "true"
   );
 

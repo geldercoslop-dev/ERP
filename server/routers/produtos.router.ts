@@ -77,7 +77,7 @@ export const produtosRouter = router({
       assertTenantId(tenantId);
       const r = await inventoryService.createProduto(
         tenantId,
-        input as unknown as Parameters<typeof inventoryService.createProduto>[1]
+        input as Parameters<typeof inventoryService.createProduto>[1]
       );
       invalidateInventoryCachesForTenant(tenantId);
       return r;

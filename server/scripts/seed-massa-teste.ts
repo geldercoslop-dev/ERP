@@ -17,9 +17,9 @@ async function main(): Promise<any> {
     process.exit(1);
   }
 
-  const tenantIdRaw = Number(process.env.DEFAULT_TENANT_ID || process.env.TENANT_ID || "");
+  const tenantIdRaw = Number(process.env.DEFAULT_TENANT_ID);
   if (!Number.isFinite(tenantIdRaw) || tenantIdRaw <= 0) {
-    console.error(`${PREFIX} DEFAULT_TENANT_ID (ou TENANT_ID) é obrigatório para seed sem hardcode.`);
+    console.error(`${PREFIX} DEFAULT_TENANT_ID é obrigatório. Defina DEFAULT_TENANT_ID como variável de ambiente.`);
     process.exit(1);
   }
   const tenantId = tenantIdRaw;

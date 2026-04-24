@@ -45,7 +45,7 @@ export class SalesAnalyticsQueries {
 
       const [rows] = await executeQuery(query, [trintaDiasAtras, limit]);
       
-      return (rows as unknown as Record<string, unknown>[]).map((venda) => {
+      return (rows as Record<string, unknown>[]).map((venda) => {
         const tp = Number(venda.totalPedidos);
         return {
           ...venda,
@@ -90,7 +90,7 @@ export class SalesAnalyticsQueries {
 
       const [rows] = await executeQuery(query, [trintaDiasAtras, limit]);
       
-      return rows as unknown as Record<string, unknown>[];
+      return rows as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[SalesAnalyticsQueries] Erro em getProdutosMaisVendidos:', error);
       throw new InfrastructureError('Falha ao obter produtos mais vendidos', { cause: error });
@@ -128,7 +128,7 @@ export class SalesAnalyticsQueries {
 
       const [rows] = await executeQuery(query, [trintaDiasAtras, limit]);
       
-      return (rows as unknown as Record<string, unknown>[]).map((cliente) => {
+      return (rows as Record<string, unknown>[]).map((cliente) => {
         const dias = Number(cliente.diasCompras);
         return {
           ...cliente,
@@ -178,7 +178,7 @@ export class StockAnalyticsQueries {
       `;
 
       const [rows] = await executeQuery(query, [limit]);
-      return rows as unknown as Record<string, unknown>[];
+      return rows as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[StockAnalyticsQueries] Erro em getEstoqueCritico:', error);
       throw new InfrastructureError('Falha ao obter estoque crítico', { cause: error });
@@ -225,7 +225,7 @@ export class StockAnalyticsQueries {
       `;
 
       const [rows] = await executeQuery(query, [dataLimite, dataLimite, limit]);
-      return rows as unknown as Record<string, unknown>[];
+      return rows as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[StockAnalyticsQueries] Erro em getProdutosSemGiro:', error);
       throw new InfrastructureError('Falha ao obter produtos sem giro', { cause: error });
@@ -282,7 +282,7 @@ export class StockAnalyticsQueries {
       `;
 
       const [rows] = await executeQuery(query, [dataLimite, dias, limit]);
-      return rows as unknown as Record<string, unknown>[];
+      return rows as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[StockAnalyticsQueries] Erro em getProdutosAltoGiro:', error);
       throw new InfrastructureError('Falha ao obter produtos com alto giro', { cause: error });
@@ -322,8 +322,8 @@ export class FinancialInsightsQueries {
         LIMIT ?
       `;
 
-      const [rows] = await executeQuery(query, [dataLimite, limit] as unknown as Record<string, unknown>[]);
-      return rows as unknown as Record<string, unknown>[];
+      const [rows] = await executeQuery(query, [dataLimite, limit] as unknown[]);
+      return rows as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[FinancialInsightsQueries] Erro em getFaturamentoDiario:', error);
       throw new InfrastructureError('Falha ao obter faturamento diário', { cause: error });
@@ -371,7 +371,7 @@ export class FinancialInsightsQueries {
       `;
 
       const [rows] = await executeQuery(query, [dataLimite, dataLimite, limit]);
-      return rows as unknown as Record<string, unknown>[];
+      return rows as Record<string, unknown>[];
     } catch (error: unknown) {
       console.error('[FinancialInsightsQueries] Erro em getFluxoCaixa:', error);
       throw new InfrastructureError('Falha ao obter fluxo de caixa', { cause: error });
@@ -425,7 +425,7 @@ export class FinancialInsightsQueries {
       `;
 
       const [rows] = await dbConnection.execute(query);
-      const data = (rows as unknown as Record<string, unknown>[])[0];
+      const data = Array.isArray(rows) && rows[0] ? rows[0] as Record<string, unknown> : null;
 
       if (!data) return null;
 

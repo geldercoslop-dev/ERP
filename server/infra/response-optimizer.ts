@@ -49,7 +49,7 @@ export function optimizeResponse<T extends Record<string, any>>(
     const optimized: Partial<T> = { ...data };
     for (const field of excludeFields) {
       if (field in optimized) {
-        delete (optimized as any)[field];
+        delete optimized[field as keyof T];
       }
     }
     return optimized;
@@ -64,14 +64,14 @@ export function optimizeResponse<T extends Record<string, any>>(
     const truncated: Partial<T> = {};
     for (const [key, value] of Object.entries(data)) {
       if (typeof value === 'string' && value.length > 1000) {
-        (truncated as any)[key] = value.substring(0, 1000) + '... (truncated)';
+        (truncated as Record<string, unknown>)[key] = value.substring(0, 1000) + '... (truncated)';
       } else if (Array.isArray(value) && value.length > 100) {
-        (truncated as any)[key] = value.slice(0, 100);
+        (truncated as Record<string, unknown>)[key] = value.slice(0, 100);
       } else if (typeof value === 'object' && value !== null) {
         // Recursivamente otimiza objetos aninhados
-        (truncated as any)[key] = optimizeResponse(value, options);
+        (truncated as Record<string, unknown>)[key] = optimizeResponse(value, options);
       } else {
-        (truncated as any)[key] = value;
+        (truncated as Record<string, unknown>)[key] = value;
       }
     }
     return truncated;

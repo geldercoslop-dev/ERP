@@ -330,7 +330,7 @@ class SafeTransactionService {
    * Executa operação de pedido
    */
   private async executePedidoStep(tx: DbTx, step: TransactionStep): Promise<Record<string, unknown>> {
-    const pedidoOp = step.data as unknown as PedidoOperation;
+    const pedidoOp = step.data as PedidoOperation;
     
     switch (step.operation) {
       case 'criar':
@@ -354,7 +354,7 @@ class SafeTransactionService {
    * Executa operação de estoque
    */
   private async executeEstoqueStep(tx: DbTx, step: TransactionStep): Promise<Record<string, unknown>> {
-    const stockOp = step.data as unknown as StockOperation;
+    const stockOp = step.data as StockOperation;
     
     // Usar o serviço de estoque seguro dentro da transação
     const result = await processStockOperation(stockOp);
@@ -363,14 +363,14 @@ class SafeTransactionService {
       return { success: false, error: `Falha na operação de estoque: ${result.message}` };
     }
     
-    return result as unknown as Record<string, unknown>;
+    return { ...result } as Record<string, unknown>;
   }
 
   /**
    * Executa operação financeira
    */
   private async executeFinanceiroStep(tx: DbTx, step: TransactionStep): Promise<Record<string, unknown>> {
-    const finOp = step.data as unknown as FinanceiroOperation;
+    const finOp = step.data as FinanceiroOperation;
     
     switch (finOp.tipo) {
       case 'conta_receber':

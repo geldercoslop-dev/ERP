@@ -284,9 +284,10 @@ export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promi
   if (!carga) throw new ValidationError('Carga não encontrada');
 
   const doc = new jsPDF();
-  const numero = String((carga as any).numero || '').padStart(4, '0');
-  const cidade = String((carga as any).cidadeRota || '').toUpperCase();
-  const dataEntrega = (carga as any).dataEntrega ? new Date((carga as any).dataEntrega) : new Date();
+  const numero = String((carga as { numero?: string | number }).numero || '').padStart(4, '0');
+  const cidade = String((carga as { cidadeRota?: string }).cidadeRota || '').toUpperCase();
+  const dataEntregaRaw = (carga as { dataEntrega?: string | Date }).dataEntrega;
+  const dataEntrega = dataEntregaRaw ? new Date(dataEntregaRaw) : new Date();
   const dataStr = dataEntrega.toLocaleDateString('pt-BR');
 
   let y = drawHeader(doc, 'ROMANEIO DE ENTREGA', `CARGA #${numero} • ${cidade} • ${dataStr}`);
@@ -334,18 +335,18 @@ export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promi
     }
   }
 
-  function money(v: any) {
+  function money(v: string | number | null | undefined) {
     const n = typeof v === 'string' ? Number(v) : Number(v || 0);
     return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  function cleanText(s: any, max = 60) {
+  function cleanText(s: string | number | null | undefined, max = 60) {
     const t = String(s ?? '').replace(/\s+/g, ' ').trim();
     if (!t) return '';
     return t.length > max ? t.slice(0, max-1) + '…' : t;
   }
 
-  function pagamentoResumo(p: any) {
+  function pagamentoResumo(p: string | { texto?: string; formaCombinada?: string } | null | undefined) {
     // formaPagamento pode ser string ou JSON; aqui deixamos robusto
     if (!p) return '';
     const raw = String(p);
@@ -360,12 +361,12 @@ export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promi
 
   drawTableHeader();
 
-  const itens = Array.isArray((carga as any).pedidos) ? (carga as any).pedidos : [];
+  const itens = Array.isArray((carga as { pedidos?: unknown[] }).pedidos) ? (carga as { pedidos: unknown[] }).pedidos : [];
   // Ordena por nome do cliente, depois número do pedido
-  itens.sort((a: any, b: any) => {
-    const ac = String(a?.clienteNome || '').localeCompare(String(b?.clienteNome || ''), 'pt-BR');
+  itens.sort((a: unknown, b: unknown) => {
+    const ac = String((a as { clienteNome?: string })?.clienteNome || '').localeCompare(String((b as { clienteNome?: string })?.clienteNome || ''), 'pt-BR');
     if (ac !== 0) return ac;
-    return Number(a?.numero || 0) - Number(b?.numero || 0);
+    return Number((a as { numero?: number })?.numero || 0) - Number((b as { numero?: number })?.numero || 0);
   });
 
   let zebra = false;
@@ -383,13 +384,13 @@ export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promi
     doc.setTextColor(0,0,0);
 
     let x = x0 + 2;
-    doc.text(String(p.numero ?? ''), x, y + 5.8); x += col.pedido;
-    doc.text(cleanText(p.clienteNome, 30), x, y + 5.8); x += col.cliente;
-    doc.text(cleanText(p.clienteTelefone, 14), x, y + 5.8); x += col.tel;
-    doc.text(cleanText(p.vendedorNome, 18), x, y + 5.8); x += col.vend;
-    doc.text(cleanText(pagamentoResumo(p.formaPagamento), 18), x, y + 5.8); x += col.pag;
-    doc.text(money(p.total), x, y + 5.8); x += col.valor;
-    doc.text(cleanText(p.observacoes, 28), x, y + 5.8);
+    doc.text(String((p as { numero?: number }).numero ?? ''), x, y + 5.8); x += col.pedido;
+    doc.text(cleanText((p as { clienteNome?: string }).clienteNome, 30), x, y + 5.8); x += col.cliente;
+    doc.text(cleanText((p as { clienteTelefone?: string }).clienteTelefone, 14), x, y + 5.8); x += col.tel;
+    doc.text(cleanText((p as { vendedorNome?: string }).vendedorNome, 18), x, y + 5.8); x += col.vend;
+    doc.text(cleanText(pagamentoResumo((p as { formaPagamento?: string }).formaPagamento), 18), x, y + 5.8); x += col.pag;
+    doc.text(money((p as { total?: number | string }).total), x, y + 5.8); x += col.valor;
+    doc.text(cleanText((p as { observacoes?: string }).observacoes, 28), x, y + 5.8);
 
     y += rowH;
   }
@@ -400,7 +401,7 @@ export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promi
   doc.setDrawColor(...COLORS.border);
   doc.line(x0, y, x0 + usableW, y);
   y += 8;
-  const total = itens.reduce((acc: number, p: any) => acc + Number(p?.total || 0), 0);
+  const total = itens.reduce((acc: number, p: unknown) => acc + Number((p as { total?: number | string })?.total || 0), 0);
   doc.setFontSize(12);
   doc.setTextColor(...COLORS.primary);
   doc.text(`TOTAL DA CARGA: R$ ${money(total)}`, x0, y);
@@ -463,7 +464,7 @@ export async function gerarPedidoPDF(pedidoId: number): Promise<string> {
 
   const pedidoRows = await db_conn.select().from(db.pedidos).where(eq(db.pedidos.id, pedidoId)).limit(1);
   if (!pedidoRows.length) throw new ValidationError('Pedido não encontrado');
-  const p = pedidoRows[0] as any;
+  const p = pedidoRows[0] as { clienteNome?: string; clienteTelefone?: string; clienteTelefoneRecado?: string; clienteRua?: string; clienteNumero?: string; clienteBairro?: string; clienteCidade?: string; clienteUf?: string; clienteCondominio?: string; clienteBloco?: string; clienteApartamento?: string; clienteReferencia?: string; formaPagamento?: string; total?: number | string; observacoes?: string; createdAt?: string | Date; numero?: number };
 
   const itens = await db_conn.select().from(db.itensPedido).where(eq(db.itensPedido.pedidoId, pedidoId));
 
@@ -596,7 +597,7 @@ export async function gerarPedidoPDF(pedidoId: number): Promise<string> {
   y += 6;
 
   doc.setFont('helvetica', 'normal');
-  for (const it of itens as any[]) {
+  for (const it of itens as { quantidade?: number; descricao?: string; valorUnitario?: number | string }[]) {
     const qtd = String(it.quantidade);
     const desc = String(it.descricao || '').toUpperCase();
     const unit = Number(it.valorUnitario || 0);
@@ -753,9 +754,10 @@ export async function gerarRelatorioFinanceiroPDF(tipo: 'PAGAR' | 'RECEBER', mes
     if (y > 270) { doc.addPage(); y = 20; }
     
     const data = new Date(item.dataVencimento).toLocaleDateString('pt-BR');
-    const desc = (tipo === 'RECEBER' ? (item as any).clienteNome : (item as any).fornecedor) || 'S/D';
+    const desc = (tipo === 'RECEBER' ? (item as { clienteNome?: string }).clienteNome : (item as { fornecedor?: string }).fornecedor) || 'S/D';
     const valor = parseFloat(item.valor);
-    const status = (item as any).status;
+    const status = (item as { status?: string }).status || '';
+    total += valor;
 
     doc.text(data, margin + 2, y);
     doc.text(desc.substring(0, 35).toUpperCase(), margin + 30, y);

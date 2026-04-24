@@ -110,9 +110,9 @@ export class LeoEvents {
       dataCriacao: now,
       dataUltimaAtualizacao: now,
     };
-    (event as unknown as Record<string, unknown>).usuarioCriador = input.usuarioCriador;
-    (event as unknown as Record<string, unknown>).createdAt = now;
-    (event as unknown as Record<string, unknown>).updatedAt = now;
+    Object.defineProperty(event, 'usuarioCriador', { value: input.usuarioCriador, writable: true, configurable: true });
+    Object.defineProperty(event, 'createdAt', { value: now, writable: true, configurable: true });
+    Object.defineProperty(event, 'updatedAt', { value: now, writable: true, configurable: true });
 
     this.events.set(event.id, event);
 
@@ -146,7 +146,7 @@ export class LeoEvents {
       event.usuarioResponsavel = usuarioResponsavel;
     }
     if (status === LeoEventStatus.RESOLVIDO) {
-      (event as unknown as Record<string, unknown>).resolvidoEm = new Date();
+      Object.defineProperty(event, 'resolvidoEm', { value: new Date(), writable: true, configurable: true });
     }
 
     console.log(`[LEO Events STUB] Event ${eventId} status updated to: ${status}`);

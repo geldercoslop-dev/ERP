@@ -111,14 +111,11 @@ export class OrderTool {
 
       
 
-      const data = serviceResult.data as unknown as Payload;
+      const data = serviceResult.data;
 
       console.log(`[OrderTool] Pedido criado com sucesso:`, { 
-
-        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
-
+        id: (data && typeof data === 'object' && 'id' in data && typeof data.id === 'number') ? data.id : 'unknown',
         timestamp: new Date().toISOString() 
-
       });
 
 

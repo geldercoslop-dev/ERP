@@ -97,7 +97,7 @@ export const smartAuthRouter = router({
           action: "login",
           module: "auth",
           ip,
-          requestId: (ctx as any).requestId,
+          requestId: (ctx as { requestId?: string }).requestId,
           details: { role, authTable: authConfig.table, smartAuth: true }
         });
 

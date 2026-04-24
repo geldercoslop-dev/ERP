@@ -71,7 +71,7 @@ export function hasId(value: unknown): value is { id: number } {
   return value !== null && 
     typeof value === 'object' && 
     'id' in value && 
-    typeof (value as any).id === 'number';
+    typeof (value as { id: unknown }).id === 'number';
 }
 
 /**
@@ -91,9 +91,9 @@ export function isPaginated<T>(value: unknown): value is ServicePaginated<T> {
     'items' in value &&
     'total' in value &&
     'page' in value &&
-    Array.isArray((value as any).items) &&
-    typeof (value as any).total === 'number' &&
-    typeof (value as any).page === 'number';
+    Array.isArray((value as { items: unknown }).items) &&
+    typeof (value as { total: unknown }).total === 'number' &&
+    typeof (value as { page: unknown }).page === 'number';
 }
 
 /**
@@ -121,7 +121,7 @@ export function sanitizeCreate(
   defaultId: number = -1
 ): ServiceCreateResponse {
   if (hasId(value)) {
-    return { id: (value as any).id };
+    return { id: (value as { id: number }).id };
   }
   console.warn('[ServiceGuard] sanitizeCreate: retorno inválido, usando ID padrão', defaultId);
   return { id: defaultId };

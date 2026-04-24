@@ -79,6 +79,39 @@ export type QueueJobPayload =
   | BackupJobPayload
   | CleanupJobPayload;
 
+// Type guards para validação de payloads
+function isOcrJobPayload(data: unknown): data is OcrJobPayload {
+  return typeof data === 'object' && data !== null && 'imagePath' in data;
+}
+
+function isScreenshotJobPayload(data: unknown): data is ScreenshotJobPayload {
+  return typeof data === 'object' && data !== null;
+}
+
+function isLeoAnalysisJobPayload(data: unknown): data is LeoAnalysisJobPayload {
+  return typeof data === 'object' && data !== null && 'analysisType' in data;
+}
+
+function isReportJobPayload(data: unknown): data is ReportJobPayload {
+  return typeof data === 'object' && data !== null && 'reportType' in data;
+}
+
+function isAutomationJobPayload(data: unknown): data is AutomationJobPayload {
+  return typeof data === 'object' && data !== null && 'automationType' in data;
+}
+
+function isNotificationJobPayload(data: unknown): data is NotificationJobPayload {
+  return typeof data === 'object' && data !== null && 'notificationType' in data && 'recipients' in data && 'message' in data;
+}
+
+function isBackupJobPayload(data: unknown): data is BackupJobPayload {
+  return typeof data === 'object' && data !== null && 'backupType' in data && 'target' in data;
+}
+
+function isCleanupJobPayload(data: unknown): data is CleanupJobPayload {
+  return typeof data === 'object' && data !== null && 'cleanupType' in data && 'target' in data;
+}
+
 // Importações dos módulos existentes (serão adaptados para uso assíncrono)
 // import { leoOcr } from '../leo/perception/leo-ocr.js';
 // import { leoScreen } from '../leo/perception/leo-screen.js';
@@ -97,7 +130,10 @@ export async function processOcrJob(data: JobData): Promise<JobResult> {
       traceId: data.traceId,
     });
 
-    const { imagePath, options } = data.payload as unknown as OcrJobPayload;
+    if (!isOcrJobPayload(data.payload)) {
+      throw new Error('Invalid OCR job payload');
+    }
+    const { imagePath, options } = data.payload;
     
     // TODO: Implementar processamento OCR assíncrono
     // const ocrResult = await leoOcr.extrairTextoImagem(imagePath, options, data.userId);
@@ -142,7 +178,10 @@ export async function processScreenshotJob(data: JobData): Promise<JobResult> {
       traceId: data.traceId,
     });
 
-    const { options, area } = data.payload as unknown as ScreenshotJobPayload;
+    if (!isScreenshotJobPayload(data.payload)) {
+      throw new Error('Invalid Screenshot job payload');
+    }
+    const { options, area } = data.payload;
     
     // TODO: Implementar captura de tela assíncrona
     // let screenshotResult;
@@ -201,7 +240,10 @@ export async function processLeoAnalysisJob(data: JobData): Promise<JobResult> {
       traceId: data.traceId,
     });
 
-    const { analysisType, context, parameters } = data.payload as unknown as LeoAnalysisJobPayload;
+    if (!isLeoAnalysisJobPayload(data.payload)) {
+      throw new Error('Invalid Leo Analysis job payload');
+    }
+    const { analysisType, context, parameters } = data.payload;
     
     // TODO: Implementar análise do LEO assíncrona
     // const analysisResult = await leoEngine.analyze(analysisType, context, parameters);
@@ -246,7 +288,10 @@ export async function processReportGenerationJob(data: JobData): Promise<JobResu
       traceId: data.traceId,
     });
 
-    const { reportType, filters, format } = data.payload as unknown as ReportJobPayload;
+    if (!isReportJobPayload(data.payload)) {
+      throw new Error('Invalid Report job payload');
+    }
+    const { reportType, filters, format } = data.payload;
     
     // TODO: Implementar geração de relatório assíncrona
     // const reportResult = await reportGenerator.generate(reportType, filters, format);
@@ -291,7 +336,10 @@ export async function processDesktopAutomationJob(data: JobData): Promise<JobRes
       traceId: data.traceId,
     });
 
-    const { automationType, parameters, permissions } = data.payload as unknown as AutomationJobPayload;
+    if (!isAutomationJobPayload(data.payload)) {
+      throw new Error('Invalid Automation job payload');
+    }
+    const { automationType, parameters, permissions } = data.payload;
     
     // TODO: Implementar automação desktop assíncrona com sandbox
     // const automationResult = await desktopAutomation.execute(automationType, parameters, permissions);
@@ -336,7 +384,10 @@ export async function processNotificationJob(data: JobData): Promise<JobResult> 
       traceId: data.traceId,
     });
 
-    const { notificationType, recipients, message, channels } = data.payload as unknown as NotificationJobPayload;
+    if (!isNotificationJobPayload(data.payload)) {
+      throw new Error('Invalid Notification job payload');
+    }
+    const { notificationType, recipients, message, channels } = data.payload;
     
     // TODO: Implementar envio de notificação assíncrono
     // const notificationResult = await notificationService.send(notificationType, recipients, message, channels);
@@ -381,7 +432,10 @@ export async function processBackupJob(data: JobData): Promise<JobResult> {
       traceId: data.traceId,
     });
 
-    const { backupType, target, compression } = data.payload as unknown as BackupJobPayload;
+    if (!isBackupJobPayload(data.payload)) {
+      throw new Error('Invalid Backup job payload');
+    }
+    const { backupType, target, compression } = data.payload;
     
     // TODO: Implementar backup assíncrono
     // const backupResult = await backupService.create(backupType, target, compression);
@@ -426,7 +480,10 @@ export async function processCleanupJob(data: JobData): Promise<JobResult> {
       traceId: data.traceId,
     });
 
-    const { cleanupType, target, retention } = data.payload as unknown as CleanupJobPayload;
+    if (!isCleanupJobPayload(data.payload)) {
+      throw new Error('Invalid Cleanup job payload');
+    }
+    const { cleanupType, target, retention } = data.payload;
     
     // TODO: Implementar limpeza assíncrona
     // const cleanupResult = await cleanupService.execute(cleanupType, target, retention);

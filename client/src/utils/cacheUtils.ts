@@ -17,10 +17,9 @@ export async function invalidateQueries(route: string): Promise<void> {
   }
   
   try {
-    // @ts-ignore - Acesso dinâmico às rotas
-    if (utils[route] && typeof utils[route].invalidate === 'function') {
-      // @ts-ignore - Acesso dinâmico às rotas
-      await utils[route].invalidate();
+    const utilsRecord = utils as unknown as Record<string, { invalidate?: () => Promise<void> }>;
+    if (route in utilsRecord && utilsRecord[route]?.invalidate) {
+      await utilsRecord[route].invalidate();
       console.log(`[cacheUtils] Cache de ${route} invalidado com sucesso`);
     } else {
       console.warn(`[cacheUtils] Rota ${route} não encontrada ou não possui método invalidate`);
@@ -49,13 +48,17 @@ export async function invalidateQuery(
   }
   
   try {
-    // @ts-ignore - Acesso dinâmico às rotas e queries
-    if (utils[route] && utils[route][query] && typeof utils[route][query].invalidate === 'function') {
-      // @ts-ignore - Acesso dinâmico às rotas e queries
-      await utils[route][query].invalidate(input);
-      console.log(`[cacheUtils] Cache de ${route}.${query} invalidado com sucesso`);
+    const utilsRecord = utils as unknown as Record<string, Record<string, { invalidate?: (input?: unknown) => Promise<void> }>>;
+    if (route in utilsRecord && query in utilsRecord[route]) {
+      const queryUtils = utilsRecord[route][query];
+      if (queryUtils?.invalidate) {
+        await queryUtils.invalidate(input);
+        console.log(`[cacheUtils] Cache de ${route}.${query} invalidado com sucesso`);
+      } else {
+        console.warn(`[cacheUtils] Query ${route}.${query} não possui método invalidate`);
+      }
     } else {
-      console.warn(`[cacheUtils] Query ${route}.${query} não encontrada ou não possui método invalidate`);
+      console.warn(`[cacheUtils] Query ${route}.${query} não encontrada`);
     }
   } catch (error) {
     console.error(`[cacheUtils] Erro ao invalidar cache de ${route}.${query}:`, error);
@@ -74,10 +77,9 @@ export async function clearCache(): Promise<void> {
   }
   
   try {
-    // @ts-ignore - Acesso a método interno
-    if (utils.client && typeof utils.client.invalidate === 'function') {
-      // @ts-ignore - Acesso a método interno
-      await utils.client.invalidate();
+    const utilsRecord = utils as unknown as { client?: { invalidate?: () => Promise<void> } };
+    if (utilsRecord.client?.invalidate) {
+      await utilsRecord.client.invalidate();
       console.log(`[cacheUtils] Cache limpo com sucesso`);
     } else {
       console.warn(`[cacheUtils] Não foi possível limpar o cache`);

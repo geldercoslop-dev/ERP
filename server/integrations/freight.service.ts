@@ -70,15 +70,19 @@ export async function cotarFrete(params: CotacaoFreteParams): Promise<{
       const err = await res.text();
       return { ok: false, erro: err || "Erro ao cotar frete." };
     }
-    const data = (await res.json()) as any;
-    const opcoes: OpcaoFrete[] = (data ?? []).map((x: any) => ({
-      nome: x.name ?? x.company?.name ?? "Transportadora",
-      preco: Number(x.price ?? 0),
-      prazo: Number(x.delivery_time ?? 0),
-    }));
+    const data = await res.json() as unknown;
+    const dataArray = Array.isArray(data) ? data : [];
+    const opcoes: OpcaoFrete[] = dataArray.map((x: unknown) => {
+      const item = x as Record<string, unknown>;
+      return {
+        nome: String(item.name ?? (item.company as Record<string, unknown>)?.name ?? "Transportadora"),
+        preco: Number(item.price ?? 0),
+        prazo: Number(item.delivery_time ?? 0),
+      };
+    });
     return { ok: true, opcoes };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao cotar frete. Tente novamente." : e?.message ?? "Erro ao cotar frete.";
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao cotar frete. Tente novamente." : e instanceof Error ? e.message : "Erro ao cotar frete.";
     return { ok: false, erro: msg };
   }
   });
@@ -101,10 +105,11 @@ export async function gerarEtiqueta(servicoId: string): Promise<{
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return { ok: false, erro: "Erro ao gerar etiqueta." };
-    const data = (await res.json()) as any;
-    return { ok: true, urlEtiqueta: data.url ?? data.link };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao gerar etiqueta." : e?.message ?? "Erro ao gerar etiqueta.";
+    const data = await res.json() as unknown;
+    const dataRecord = data as Record<string, unknown>;
+    return { ok: true, urlEtiqueta: String(dataRecord.url ?? dataRecord.link) };
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao gerar etiqueta." : e instanceof Error ? e.message : "Erro ao gerar etiqueta.";
     return { ok: false, erro: msg };
   }
 }

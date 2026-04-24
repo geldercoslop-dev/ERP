@@ -39,7 +39,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { appName: string; parameters?: Record<string, unknown> };
-        return (await desktopController.openApp(i.appName, i.parameters)) as unknown as Payload;
+        const result = await desktopController.openApp(i.appName, i.parameters);
+        return { ...result } as Payload;
       }
     });
 
@@ -52,7 +53,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { appName: string; force?: boolean };
-        return (await desktopController.closeApp(i.appName, i.force)) as unknown as Payload;
+        const result = await desktopController.closeApp(i.appName, i.force);
+        return { ...result } as Payload;
       }
     });
 
@@ -65,7 +67,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { url: string; incognito?: boolean };
-        return (await desktopController.openBrowser(i.url, i.incognito)) as unknown as Payload;
+        const result = await desktopController.openBrowser(i.url, i.incognito);
+        return { ...result } as Payload;
       }
     });
 
@@ -78,7 +81,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { url: string; tabId?: number };
-        return (await desktopController.navigateUrl(i.url, i.tabId)) as unknown as Payload;
+        const result = await desktopController.navigateUrl(i.url, i.tabId);
+        return { ...result } as Payload;
       }
     });
 
@@ -91,7 +95,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { filePath: string; encoding?: string };
-        return (await desktopController.readFile(i.filePath, i.encoding)) as unknown as Payload;
+        const result = await desktopController.readFile(i.filePath, i.encoding);
+        return { ...result } as Payload;
       }
     });
 
@@ -105,7 +110,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { filePath: string; content: string; append?: boolean };
-        return (await desktopController.writeFile(i.filePath, i.content, i.append)) as unknown as Payload;
+        const result = await desktopController.writeFile(i.filePath, i.content, i.append);
+        return { ...result } as Payload;
       }
     });
 
@@ -119,7 +125,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { command: string; workingDirectory?: string; timeout?: number };
-        return (await desktopController.runTerminalCommand(i.command, i.workingDirectory, i.timeout)) as unknown as Payload;
+        const result = await desktopController.runTerminalCommand(i.command, i.workingDirectory, i.timeout);
+        return { ...result } as Payload;
       }
     });
 
@@ -133,7 +140,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { region?: string; windowTitle?: string; savePath?: string };
-        return (await desktopController.takeScreenshot(i.region, i.windowTitle, i.savePath)) as unknown as Payload;
+        const result = await desktopController.takeScreenshot(i.region, i.windowTitle, i.savePath);
+        return { ...result } as Payload;
       }
     });
 
@@ -147,7 +155,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { category?: string };
-        return (await desktopController.getSystemStatus(i.category ?? 'all')) as unknown as Payload;
+        const result = await desktopController.getSystemStatus(i.category ?? 'all');
+        return { ...result } as Payload;
       }
     });
 
@@ -156,7 +165,8 @@ class ToolRegistry {
       description: 'Obtém uso atual da CPU',
       inputSchema: z.object({}),
       handler: async (payload, ctx) => {
-        return (await desktopController.getCpuUsage()) as unknown as Payload;
+        const result = await desktopController.getCpuUsage();
+        return { ...result } as Payload;
       }
     });
 
@@ -165,7 +175,8 @@ class ToolRegistry {
       description: 'Obtém uso atual da memória',
       inputSchema: z.object({}),
       handler: async (payload, ctx) => {
-        return (await desktopController.getMemoryUsage()) as unknown as Payload;
+        const result = await desktopController.getMemoryUsage();
+        return { ...result } as Payload;
       }
     });
 
@@ -177,7 +188,8 @@ class ToolRegistry {
       }),
       handler: async (payload, ctx) => {
         const i = payload as { filter?: string };
-        return (await desktopController.getRunningApps(i.filter)) as unknown as Payload;
+        const result = await desktopController.getRunningApps(i.filter);
+        return { ...result } as Payload;
       }
     });
 

@@ -9,6 +9,7 @@ import * as mysql from "mysql2/promise";
 import { getConnectionPool } from "../config/database.js";
 import * as schema from "../../drizzle/schema.js";
 import { setupDatabaseMonitoring } from "../_core/monitoring-setup.js";
+import { toDbResult } from "../_core/db-result.js";
 import {
   users,
   vendedores,
@@ -85,7 +86,7 @@ export async function getDb(): Promise<Database> {
       schema: { ...schema },
       mode: "default",
       logger: false,
-    }) as unknown as Database;
+    }) as Database;
   }
   return db;
 }
@@ -223,7 +224,8 @@ export async function upsertUser(tenantId: number, user: NewUser): Promise<void>
 export async function insertUser(user: NewUser): Promise<{ id: number }> {
   const database = await getDb();
   const result = await database.insert(users).values(user);
-  return { id: getInsertId(result as unknown as Record<string, unknown>) };
+  const dbResult = toDbResult(result);
+  return { id: dbResult.insertId ?? 0 };
 }
 
 /** Atualiza último login (compat: routers chamam só com userId). */
@@ -275,7 +277,8 @@ export async function getVendedorByNome(nome: string): Promise<Vendedor | null> 
 export async function createVendedor(data: NewVendedor): Promise<{ id: number }> {
   const database = await getDb();
   const result = await database.insert(vendedores).values(data);
-  return { id: getInsertId(result as unknown as Record<string, unknown>) };
+  const dbResult = toDbResult(result);
+  return { id: dbResult.insertId ?? 0 };
 }
 
 /** Atualiza vendedor por id. */
@@ -357,7 +360,7 @@ export async function ensureAdminUser(tenantId: number): Promise<void> {
 
 /** Idempotência: reserva chave na transação. Retorna { reserved: true } ou { reserved: false, resultJson, traceId }. */
 export async function reserveIdempotencyKey(
-  tx: Database,
+  tx: Parameters<Parameters<Database['transaction']>[0]>[0],
   commandName: string,
   key: string
 ): Promise<{ reserved: boolean; resultJson?: string | null; traceId?: string | null }> {
@@ -380,7 +383,7 @@ export async function reserveIdempotencyKey(
 
 /** Idempotência: grava resultado na transação. */
 export async function updateIdempotencyResult(
-  tx: Database,
+  tx: Parameters<Parameters<Database['transaction']>[0]>[0],
   commandName: string,
   key: string,
   resultJson: string,

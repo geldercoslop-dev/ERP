@@ -27,7 +27,11 @@ export function isDbResult(obj: unknown): obj is DbResult {
  * Converte resultado de banco para DbResult de forma segura
  */
 export function toDbResult(raw: unknown): DbResult {
-  const result = raw as unknown as Record<string, unknown>;
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+  
+  const result = raw as Record<string, unknown>;
   
   return {
     insertId: typeof result.insertId === 'number' ? result.insertId : undefined,

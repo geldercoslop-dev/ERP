@@ -47,9 +47,9 @@ export class ClientTool {
         return result;
       }
       
-      const data = result.data as unknown as ServiceCreateResponse | undefined;
+      const data = result.data as ServiceCreateResponse | undefined;
       console.log(`[ClientTool] Cliente criado com sucesso:`, { 
-        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as { id: number }).id : 'unknown',
         timestamp: new Date().toISOString() 
       });
 
@@ -92,9 +92,9 @@ export class ClientTool {
         return result;
       }
       
-      const data = result.data as unknown as ServiceCreateResponse | undefined;
+      const data = result.data as ServiceCreateResponse | undefined;
       console.log(`[ClientTool] Listagem concluída:`, { 
-        count: typeof data === 'object' && data !== null && 'length' in data ? (data as any).length : 0,
+        count: typeof data === 'object' && data !== null && 'length' in data ? (data as { length: number }).length : 0,
         timestamp: new Date().toISOString() 
       });
 
@@ -137,9 +137,9 @@ export class ClientTool {
         return result;
       }
       
-      const data = result.data as unknown as ServiceCreateResponse | undefined;
+      const data = result.data as ServiceCreateResponse | undefined;
       console.log(`[ClientTool] Cliente atualizado com sucesso:`, { 
-        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as { id: number }).id : 'unknown',
         timestamp: new Date().toISOString() 
       });
 

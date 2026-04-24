@@ -114,10 +114,11 @@ export function MetricBox({
           <Progress 
             value={progressValue} 
             className="h-2"
-            // @ts-ignore - o Progress component aceita a propriedade style
-            style={{
-              '--progress-background': getProgressColor().replace('bg-', '').replace('-500', '')
-            } as React.CSSProperties}
+            style={
+              {
+                '--progress-background': getProgressColor().replace('bg-', '').replace('-500', '')
+              } as React.CSSProperties
+            }
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>0</span>

@@ -270,7 +270,7 @@ export function addPermissionsInfo(req: Request, res: Response, next: NextFuncti
     res.setHeader('X-User-Permissions', JSON.stringify(userPermissions));
     
     // Adicionar ao request para uso posterior
-    (req as any).userPermissions = userPermissions;
+    (req as { userPermissions?: ReturnType<typeof RBAC.getPermissions> }).userPermissions = userPermissions;
   }
 
   next();

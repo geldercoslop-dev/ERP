@@ -52,34 +52,34 @@ export function requestTracingMiddleware() {
     });
     
     // Interceptar response
-    const originalJson = res.json as any;
-    const originalSend = res.send as any;
-    const originalEnd = res.end as any;
+    const originalJson = res.json;
+    const originalSend = res.send;
+    const originalEnd = res.end;
     
-    let responseBody: any;
+    let responseBody: unknown;
     let responseSize = 0;
     let endCalled = false;
     
     // Interceptar JSON responses
-    res.json = function(data: any, ...args: any[]) {
+    res.json = function(data: unknown, ...args: unknown[]) {
       responseBody = data;
       responseSize = JSON.stringify(data).length;
-      return originalJson.call(this, data, ...args);
+      return originalJson.apply(this, [data, ...args] as never);
     };
     
     // Interceptar send responses
-    res.send = function(data: any, ...args: any[]) {
+    res.send = function(data: unknown, ...args: unknown[]) {
       if (typeof data === 'string') {
         responseSize = Buffer.byteLength(data, 'utf8');
       } else if (Buffer.isBuffer(data)) {
         responseSize = data.length;
       }
-      return originalSend.call(this, data, ...args);
+      return originalSend.apply(this, [data, ...args] as never);
     };
     
     // Interceptar end para finalizar span
-    res.end = function(...args: any[]) {
-      if (endCalled) return originalEnd.call(this, ...args);
+    res.end = function(...args: unknown[]) {
+      if (endCalled) return originalEnd.apply(this, args as never);
       endCalled = true;
       
       const duration = Date.now() - span.startTime;
@@ -108,13 +108,14 @@ export function requestTracingMiddleware() {
       
       // Finalizar span
       if (res.statusCode >= 400) {
-        const error = new Error(`HTTP ${res.statusCode}: ${responseBody?.error || responseBody?.message || 'Request failed'}`);
+        const responseBodyRecord = responseBody as Record<string, unknown> | null;
+        const error = new Error(`HTTP ${res.statusCode}: ${responseBodyRecord?.error || responseBodyRecord?.message || 'Request failed'}`);
         tracer.finishSpan(span.spanId, error);
       } else {
         tracer.finishSpan(span.spanId);
       }
       
-      return originalEnd.call(this, ...args);
+      return originalEnd.apply(this, args as never);
     };
     
     // Interceptar erros

@@ -25,8 +25,11 @@ async function hasAnyTable(db: Database, tableName: string): Promise<boolean> {
   );
 
   // drizzle retorna `{ rows: unknown[] }` no mysql2; mantemos verificação defensiva.
-  const rows = (res as unknown as { rows?: unknown[] }).rows;
-  return Array.isArray(rows) && rows.length > 0;
+  if (res && typeof res === 'object' && 'rows' in res) {
+    const rows = (res as { rows?: unknown[] }).rows;
+    return Array.isArray(rows) && rows.length > 0;
+  }
+  return false;
 }
 
 /**
@@ -37,9 +40,11 @@ async function getMigrationsAppliedCount(db: Database): Promise<number> {
     const res = await db.execute(
       sql`SELECT COUNT(*) as count FROM __drizzle_migrations`
     );
-    const rows = (res as unknown as { rows?: Array<{ count?: number }> }).rows;
-    if (Array.isArray(rows) && rows[0]?.count !== undefined) {
-      return rows[0].count;
+    if (res && typeof res === 'object' && 'rows' in res) {
+      const rows = (res as { rows?: Array<{ count?: number }> }).rows;
+      if (Array.isArray(rows) && rows[0]?.count !== undefined) {
+        return rows[0].count;
+      }
     }
     return 0;
   } catch {

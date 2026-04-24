@@ -76,16 +76,21 @@ export async function cotarFreteSuperFrete(params: CotacaoSuperFreteParams): Pro
         const err = await res.text();
         return { ok: false, erro: err || "Erro ao cotar frete SuperFrete." };
       }
-      const data = (await res.json()) as any;
-      const list = Array.isArray(data) ? data : data?.data ?? data?.offers ?? [];
-      const opcoes: OpcaoSuperFrete[] = list.map((x: any) => ({
-        nome: x.carrier?.name ?? x.name ?? x.transportadora ?? "Transportadora",
-        preco: Number(x.price ?? x.valor ?? x.cost ?? 0),
-        prazo: Number(x.delivery_time ?? x.prazo ?? x.days ?? 0),
-      })).filter((o: OpcaoSuperFrete) => o.nome);
+      const data = await res.json() as unknown;
+      const dataRecord = data as Record<string, unknown>;
+      const list = Array.isArray(data) ? data : (dataRecord.data as unknown[] | undefined) ?? (dataRecord.offers as unknown[] | undefined) ?? [];
+      const opcoes: OpcaoSuperFrete[] = list.map((x: unknown) => {
+        const item = x as Record<string, unknown>;
+        const carrier = item.carrier as Record<string, unknown> | undefined;
+        return {
+          nome: String(carrier?.name ?? item.name ?? item.transportadora ?? "Transportadora"),
+          preco: Number(item.price ?? item.valor ?? item.cost ?? 0),
+          prazo: Number(item.delivery_time ?? item.prazo ?? item.days ?? 0),
+        };
+      }).filter((o: OpcaoSuperFrete) => o.nome);
       return { ok: true, opcoes: opcoes.length ? opcoes : undefined };
-    } catch (e: any) {
-      const msg = e?.name === "AbortError" ? "Timeout ao cotar SuperFrete." : e?.message ?? "Erro ao cotar frete.";
+    } catch (e: unknown) {
+      const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao cotar SuperFrete." : e instanceof Error ? e.message : "Erro ao cotar frete.";
       return { ok: false, erro: msg };
     }
   });
@@ -110,11 +115,12 @@ export async function gerarEtiquetaSuperFrete(shipmentId: string): Promise<{
       headers: getHeaders(),
     });
     if (!res.ok) return { ok: false, erro: "Erro ao gerar etiqueta SuperFrete." };
-    const data = (await res.json()) as any;
-    const url = data.url ?? data.link ?? data.label_url ?? data.pdf_url;
+    const data = await res.json() as unknown;
+    const dataRecord = data as Record<string, unknown>;
+    const url = String(dataRecord.url ?? dataRecord.link ?? dataRecord.label_url ?? dataRecord.pdf_url);
     return { ok: true, urlEtiqueta: url };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao gerar etiqueta." : e?.message ?? "Erro ao gerar etiqueta.";
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao gerar etiqueta." : e instanceof Error ? e.message : "Erro ao gerar etiqueta.";
     return { ok: false, erro: msg };
   }
 }
@@ -141,20 +147,20 @@ export async function consultarRastreamentoSuperFrete(codigo: string): Promise<{
       headers: getHeaders(),
     });
     if (!res.ok) return { ok: false, erro: "Rastreamento não encontrado ou indisponível." };
-    const data = (await res.json()) as any;
-    const eventos = (data.tracking?.events ?? data.events ?? data.history ?? []).map((e: any) => ({
-      data: e.date ?? e.data ?? "",
-      hora: e.time ?? e.hora,
-      descricao: e.description ?? e.descricao ?? e.status ?? "",
-      local: e.location ?? e.local ?? e.place,
+    const data = await res.json() as unknown;
+    const eventos = ((data as { tracking?: { events?: unknown[] } }).tracking?.events ?? (data as { events?: unknown[] }).events ?? (data as { history?: unknown[] }).history ?? []).map((e: unknown) => ({
+      data: (e as { date?: string; data?: string }).date ?? (e as { data?: string }).data ?? "",
+      hora: (e as { time?: string; hora?: string }).time ?? (e as { hora?: string }).hora,
+      descricao: (e as { description?: string; descricao?: string; status?: string }).description ?? (e as { descricao?: string }).descricao ?? (e as { status?: string }).status ?? "",
+      local: (e as { location?: string; local?: string; place?: string }).location ?? (e as { local?: string }).local ?? (e as { place?: string }).place,
     }));
     return {
       ok: true,
       codigo: c,
       eventos: eventos.length ? eventos : undefined,
     };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao rastrear." : e?.message ?? "Erro ao rastrear.";
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao rastrear." : (e instanceof Error ? e.message : "Erro ao rastrear.");
     return { ok: false, erro: msg };
   }
 }

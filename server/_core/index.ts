@@ -413,33 +413,30 @@ export async function startServer() {
     const authorizationHeader = req.get("authorization")?.trim();
     const hasBearerAuth = Boolean(authorizationHeader && /^Bearer\s+\S+$/i.test(authorizationHeader));
 
-    // If no valid x-app-secret, check if we have valid session + CSRF
+    // If no valid x-app-secret, check if we have valid JWT + CSRF
     // This allows authenticated requests from browser to proceed
     if (!hasSecret) {
-      const hasSessionToken = req.cookies?.session_token || 
-                              req.cookies?.session || 
-                              req.cookies?.auth_token ||
-                              req.get("x-session-token");
-      const hasCsrfToken = req.cookies?.["csrf-token"] && 
+      const hasJwtToken = hasBearerAuth;
+      const hasCsrfToken = req.cookies?.["csrf-token"] &&
                            req.get("x-csrf-token");
 
-      // For browser requests: CSRF + session token can substitute for x-app-secret
-      // GET requests don't need x-app-secret if they have session token
+      // For browser requests: CSRF + JWT can substitute for x-app-secret
+      // GET requests don't need x-app-secret if they have JWT
       const isSafeMethod = ["GET", "HEAD", "OPTIONS"].includes(req.method);
-      const isMutationWithProtection = hasCsrfToken && (hasSessionToken || isSafeMethod);
+      const isMutationWithProtection = hasCsrfToken && (hasJwtToken || isSafeMethod);
 
       if (!isMutationWithProtection && !hasBearerAuth) {
         console.log('>>> BLOCKED BEFORE ROUTES', {
           method: req.method,
           path: req.path,
           hasSecret: Boolean(secret),
-          hasSessionToken: Boolean(hasSessionToken),
+          hasJwtToken: Boolean(hasJwtToken),
           hasCsrfToken: Boolean(hasCsrfToken),
           hasBearerAuth,
         });
-        logSecurity("x-app-secret inválido/ausente", req, { 
+        logSecurity("x-app-secret inválido/ausente", req, {
           hasSecret: Boolean(secret),
-          hasSessionToken: Boolean(hasSessionToken),
+          hasJwtToken: Boolean(hasJwtToken),
           hasCsrfToken: Boolean(hasCsrfToken),
           hasBearerAuth,
         });
@@ -742,12 +739,10 @@ export async function startServer() {
     return;
   });
 
-  // Debug: eco dos headers de sessão (apenas DEV) — cookie, x-session-token, authorization
+  // Debug: eco dos headers de autenticação (apenas DEV) — authorization
   if (process.env.NODE_ENV === "development") {
     app.get("/api/debug/headers", (req, res) => {
       res.json({
-        cookie: req.headers.cookie ?? null,
-        xSessionToken: req.headers["x-session-token"] ?? null,
         authorization: req.headers.authorization ?? null,
       });
       return;
@@ -904,7 +899,7 @@ export async function startServer() {
 
   server.listen(port, () => {
     systemLogger.info(`[BOOT] servidor ouvindo em http://localhost:${port}/`);
-    (global as any).SERVER_PORT = port;
+    (global as typeof globalThis & { SERVER_PORT?: number }).SERVER_PORT = port;
   });
 
 }

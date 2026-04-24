@@ -14,7 +14,8 @@ interface ErrorEntry {
   firstSeen: Date;
   lastSeen: Date;
   occurrences: Date[];
-  contexts: any[];
+  contexts: unknown[];
+  lastAlertTime?: Date;
 }
 
 class ErrorAlerter {
@@ -40,7 +41,7 @@ class ErrorAlerter {
   /**
    * Registra um erro e verifica se deve emitir alerta
    */
-  public trackError(message: string, context?: any): void {
+  public trackError(message: string, context?: unknown): void {
     const now = new Date();
     const errorKey = this.normalizeErrorMessage(message);
     
@@ -85,13 +86,13 @@ class ErrorAlerter {
     
     if (recentOccurrences.length >= this.ALERT_THRESHOLD) {
       // Verificar se já emitimos alerta recentemente para este erro
-      const lastAlertTime = (entry as any).lastAlertTime;
+      const lastAlertTime = entry.lastAlertTime;
       const now = new Date();
       
       // Emitir alerta no máximo a cada 15 minutos para o mesmo erro
       if (!lastAlertTime || (now.getTime() - lastAlertTime.getTime() > 15 * 60 * 1000)) {
         this.emitAlert(errorKey, entry, recentOccurrences.length);
-        (entry as any).lastAlertTime = now;
+        entry.lastAlertTime = now;
       }
     }
   }
@@ -236,7 +237,7 @@ class ErrorAlerter {
 export const errorAlerter = ErrorAlerter.getInstance();
 
 // Função de conveniência para registrar erros
-export function trackError(error: Error | string, context?: any): void {
+export function trackError(error: Error | string, context?: unknown): void {
   const message = error instanceof Error ? error.message : error;
   errorAlerter.trackError(message, {
     ...(context || {}),

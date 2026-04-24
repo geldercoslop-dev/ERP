@@ -102,8 +102,8 @@ export async function isTableLocked(tableName: string): Promise<boolean> {
       [tableName]
     );
     
-    const row0 = (rows as unknown as Record<string, unknown>[])[0];
-    const locked = Number(row0?.locked ?? 0);
+    const row0 = Array.isArray(rows) && rows[0] && typeof rows[0] === "object" ? rows[0] as Record<string, unknown> : {};
+    const locked = Number(row0.locked ?? 0);
     return locked > 0;
   } catch (error) {
     console.error(`[Transaction] Erro ao verificar bloqueio da tabela ${tableName}:`, error);
@@ -139,7 +139,7 @@ export async function getActiveLocks(): Promise<Array<{
       ORDER BY l.lock_wait_time DESC
     `);
 
-    return rows as unknown as Array<{
+    return rows as Array<{
       lockType: string;
       tableName: string;
       waitTime: number;

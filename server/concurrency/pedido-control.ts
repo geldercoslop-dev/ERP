@@ -153,11 +153,14 @@ export function generateConcurrencyReport() {
  * ERRO ESPECÍFICO PARA RETRY
  */
 export class IdempotencyConflictError extends Error {
+  public readonly pedidoId: number;
+  public readonly numero: number;
+
   constructor(pedidoId: number, numero: number, requestId: string) {
     super(`Pedido já criado: #${numero} (ID: ${pedidoId}, RequestID: ${requestId})`);
     this.name = "IdempotencyConflictError";
-    (this as any).pedidoId = pedidoId;
-    (this as any).numero = numero;
+    this.pedidoId = pedidoId;
+    this.numero = numero;
   }
 }
 
@@ -165,8 +168,8 @@ export class IdempotencyConflictError extends Error {
  * CONVERTER PARA TRPC ERROR
  */
 export function idempotencyConflictToTRPC(error: IdempotencyConflictError): TRPCError {
-  const pedidoId = (error as any).pedidoId as number;
-  const numero = (error as any).numero as number;
+  const pedidoId = error.pedidoId;
+  const numero = error.numero;
 
   return new TRPCError({
     code: "CONFLICT",

@@ -46,9 +46,17 @@ function normalizeIp(req: Request): string {
   return String(ip).trim() || "unknown";
 }
 
+function getTenantIdFromRequest(req: Request): number {
+  const tenantId = (req as { user?: { tenantId?: number }; tenantId?: number }).user?.tenantId || (req as { tenantId?: number }).tenantId;
+  if (!tenantId || typeof tenantId !== 'number' || tenantId <= 0) {
+    throw new Error("RATE_LIMIT: tenantId obrigatório no request para isolamento multi-tenant");
+  }
+  return tenantId;
+}
+
 function defaultKeySuffix(req: Request): string {
-  const endpoint = (req.path || req.url || "unknown").split("?")[0];
-  return `${normalizeIp(req)}:${endpoint}`;
+  const tenantId = getTenantIdFromRequest(req);
+  return String(tenantId);
 }
 
 export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): RequestHandler {
@@ -82,7 +90,8 @@ export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): 
     }
 
     try {
-      const key = `ratelimit:${name}:${keySuffix(req)}`;
+      const endpoint = (req.path || req.url || "unknown").split("?")[0];
+      const key = `ratelimit:${keySuffix(req)}:${name}:${normalizeIp(req)}:${endpoint}`;
       const now = Date.now();
       const raw = (await redis.eval(
         LUA_FIXED_WINDOW,

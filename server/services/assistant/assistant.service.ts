@@ -241,8 +241,8 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
         db.sql`DATE(${db.contasPagar.dataPagamento}) = CURDATE()`
       )
     );
-  const totalRecebido = Number((recebidoHoje as unknown as Array<{ total: string | number }> | undefined)?.[0]?.total ?? 0);
-  const totalPago = Number((pagoHoje as unknown as Array<{ total: string | number }> | undefined)?.[0]?.total ?? 0);
+  const totalRecebido = Array.isArray(recebidoHoje) && recebidoHoje[0] ? Number(recebidoHoje[0].total ?? 0) : 0;
+  const totalPago = Array.isArray(pagoHoje) && pagoHoje[0] ? Number(pagoHoje[0].total ?? 0) : 0;
   if (totalPago > totalRecebido) {
     const escolhaFinanceiro = escolher(VARIACOES_FINANCEIRO_DESEQUILIBRADO);
     sugestoes.push({
@@ -284,8 +284,8 @@ export async function gerarSugestoesSistema(tenantId: string): Promise<{ success
     .select({ c: db.sql<number>`COUNT(*)` })
     .from(db.pedidos)
     .where(db.and(db.eq(db.pedidos.tenantId, tenantIdNum), db.sql`${db.pedidos.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`));
-  const countHoje = Number((pedidosHoje as unknown as Array<{ c: string | number }> | undefined)?.[0]?.c ?? 0);
-  const count7 = Number((pedidosUltimos7 as unknown as Array<{ c: string | number }> | undefined)?.[0]?.c ?? 0);
+  const countHoje = Array.isArray(pedidosHoje) && pedidosHoje[0] ? Number(pedidosHoje[0].c ?? 0) : 0;
+  const count7 = Array.isArray(pedidosUltimos7) && pedidosUltimos7[0] ? Number(pedidosUltimos7[0].c ?? 0) : 0;
   const mediaSemanal = count7 / 7;
   if (mediaSemanal > 0 && countHoje < mediaSemanal) {
     const escolhaMovimento = escolher(VARIACOES_MOVIMENTO_FRACO);

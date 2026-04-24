@@ -36,8 +36,15 @@ interface DataSnapshot {
 
 export class DatabaseConsistencyTester {
   private db: any = null;
-  private tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+  private tenantId: number;
   private results: TestResult[] = [];
+
+  constructor() {
+    this.tenantId = Number(process.env.TEST_TENANT_ID);
+    if (!Number.isFinite(this.tenantId) || this.tenantId <= 0) {
+      throw new Error("TEST_TENANT_ID não fornecido ou inválido. Defina TEST_TENANT_ID como variável de ambiente.");
+    }
+  }
 
   async initialize() {
     this.db = await getDb();

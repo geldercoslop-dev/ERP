@@ -37,8 +37,8 @@ describe("Isolamento financeiro vendedor A vs B (finance.service)", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    vendedorAId = getInsertId(ra as unknown as Record<string, unknown>);
-    vendedorBId = getInsertId(rb as unknown as Record<string, unknown>);
+    vendedorAId = getInsertId(ra);
+    vendedorBId = getInsertId(rb);
 
     const dv = new Date();
     dv.setDate(dv.getDate() + 10);
@@ -54,7 +54,7 @@ describe("Isolamento financeiro vendedor A vs B (finance.service)", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    contaAId = getInsertId(ins as unknown as Record<string, unknown>);
+    contaAId = getInsertId(ins);
   });
 
   afterAll(async () => {

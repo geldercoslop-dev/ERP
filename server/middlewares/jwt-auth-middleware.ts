@@ -1,81 +1,6 @@
-import cookie from 'cookie';
 import { Request, Response, NextFunction } from 'express';
-import * as usersService from '../services/users.service.js';
-import type { User, Vendedor } from '../db/core.js';
 import { jwtAuth, JWTPayload } from '../security/jwt-auth.js';
 import { systemLogger } from '../_core/logger.js';
-
-/** Mesma ordem de resolução que createContext (cookie → X-Session-Token → Bearer). */
-function resolveSessionLikeToken(req: Request): string | undefined {
-  const rawCookie = req.headers.cookie ?? '';
-  const parsed = rawCookie ? cookie.parse(rawCookie) : {};
-  const cookieToken = (parsed.session_token || parsed.session || parsed.auth_token) as string | undefined;
-  const rawX = req.headers['x-session-token'];
-  const headerToken = (Array.isArray(rawX) ? rawX[0] : rawX)?.trim();
-  const authHeader = req.headers.authorization;
-  const authToken =
-    typeof authHeader === 'string' ? authHeader.replace(/^\s*Bearer\s+/i, '').trim() : undefined;
-  return (
-    (typeof cookieToken === 'string' && cookieToken ? cookieToken : undefined) ||
-    (headerToken || undefined) ||
-    (authToken || undefined)
-  );
-}
-
-function isLikelyJwt(token: string): boolean {
-  const parts = token.split('.');
-  return parts.length === 3 && parts.every((p) => p.length > 0);
-}
-
-function mapUserToJwtPayload(u: User): JWTPayload {
-  const role: JWTPayload['role'] = u.role === 'admin' ? 'admin' : 'user';
-  return {
-    userId: u.id,
-    tenantId: u.tenantId ?? 0,
-    email: u.email ?? '',
-    role,
-    sessionId: `session-u-${u.id}`,
-  };
-}
-
-function mapVendedorToJwtPayload(v: Vendedor, tenantId: number): JWTPayload {
-  return {
-    userId: v.id,
-    tenantId,
-    email: v.email ?? '',
-    role: v.admin ? 'admin' : 'user',
-    sessionId: `session-v-${v.id}`,
-  };
-}
-
-/**
- * auth.login devolve tokens legados `u:` / `v:` — alinhado a createContext.
- */
-async function resolveSessionTokenToPayload(token: string): Promise<JWTPayload | null> {
-  if (token.startsWith('u:')) {
-    const userId = parseInt(token.slice(2), 10);
-    if (!Number.isFinite(userId)) return null;
-    const u = await usersService.getUserById(userId);
-    return u ? mapUserToJwtPayload(u) : null;
-  }
-  if (token.startsWith('v:')) {
-    const parts = token.split(':');
-    const tenantId = Number(parts[1]);
-    const id = Number(parts[2]);
-    if (!Number.isInteger(tenantId) || tenantId <= 0 || !Number.isInteger(id) || id <= 0) return null;
-    const v = await usersService.getVendedorById(id);
-    if (!v?.ativo) return null;
-    return mapVendedorToJwtPayload(v, tenantId);
-  }
-  if (token === 'admin-session') {
-    const u = await usersService.getUserByOpenIdGlobal('admin');
-    return u ? mapUserToJwtPayload(u) : null;
-  }
-  if (token === 'vendedor-session') {
-    return null;
-  }
-  return null;
-}
 
 /**
  * Extensão para incluir usuário autenticado no Request
@@ -90,12 +15,16 @@ declare global {
 }
 
 /**
- * Middleware de autenticação: JWT (Bearer) ou sessão legada `u:` / `v:` (mesmo modelo que createContext).
+ * Middleware de autenticação: JWT (Bearer) apenas.
+ * tenantId vem APENAS do JWT payload.
  */
 export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
   void (async () => {
     try {
-      const token = resolveSessionLikeToken(req);
+      const authHeader = req.headers.authorization;
+      const token = typeof authHeader === 'string'
+        ? authHeader.replace(/^\s*Bearer\s+/i, '').trim()
+        : undefined;
 
       if (!token) {
         systemLogger.warn(
@@ -106,106 +35,65 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
             ip: req.ip,
             traceId: req.traceId,
           },
-          'Authentication failed - no token provided'
+          'Authentication failed - no JWT token provided'
         );
 
         res.status(401).json({
           error: 'Unauthorized',
-          message: 'Access token required',
+          message: 'JWT access token required',
           code: 'TOKEN_MISSING',
         });
         return;
       }
 
-      if (isLikelyJwt(token)) {
-        try {
-          const payload = jwtAuth.verifyAccessToken(token);
-          req.user = payload;
-          req.sessionId = payload.sessionId;
+      try {
+        const payload = jwtAuth.verifyAccessToken(token);
+        req.user = payload;
+        req.sessionId = payload.sessionId;
 
-          systemLogger.debug(
-            {
-              userId: payload.userId,
-              tenantId: payload.tenantId,
-              email: payload.email,
-              role: payload.role,
-              sessionId: payload.sessionId,
-              method: req.method,
-              url: req.url,
-              traceId: req.traceId,
-            },
-            'User authenticated'
-          );
+        systemLogger.debug(
+          {
+            userId: payload.userId,
+            tenantId: payload.tenantId,
+            email: payload.email,
+            role: payload.role,
+            sessionId: payload.sessionId,
+            method: req.method,
+            url: req.url,
+            traceId: req.traceId,
+          },
+          'User authenticated via JWT'
+        );
 
-          next();
-          return;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Authentication failed';
+        next();
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Authentication failed';
 
-          systemLogger.warn(
-            {
-              method: req.method,
-              url: req.url,
-              error: message,
-              userAgent: req.get('User-Agent'),
-              ip: req.ip,
-              traceId: req.traceId,
-            },
-            'Authentication failed'
-          );
-
-          let errorCode = 'TOKEN_INVALID';
-          if (message === 'Access token expired') {
-            errorCode = 'TOKEN_EXPIRED';
-          }
-
-          res.status(401).json({
-            error: 'Unauthorized',
-            message,
-            code: errorCode,
-          });
-          return;
-        }
-      }
-
-      const sessionPayload = await resolveSessionTokenToPayload(token);
-      if (!sessionPayload) {
         systemLogger.warn(
           {
             method: req.method,
             url: req.url,
+            error: message,
             userAgent: req.get('User-Agent'),
             ip: req.ip,
             traceId: req.traceId,
           },
-          'Authentication failed - invalid session token'
+          'JWT authentication failed'
         );
+
+        let errorCode = 'TOKEN_INVALID';
+        if (message === 'Access token expired') {
+          errorCode = 'TOKEN_EXPIRED';
+        }
+
         res.status(401).json({
           error: 'Unauthorized',
-          message: 'Invalid session token',
-          code: 'TOKEN_INVALID',
+          message,
+          code: errorCode,
         });
         return;
       }
-
-      req.user = sessionPayload;
-      req.sessionId = sessionPayload.sessionId;
-
-      systemLogger.debug(
-        {
-          userId: sessionPayload.userId,
-          tenantId: sessionPayload.tenantId,
-          email: sessionPayload.email,
-          role: sessionPayload.role,
-          sessionId: sessionPayload.sessionId,
-          method: req.method,
-          url: req.url,
-          traceId: req.traceId,
-        },
-        'User authenticated (session token)'
-      );
-
-      next();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Authentication failed';
       systemLogger.warn(

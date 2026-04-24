@@ -19,10 +19,9 @@ async function main() {
     process.exit(1);
   }
 
-  const tenantPick = await conn.select({ tenantId: db.produtos.tenantId }).from(db.produtos).limit(1);
-  const testTenantId = Number(process.env.TEST_TENANT_ID) || Number(tenantPick[0]?.tenantId);
-  if (!testTenantId) {
-    console.error("[test:core] Defina TEST_TENANT_ID ou insira produtos com tenant_id.");
+  const testTenantId = Number(process.env.TEST_TENANT_ID);
+  if (!Number.isFinite(testTenantId) || testTenantId <= 0) {
+    console.error("[test:core] TEST_TENANT_ID não fornecido ou inválido. Defina TEST_TENANT_ID como variável de ambiente.");
     process.exit(1);
   }
 

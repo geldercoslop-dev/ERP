@@ -23,8 +23,8 @@ export function metricsMiddleware() {
         timestamp: new Date(startTime),
         userAgent: req.get('User-Agent'),
         ip: req.ip || req.connection.remoteAddress,
-        userId: (req as any).user?.id,
-        tenantId: (req as any).tenantId,
+        userId: (req as { user?: { id?: number } }).user?.id,
+        tenantId: (req as { tenantId?: number }).tenantId,
       });
       
       // Chama o método original
@@ -41,14 +41,14 @@ export function metricsMiddleware() {
 export function databaseMetricsMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Adiciona método para registrar métricas de DB no request
-    (req as any).recordDbMetric = (query: string, duration: number, success: boolean, error?: string) => {
+    (req as { recordDbMetric?: (query: string, duration: number, success: boolean, error?: string) => void }).recordDbMetric = (query: string, duration: number, success: boolean, error?: string) => {
       const dbMetrics = {
         query,
         duration,
         timestamp: new Date(),
         success,
         error,
-        tenantId: (req as any).tenantId,
+        tenantId: (req as { tenantId?: number }).tenantId,
       };
       
       // Registra query lenta (>300ms)

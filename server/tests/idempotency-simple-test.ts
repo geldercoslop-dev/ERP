@@ -4,7 +4,11 @@
 import { createHash } from 'crypto';
 
 console.log('🚀 INICIANDO TESTE DE IDEMPOTÊNCIA...');
-const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID);
+if (!Number.isFinite(TEST_TENANT_ID) || TEST_TENANT_ID <= 0) {
+  console.error("❌ TEST_TENANT_ID não fornecido ou inválido. Defina TEST_TENANT_ID como variável de ambiente.");
+  process.exit(1);
+}
 
 // Simular função de geração de chave
 function generatePedidoIdempotencyKey(

@@ -108,7 +108,12 @@ export function errorTraceMiddleware(err: Error, req: Request, res: Response, ne
   
   // Adicionar traceId ao erro para debugging
   if (err && typeof err === 'object') {
-    (err as unknown as Record<string, unknown>).traceId = traceId;
+    Object.defineProperty(err, 'traceId', {
+      value: traceId,
+      enumerable: true,
+      writable: true,
+      configurable: true
+    });
   }
   
   next(err);

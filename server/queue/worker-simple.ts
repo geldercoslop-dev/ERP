@@ -5,7 +5,7 @@
  * OCR, screenshots, análises do LEO, relatórios, etc.
  */
 
-import { Worker, Job } from 'bullmq';
+import { Worker, Job, ConnectionOptions } from 'bullmq';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { getRedisClient } from '../infra/redis.js';
 import { logInfo, logError, logWarn } from '../_core/logger.js';
@@ -78,13 +78,18 @@ class WorkerManager {
    */
   private async createWorker(queueName: string, config: { name: string; concurrency: number }): Promise<void> {
     try {
+      const redisClient = getRedisClient();
+      if (!redisClient) {
+        throw new InfrastructureError('Cliente Redis não disponível para criar worker');
+      }
+
       const worker = new Worker(
         queueName,
         async (job: Job<JobData, JobResult, string>) => {
           return await this.processJob(job, queueName);
         },
         {
-          connection: getRedisClient() as any,
+          connection: redisClient as ConnectionOptions,
           concurrency: config.concurrency,
         }
       );
@@ -94,7 +99,7 @@ class WorkerManager {
         logInfo(`${config.name} pronto para processar jobs`);
       });
 
-      worker.on('error', (error: any) => {
+      worker.on('error', (error: Error) => {
         logError(`Erro no ${config.name}`, error);
       });
 

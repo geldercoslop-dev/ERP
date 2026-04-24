@@ -179,7 +179,7 @@ export class Tracer {
     );
     
     // Armazenar referência ao span OTLP
-    (span as any).otelSpan = otelSpan;
+    (span as { otelSpan?: unknown }).otelSpan = otelSpan;
     
     logger.debug('Span started', {
       metadata: {
@@ -220,24 +220,24 @@ export class Tracer {
     }
     
     // Finalizar span OpenTelemetry correspondente
-    const otelSpan = (span as any).otelSpan;
+    const otelSpan = (span as { otelSpan?: { setStatus?: (status: unknown) => void; recordException?: (error: Error) => void; setAttributes?: (attrs: unknown) => void; end?: () => void } }).otelSpan;
     if (otelSpan) {
       if (error) {
-        otelSpan.setStatus({
+        otelSpan.setStatus?.({
           code: SpanStatusCode.ERROR,
           message: error.message,
         });
-        otelSpan.recordException(error);
+        otelSpan.recordException?.(error);
       } else {
-        otelSpan.setStatus({ code: SpanStatusCode.OK });
+        otelSpan.setStatus?.({ code: SpanStatusCode.OK });
       }
       
-      otelSpan.setAttributes({
+      otelSpan.setAttributes?.({
         'duration': span.duration,
         'status': span.status,
       });
       
-      otelSpan.end();
+      otelSpan.end?.();
     }
     
     // Mover para completed spans

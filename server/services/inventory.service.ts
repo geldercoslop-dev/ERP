@@ -127,7 +127,7 @@ export async function getAllProdutosComPrecoVigente(tenantId: number, refDate: D
   assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  const sqlRunner = dbConn as unknown as {
+  const sqlRunner = dbConn as {
     execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
   };
 
@@ -220,7 +220,7 @@ export async function getProdutosComPrecoVigentePaged(
   assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  const sqlRunner = dbConn as unknown as {
+  const sqlRunner = dbConn as {
     execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
   };
   

@@ -24,7 +24,7 @@ interface ServiceGuardConfig {
   expectedType: 'list' | 'single' | 'create' | 'paginated' | 'other';
   logErrors?: boolean;
   throwOnError?: boolean;
-  fallbackValue?: any;
+  fallbackValue?: unknown;
 }
 
 /**
@@ -49,7 +49,7 @@ interface ServiceGuardConfig {
  *   { serviceName: 'Produtos', methodName: 'createProduto', expectedType: 'create' }
  * );
  */
-export async function withServiceGuard<T = any>(
+export async function withServiceGuard<T = unknown>(
   fn: () => Promise<T> | T,
   config: ServiceGuardConfig
 ): Promise<T> {
@@ -104,7 +104,7 @@ export async function withServiceGuard<T = any>(
               `[🟡 SERVICE GUARD] ${serviceName}.${methodName}: Retornou undefined, usando null`
             );
           }
-          return sanitizeGet(result) as any;
+          return fallbackValue as T;
         }
         break;
       }
@@ -125,7 +125,7 @@ export async function withServiceGuard<T = any>(
               `[🔴 SERVICE GUARD] ${serviceName}.${methodName}: Create deve retornar { id: number }`
             );
           }
-          return sanitizeCreate(result, -1) as any;
+          return fallbackValue as T;
         }
         break;
       }
@@ -170,17 +170,17 @@ export async function withServiceGuard<T = any>(
  */
 export function ServiceGuardDecorator(expectedType: ServiceGuardConfig['expectedType']) {
   return function (
-    target: any,
+    target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       return await withServiceGuard(
         () => originalMethod.apply(this, args),
         {
-          serviceName: target.constructor.name,
+          serviceName: (target as { constructor: { name: string } }).constructor.name,
           methodName: propertyKey,
           expectedType,
           logErrors: true,
@@ -261,7 +261,7 @@ export interface ServiceIntegrityCheck {
  * Valida se função segue contrato correto
  */
 export async function checkServiceIntegrity(
-  fn: () => Promise<any>,
+  fn: () => Promise<unknown>,
   config: ServiceGuardConfig
 ): Promise<ServiceIntegrityCheck> {
   const issues: string[] = [];
@@ -291,7 +291,7 @@ export async function checkServiceIntegrity(
       }
 
       case 'create': {
-        if (!result || !('id' in result) || typeof result.id !== 'number') {
+        if (!result || typeof result !== 'object' || !('id' in result) || typeof (result as { id: unknown }).id !== 'number') {
           issues.push(`Retornou ${JSON.stringify(result)} em vez de { id: number }`);
           isSafe = false;
         }

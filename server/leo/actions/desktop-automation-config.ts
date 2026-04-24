@@ -182,13 +182,18 @@ export class DesktopAutomationManager {
    * Enable/disable specific library
    */
   setLibraryEnabled(library: string, enabled: boolean): void {
-    if (library in this.config) {
-      const configRecord = this.config as unknown as Record<string, unknown>;
-      const libConfig = configRecord[library];
-      if (hasEnabledFlag(libConfig)) {
-        libConfig.enabled = enabled;
-      }
-      
+    if (library === 'robotjs' && hasEnabledFlag(this.config.robotjs)) {
+      this.config.robotjs.enabled = enabled;
+      logInfo(`Library ${library} ${enabled ? 'enabled' : 'disabled'}`, {
+        extra: { entity: 'DesktopAutomationManager', acao: 'setLibraryEnabled', library, enabled }
+      });
+    } else if (library === 'playwright' && hasEnabledFlag(this.config.playwright)) {
+      this.config.playwright.enabled = enabled;
+      logInfo(`Library ${library} ${enabled ? 'enabled' : 'disabled'}`, {
+        extra: { entity: 'DesktopAutomationManager', acao: 'setLibraryEnabled', library, enabled }
+      });
+    } else if (library === 'nutjs' && hasEnabledFlag(this.config.nutjs)) {
+      this.config.nutjs.enabled = enabled;
       logInfo(`Library ${library} ${enabled ? 'enabled' : 'disabled'}`, {
         extra: { entity: 'DesktopAutomationManager', acao: 'setLibraryEnabled', library, enabled }
       });

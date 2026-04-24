@@ -426,16 +426,16 @@ export function jwtValidationMiddleware(options: {
       }
       
       // Adiciona payload ao request
-      (req as any).user = {
+      (req as { user?: { id: number; role: string }; tenantId?: number; vendedorId?: number; tokenInfo?: { jti: string; exp: number; iat: number } }).user = {
         id: validation.payload!.userId,
         role: validation.payload!.role,
       };
       
-      (req as any).tenantId = validation.payload!.tenantId;
-      (req as any).vendedorId = validation.payload!.vendedorId;
+      (req as { user?: { id: number; role: string }; tenantId?: number; vendedorId?: number; tokenInfo?: { jti: string; exp: number; iat: number } }).tenantId = validation.payload!.tenantId;
+      (req as { user?: { id: number; role: string }; tenantId?: number; vendedorId?: number; tokenInfo?: { jti: string; exp: number; iat: number } }).vendedorId = validation.payload!.vendedorId;
       
       // Adiciona informações do token
-      (req as any).tokenInfo = {
+      (req as { user?: { id: number; role: string }; tenantId?: number; vendedorId?: number; tokenInfo?: { jti?: string; exp?: number; iat?: number } }).tokenInfo = {
         jti: validation.payload!.jti,
         exp: validation.payload!.exp,
         iat: validation.payload!.iat,

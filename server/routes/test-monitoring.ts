@@ -106,7 +106,7 @@ router.get('/memory-leak', (req: Request, res: Response) => {
     }
     
     // Armazenar em uma variável global para evitar otimização do GC
-    (global as any).memoryLeakTest = leak;
+    (global as typeof globalThis & { memoryLeakTest?: unknown[] }).memoryLeakTest = leak;
     
     res.json({
       message: `Vazamento de memória simulado (${sizeInMB}MB)`,
@@ -135,7 +135,7 @@ router.get('/clear-memory-leak', (req: Request, res: Response) => {
     requestId: req.requestId
   });
   
-  (global as any).memoryLeakTest = null;
+  (global as { memoryLeakTest?: unknown[] }).memoryLeakTest = undefined;
   
   // Forçar coleta de lixo (não é garantido)
   try {

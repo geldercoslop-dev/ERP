@@ -8,7 +8,7 @@ import { createLogger } from './structured-logger.js';
 export function routeTracingMiddleware(routeName: string) {
   const logger = createLogger('tracing-integration');
   return (req: Request, res: Response, next: NextFunction) => {
-    const parentSpan = (req as any).traceSpan;
+    const parentSpan = (req as { traceSpan?: unknown }).traceSpan;
     if (!parentSpan) {
       return next();
     }
@@ -18,20 +18,20 @@ export function routeTracingMiddleware(routeName: string) {
       `route.${routeName}`,
       undefined,
       {
-        'route.method': (req as any).method,
-        'route.path': (req as any).path,
-        'route.params': JSON.stringify((req as any).params),
-        'route.query': JSON.stringify((req as any).query),
+        'route.method': req.method,
+        'route.path': req.path,
+        'route.params': JSON.stringify(req.params),
+        'route.query': JSON.stringify(req.query),
       }
     );
     
     // Log início da rota
     logger.debug('Route execution started', {
       metadata: {
-        traceId: (req as any).traceId,
+        traceId: (req as { traceId?: string }).traceId,
         route: routeName,
-        method: (req as any).method,
-        path: (req as any).path,
+        method: req.method,
+        path: req.path,
       },
     });
     
@@ -79,12 +79,13 @@ export function createControllerSpan(
   actionName: string,
   tags?: Record<string, any>
 ) {
-  const parentSpan = (req as any).traceSpan;
-  if (!parentSpan) return null;
+  const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
+  if (!parentSpan || !parentSpan.spanId) return null;
   
+  const context = tracer.getCurrentContext(parentSpan.spanId);
   return tracer.startSpan(
     `controller.${controllerName}.${actionName}`,
-    tracer.getCurrentContext(parentSpan.spanId) || undefined,
+    context ?? undefined,
     {
       'controller.name': controllerName,
       'controller.action': actionName,
@@ -102,14 +103,15 @@ export async function withDatabaseTracing<T>(
   query: () => Promise<T>,
   params?: any[]
 ): Promise<T> {
-  const parentSpan = (req as any).traceSpan;
-  if (!parentSpan) {
+  const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
+  if (!parentSpan || !parentSpan.spanId) {
     return await query();
   }
   
+  const context = tracer.getCurrentContext(parentSpan.spanId);
   const dbSpan = tracer.startSpan(
     `database.${operation}`,
-    tracer.getCurrentContext(parentSpan.spanId) || undefined,
+    context ?? undefined,
     {
       'db.operation': operation,
       'db.params_count': params?.length || 0,
@@ -160,14 +162,15 @@ export async function withLeoTracing<T>(
   prompt?: string,
   options?: any
 ): Promise<T> {
-  const parentSpan = (req as any).traceSpan;
-  if (!parentSpan) {
+  const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
+  if (!parentSpan || !parentSpan.spanId) {
     return await leoCall();
   }
   
+  const context = tracer.getCurrentContext(parentSpan.spanId);
   const leoSpan = tracer.startSpan(
     `leo.${operation}`,
-    tracer.getCurrentContext(parentSpan.spanId) || undefined,
+    context ?? undefined,
     {
       'leo.operation': operation,
       'leo.prompt_length': prompt?.length || 0,
@@ -219,14 +222,15 @@ export async function withServiceTracing<T>(
   serviceCall: () => Promise<T>,
   ...args: any[]
 ): Promise<T> {
-  const parentSpan = (req as any).traceSpan;
-  if (!parentSpan) {
+  const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
+  if (!parentSpan || !parentSpan.spanId) {
     return await serviceCall();
   }
   
+  const context = tracer.getCurrentContext(parentSpan.spanId);
   const serviceSpan = tracer.startSpan(
     `service.${serviceName}.${methodName}`,
-    tracer.getCurrentContext(parentSpan.spanId) || undefined,
+    context ?? undefined,
     {
       'service.name': serviceName,
       'service.method': methodName,

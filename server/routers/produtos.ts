@@ -202,7 +202,7 @@ export const produtosRouter = router({
           id: input.id,
           quantidade: input.estoque,
           audit: {
-            usuario: (ctx as any).user?.name || "Sistema",
+            usuario: (ctx as { user?: { name?: string } }).user?.name || "Sistema",
             motivo: input.motivo || "Ajuste manual",
           }
         });

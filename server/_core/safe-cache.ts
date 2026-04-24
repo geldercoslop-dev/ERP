@@ -289,7 +289,7 @@ export function withSafeCacheList<T, Args extends any[]>(
     const rawResult = await fn(...args);
     
     // Aplicar ensureArray para garantir que o resultado é um array válido
-    const safeResult = ensureArray(rawResult, context);
+    const safeResult = ensureArray<T>(rawResult, context);
     
     // Armazenar no cache apenas se for um array válido
     if (isArraySafe(safeResult)) {
@@ -345,7 +345,7 @@ export function withSafeCacheObject<T extends Record<string, any>, Args extends 
     const rawResult = await fn(...args);
     
     // Aplicar ensureObject para garantir que o resultado é um objeto válido ou null
-    const safeResult = ensureObject(rawResult, context);
+    const safeResult = ensureObject(rawResult, context) as T | null;
     
     // Armazenar no cache apenas se for um objeto válido ou null explícito
     if (safeResult === null || isObjectSafe(safeResult)) {

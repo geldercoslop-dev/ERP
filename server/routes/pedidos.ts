@@ -308,7 +308,7 @@ export async function updateStatusPedido(request: Request) {
     
     pedidos[index] = {
       ...pedidos[index],
-      status: status as any,
+      status: status as 'PENDENTE' | 'CONFIRMADO' | 'EM_PRODUCAO' | 'PRONTO' | 'ENTREGUE' | 'CANCELADO',
       data_entrega: data_entrega || pedidos[index].data_entrega
     };
     

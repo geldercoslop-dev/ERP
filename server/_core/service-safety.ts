@@ -68,7 +68,7 @@ function getCallerContext(): { service?: string; method?: string } {
  * @returns Um array garantido, nunca undefined ou null
  */
 export function ensureArray<T>(
-  result: T[] | null | undefined,
+  result: unknown,
   context?: { service?: string; method?: string; traceId?: string }
 ): ServiceList<T> {
   const callerContext = getCallerContext();
@@ -101,35 +101,29 @@ export function ensureArray<T>(
     }
     return [];
   }
-  return result;
+  return result as T[];
 }
 
 /**
- * Garante que o retorno seja sempre um objeto, mesmo quando vazio ou nulo
- * @param result - O resultado a ser normalizado
+ * Garante que o retorno seja sempre um objeto ou null
+ * @param result - O resultado a ser verificado
  * @param context - Contexto adicional para o log
- * @returns Um objeto garantido ou null, nunca undefined
+ * @returns O objeto original, null se não for um objeto seguro
  */
-export function ensureObject<T extends Record<string, unknown>>(
-  result: T | null | undefined,
+export function ensureObject<T>(
+  result: unknown,
   context?: { service?: string; method?: string; traceId?: string }
-): ServiceObject<T> {
+): T | null {
   const callerContext = getCallerContext();
   const service = context?.service || callerContext.service;
   const method = context?.method || callerContext.method;
   const traceId = context?.traceId || nanoid(10);
   
-  if (result === undefined) {
-    logError(ErrorType.UNDEFINED_RETURN, 'Valor undefined detectado, retornando null', {
-      service,
-      method,
-      traceId,
-      payload: { expectedType: 'object', actualType: 'undefined' }
-    });
+  if (result === null || result === undefined) {
     return null;
   }
   
-  if (result !== null && !isObjectSafe(result)) {
+  if (!isObjectSafe(result)) {
     logError(ErrorType.INVALID_OBJECT, 'Valor não-objeto detectado, retornando null', {
       service,
       method,
@@ -139,7 +133,7 @@ export function ensureObject<T extends Record<string, unknown>>(
     return null;
   }
   
-  return result;
+  return result as T;
 }
 
 /**
@@ -344,7 +338,7 @@ export function EnsureCreatedResult<T extends Record<string, Function>, K extend
  * @param serviceName - O nome do serviço para fins de log
  * @returns Uma versão protegida do serviço
  */
-export function createSafeService<T extends Record<string, Function>>(
+export function createSafeService<T extends Record<string, (...args: unknown[]) => Promise<unknown>>>(
   service: T,
   serviceName: string
 ): T {
@@ -358,7 +352,7 @@ export function createSafeService<T extends Record<string, Function>>(
       // Determinar o tipo de método com base no nome
       if (methodName.startsWith('get') || methodName.startsWith('list') || methodName.startsWith('find')) {
         // Métodos de busca/listagem
-        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
+        const wrappedGet = async function<TArgs extends unknown[]>(...args: TArgs): Promise<unknown> {
           const traceId = nanoid(10);
           
           try {
@@ -385,10 +379,11 @@ export function createSafeService<T extends Record<string, Function>>(
             }
             return null;
           }
-        } as unknown as T[keyof T];
+        };
+        safeService[key] = wrappedGet as T[keyof T];
       } else if (methodName.startsWith('create') || methodName.includes('add')) {
         // Métodos de criação
-        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
+        const wrappedCreate = async function<TArgs extends unknown[]>(...args: TArgs): Promise<ServiceCreatedResult> {
           const traceId = nanoid(10);
           
           try {
@@ -415,10 +410,11 @@ export function createSafeService<T extends Record<string, Function>>(
             });
             throw error;
           }
-        } as unknown as T[keyof T];
+        };
+        safeService[key] = wrappedCreate as T[keyof T];
       } else if (methodName.startsWith('update') || methodName.includes('edit')) {
         // Métodos de atualização
-        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
+        const wrappedUpdate = async function<TArgs extends unknown[]>(...args: TArgs): Promise<ServiceUpdateResult> {
           const traceId = nanoid(10);
           
           try {
@@ -433,10 +429,11 @@ export function createSafeService<T extends Record<string, Function>>(
             });
             throw error;
           }
-        } as unknown as T[keyof T];
+        };
+        safeService[key] = wrappedUpdate as T[keyof T];
       } else if (methodName.startsWith('delete') || methodName.includes('remove')) {
         // Métodos de exclusão
-        safeService[key] = async function<TArgs extends unknown[]>(...args: TArgs) {
+        const wrappedDelete = async function<TArgs extends unknown[]>(...args: TArgs): Promise<ServiceDeleteResult> {
           const traceId = nanoid(10);
           
           try {
@@ -451,10 +448,11 @@ export function createSafeService<T extends Record<string, Function>>(
             });
             throw error;
           }
-        } as unknown as T[keyof T];
+        };
+        safeService[key] = wrappedDelete as T[keyof T];
       } else {
-        // Outros métodos
-        safeService[key] = originalMethod.bind(service);
+        // Outros métodos - bind preserves the original function signature
+        safeService[key] = originalMethod.bind(service) as T[keyof T];
       }
     } else {
       safeService[key] = originalMethod;

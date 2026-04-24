@@ -97,11 +97,11 @@ export class ProductTool {
 
       
 
-      const data = result.data as unknown as ServiceCreateResponse | undefined;
+      const data = result.data as ServiceCreateResponse | undefined;
 
       console.log(`[ProductTool] Produto criado com sucesso:`, { 
 
-        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as { id: number }).id : 'unknown',
 
         timestamp: new Date().toISOString() 
 
@@ -175,11 +175,11 @@ export class ProductTool {
 
       
 
-      const data = result.data as unknown as ServiceCreateResponse | undefined;
+      const data = result.data as ServiceCreateResponse | undefined;
 
       console.log(`[ProductTool] Listagem concluída:`, { 
 
-        count: typeof data === 'object' && data !== null && 'items' in data && Array.isArray((data as any).items) ? (data as any).items.length : 0,
+        count: typeof data === 'object' && data !== null && 'items' in data && Array.isArray((data as { items: unknown[] }).items) ? (data as { items: unknown[] }).items.length : 0,
 
         timestamp: new Date().toISOString() 
 
@@ -249,11 +249,11 @@ export class ProductTool {
 
       
 
-      const data = result.data as unknown as ServiceCreateResponse | undefined;
+      const data = result.data as ServiceCreateResponse | undefined;
 
       console.log(`[ProductTool] Produto atualizado com sucesso:`, { 
 
-        id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',
+        id: typeof data === 'object' && data !== null && 'id' in data ? (data as { id: number }).id : 'unknown',
 
         timestamp: new Date().toISOString() 
 

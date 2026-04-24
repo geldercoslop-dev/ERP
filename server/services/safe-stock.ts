@@ -213,7 +213,7 @@ class SafeStockService {
   private async lockProduct(tx: DbTx, tenantId: number, produtoId: number): Promise<Record<string, unknown> | null> {
     try {
       // Usar prepared statement para maior segurança e controle
-      const runner = tx as unknown as {
+      const runner = tx as {
         execute: (q: string, p?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
       };
       const [rows] = await runner.execute(
@@ -330,10 +330,8 @@ class SafeStockService {
           .where(sql`${produtos.tenantId} = ${tenantId} AND ${produtos.id} = ${produtoId}`);
       }
 
-      const r0 = Array.isArray(result) ? result[0] : result;
-      const meta =
-        r0 && typeof r0 === "object" ? (r0 as unknown as Record<string, unknown>) : {};
-      const affectedRows = typeof meta.affectedRows === "number" ? meta.affectedRows : 0;
+      const dbResult = Array.isArray(result) ? result[0] : result;
+      const affectedRows = (dbResult && typeof dbResult === "object" && 'affectedRows' in dbResult && typeof dbResult.affectedRows === "number") ? dbResult.affectedRows : 0;
 
       if (affectedRows === 0) {
         return {

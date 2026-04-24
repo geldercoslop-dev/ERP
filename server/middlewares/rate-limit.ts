@@ -177,7 +177,7 @@ function setRateLimitHeaders(res: Response, config: RateLimitConfig, entry: Rate
   const resetTime = Math.ceil((entry.resetAt - Date.now()) / 1000);
   
   // HSTS apenas em HTTPS
-  if (res.req.protocol === 'https' || (res.req as any).secure) {
+  if (res.req.protocol === 'https' || (res.req as { secure?: boolean }).secure) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
   

@@ -77,7 +77,7 @@ export type PaymentResult = {
  * @returns Resultado da operação
  */
 export async function registerPaymentSafe(paymentData: PaymentData): Promise<PaymentResult> {
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     console.log(`[SafePayment] Registrando pagamento - Tipo: ${paymentData.tipo}, Valor: ${paymentData.valor}`);
 
     // 1. Validar dados obrigatórios
@@ -222,7 +222,7 @@ export async function cancelPaymentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<PaymentResult> {
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     console.log(`[SafePayment] Cancelando pagamento - ID: ${paymentId}`);
 
     // 1. Buscar pagamento com bloqueio
@@ -314,7 +314,7 @@ export async function reconcilePaymentsSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; message: string; reconciliados: number[] }> {
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     console.log(`[SafePayment] Conciliando ${payments.length} pagamentos`);
 
     const reconciliados: number[] = [];

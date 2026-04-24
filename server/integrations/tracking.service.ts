@@ -22,20 +22,20 @@ export async function rastrearEntrega(codigo: string): Promise<{
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return { ok: false, erro: "Serviço de rastreio indisponível." };
-    const data = (await res.json()) as any;
-    const eventos = (data.eventos ?? []).map((e: any) => ({
-      data: e.data ?? "",
-      hora: e.hora,
-      descricao: e.descricao ?? e.status ?? "",
-      local: e.unidade?.local ?? e.unidade?.cidade ?? e.local,
+    const data = await res.json() as unknown;
+    const eventos = ((data as { eventos?: unknown[] }).eventos ?? []).map((e: unknown) => ({
+      data: (e as { data?: string }).data ?? "",
+      hora: (e as { hora?: string }).hora,
+      descricao: (e as { descricao?: string; status?: string }).descricao ?? (e as { status?: string }).status ?? "",
+      local: (e as { unidade?: { local?: string; cidade?: string }; local?: string }).unidade?.local ?? (e as { unidade?: { cidade?: string } }).unidade?.cidade ?? (e as { local?: string }).local,
     }));
     return {
       ok: true,
       codigo: c,
       eventos: eventos.length ? eventos : undefined,
     };
-  } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Timeout ao rastrear. Tente novamente." : e?.message ?? "Erro ao rastrear. Verifique o código.";
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao rastrear. Tente novamente." : (e instanceof Error ? e.message : "Erro ao rastrear. Verifique o código.");
     return { ok: false, erro: msg };
   }
 }

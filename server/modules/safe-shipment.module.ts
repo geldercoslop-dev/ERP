@@ -77,7 +77,7 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
     };
   }
 
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     console.log(`[SafeShipment] Criando carga - Placa: ${shipmentData.placa}, Motorista: ${shipmentData.motorista}`);
 
     // 1. Validar dados obrigatórios
@@ -251,7 +251,7 @@ export async function startShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     console.log(`[SafeShipment] Iniciando carga - ID: ${shipmentId}`);
 
     // 1. Buscar carga com bloqueio
@@ -326,7 +326,7 @@ export async function finishShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     console.log(`[SafeShipment] Finalizando carga - ID: ${shipmentId}`);
 
     // 1. Buscar carga com bloqueio
@@ -409,7 +409,7 @@ export async function removeOrderFromShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: TransactionConnection) => {
+  return runTransaction(async (tx: any) => {
     console.log(`[SafeShipment] Removendo pedido da carga - Carga: ${shipmentId}, Pedido: ${pedidoId}`);
 
     // 1. Validar carga

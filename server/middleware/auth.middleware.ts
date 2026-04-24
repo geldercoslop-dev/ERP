@@ -1,11 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import type { JWTPayload } from '../security/jwt-auth.js';
 
-type Payload = Record<string, unknown>;
 type AuthenticatedRequest = Request & {
   user?: Request['user'];
   userId?: number;
 };
+
+function isJWTPayload(value: unknown): value is JWTPayload {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userId' in value &&
+    'tenantId' in value &&
+    'email' in value &&
+    'role' in value &&
+    'sessionId' in value &&
+    typeof (value as JWTPayload).userId === 'number' &&
+    typeof (value as JWTPayload).tenantId === 'number' &&
+    typeof (value as JWTPayload).email === 'string' &&
+    typeof (value as JWTPayload).role === 'string' &&
+    typeof (value as JWTPayload).sessionId === 'string'
+  );
+}
 
 /**
  * AUTHENTICATION MIDDLEWARE
@@ -49,11 +66,21 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, getJwtSecret()) as Payload;
+    const decoded = jwt.verify(token, getJwtSecret());
+    
+    // Validate decoded token structure
+    if (!isJWTPayload(decoded)) {
+      res.status(401).json({
+        success: false,
+        error: 'Invalid token structure',
+        message: 'Authentication failed'
+      });
+      return;
+    }
     
     // Attach user info to request
-    authReq.user = decoded as unknown as Request['user'];
-    authReq.userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);
+    authReq.user = decoded as Request['user'];
+    authReq.userId = decoded.userId;
     
     next();
   } catch (error: unknown) {
@@ -88,10 +115,12 @@ export function optionalAuthMiddleware(req: Request, res: Response, next: NextFu
       return next();
     }
 
-    const decoded = jwt.verify(token, getJwtSecret()) as Payload;
+    const decoded = jwt.verify(token, getJwtSecret());
     
-    authReq.user = decoded as unknown as Request['user'];
-    authReq.userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(decoded.userId as string);
+    if (isJWTPayload(decoded)) {
+      authReq.user = decoded as Request['user'];
+      authReq.userId = decoded.userId;
+    }
     
     next();
   } catch (error: unknown) {

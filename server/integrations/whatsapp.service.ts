@@ -35,11 +35,11 @@ export async function enviarMensagemWhatsApp(
           }),
         }
       );
-      const data = (await res.json()) as any;
+      const data = await res.json() as { message?: string; error?: string };
       if (!res.ok) return { ok: false, erro: data?.message ?? data?.error ?? "Falha ao enviar." };
       return { ok: true };
-    } catch (e: any) {
-      return { ok: false, erro: e?.message ?? "Erro Z-API." };
+    } catch (e: unknown) {
+      return { ok: false, erro: e instanceof Error ? e.message : "Erro Z-API." };
     }
   }
   const evolution = getEvolutionBase();

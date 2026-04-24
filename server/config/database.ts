@@ -254,9 +254,9 @@ async function testPool(pool: mysql.Pool, maxRetries = 10): Promise<void> {
       console.error(`[Database] Connection test failed (attempt ${attempt}/${maxRetries}):`, {
         message: msg,
         code,
-        errno: (error as any)?.errno,
-        sqlState: (error as any)?.sqlState,
-        fatal: (error as any)?.fatal,
+        errno: error && typeof error === "object" && "errno" in error ? (error as { errno?: number }).errno : undefined,
+        sqlState: error && typeof error === "object" && "sqlState" in error ? (error as { sqlState?: string }).sqlState : undefined,
+        fatal: error && typeof error === "object" && "fatal" in error ? (error as { fatal?: boolean }).fatal : undefined,
         stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString()
       });
@@ -333,7 +333,7 @@ async function _executeQueryCore(
 
   try {
     conn = await getConnection();
-    const result = await conn.query(query, params as any[]);
+    const result = await conn.query(query, params as unknown[]);
 
     const duration = Date.now() - startTime;
     recordDatabase({

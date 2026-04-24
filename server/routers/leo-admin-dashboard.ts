@@ -17,7 +17,7 @@ import { leoLoopProtection } from '../leo/security/leo-loop-protection.js';
 import { leoErpObserver } from '../leo/perception/leo-erp-observer.js';
 import { leoEvents } from '../leo/memory/leo-events.js';
 import { leoPlanner } from '../leo/planning/leo-planner.js';
-import { LeoTaskStatus } from "../../shared/types/index.js";
+import { LeoTaskStatus, LeoTaskType, LeoTaskPriority, LeoEventType, LeoEventPriority } from "../../shared/types/index.js";
 import type { LeoTask, LeoEvent } from "../../shared/types/index.js";
 
 export const leoAdminDashboardRouter = router({
@@ -59,7 +59,7 @@ export const leoAdminDashboardRouter = router({
         status: {
           agent: {
             online: (() => {
-              const s = engineStatus as unknown as { online?: boolean; running?: boolean };
+              const s = engineStatus as { online?: boolean; running?: boolean };
               return typeof s.online === "boolean" ? s.online : Boolean(s.running);
             })(),
             uptime: engineStatus.uptime,
@@ -296,10 +296,10 @@ export const leoAdminDashboardRouter = router({
       try {
         const task = await leoTaskQueue.addTask({
           id: `task-${Date.now()}`,
-          type: input.type as any,
-          priority: input.priority as any,
+          type: input.type as LeoTaskType,
+          priority: input.priority as LeoTaskPriority,
           payload: input.payload,
-          status: 'pending' as any,
+          status: 'pending' as LeoTaskStatus,
           maxAttempts: 3,
         });
         
@@ -362,10 +362,10 @@ export const leoAdminDashboardRouter = router({
     .mutation(async ({ input }) => {
       try {
         await leoEvents.registerEvent({
-          tipo: 'comando' as any,
+          tipo: 'comando' as LeoEventType,
           descricao: `Evento ${input.eventId} resolvido: ${input.resolution}`,
           dados: { eventId: input.eventId, resolution: input.resolution },
-          prioridade: 'media' as any,
+          prioridade: 'media' as LeoEventPriority,
           usuarioCriador: 'leo-admin'
         });
         

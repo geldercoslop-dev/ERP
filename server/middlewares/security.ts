@@ -200,7 +200,7 @@ function applySecurityHeaders(res: Response, req: Request): void {
   });
   
   // HSTS apenas em HTTPS
-  if (req.protocol === 'https' || (req as any).secure) {
+  if (req.protocol === 'https' || (req as { secure?: boolean }).secure) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
   

@@ -9,7 +9,11 @@ import { getDb } from '../db/index.js';
  */
 async function testIdempotencyReal() {
   console.log('🧪 INICIANDO TESTE REAL DE IDEMPOTÊNCIA...');
-  const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+  const tenantId = Number(process.env.TEST_TENANT_ID);
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    console.error("❌ TEST_TENANT_ID não fornecido ou inválido. Defina TEST_TENANT_ID como variável de ambiente.");
+    process.exit(1);
+  }
   const pedidoData = {
     vendedorId: 1,
     clienteId: 1,
@@ -109,7 +113,11 @@ async function testIdempotencyReal() {
  */
 async function testEstoqueLock() {
   console.log('\n🔒 TESTANDO LOCK NO ESTOQUE...');
-  const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
+  const tenantId = Number(process.env.TEST_TENANT_ID);
+  if (!Number.isFinite(tenantId) || tenantId <= 0) {
+    console.error("❌ TEST_TENANT_ID não fornecido ou inválido. Defina TEST_TENANT_ID como variável de ambiente.");
+    process.exit(1);
+  }
   const pedidoDataEstoqueBaixo = {
     vendedorId: 1,
     clienteId: 1,

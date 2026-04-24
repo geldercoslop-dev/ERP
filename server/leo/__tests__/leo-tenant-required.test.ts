@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { executeLeoAction, LeoActionRequest } from '../actions/leo-actions';
 import { leoErpService } from '../../services/leo-service';
 
-const INVALID_TENANT = undefined as unknown as number;
+const INVALID_TENANT = undefined as number;
 const VALID_ACTOR = { id: 1, nome: 'Teste', role: 'vendedor', vendedorId: 1 };
 
 function expectTenantError(err: unknown) {
