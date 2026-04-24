@@ -1,0 +1,1 @@
+{"version":3,"file":"pageLayout-B1qSVV6r.js","sources":["../../../client/src/components/layout/pageLayout.ts"],"sourcesContent":["// Classes padrão para layout de páginas\r\nexport const PAGE_WRAPPER = \"w-full\";\r\nexport const PAGE_MAIN = \"w-full\";"],"names":["PAGE_WRAPPER","PAGE_MAIN"],"mappings":"AACO,MAAMA,EAAe,SACfC,EAAY"}

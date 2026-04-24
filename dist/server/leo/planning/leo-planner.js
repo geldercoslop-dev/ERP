@@ -1,0 +1,1157 @@
+/**
+ * Planner de Tarefas do LEO
+ *
+ * Responsável por decompor tarefas complexas em subtarefas executáveis
+ * Analisa o objetivo e cria um plano de ação detalhado
+ */
+import { leoMemory } from '../memory/leo-memory.js';
+import { LeoTaskStatus, LeoTaskPriority } from "../../../shared/types/index.js";
+import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
+async function insertLeoActionLog(params) {
+    await insertLeoLegacyActionLog(params);
+}
+/**
+ * Planner de tarefas do Leo
+ */
+class LeoPlanner {
+    static instance;
+    activePlans = new Map();
+    strategies = new Map();
+    decisionHistory = new Map();
+    autoApprovalThreshold = 0.8; // Novo
+    maxConcurrentPlans = 10; // Novo
+    constructor() {
+        this.initializeStrategies();
+    }
+    static getInstance() {
+        if (!LeoPlanner.instance) {
+            LeoPlanner.instance = new LeoPlanner();
+        }
+        return LeoPlanner.instance;
+    }
+    /**
+     * Cria um plano para uma tarefa complexa
+     */
+    async plan(task) {
+        try {
+            console.log(`📋 [LeoPlanner] Planejando tarefa: ${task.description}`);
+            // Verificar se já existe plano para esta tarefa
+            if (this.activePlans.has(task.id)) {
+                return this.activePlans.get(task.id);
+            }
+            // Analisar complexidade da tarefa
+            const complexity = this.analyzeTaskComplexity(task);
+            console.log(`📊 Complexidade da tarefa: ${complexity}/10`);
+            // Gerar subtarefas baseado no tipo
+            const subTasks = await this.generateSubTasks(task, complexity);
+            // Criar plano
+            const plan = {
+                id: `plan_${task.id}_${Date.now()}`,
+                mainTask: task,
+                subTasks,
+                createdAt: new Date(),
+                status: 'ready',
+                totalEstimatedDuration: subTasks.reduce((sum, sub) => sum + (sub.estimatedDuration ?? 0), 0),
+                progress: 0,
+            };
+            // Validar plano
+            if (!this.validatePlan(plan)) {
+                throw new ValidationError('Plano gerado inválido');
+            }
+            // Salvar plano
+            this.activePlans.set(plan.id, plan);
+            // Registrar planejamento
+            await insertLeoActionLog({
+                usuario: 'leo-planner',
+                acao: 'criar_plano',
+                entidade: 'leo_planner',
+                dados: JSON.stringify({
+                    taskId: task.id,
+                    planId: plan.id,
+                    complexity,
+                    subTasksCount: subTasks.length,
+                    estimatedDuration: plan.totalEstimatedDuration,
+                }),
+                resultado: 'SUCESSO',
+            });
+            // Salvar na memória para aprendizado futuro
+            await leoMemory.addLearningExperience({
+                taskType: task.type,
+                complexity,
+                subTasksGenerated: subTasks.length,
+                timestamp: new Date(),
+                success: true,
+                executionTime: 0,
+                outcome: 'success',
+                lessons: [],
+            });
+            console.log(`✅ [LeoPlanner] Plano criado com ${subTasks.length} subtarefas`);
+            return plan;
+        }
+        catch (error) {
+            console.error('[LeoPlanner] Erro ao planejar tarefa:', error);
+            await insertLeoActionLog({
+                usuario: 'leo-planner',
+                acao: 'erro_planejamento',
+                entidade: 'leo_planner',
+                dados: JSON.stringify({
+                    taskId: task.id,
+                    error: error instanceof Error ? error.message : error,
+                }),
+                resultado: 'ERRO',
+            });
+            throw error;
+        }
+    }
+    /**
+     * Obtém próxima subtarefa a ser executada
+     */
+    getNextSubTask(planId) {
+        const plan = this.activePlans.get(planId);
+        if (!plan || plan.status !== 'executing') {
+            return null;
+        }
+        // Encontrar subtarefas pendentes sem dependências não concluídas
+        for (const subTask of plan.subTasks) {
+            if (subTask.status === LeoTaskStatus.PENDING) {
+                // Verificar dependências
+                const dependenciesCompleted = !subTask.dependencies ||
+                    subTask.dependencies.every(depId => {
+                        const dep = plan.subTasks.find(st => st.id === depId);
+                        return dep && dep.status === LeoTaskStatus.DONE;
+                    });
+                if (dependenciesCompleted) {
+                    return subTask;
+                }
+            }
+        }
+        return null;
+    }
+    /**
+     * Atualiza status de uma subtarefa
+     */
+    async updateSubTaskStatus(planId, subTaskId, status, result, error) {
+        const plan = this.activePlans.get(planId);
+        if (!plan)
+            return;
+        const subTask = plan.subTasks.find(st => st.id === subTaskId);
+        if (!subTask)
+            return;
+        // Atualizar subtarefa
+        subTask.status = status;
+        if (result)
+            subTask.result = result;
+        if (error)
+            subTask.error = error;
+        if (status === LeoTaskStatus.RUNNING) {
+            subTask.startTime = new Date();
+        }
+        else if (status === LeoTaskStatus.DONE || status === LeoTaskStatus.ERROR) {
+            subTask.endTime = new Date();
+        }
+        // Recalcular progresso do plano
+        const completedTasks = plan.subTasks.filter((st) => st.status === LeoTaskStatus.DONE).length;
+        plan.progress = (completedTasks / (plan.subTasks.length || 1)) * 100;
+        // Verificar se plano foi concluído
+        const allCompleted = plan.subTasks.every(st => st.status === LeoTaskStatus.DONE || st.status === LeoTaskStatus.ERROR);
+        if (allCompleted) {
+            plan.status = 'completed';
+            await insertLeoActionLog({
+                usuario: 'leo-planner',
+                acao: 'plano_concluido',
+                entidade: 'leo_planner',
+                dados: JSON.stringify({
+                    planId,
+                    progress: plan.progress,
+                    duration: Date.now() - plan.createdAt.getTime(),
+                }),
+                resultado: 'SUCESSO',
+            });
+        }
+        console.log(`📈 [LeoPlanner] Progresso do plano ${planId}: ${plan.progress.toFixed(1)}%`);
+    }
+    /**
+     * Inicia execução de um plano
+     */
+    startExecution(planId) {
+        const plan = this.activePlans.get(planId);
+        if (!plan || plan.status !== 'ready') {
+            return false;
+        }
+        plan.status = 'executing';
+        console.log(`🚀 [LeoPlanner] Iniciando execução do plano ${planId}`);
+        return true;
+    }
+    /**
+     * Analisa complexidade de uma tarefa
+     */
+    analyzeTaskComplexity(task) {
+        const strategy = this.strategies.get(task.type);
+        if (strategy) {
+            return strategy.analyzeComplexity(task);
+        }
+        // Análise genérica baseada em fatores
+        let complexity = 1;
+        // Fator: tipo de tarefa
+        const typeComplexity = {
+            'resolver_estoque_baixo': 4,
+            'processar_pedido_em_lote': 6,
+            'analisar_vendas': 3,
+            'backup_completo': 2,
+            'migracao_dados': 9,
+            'relatorio_complexo': 5,
+            'integracao_sistema': 8,
+        };
+        complexity += typeComplexity[task.type] || 3;
+        // Fator: prioridade
+        if (task.priority === LeoTaskPriority.CRITICAL)
+            complexity += 2;
+        else if (task.priority === LeoTaskPriority.HIGH)
+            complexity += 1;
+        // Fator: parâmetros
+        if (task.parameters) {
+            const paramCount = Object.keys(task.parameters).length;
+            complexity += Math.min(paramCount / 2, 2);
+        }
+        return Math.min(Math.max(complexity, 1), 10);
+    }
+    /**
+     * Gera subtarefas baseado na tarefa e complexidade
+     */
+    async generateSubTasks(task, complexity) {
+        const strategy = this.strategies.get(task.type);
+        if (strategy) {
+            return strategy.generateSteps(task);
+        }
+        // Geração genérica baseada no tipo
+        switch (task.type) {
+            case 'resolver_estoque_baixo':
+                return this.generateEstoqueBaixoSteps(task);
+            case 'processar_pedido_em_lote':
+                return this.generateProcessamentoLoteSteps(task);
+            case 'analisar_vendas':
+                return this.generateAnaliseVendasSteps(task);
+            case 'backup_completo':
+                return this.generateBackupSteps(task);
+            case 'relatorio_complexo':
+                return this.generateRelatorioSteps(task);
+            default:
+                return this.generateGenericSteps(task, complexity);
+        }
+    }
+    /**
+     * Estratégias específicas para diferentes tipos de tarefas
+     */
+    generateEstoqueBaixoSteps(task) {
+        return [
+            {
+                id: `${task.id}_verificar_estoque`,
+                parentTaskId: task.id,
+                type: 'consulta',
+                description: 'Verificar níveis atuais de estoque',
+                action: 'consultar_estoque_atual',
+                estimatedDuration: 2,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_identificar_produtos_criticos`,
+                parentTaskId: task.id,
+                type: 'analise',
+                description: 'Identificar produtos com estoque crítico',
+                action: 'identificar_produtos_criticos',
+                dependencies: [`${task.id}_verificar_estoque`],
+                estimatedDuration: 3,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_verificar_fornecedores`,
+                parentTaskId: task.id,
+                type: 'consulta',
+                description: 'Verificar fornecedores disponíveis',
+                action: 'consultar_fornecedores',
+                dependencies: [`${task.id}_identificar_produtos_criticos`],
+                estimatedDuration: 2,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_criar_pedido_compra`,
+                parentTaskId: task.id,
+                type: 'operacao',
+                description: 'Criar pedido de compra automático',
+                action: 'criar_pedido_compra',
+                dependencies: [`${task.id}_verificar_fornecedores`],
+                estimatedDuration: 5,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_atualizar_sistema`,
+                parentTaskId: task.id,
+                type: 'operacao',
+                description: 'Atualizar sistema com novo pedido',
+                action: 'atualizar_sistema_pedido',
+                dependencies: [`${task.id}_criar_pedido_compra`],
+                estimatedDuration: 2,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_notificar_usuario`,
+                parentTaskId: task.id,
+                type: 'notificacao',
+                description: 'Notificar usuário sobre reposição',
+                action: 'enviar_notificacao',
+                dependencies: [`${task.id}_atualizar_sistema`],
+                estimatedDuration: 1,
+                status: LeoTaskStatus.PENDING,
+            },
+        ];
+    }
+    generateProcessamentoLoteSteps(task) {
+        return [
+            {
+                id: `${task.id}_validar_dados`,
+                parentTaskId: task.id,
+                type: 'validacao',
+                description: 'Validar dados do lote',
+                action: 'validar_lote_dados',
+                estimatedDuration: 3,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_processar_individual`,
+                parentTaskId: task.id,
+                type: 'operacao',
+                description: 'Processar cada item do lote',
+                action: 'processar_itens_lote',
+                dependencies: [`${task.id}_validar_dados`],
+                estimatedDuration: 10,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_gerar_relatorio`,
+                parentTaskId: task.id,
+                type: 'relatorio',
+                description: 'Gerar relatório do processamento',
+                action: 'gerar_relatorio_lote',
+                dependencies: [`${task.id}_processar_individual`],
+                estimatedDuration: 2,
+                status: LeoTaskStatus.PENDING,
+            },
+        ];
+    }
+    generateAnaliseVendasSteps(task) {
+        return [
+            {
+                id: `${task.id}_coletar_dados`,
+                parentTaskId: task.id,
+                type: 'consulta',
+                description: 'Coletar dados de vendas',
+                action: 'coletar_dados_vendas',
+                estimatedDuration: 3,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_analisar_tendencias`,
+                parentTaskId: task.id,
+                type: 'analise',
+                description: 'Analisar tendências e padrões',
+                action: 'analisar_tendencias_vendas',
+                dependencies: [`${task.id}_coletar_dados`],
+                estimatedDuration: 5,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_identificar_oportunidades`,
+                parentTaskId: task.id,
+                type: 'analise',
+                description: 'Identificar oportunidades e problemas',
+                action: 'identificar_oportunidades_vendas',
+                dependencies: [`${task.id}_analisar_tendencias`],
+                estimatedDuration: 3,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_gerar_insights`,
+                parentTaskId: task.id,
+                type: 'relatorio',
+                description: 'Gerar insights e recomendações',
+                action: 'gerar_insights_vendas',
+                dependencies: [`${task.id}_identificar_oportunidades`],
+                estimatedDuration: 4,
+                status: LeoTaskStatus.PENDING,
+            },
+        ];
+    }
+    generateBackupSteps(task) {
+        return [
+            {
+                id: `${task.id}_verificar_espaco`,
+                parentTaskId: task.id,
+                type: 'verificacao',
+                description: 'Verificar espaço disponível',
+                action: 'verificar_espaco_backup',
+                estimatedDuration: 1,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_backup_banco`,
+                parentTaskId: task.id,
+                type: 'operacao',
+                description: 'Fazer backup do banco de dados',
+                action: 'backup_banco_dados',
+                dependencies: [`${task.id}_verificar_espaco`],
+                estimatedDuration: 10,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_backup_arquivos`,
+                parentTaskId: task.id,
+                type: 'operacao',
+                description: 'Fazer backup dos arquivos',
+                action: 'backup_arquivos',
+                dependencies: [`${task.id}_backup_banco`],
+                estimatedDuration: 5,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_validar_backup`,
+                parentTaskId: task.id,
+                type: 'validacao',
+                description: 'Validar integridade do backup',
+                action: 'validar_integridade_backup',
+                dependencies: [`${task.id}_backup_arquivos`],
+                estimatedDuration: 3,
+                status: LeoTaskStatus.PENDING,
+            },
+        ];
+    }
+    generateRelatorioSteps(task) {
+        return [
+            {
+                id: `${task.id}_definir_escopo`,
+                parentTaskId: task.id,
+                type: 'planejamento',
+                description: 'Definir escopo do relatório',
+                action: 'definir_escopo_relatorio',
+                estimatedDuration: 2,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_coletar_dados_relatorio`,
+                parentTaskId: task.id,
+                type: 'consulta',
+                description: 'Coletar dados para o relatório',
+                action: 'coletar_dados_relatorio',
+                dependencies: [`${task.id}_definir_escopo`],
+                estimatedDuration: 5,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_processar_dados`,
+                parentTaskId: task.id,
+                type: 'processamento',
+                description: 'Processar e analisar dados',
+                action: 'processar_dados_relatorio',
+                dependencies: [`${task.id}_coletar_dados_relatorio`],
+                estimatedDuration: 8,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_gerar_visualizacoes`,
+                parentTaskId: task.id,
+                type: 'geracao',
+                description: 'Gerar gráficos e visualizações',
+                action: 'gerar_visualizacoes',
+                dependencies: [`${task.id}_processar_dados`],
+                estimatedDuration: 4,
+                status: LeoTaskStatus.PENDING,
+            },
+            {
+                id: `${task.id}_compilar_relatorio`,
+                parentTaskId: task.id,
+                type: 'compilacao',
+                description: 'Compilar relatório final',
+                action: 'compilar_relatorio_final',
+                dependencies: [`${task.id}_gerar_visualizacoes`],
+                estimatedDuration: 3,
+                status: LeoTaskStatus.PENDING,
+            },
+        ];
+    }
+    generateGenericSteps(task, complexity) {
+        const steps = [];
+        // Passo 1: Análise inicial
+        steps.push({
+            id: `${task.id}_analise_inicial`,
+            parentTaskId: task.id,
+            type: 'analise',
+            description: 'Analisar requisitos e contexto',
+            action: 'analise_inicial_tarefa',
+            estimatedDuration: Math.max(2, complexity),
+            status: LeoTaskStatus.PENDING,
+        });
+        // Passo 2: Preparação
+        steps.push({
+            id: `${task.id}_preparacao`,
+            parentTaskId: task.id,
+            type: 'preparacao',
+            description: 'Preparar recursos e ambiente',
+            action: 'preparar_ambiente',
+            dependencies: [`${task.id}_analise_inicial`],
+            estimatedDuration: Math.max(1, complexity / 2),
+            status: LeoTaskStatus.PENDING,
+        });
+        // Passo 3: Execução principal
+        steps.push({
+            id: `${task.id}_execucao_principal`,
+            parentTaskId: task.id,
+            type: 'execucao',
+            description: 'Executar tarefa principal',
+            action: 'executar_tarefa_principal',
+            dependencies: [`${task.id}_preparacao`],
+            estimatedDuration: Math.max(5, complexity * 2),
+            status: LeoTaskStatus.PENDING,
+        });
+        // Passo 4: Validação
+        steps.push({
+            id: `${task.id}_validacao`,
+            parentTaskId: task.id,
+            type: 'validacao',
+            description: 'Validar resultados',
+            action: 'validar_resultados',
+            dependencies: [`${task.id}_execucao_principal`],
+            estimatedDuration: Math.max(2, complexity),
+            status: LeoTaskStatus.PENDING,
+        });
+        // Passo 5: Finalização
+        steps.push({
+            id: `${task.id}_finalizacao`,
+            parentTaskId: task.id,
+            type: 'finalizacao',
+            description: 'Finalizar e documentar',
+            action: 'finalizar_tarefa',
+            dependencies: [`${task.id}_validacao`],
+            estimatedDuration: 1,
+            status: LeoTaskStatus.PENDING,
+        });
+        return steps;
+    }
+    /**
+     * Valida se um plano é executável
+     */
+    validatePlan(plan) {
+        // Verificar se há subtarefas
+        if (plan.subTasks.length === 0) {
+            console.error('[LeoPlanner] Plano inválido: sem subtarefas');
+            return false;
+        }
+        // Verificar se há pelo menos uma subtarefa sem dependências
+        const hasStandaloneTask = plan.subTasks.some(st => !st.dependencies || st.dependencies.length === 0);
+        if (!hasStandaloneTask) {
+            console.error('[LeoPlanner] Plano inválido: todas as subtarefas têm dependências');
+            return false;
+        }
+        // Verificar se as dependências são válidas
+        for (const subTask of plan.subTasks) {
+            if (subTask.dependencies) {
+                for (const depId of subTask.dependencies) {
+                    const dependency = plan.subTasks.find(st => st.id === depId);
+                    if (!dependency) {
+                        console.error(`[LeoPlanner] Plano inválido: dependência ${depId} não encontrada`);
+                        return false;
+                    }
+                }
+            }
+        }
+        // Verificar se há ciclo nas dependências
+        if (this.hasCyclicDependencies(plan.subTasks)) {
+            console.error('[LeoPlanner] Plano inválido: dependências cíclicas detectadas');
+            return false;
+        }
+        return true;
+    }
+    /**
+     * Verifica se há dependências cíclicas
+     */
+    hasCyclicDependencies(subTasks) {
+        const visited = new Set();
+        const recursionStack = new Set();
+        const hasCycle = (taskId) => {
+            if (recursionStack.has(taskId)) {
+                return true;
+            }
+            if (visited.has(taskId)) {
+                return false;
+            }
+            visited.add(taskId);
+            recursionStack.add(taskId);
+            const task = subTasks.find(st => st.id === taskId);
+            if (task && task.dependencies) {
+                for (const depId of task.dependencies) {
+                    if (hasCycle(depId)) {
+                        return true;
+                    }
+                }
+            }
+            recursionStack.delete(taskId);
+            return false;
+        };
+        for (const subTask of subTasks) {
+            if (hasCycle(subTask.id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Analisa uma decisão e determina a ação recomendada
+     */
+    async analyzeDecision(task, context) {
+        try {
+            console.log(`🧠 [LeoPlanner] Analisando decisão para tarefa: ${task.description}`);
+            // Avaliar impacto de negócio
+            const businessImpact = this.assessBusinessImpact(task, context);
+            const riskLevel = this.assessRisk(task, context);
+            const confidence = this.calculateConfidence(task, context);
+            // Lógica de decisão baseada no contexto
+            let action;
+            let reason;
+            let suggestedPriority;
+            // Verificar se deve executar imediatamente
+            if (this.shouldExecuteImmediately(task, context)) {
+                action = 'execute';
+                reason = 'Tarefa requer atenção imediata baseado no contexto de negócio';
+                suggestedPriority = this.adjustPriorityBasedOnImpact(task.priority, businessImpact);
+            }
+            else if (this.shouldDefer(task, context)) {
+                action = 'defer';
+                reason = 'Tarefa deve ser adiada devido a recursos limitados ou baixa prioridade';
+                suggestedPriority = LeoTaskPriority.LOW;
+            }
+            else if (this.shouldDelegate(task, context)) {
+                action = 'delegate';
+                reason = 'Tarefa requer especialização ou recursos específicos';
+                suggestedPriority = task.priority;
+            }
+            else {
+                action = 'execute';
+                reason = 'Tarefa pode ser executada normalmente';
+                suggestedPriority = task.priority;
+            }
+            const estimatedSuccess = this.estimateSuccessProbability(task, context);
+            const riskMitigation = this.generateRiskMitigation(task, riskLevel);
+            const decision = {
+                action,
+                reason,
+                confidence,
+                estimatedSuccess,
+                suggestedPriority,
+                riskMitigation,
+            };
+            // Salvar histórico de decisões
+            this.saveDecisionHistory(task.id, decision);
+            console.log(`🎯 Decisão analisada: ${action} - ${reason} (confiança: ${confidence}%)`);
+            return decision;
+        }
+        catch (error) {
+            console.error('[LeoPlanner] Erro na análise de decisão:', error);
+            return {
+                action: 'defer',
+                reason: 'Erro na análise, tarefa adiada por segurança',
+                confidence: 0,
+                estimatedSuccess: 0,
+                suggestedPriority: LeoTaskPriority.LOW,
+                riskMitigation: ['Revisar lógica de análise'],
+            };
+        }
+    }
+    /**
+     * Avalia o impacto de negócio de uma tarefa
+     */
+    assessBusinessImpact(task, context) {
+        // Se a tarefa já tem impacto definido, usar
+        if (task.businessImpact) {
+            return task.businessImpact;
+        }
+        if (context.businessMetrics) {
+            const vendasHoje = context.businessMetrics.vendasHoje ?? 0;
+            const estoqueCritico = context.businessMetrics.estoqueCritico ?? 0;
+            const clientesInativos = context.businessMetrics.clientesInativos ?? 0;
+            const pedidosAtrasados = context.businessMetrics.pedidosAtrasados ?? 0;
+            if (task.type.includes('estoque') && estoqueCritico > 0)
+                return 'critico';
+            if (task.type.includes('pedido') && pedidosAtrasados > 0)
+                return 'alto';
+            if (task.type.includes('cliente') && clientesInativos > 50)
+                return 'medio';
+            if (task.type.includes('venda') && vendasHoje < 1000)
+                return 'medio';
+        }
+        // Avaliação padrão baseada no tipo
+        const impactByType = {
+            'backup_completo': 'medio',
+            'relatorio_complexo': 'baixo',
+            'migracao_dados': 'alto',
+            'integracao_sistema': 'critico',
+            'resolver_estoque_baixo': 'alto',
+            'processar_pedido_em_lote': 'medio',
+            'analisar_vendas': 'medio',
+            'investigar_erros_sistema': 'critico',
+            'campanha_clientes': 'baixo',
+            'gerenciar_pico_pedidos': 'alto',
+            'resolver_atrasos_logistica': 'alto',
+        };
+        return impactByType[task.type] || 'medio';
+    }
+    /**
+     * Avalia o nível de risco de uma tarefa
+     */
+    assessRisk(task, context) {
+        // Se a tarefa já tem risco definido, usar
+        if (task.riskLevel) {
+            return task.riskLevel;
+        }
+        // Avaliar baseado no contexto do sistema
+        if (context.systemLoad) {
+            const { cpu, memoria, tasksPendentes } = context.systemLoad;
+            if (cpu > 80 || memoria > 85 || tasksPendentes > 20) {
+                return 'alto';
+            }
+        }
+        // Avaliar baseado na complexidade e prioridade
+        const complexity = this.analyzeTaskComplexity(task);
+        if (complexity >= 8 || task.priority === LeoTaskPriority.CRITICAL) {
+            return 'alto';
+        }
+        if (complexity >= 6 || task.priority === LeoTaskPriority.HIGH) {
+            return 'medio';
+        }
+        return 'baixo';
+    }
+    /**
+     * Calcula a confiança na decisão
+     */
+    calculateConfidence(task, context) {
+        let confidence = 50; // Base
+        // Aumentar confiança baseado em histórico
+        const history = this.decisionHistory.get(task.type);
+        if (history && history.length > 0) {
+            const successRate = history
+                .filter((h) => h.action === 'execute')
+                .reduce((sum, h) => sum + h.estimatedSuccess, 0) / history.length;
+            confidence += successRate * 0.3; // Até 30% de bônus baseado no histórico
+        }
+        // Aumentar confiança baseado em recursos disponíveis
+        if (context.availableResources) {
+            const { equipeDisponivel, orcamentoDisponivel, tempoDisponivel } = context.availableResources;
+            if (equipeDisponivel && orcamentoDisponivel && tempoDisponivel) {
+                confidence += 20;
+            }
+            else if (equipeDisponivel || orcamentoDisponivel) {
+                confidence += 10;
+            }
+        }
+        // Limitar entre 0 e 100
+        return Math.min(Math.max(confidence, 0), 100);
+    }
+    /**
+     * Determina se a tarefa deve ser executada imediatamente
+     */
+    shouldExecuteImmediately(task, context) {
+        // Tarefas críticas sempre executam imediatamente
+        if (task.priority === LeoTaskPriority.CRITICAL) {
+            return true;
+        }
+        // Tarefas de alta prioridade com recursos disponíveis
+        if (task.priority === LeoTaskPriority.HIGH && context.availableResources?.equipeDisponivel) {
+            return true;
+        }
+        // Tarefas geradas pelo observador/insights com alto impacto
+        if (task.source === 'leo_observer' || task.source === 'leo_insights') {
+            const impact = this.assessBusinessImpact(task, context);
+            if (impact === 'alto' || impact === 'critico') {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Determina se a tarefa deve ser adiada
+     */
+    shouldDefer(task, context) {
+        // Não adiar tarefas críticas
+        if (task.priority === LeoTaskPriority.CRITICAL) {
+            return false;
+        }
+        // Adiar se recursos não disponíveis
+        if (!context.availableResources?.equipeDisponivel && !context.availableResources?.tempoDisponivel) {
+            return true;
+        }
+        const cpu = context.systemLoad?.cpu ?? 0;
+        const memoria = context.systemLoad?.memoria ?? 0;
+        const tasksPendentes = context.systemLoad?.tasksPendentes ?? 0;
+        if (cpu > 90 || memoria > 90)
+            return true;
+        if (tasksPendentes > 15)
+            return true;
+        return false;
+    }
+    /**
+     * Determina se a tarefa deve ser delegada
+     */
+    shouldDelegate(task, context) {
+        // Delegar tarefas que requerem especialização
+        const specializedTasks = [
+            'migracao_dados',
+            'integracao_sistema',
+            'relatorio_complexo',
+            'investigacao_seguranca',
+        ];
+        if (specializedTasks.includes(task.type)) {
+            return true;
+        }
+        // Delegar se não há expertise interna
+        const hasStrategy = this.strategies.has(task.type);
+        if (!hasStrategy) {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Ajusta prioridade baseado no impacto de negócio
+     */
+    adjustPriorityBasedOnImpact(originalPriority, businessImpact) {
+        const priorityMap = {
+            'critico': { [LeoTaskPriority.LOW]: LeoTaskPriority.CRITICAL, [LeoTaskPriority.MEDIUM]: LeoTaskPriority.CRITICAL, [LeoTaskPriority.HIGH]: LeoTaskPriority.CRITICAL, [LeoTaskPriority.CRITICAL]: LeoTaskPriority.CRITICAL },
+            'alto': { [LeoTaskPriority.LOW]: LeoTaskPriority.HIGH, [LeoTaskPriority.MEDIUM]: LeoTaskPriority.HIGH, [LeoTaskPriority.HIGH]: LeoTaskPriority.HIGH, [LeoTaskPriority.CRITICAL]: LeoTaskPriority.CRITICAL },
+            'medio': { [LeoTaskPriority.LOW]: LeoTaskPriority.MEDIUM, [LeoTaskPriority.MEDIUM]: LeoTaskPriority.MEDIUM, [LeoTaskPriority.HIGH]: LeoTaskPriority.MEDIUM, [LeoTaskPriority.CRITICAL]: LeoTaskPriority.HIGH },
+            'baixo': { [LeoTaskPriority.LOW]: LeoTaskPriority.LOW, [LeoTaskPriority.MEDIUM]: LeoTaskPriority.MEDIUM, [LeoTaskPriority.HIGH]: LeoTaskPriority.LOW, [LeoTaskPriority.CRITICAL]: LeoTaskPriority.LOW },
+            'baixa': { [LeoTaskPriority.LOW]: LeoTaskPriority.LOW, [LeoTaskPriority.MEDIUM]: LeoTaskPriority.MEDIUM, [LeoTaskPriority.HIGH]: LeoTaskPriority.LOW, [LeoTaskPriority.CRITICAL]: LeoTaskPriority.LOW },
+        };
+        return priorityMap[businessImpact]?.[originalPriority] ?? originalPriority;
+    }
+    /**
+     * Estima a probabilidade de sucesso
+     */
+    estimateSuccessProbability(task, context) {
+        let probability = 70; // Base
+        // Ajustar baseado no histórico
+        const history = this.decisionHistory.get(task.type);
+        if (history && history.length > 0) {
+            const avgSuccess = history.reduce((sum, h) => sum + h.estimatedSuccess, 0) / history.length;
+            probability = Math.round(avgSuccess);
+        }
+        // Ajustar baseado na complexidade
+        const complexity = this.analyzeTaskComplexity(task);
+        if (complexity > 7) {
+            probability -= 20;
+        }
+        else if (complexity > 5) {
+            probability -= 10;
+        }
+        else if (complexity < 3) {
+            probability += 10;
+        }
+        // Ajustar baseado nos recursos
+        if (context.availableResources?.equipeDisponivel) {
+            probability += 15;
+        }
+        return Math.min(Math.max(probability, 10), 95);
+    }
+    /**
+     * Gera medidas de mitigação de risco
+     */
+    generateRiskMitigation(task, riskLevel) {
+        const mitigations = [];
+        if (riskLevel === 'critico') {
+            mitigations.push('Notificar administrador imediatamente');
+            mitigations.push('Preparar plano de rollback');
+            mitigations.push('Alocar recursos extras');
+        }
+        else if (riskLevel === 'alto') {
+            mitigations.push('Monitorar execução em tempo real');
+            mitigations.push('Definir pontos de verificação');
+        }
+        else if (riskLevel === 'medio') {
+            mitigations.push('Registrar logs detalhados');
+            mitigations.push('Definir alertas de falha');
+        }
+        // Mitigações específicas por tipo
+        if (task.type.includes('estoque')) {
+            mitigations.push('Verificar disponibilidade de fornecedores');
+        }
+        if (task.type.includes('financeiro')) {
+            mitigations.push('Validar aprovação necessária');
+        }
+        return mitigations;
+    }
+    /**
+     * Salva histórico de decisões
+     */
+    saveDecisionHistory(taskId, decision) {
+        const history = this.decisionHistory.get(taskId) || [];
+        const entry = { ...decision, timestamp: Date.now() };
+        history.push(entry);
+        // Manter apenas últimas 50 decisões por tipo
+        if (history.length > 50) {
+            this.decisionHistory.set(taskId, history.slice(-50));
+        }
+        else {
+            this.decisionHistory.set(taskId, history);
+        }
+    }
+    /**
+     * Obtém histórico de decisões para um tipo de tarefa
+     */
+    getDecisionHistory(taskType) {
+        return this.decisionHistory.get(taskType) || [];
+    }
+    /**
+     * Cria plano automático baseado em evento ou insight
+     */
+    async createPlanFromEvent(eventType, insightData, context) {
+        try {
+            console.log(`🤖 [LeoPlanner] Criando plano automático para evento: ${eventType}`);
+            // Definir tarefa baseado no evento
+            const task = {
+                id: `auto_${eventType}_${Date.now()}`,
+                type: this.mapEventTypeToTaskType(eventType),
+                description: this.generateTaskDescription(eventType, insightData),
+                priority: this.determinePriorityFromEvent(eventType, insightData),
+                businessImpact: this.assessBusinessImpactFromEvent(eventType, insightData),
+                autoGenerated: true,
+                source: 'leo_insights',
+            };
+            // Analisar decisão
+            const decision = await this.analyzeDecision(task, context || {});
+            if (decision.action === 'reject') {
+                throw new InfrastructureError(`Tarefa rejeitada: ${decision.reason}`);
+            }
+            // Criar plano
+            const plan = await this.plan(task);
+            // Adicionar informações de decisão ao plano
+            plan.decisionRationale = decision.reason;
+            plan.autoApproved = decision.confidence >= this.autoApprovalThreshold;
+            // Se não for auto-aprovado, marcar como necessitando aprovação
+            if (!plan.autoApproved) {
+                plan.status = 'planning';
+                // Adicionar à lista de aprovações necessárias
+                plan.requiredApprovals = ['supervisor'];
+            }
+            console.log(`✅ Plano automático criado: ${plan.id} (auto-aprovado: ${plan.autoApproved})`);
+            return plan;
+        }
+        catch (error) {
+            console.error('[LeoPlanner] Erro ao criar plano automático:', error);
+            throw error;
+        }
+    }
+    /**
+     * Mapeia tipo de evento para tipo de tarefa
+     */
+    mapEventTypeToTaskType(eventType) {
+        const mapping = {
+            'estoque_critico': 'resolver_estoque_baixo',
+            'pedido_atrasado': 'resolver_pedido_atrasado',
+            'queda_vendas': 'analisar_queda_vendas',
+            'cliente_inativo': 'reativar_clientes',
+            'erro_sistema': 'investigar_erros_sistema',
+            'backup_falhou': 'resolver_backup',
+            'integracao_error': 'resolver_integracao',
+            'cliente_sem_compra': 'campanha_clientes_sem_compra',
+            'pedido_parado': 'investigar_pedidos_parados',
+            'pico_pedidos': 'gerenciar_pico_pedidos',
+            'atraso_logistica': 'resolver_atrasos_logistica',
+        };
+        return mapping[eventType] || 'investigar_evento';
+    }
+    /**
+     * Gera descrição da tarefa baseada no evento
+     */
+    generateTaskDescription(eventType, insightData) {
+        const descriptions = {
+            'estoque_critico': `Resolver ${insightData?.count || 0} produtos com estoque crítico`,
+            'pedido_atrasado': `Processar ${insightData?.count || 0} pedidos atrasados`,
+            'queda_vendas': `Analisar queda de ${insightData?.percentual || 0}% nas vendas`,
+            'cliente_inativo': `Reativar ${insightData?.count || 0} clientes inativos`,
+            'erro_sistema': `Investigar ${insightData?.errorCount || 0} erros do sistema`,
+            'backup_falhou': 'Resolver falha no backup do sistema',
+            'integracao_error': `Corrigir ${insightData?.count || 0} erros de integração`,
+            'cliente_sem_compra': `Criar campanha para ${insightData?.count || 0} clientes sem compra`,
+            'pedido_parado': `Investigar ${insightData?.count || 0} pedidos parados`,
+            'pico_pedidos': `Gerenciar pico de ${insightData?.percentualAumento || 0}% nos pedidos`,
+            'atraso_logistica': `Resolver ${insightData?.count || 0} entregas atrasadas`,
+        };
+        return descriptions[eventType] || 'Processar evento do sistema';
+    }
+    /**
+     * Determina prioridade baseada no evento
+     */
+    determinePriorityFromEvent(eventType, _insightData) {
+        const priorityMapping = {
+            'estoque_critico': LeoTaskPriority.CRITICAL,
+            'pedido_atrasado': LeoTaskPriority.CRITICAL,
+            'queda_vendas': LeoTaskPriority.HIGH,
+            'cliente_inativo': LeoTaskPriority.MEDIUM,
+            'erro_sistema': LeoTaskPriority.CRITICAL,
+            'backup_falhou': LeoTaskPriority.CRITICAL,
+            'integracao_error': LeoTaskPriority.HIGH,
+            'cliente_sem_compra': LeoTaskPriority.MEDIUM,
+            'pedido_parado': LeoTaskPriority.HIGH,
+            'pico_pedidos': LeoTaskPriority.HIGH,
+            'atraso_logistica': LeoTaskPriority.CRITICAL,
+        };
+        return priorityMapping[eventType] ?? LeoTaskPriority.MEDIUM;
+    }
+    /**
+     * Avalia impacto de negócio baseado no evento
+     */
+    assessBusinessImpactFromEvent(eventType, _insightData) {
+        const impactMapping = {
+            'estoque_critico': 'alto',
+            'pedido_atrasado': 'critico',
+            'queda_vendas': 'alto',
+            'cliente_inativo': 'medio',
+            'erro_sistema': 'critico',
+            'backup_falhou': 'critico',
+            'integracao_error': 'alto',
+            'cliente_sem_compra': 'medio',
+            'pedido_parado': 'alto',
+            'pico_pedidos': 'alto',
+            'atraso_logistica': 'alto',
+        };
+        return impactMapping[eventType] || 'medio';
+    }
+    /**
+     * Obtém estatísticas de planejamento
+     */
+    getPlanningStatistics() {
+        const plans = Array.from(this.activePlans.values());
+        const totalPlans = plans.length;
+        const autoApprovedPlans = plans.filter((p) => p.autoApproved).length;
+        const rejectedPlans = plans.filter((p) => p.status === 'failed').length;
+        const complexities = plans.map((p) => this.analyzeTaskComplexity(p.mainTask));
+        const averageComplexity = complexities.length > 0
+            ? complexities.reduce((sum, c) => sum + c, 0) / complexities.length
+            : 0;
+        const taskTypeCount = new Map();
+        plans.forEach(p => {
+            taskTypeCount.set(p.mainTask.type, (taskTypeCount.get(p.mainTask.type) || 0) + 1);
+        });
+        const mostCommonTaskTypes = Array.from(taskTypeCount.entries())
+            .map(([type, count]) => ({ type, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+        // Calcular precisão das decisões
+        const allDecisions = Array.from(this.decisionHistory.values())
+            .flat();
+        const successfulDecisions = allDecisions.filter((d) => d.estimatedSuccess > 70);
+        const decisionAccuracy = allDecisions.length > 0
+            ? (successfulDecisions.length / allDecisions.length) * 100
+            : 0;
+        return {
+            totalPlans,
+            autoApprovedPlans,
+            rejectedPlans,
+            averageComplexity,
+            mostCommonTaskTypes,
+            decisionAccuracy,
+        };
+    }
+    /**
+     * Limpa planos antigos e histórico
+     */
+    async cleanup() {
+        try {
+            console.log('🧹 [LeoPlanner] Limppeando planos e histórico...');
+            // Manter apenas planos ativos dos últimos 7 dias
+            const cutoffDate = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+            for (const [planId, plan] of Array.from(this.activePlans.entries())) {
+                if (plan.createdAt.getTime() < cutoffDate && (plan.status === 'completed' || plan.status === 'failed')) {
+                    this.activePlans.delete(planId);
+                }
+            }
+            // Limpar histórico de decisões antigo
+            const now = Date.now();
+            const maxAge = 30 * 24 * 60 * 60 * 1000;
+            for (const [taskType, history] of Array.from(this.decisionHistory.entries())) {
+                const recentHistory = history.filter((d) => (d.timestamp != null) && now - d.timestamp < maxAge);
+                if (recentHistory.length > 0) {
+                    this.decisionHistory.set(taskType, recentHistory);
+                }
+                else {
+                    this.decisionHistory.delete(taskType);
+                }
+            }
+            console.log('✅ Limpeza concluída');
+        }
+        catch (error) {
+            console.error('[LeoPlanner] Erro na limpeza:', error);
+        }
+    }
+    /**
+     * Exporta dados para análise
+     */
+    exportPlanningData() {
+        return {
+            activePlans: Array.from(this.activePlans.values()),
+            decisionHistory: Object.fromEntries(Array.from(this.decisionHistory.entries())),
+            statistics: this.getPlanningStatistics(),
+            config: {
+                autoApprovalThreshold: this.autoApprovalThreshold,
+                maxConcurrentPlans: this.maxConcurrentPlans,
+            },
+        };
+    }
+    /**
+     * Importa configurações de planejamento
+     */
+    importPlanningData(data) {
+        const config = data.config;
+        if (config) {
+            this.autoApprovalThreshold = config.autoApprovalThreshold ?? 0.8;
+            this.maxConcurrentPlans = config.maxConcurrentPlans ?? 10;
+        }
+    }
+    /**
+     * Inicializa estratégias de planejamento
+     */
+    initializeStrategies() {
+        // Estratégias personalizadas podem ser adicionadas aqui
+        // Exemplo: this.strategies.set('custom_task', customStrategy);
+    }
+    /**
+     * Obtém status de todos os planos ativos
+     */
+    getActivePlans() {
+        return Array.from(this.activePlans.values());
+    }
+    /**
+     * Remove um plano concluído
+     */
+    removePlan(planId) {
+        const plan = this.activePlans.get(planId);
+        if (!plan || (plan.status !== 'completed' && plan.status !== 'failed')) {
+            return false;
+        }
+        this.activePlans.delete(planId);
+        console.log(`🗑️ [LeoPlanner] Plano ${planId} removido`);
+        return true;
+    }
+    /**
+     * Obtém estatísticas de planejamento
+     */
+    getStatistics() {
+        const plans = this.getActivePlans();
+        return {
+            totalPlans: plans.length,
+            executingPlans: plans.filter((p) => p.status === 'executing').length,
+            completedPlans: plans.filter((p) => p.status === 'completed').length,
+            failedPlans: plans.filter((p) => p.status === 'failed').length,
+            averageSubTasks: plans.length > 0 ? plans.reduce((sum, p) => sum + p.subTasks.length, 0) / plans.length : 0,
+            averageComplexity: 5, // Poderia ser calculado baseado nas tarefas
+        };
+    }
+}
+// Exportar instância singleton
+export const leoPlanner = LeoPlanner.getInstance();

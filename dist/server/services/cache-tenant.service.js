@@ -1,0 +1,74 @@
+import { redisManager } from "../infra/redis.js";
+import { ValidationError } from '../_core/errors/typed-errors.js';
+import { createLogger } from "../infra/structured-logger.js";
+const logger = createLogger("cache-service");
+function assertTenantId(tenantId) {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError("TENANT_REQUIRED");
+    }
+}
+function assertCacheKey(key) {
+    if (!key || key.trim().length === 0) {
+        throw new ValidationError("CACHE_KEY_REQUIRED");
+    }
+}
+function buildTenantCacheKey(tenantId, key) {
+    return `tenant:${tenantId}:${key}`;
+}
+export async function getCache(tenantId, key) {
+    assertTenantId(tenantId);
+    assertCacheKey(key);
+    const client = redisManager.getClient();
+    if (!client) {
+        const error = new Error("Redis client unavailable");
+        logger.error("Redis client unavailable during getCache", error);
+        throw error;
+    }
+    const raw = await client.get(buildTenantCacheKey(tenantId, key));
+    if (!raw)
+        return null;
+    try {
+        return JSON.parse(raw);
+    }
+    catch (error) {
+        logger.error("Invalid cache payload JSON", error instanceof Error ? error : new Error(String(error)));
+        throw error;
+    }
+}
+export async function setCache(tenantId, key, value, ttl) {
+    assertTenantId(tenantId);
+    assertCacheKey(key);
+    if (!Number.isInteger(ttl) || ttl <= 0) {
+        throw new ValidationError("CACHE_TTL_REQUIRED");
+    }
+    const client = redisManager.getClient();
+    if (!client) {
+        const error = new Error("Redis client unavailable");
+        logger.error("Redis client unavailable during setCache", error);
+        throw error;
+    }
+    try {
+        await client.set(buildTenantCacheKey(tenantId, key), JSON.stringify(value), "EX", ttl);
+    }
+    catch (error) {
+        logger.error("Redis setCache failed", error instanceof Error ? error : new Error(String(error)));
+        throw error;
+    }
+}
+export async function invalidateCache(tenantId, key) {
+    assertTenantId(tenantId);
+    assertCacheKey(key);
+    const client = redisManager.getClient();
+    if (!client) {
+        const error = new Error("Redis client unavailable");
+        logger.error("Redis client unavailable during invalidateCache", error);
+        throw error;
+    }
+    try {
+        await client.del(buildTenantCacheKey(tenantId, key));
+    }
+    catch (error) {
+        logger.error("Redis invalidateCache failed", error instanceof Error ? error : new Error(String(error)));
+        throw error;
+    }
+}

@@ -1,0 +1,51 @@
+/**
+ * Log de ações do LEO — auditoria de execução de tools.
+ * Não bloqueia execução; se falhar, ignora silenciosamente.
+ * Usa insertLeoActionLog (db/index) — tabela leo_action_logs compatível.
+ */
+import { insertLeoActionLog } from "../leo-action-log.service.js";
+/**
+ * Registra uma execução de tool. Assíncrono e fire-and-forget.
+ * Falhas são ignoradas para não bloquear o fluxo.
+ */
+export async function logAction(params) {
+    const { tool, input, result, success, ctx } = params;
+    try {
+        const inputStr = typeof input === "object" && input !== null ? JSON.stringify(input) : String(input);
+        const resultStr = typeof result === "object" && result !== null ? JSON.stringify(result) : String(result ?? "");
+        await insertLeoActionLog({
+            usuario: `tenant:${ctx.tenantId}`,
+            acao: tool,
+            entidade: "leo_action",
+            dados: inputStr.length > 65535 ? inputStr.slice(0, 65535) : inputStr,
+            resultado: success ? "SUCESSO" : resultStr.slice(0, 500),
+        });
+    }
+    catch {
+        // Ignorar silenciosamente — log não pode bloquear execução
+    }
+}
+/**
+ * Compatibilidade com chamadas legadas do LEO.
+ * Mantém o mesmo nome de função esperada nos módulos antigos.
+ */
+export async function insertLeoActionLogCompat(params) {
+    try {
+        const tenantMatch = params.usuario.match(/tenant:(\d+)/i);
+        const tenantId = tenantMatch ? Number(tenantMatch[1]) : null;
+        if (!tenantId || tenantId <= 0)
+            return;
+        await logAction({
+            tool: params.acao || "unknown",
+            input: params.dados ?? "",
+            result: params.resultado,
+            success: String(params.resultado || "").toUpperCase() === "SUCESSO",
+            executionTime: 0,
+            ctx: { tenantId },
+        });
+    }
+    catch {
+        // Compat logger não deve interromper fluxo
+    }
+}
+export { insertLeoActionLogCompat as insertLeoActionLog };

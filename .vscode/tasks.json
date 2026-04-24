@@ -1,0 +1,28 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "tsc-server-noemit",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"exec",
+				"tsc",
+				"-p",
+				"tsconfig.server.json",
+				"--noEmit"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "dev-server",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"dev"
+			],
+			"isBackground": true
+		}
+	]
+}

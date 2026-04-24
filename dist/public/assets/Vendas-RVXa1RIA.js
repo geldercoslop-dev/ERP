@@ -1,0 +1,2 @@
+import{e}from"./react-v2ec1MlT.js";import{P as s}from"./PageHeader-DZwthkOY.js";import{P as a,a as t}from"./pageLayout-B1qSVV6r.js";import"./index-DqfLheQr.js";import"./trpc-query-BGJDogbx.js";function n(){return e.jsxs("div",{className:a,children:[e.jsx(s,{title:"Pedidos",subtitle:"Gestão de pedidos"}),e.jsx("main",{className:t,children:e.jsx("p",{className:"text-muted-foreground",children:"Use o menu lateral para acessar Meus Pedidos, Nova Venda, Clientes e Estoque."})})]})}export{n as default};
+//# sourceMappingURL=Vendas-RVXa1RIA.js.map

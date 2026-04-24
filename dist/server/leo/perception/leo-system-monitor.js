@@ -1,0 +1,537 @@
+/**
+ * Monitoramento do Sistema do LEO
+ *
+ * Leo vira monitor do sistema, verificando:
+ * - servidor
+ * - banco de dados
+ * - uso de CPU
+ * - uso de memória
+ * - logs
+ */
+import { pingDatabase } from '../../services/database-health.service.js';
+import { leoEvents } from '../memory/leo-events.js';
+import { performance } from 'perf_hooks';
+/**
+ * Classe para monitoramento do sistema pelo Leo
+ */
+export class LeoSystemMonitor {
+    static instance;
+    isMonitoring = false;
+    monitoringInterval;
+    lastStatus = null;
+    constructor() { }
+    static getInstance() {
+        if (!LeoSystemMonitor.instance) {
+            LeoSystemMonitor.instance = new LeoSystemMonitor();
+        }
+        return LeoSystemMonitor.instance;
+    }
+    /**
+     * Inicia monitoramento contínuo
+     */
+    async iniciarMonitoramento(intervaloMs = 10000) {
+        if (this.isMonitoring) {
+            return {
+                success: false,
+                message: 'Monitoramento já está ativo',
+            };
+        }
+        try {
+            console.log(`[LeoSystemMonitor] Iniciando monitoramento a cada ${intervaloMs}ms`);
+            this.isMonitoring = true;
+            // Executar primeira verificação
+            await this.verificarSistema();
+            // Configurar verificação periódica
+            this.monitoringInterval = setInterval(async () => {
+                try {
+                    await this.verificarSistema();
+                }
+                catch (error) {
+                    console.error('[LeoSystemMonitor] Erro na verificação periódica:', error);
+                }
+            }, intervaloMs);
+            return {
+                success: true,
+                message: `Monitoramento iniciado (intervalo: ${intervaloMs}ms)`,
+            };
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro ao iniciar monitoramento:', error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Erro ao iniciar monitoramento',
+            };
+        }
+    }
+    /**
+     * Para monitoramento contínuo
+     */
+    pararMonitoramento() {
+        if (!this.isMonitoring) {
+            return {
+                success: false,
+                message: 'Monitoramento não está ativo',
+            };
+        }
+        try {
+            if (this.monitoringInterval) {
+                clearInterval(this.monitoringInterval);
+                this.monitoringInterval = undefined;
+            }
+            this.isMonitoring = false;
+            console.log('[LeoSystemMonitor] Monitoramento parado');
+            return {
+                success: true,
+                message: 'Monitoramento parado com sucesso',
+            };
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro ao parar monitoramento:', error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Erro ao parar monitoramento',
+            };
+        }
+    }
+    /**
+     * Verificação completa do sistema
+     */
+    async verificarSistema() {
+        const startTime = performance.now();
+        try {
+            console.log('[LeoSystemMonitor] Executando verificação do sistema');
+            // Verificar status do servidor
+            const servidor = await this.verificarServidor();
+            // Verificar banco de dados
+            const banco = await this.verificarBanco();
+            // Verificar aplicação
+            const aplicacao = await this.verificarAplicacao();
+            const status = {
+                servidor,
+                banco,
+                aplicacao,
+                timestamp: new Date(),
+            };
+            // Analisar mudanças e gerar alertas
+            await this.analisarMudancas(status);
+            // Verificar limites críticos
+            await this.verificarLimitesCriticos(status);
+            this.lastStatus = status;
+            const tempoExecucao = performance.now() - startTime;
+            console.log(`[LeoSystemMonitor] Verificação concluída em ${tempoExecucao.toFixed(2)}ms`);
+            return status;
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro na verificação do sistema:', error);
+            // Status de fallback
+            return {
+                servidor: {
+                    online: false,
+                    uptime: 0,
+                    memoria: process.memoryUsage(),
+                    cpu: { uso: 0, loadAverage: [0, 0, 0] },
+                    disco: { total: 0, livre: 0, usado: 0 },
+                },
+                banco: {
+                    conectado: false,
+                    tempoResposta: -1,
+                },
+                aplicacao: {
+                    errosRecentes: 0,
+                    alertasAtivos: 0,
+                    ultimaAtividade: new Date(),
+                },
+                timestamp: new Date(),
+            };
+        }
+    }
+    /**
+     * Verifica status do servidor
+     */
+    async verificarServidor() {
+        try {
+            // Uso de memória
+            const memoria = process.memoryUsage();
+            // Uso de CPU (aproximado)
+            const cpuUsage = process.cpuUsage();
+            const cpuUso = this.calcularUsoCpu(cpuUsage);
+            // Load average
+            const loadAverage = require('os').loadavg();
+            // Espaço em disco
+            const disco = await this.verificarEspacoDisco();
+            return {
+                online: true,
+                uptime: process.uptime(),
+                memoria,
+                cpu: {
+                    uso: cpuUso,
+                    loadAverage,
+                },
+                disco,
+            };
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro ao verificar servidor:', error);
+            return {
+                online: false,
+                uptime: 0,
+                memoria: process.memoryUsage(),
+                cpu: { uso: 0, loadAverage: [0, 0, 0] },
+                disco: { total: 0, livre: 0, usado: 0 },
+            };
+        }
+    }
+    /**
+     * Verifica status do banco de dados
+     */
+    async verificarBanco() {
+        const startTime = performance.now();
+        try {
+            const ping = await pingDatabase('LEO');
+            if (!ping.ok) {
+                return {
+                    conectado: false,
+                    tempoResposta: ping.latencyMs,
+                };
+            }
+            const tempoResposta = ping.latencyMs;
+            return {
+                conectado: true,
+                tempoResposta,
+                totalConexoes: ping.threadsConnected,
+            };
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro ao verificar banco:', error);
+            return {
+                conectado: false,
+                tempoResposta: performance.now() - startTime,
+            };
+        }
+    }
+    /**
+     * Verifica status da aplicação
+     */
+    async verificarAplicacao() {
+        try {
+            // Contar erros recentes (última hora)
+            const errosRecentes = await this.contarErrosRecentes();
+            // Contar alertas ativos
+            const alertasAtivos = await this.contarAlertasAtivos();
+            // Última atividade (baseado em logs)
+            const ultimaAtividade = await this.obterUltimaAtividade();
+            return {
+                errosRecentes,
+                alertasAtivos,
+                ultimaAtividade,
+            };
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro ao verificar aplicação:', error);
+            return {
+                errosRecentes: 0,
+                alertasAtivos: 0,
+                ultimaAtividade: new Date(),
+            };
+        }
+    }
+    /**
+     * Analisa mudanças em relação ao status anterior
+     */
+    async analisarMudancas(statusAtual) {
+        if (!this.lastStatus)
+            return;
+        const mudancas = [];
+        // Verificar se o servidor ficou offline
+        if (this.lastStatus.servidor.online && !statusAtual.servidor.online) {
+            mudancas.push({
+                tipo: 'disponibilidade',
+                mensagem: 'Servidor ficou offline',
+                severidade: 'critica',
+            });
+        }
+        // Verificar se o banco desconectou
+        if (this.lastStatus.banco.conectado && !statusAtual.banco.conectado) {
+            mudancas.push({
+                tipo: 'disponibilidade',
+                mensagem: 'Banco de dados desconectado',
+                severidade: 'critica',
+            });
+        }
+        // Verificar aumento drástico de erros
+        if (statusAtual.aplicacao.errosRecentes > this.lastStatus.aplicacao.errosRecentes * 2) {
+            mudancas.push({
+                tipo: 'erro',
+                mensagem: `Aumento de erros: ${this.lastStatus.aplicacao.errosRecentes} → ${statusAtual.aplicacao.errosRecentes}`,
+                severidade: 'alta',
+            });
+        }
+        // Gerar eventos para mudanças críticas
+        for (const mudanca of mudancas) {
+            await leoEvents.registerEvent({
+                tipo: 'erro_sistema',
+                descricao: mudanca.mensagem,
+                prioridade: mudanca.severidade === 'critica' ? 'critica' : 'alta',
+                dados: mudanca.dados,
+                usuarioCriador: 'leo',
+            });
+        }
+    }
+    /**
+     * Verifica limites críticos e gera alertas
+     */
+    async verificarLimitesCriticos(status) {
+        const alertas = [];
+        let shouldReduceFrequency = false;
+        // Verificar uso de memória (> 80% para alerta, > 90% para crítico)
+        const memTotal = require('os').totalmem();
+        const memPercent = (status.servidor.memoria.heapUsed / memTotal) * 100;
+        if (memPercent > 90) {
+            alertas.push({
+                tipo: 'recurso',
+                mensagem: `Uso de memória crítico: ${memPercent.toFixed(1)}%`,
+                severidade: 'critica',
+                dados: { memoria: status.servidor.memoria, percentual: memPercent },
+            });
+            shouldReduceFrequency = true;
+        }
+        else if (memPercent > 80) {
+            alertas.push({
+                tipo: 'recurso',
+                mensagem: `Uso de memória alto: ${memPercent.toFixed(1)}%`,
+                severidade: 'alta',
+                dados: { memoria: status.servidor.memoria, percentual: memPercent },
+            });
+            shouldReduceFrequency = true;
+        }
+        // Verificar CPU (> 80%)
+        if (status.servidor.cpu.uso > 80) {
+            alertas.push({
+                tipo: 'performance',
+                mensagem: `Uso de CPU alto: ${status.servidor.cpu.uso.toFixed(1)}%`,
+                severidade: 'alta',
+                dados: { cpu: status.servidor.cpu },
+            });
+            shouldReduceFrequency = true;
+        }
+        // Se recursos críticos, reduzir frequência do loop
+        if (shouldReduceFrequency) {
+            await this.reduceLoopFrequency();
+        }
+        // Verificar disco (> 90%)
+        const discoPercent = (status.servidor.disco.usado / status.servidor.disco.total) * 100;
+        if (discoPercent > 90) {
+            alertas.push({
+                tipo: 'recurso',
+                mensagem: `Espaço em disco crítico: ${discoPercent.toFixed(1)}%`,
+                severidade: 'critica',
+                dados: { disco: status.servidor.disco, percentual: discoPercent },
+            });
+        }
+        // Verificar tempo de resposta do banco (> 5s)
+        if (status.banco.tempoResposta > 5000) {
+            alertas.push({
+                tipo: 'performance',
+                mensagem: `Banco lento: ${status.banco.tempoResposta.toFixed(0)}ms`,
+                severidade: 'alta',
+                dados: { tempoResposta: status.banco.tempoResposta },
+            });
+        }
+        // Gerar eventos para alertas
+        for (const alerta of alertas) {
+            await leoEvents.registerEvent({
+                tipo: 'erro_sistema',
+                descricao: alerta.mensagem,
+                prioridade: alerta.severidade,
+                dados: alerta.dados,
+                usuarioCriador: 'leo',
+            });
+        }
+    }
+    /**
+     * Reduz frequência do loop cognitivo quando recursos estão altos
+     */
+    async reduceLoopFrequency() {
+        try {
+            // Pausar novas tasks por 30 segundos
+            const { leoSupervisor } = await import('../engine/leo-supervisor.js');
+            await leoSupervisor.pauseExecution('Recursos do sistema elevados - reduzindo frequência', 0.5); // 30 segundos
+            // Notificar sobre a redução de frequência
+            await leoEvents.registerEvent({
+                tipo: 'erro_sistema',
+                descricao: 'Frequência do loop reduzida devido ao alto uso de recursos',
+                prioridade: 'media',
+                dados: {
+                    action: 'frequency_reduction',
+                    pauseDuration: 30,
+                    reason: 'High resource usage',
+                },
+                usuarioCriador: 'leo-system-monitor',
+            });
+            console.warn('[LeoSystemMonitor] ⚡ Frequência do loop reduzida por 30 segundos devido ao alto uso de recursos');
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro ao reduzir frequência do loop:', error);
+        }
+    }
+    /**
+     * Calcula uso de CPU (aproximado)
+     */
+    calcularUsoCpu(cpuUsage) {
+        // Simplificação - em produção usar biblioteca específica
+        const total = cpuUsage.user + cpuUsage.system;
+        return Math.min(total / 1000000, 100); // Convertir para porcentagem
+    }
+    /**
+     * Verifica espaço em disco
+     */
+    async verificarEspacoDisco() {
+        try {
+            const fs = require('fs');
+            const stats = fs.statSync(process.cwd());
+            // Simplificação - em produção usar biblioteca específica
+            return {
+                total: 1000000000000, // 1TB (placeholder)
+                livre: 500000000000, // 500GB (placeholder)
+                usado: 500000000000, // 500GB (placeholder)
+            };
+        }
+        catch (error) {
+            return { total: 0, livre: 0, usado: 0 };
+        }
+    }
+    /**
+     * Conta erros recentes dos logs
+     */
+    async contarErrosRecentes() {
+        try {
+            // Simulação - em produção analisar arquivos de log
+            return Math.floor(Math.random() * 10);
+        }
+        catch (error) {
+            return 0;
+        }
+    }
+    /**
+     * Conta alertas ativos
+     */
+    async contarAlertasAtivos() {
+        try {
+            const resultado = await leoEvents.listarEventos({ status: 'aberto', limit: 1000 });
+            return resultado.eventos?.length || 0;
+        }
+        catch (error) {
+            return 0;
+        }
+    }
+    /**
+     * Obtém última atividade registrada
+     */
+    async obterUltimaAtividade() {
+        try {
+            return new Date();
+        }
+        catch (error) {
+            return new Date();
+        }
+    }
+    /**
+     * Obtém logs recentes
+     */
+    async getLogsRecentes(limite = 100) {
+        try {
+            // Simulação - em produção ler arquivos de log reais
+            const logs = [];
+            for (let i = 0; i < Math.min(limite, 20); i++) {
+                const timestamp = new Date(Date.now() - i * 60000);
+                const levels = ['error', 'warn', 'info', 'debug'];
+                const level = levels[Math.floor(Math.random() * levels.length)];
+                logs.push({
+                    timestamp,
+                    level,
+                    message: `Log de exemplo ${level} #${i}`,
+                    source: 'leo-system-monitor',
+                });
+            }
+            return logs.reverse(); // Mais recentes primeiro
+        }
+        catch (error) {
+            console.error('[LeoSystemMonitor] Erro ao obter logs:', error);
+            return [];
+        }
+    }
+    /**
+     * Verifica se o monitoramento está ativo
+     */
+    isMonitoramentoAtivo() {
+        return this.isMonitoring;
+    }
+    /**
+     * Obtém último status conhecido
+     */
+    getUltimoStatus() {
+        return this.lastStatus;
+    }
+    /**
+     * Gera relatório de saúde do sistema
+     */
+    async gerarRelatorioSaude() {
+        const status = await this.verificarSistema();
+        let score = 100;
+        const recomendacoes = [];
+        // Avaliar servidor
+        if (!status.servidor.online) {
+            score -= 50;
+            recomendacoes.push('Servidor está offline - verificar imediatamente');
+        }
+        // Avaliar banco
+        if (!status.banco.conectado) {
+            score -= 40;
+            recomendacoes.push('Banco de dados desconectado - verificar conexão');
+        }
+        else if (status.banco.tempoResposta > 1000) {
+            score -= 20;
+            recomendacoes.push('Banco de dados lento - otimizar queries ou aumentar recursos');
+        }
+        // Avaliar memória
+        const memTotal = require('os').totalmem();
+        const memPercent = (status.servidor.memoria.heapUsed / memTotal) * 100;
+        if (memPercent > 90) {
+            score -= 30;
+            recomendacoes.push('Uso de memória crítico - reiniciar serviço ou aumentar RAM');
+        }
+        else if (memPercent > 80) {
+            score -= 15;
+            recomendacoes.push('Uso de memória alto - monitorar e otimizar');
+        }
+        // Avaliar erros
+        if (status.aplicacao.errosRecentes > 10) {
+            score -= 25;
+            recomendacoes.push('Muitos erros recentes - investigar causas');
+        }
+        // Avaliar alertas
+        if (status.aplicacao.alertasAtivos > 20) {
+            score -= 10;
+            recomendacoes.push('Muitos alertas ativos - priorizar resolução');
+        }
+        // Determinar status geral
+        let statusGeral;
+        if (score >= 80) {
+            statusGeral = 'healthy';
+        }
+        else if (score >= 50) {
+            statusGeral = 'warning';
+        }
+        else {
+            statusGeral = 'critical';
+        }
+        return {
+            status: statusGeral,
+            score: Math.max(0, score),
+            detalhes: status,
+            recomendacoes,
+        };
+    }
+}
+// Exportar instância singleton
+export const leoSystemMonitor = LeoSystemMonitor.getInstance();

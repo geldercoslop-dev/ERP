@@ -1,0 +1,1 @@
+DROP INDEX `produtos_descricao_idx` ON `produtos`;
