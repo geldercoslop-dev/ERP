@@ -1,5 +1,17 @@
 #!/bin/sh
 
+echo "🔒 GUARDRAIL BOOTSTRAP"
+
+node scripts/guardrail-check.js
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+node scripts/anti-regress-check.js $(git diff --cached --name-only)
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
 echo "🔒 GATE OBRIGATÓRIO: verify:base (Context-Aware)"
 echo "=============================================="
 echo "Context: Local Development (fail-soft)"

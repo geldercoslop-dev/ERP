@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { readFileSync, existsSync } from "fs";
 
 const files = execSync("git diff --cached --name-only")
   .toString()
@@ -8,7 +9,15 @@ const files = execSync("git diff --cached --name-only")
 let violation = false;
 
 for (const file of files) {
-  const content = execSync(`git show :${file}`).toString();
+  if (!existsSync(file)) continue;
+
+  // Excluir scripts de verificação das checagens
+  if (file.includes("scripts/anti-regress-check.js") || 
+      file.includes("scripts/guardrail-check.js")) {
+    continue;
+  }
+
+  const content = readFileSync(file, "utf-8");
 
   // 🔴 1. BLOQUEAR ANY (GLOBAL)
   if (content.includes(" as any") || content.includes(": any")) {
@@ -34,6 +43,42 @@ for (const file of files) {
     !content.includes("../../shared/types")
   ) {
     console.error(`🚫 IMPORT DIRETO PROIBIDO EM ${file}`);
+    violation = true;
+  }
+
+  // 🔴 4. DETECTAR IMPORT-TIME EXECUTION
+  if (
+    content.includes("setInterval(") ||
+    content.includes("new ") ||
+    content.includes(".start()")
+  ) {
+    if (!content.includes("function") && !file.includes("services")) {
+      console.error(`
+🚫 IMPORT-TIME EXECUTION DETECTADO em ${file}
+
+Código executando no topo do arquivo.
+Isso quebra o bootstrap.
+
+Mover execução para dentro de função.
+`);
+      violation = true;
+    }
+  }
+
+  // 🔴 5. BLOQUEAR USO DE ENV FORA DO LUGAR
+  if (
+    content.includes("getEnv(") &&
+    !file.includes("_core") &&
+    !file.includes("bootstrap")
+  ) {
+    console.error(`
+🚫 VIOLAÇÃO DE ARQUITETURA
+
+Uso de ENV fora do fluxo controlado em ${file}
+
+Ordem obrigatória:
+dotenv → bootstrap → env → runtime → services → server
+`);
     violation = true;
   }
 }
