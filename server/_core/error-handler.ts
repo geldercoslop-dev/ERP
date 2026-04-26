@@ -274,13 +274,16 @@ export function expressErrorHandler(
   const startTime = req.startTime || Date.now();
   const duration = Date.now() - startTime;
 
+  // Validar req.user antes de acessar
+  const userId = req.user && typeof req.user === 'object' ? req.user.id : undefined;
+
   // Log do erro
   logError('express-error-handler', error, {
     requestId,
     method: req.method,
     url: req.url,
     duration,
-    userId: req.user?.id,
+    userId,
     userAgent: req.headers?.['user-agent'],
     ip: req.ip,
     errorMessage: error.message

@@ -170,7 +170,7 @@ export async function prepararConsultarProduto(tenantId: number, produtoId: numb
     id: produto.id,
     nome: produto.descricao,
     estoque: produto.estoque || 0,
-    preco: produto.valorVenda ? Number(produto.valorVenda) : 0,
+    preco: produto.custo ? Number(produto.custo) : 0,
     ativo: produto.ativo,
   };
 }
@@ -195,7 +195,7 @@ export async function executarConsultaProduto(
     });
     return {
       ok: true,
-      mensagem: `Produto: ${produto.descricao} | Estoque: ${produto.estoque} | Preço: ${fmtMoeda(Number(produto.valorVenda || 0))}`,
+      mensagem: `Produto: ${produto.descricao} | Estoque: ${produto.estoque} | Preço: ${fmtMoeda(Number(produto.custo || 0))}`,
     };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error(String(e));

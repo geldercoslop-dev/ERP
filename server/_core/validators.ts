@@ -1,46 +1,24 @@
 /**
- * Type Guards e Validadores Seguros
+ * Validadores de Input Externo (API Boundary)
  * 
  * Fornece funções de validação type-safe para inputs externos
  * Evita uso de 'any' e garante validação robusta
+ * 
+ * NOTA: Type guards básicos (isString, isNumber, etc.) foram movidos para type-guards.ts
+ * para evitar duplicação. Este arquivo foca em validação de negócio e boundary.
  */
 
 import { ValidationError } from './errors/typed-errors.js';
+import { 
+  isString, 
+  isNumber, 
+  isBoolean, 
+  isRecord, 
+  isArray 
+} from './type-guards.js';
 
-/**
- * Type guard para strings
- */
-export function isString(value: unknown): value is string {
-  return typeof value === 'string';
-}
-
-/**
- * Type guard para números
- */
-export function isNumber(value: unknown): value is number {
-  return typeof value === 'number' && !Number.isNaN(value);
-}
-
-/**
- * Type guard para booleanos
- */
-export function isBoolean(value: unknown): value is boolean {
-  return typeof value === 'boolean';
-}
-
-/**
- * Type guard para objetos (não null)
- */
-export function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * Type guard para arrays
- */
-export function isArray(value: unknown): value is unknown[] {
-  return Array.isArray(value);
-}
+// Re-export basic type guards for backward compatibility
+export { isString, isNumber, isBoolean, isRecord as isObject, isArray };
 
 /**
  * Type guard para arrays tipados
@@ -49,7 +27,7 @@ export function isArrayOf<T>(
   value: unknown,
   guard: (item: unknown) => item is T
 ): value is T[] {
-  return Array.isArray(value) && value.every(guard);
+  return isArray(value) && value.every(guard);
 }
 
 /**
@@ -118,7 +96,7 @@ export function validatePayload<T extends Record<string, unknown>>(
   payload: unknown,
   requiredKeys: (keyof T)[]
 ): T {
-  if (!isObject(payload)) {
+  if (!isRecord(payload)) {
     throw new ValidationError('Payload deve ser um objeto');
   }
 
@@ -144,7 +122,7 @@ export function validateMotivo(motivo: unknown): string {
  * Validador de metadata (objeto seguro)
  */
 export function validateMetadata(metadata: unknown): Record<string, unknown> {
-  if (!isObject(metadata)) {
+  if (!isRecord(metadata)) {
     throw new ValidationError('Metadata inválido: deve ser um objeto');
   }
   return metadata;
@@ -168,17 +146,6 @@ export function isPositiveInteger(value: unknown): value is number {
 }
 
 /**
- * Validador de tenant ID
- */
-export function validateTenantId(tenantId: unknown): number {
-  const id = validateId(tenantId);
-  if (id > 999999) {
-    throw new ValidationError('Tenant ID inválido: valor muito alto');
-  }
-  return id;
-}
-
-/**
  * Validador de paginação
  */
 export function validatePagination(params: unknown): {
@@ -186,7 +153,7 @@ export function validatePagination(params: unknown): {
   limit: number;
   offset: number;
 } {
-  if (!isObject(params)) {
+  if (!isRecord(params)) {
     throw new ValidationError('Parâmetros de paginação inválidos');
   }
 
@@ -204,7 +171,7 @@ export function validateCacheOptions(options: unknown): {
   ttl?: number;
   maxSize?: number;
 } {
-  if (!isObject(options)) {
+  if (!isRecord(options)) {
     return {};
   }
 

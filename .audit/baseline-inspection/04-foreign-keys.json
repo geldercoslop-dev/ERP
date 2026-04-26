@@ -1,0 +1,156 @@
+[
+  {
+    "CONSTRAINT_NAME": "comissoes_cargaId_cargas_id_fk",
+    "TABLE_NAME": "comissoes",
+    "COLUMN_NAME": "cargaId",
+    "REFERENCED_TABLE_NAME": "cargas",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "comissoes_pedidoId_pedidos_id_fk",
+    "TABLE_NAME": "comissoes",
+    "COLUMN_NAME": "pedidoId",
+    "REFERENCED_TABLE_NAME": "pedidos",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "comissoes_vendedorId_vendedores_id_fk",
+    "TABLE_NAME": "comissoes",
+    "COLUMN_NAME": "vendedorId",
+    "REFERENCED_TABLE_NAME": "vendedores",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_fixas_fornecedorId_fornecedores_id_fk",
+    "TABLE_NAME": "contas_fixas",
+    "COLUMN_NAME": "fornecedorId",
+    "REFERENCED_TABLE_NAME": "fornecedores",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_fixas_planoContasId_plano_contas_id_fk",
+    "TABLE_NAME": "contas_fixas",
+    "COLUMN_NAME": "planoContasId",
+    "REFERENCED_TABLE_NAME": "plano_contas",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_pagar_contaFixaId_contas_fixas_id_fk",
+    "TABLE_NAME": "contas_pagar",
+    "COLUMN_NAME": "contaFixaId",
+    "REFERENCED_TABLE_NAME": "contas_fixas",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_pagar_fornecedorId_fornecedores_id_fk",
+    "TABLE_NAME": "contas_pagar",
+    "COLUMN_NAME": "fornecedorId",
+    "REFERENCED_TABLE_NAME": "fornecedores",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_pagar_planoContasId_plano_contas_id_fk",
+    "TABLE_NAME": "contas_pagar",
+    "COLUMN_NAME": "planoContasId",
+    "REFERENCED_TABLE_NAME": "plano_contas",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_receber_clienteId_clientes_id_fk",
+    "TABLE_NAME": "contas_receber",
+    "COLUMN_NAME": "clienteId",
+    "REFERENCED_TABLE_NAME": "clientes",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_receber_pedidoId_pedidos_id_fk",
+    "TABLE_NAME": "contas_receber",
+    "COLUMN_NAME": "pedidoId",
+    "REFERENCED_TABLE_NAME": "pedidos",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "contas_receber_planoContasId_plano_contas_id_fk",
+    "TABLE_NAME": "contas_receber",
+    "COLUMN_NAME": "planoContasId",
+    "REFERENCED_TABLE_NAME": "plano_contas",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "itens_pedido_corId_cores_id_fk",
+    "TABLE_NAME": "itens_pedido",
+    "COLUMN_NAME": "corId",
+    "REFERENCED_TABLE_NAME": "cores",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "itens_pedido_pedidoId_pedidos_id_fk",
+    "TABLE_NAME": "itens_pedido",
+    "COLUMN_NAME": "pedidoId",
+    "REFERENCED_TABLE_NAME": "pedidos",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "itens_pedido_produtoId_produtos_id_fk",
+    "TABLE_NAME": "itens_pedido",
+    "COLUMN_NAME": "produtoId",
+    "REFERENCED_TABLE_NAME": "produtos",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "pedidos_clienteId_clientes_id_fk",
+    "TABLE_NAME": "pedidos",
+    "COLUMN_NAME": "clienteId",
+    "REFERENCED_TABLE_NAME": "clientes",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "pedidos_vendedorId_vendedores_id_fk",
+    "TABLE_NAME": "pedidos",
+    "COLUMN_NAME": "vendedorId",
+    "REFERENCED_TABLE_NAME": "vendedores",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "pedidos_carga_cargaId_cargas_id_fk",
+    "TABLE_NAME": "pedidos_carga",
+    "COLUMN_NAME": "cargaId",
+    "REFERENCED_TABLE_NAME": "cargas",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "pedidos_carga_pedidoId_pedidos_id_fk",
+    "TABLE_NAME": "pedidos_carga",
+    "COLUMN_NAME": "pedidoId",
+    "REFERENCED_TABLE_NAME": "pedidos",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "pendencias_compra_produtoId_produtos_id_fk",
+    "TABLE_NAME": "pendencias_compra",
+    "COLUMN_NAME": "produtoId",
+    "REFERENCED_TABLE_NAME": "produtos",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "users_tenant_id_tenants_id_fk",
+    "TABLE_NAME": "users",
+    "COLUMN_NAME": "tenant_id",
+    "REFERENCED_TABLE_NAME": "tenants",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "vendedores_tenant_id_tenants_id_fk",
+    "TABLE_NAME": "vendedores",
+    "COLUMN_NAME": "tenant_id",
+    "REFERENCED_TABLE_NAME": "tenants",
+    "REFERENCED_COLUMN_NAME": "id"
+  },
+  {
+    "CONSTRAINT_NAME": "vendedores_user_id_users_id_fk",
+    "TABLE_NAME": "vendedores",
+    "COLUMN_NAME": "user_id",
+    "REFERENCED_TABLE_NAME": "users",
+    "REFERENCED_COLUMN_NAME": "id"
+  }
+]

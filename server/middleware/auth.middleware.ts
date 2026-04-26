@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import type { JWTPayload } from '../security/jwt-auth.js';
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 type AuthenticatedRequest = Request & {
   user?: Request['user'];
@@ -34,7 +35,7 @@ function isJWTPayload(value: unknown): value is JWTPayload {
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET?.trim();
   if (!secret) {
-    throw new Error('JWT_SECRET não configurado');
+    throw new InfrastructureError('JWT_SECRET não configurado');
   }
   return secret;
 }

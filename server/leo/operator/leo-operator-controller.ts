@@ -1,6 +1,7 @@
 import { logInfo, logError } from '../../_core/logger.js';
 import { LeoMode, LeoContext } from '../../_core/types.js';
 import { LeoPermissionError } from '../../_core/errors.js';
+import { executeLeoActionGate, type ExecutionGateRequest } from '../runtime/execution-gate.js';
 
 export type LeoModeType = 'SAFE' | 'ASSIST' | 'OPERATOR' | 'AUTONOMOUS';
 
@@ -262,6 +263,7 @@ export class LeoOperatorMode {
 
   /**
    * Execute action with permission checking
+   * EXECUTION GATE: TODA execução passa pelo gate centralizado
    */
   async executeAction<T>(
     action: keyof OperatorPermissions,
@@ -285,6 +287,27 @@ export class LeoOperatorMode {
           requiresConfirmation: true
         }
       });
+      
+      // EXECUTION GATE: Passar execução pelo gate
+      if (this.context) {
+        const gateRequest: ExecutionGateRequest = {
+          action: String(action),
+          toolName: 'operator',
+          parameters: {},
+          context: {
+            tenantId: this.context.tenantId || 1,
+            userId: this.context.userId || 1,
+          },
+          requiresConfirmation: true,
+          source: 'operator',
+        };
+        
+        const gateResult = await executeLeoActionGate(gateRequest);
+        
+        if (!gateResult.success || gateResult.blocked) {
+          throw new LeoPermissionError(gateResult.message || 'Action blocked by execution gate');
+        }
+      }
       
       // TODO: Implement confirmation mechanism
       // This would wait for user confirmation before proceeding

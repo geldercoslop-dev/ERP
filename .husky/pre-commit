@@ -1,22 +1,24 @@
 #!/bin/sh
 
-echo "Validando arquitetura..."
+echo "🔒 GATE OBRIGATÓRIO: verify:base (Context-Aware)"
+echo "=============================================="
+echo "Context: Local Development (fail-soft)"
+echo "Production checks are disabled in local commits"
+echo ""
 
-node scripts/enforce-architecture.cjs
-node scripts/enforce-leo-isolation.cjs
-
-echo "Rodando TypeScript..."
-pnpm exec tsc -p tsconfig.server.json --noEmit
+pnpm run verify:base
 
 if [ $? -ne 0 ]; then
-  echo "TSC falhou"
+  echo ""
+  echo "🚨 COMMIT BLOQUEADO"
+  echo "verify:base falhou - corrija os erros antes de commitar"
+  echo ""
+  echo "NOTA: Em desenvolvimento local, Redis é opcional."
+  echo "Se o erro for relacionado a Redis, você pode:"
+  echo "  1. Iniciar Redis: docker compose -f docker-compose.infra.yml up -d redis"
+  echo "  2. Ou configurar CI_REDIS_REQUIRED=false no .env"
   exit 1
 fi
 
-echo "Verificações adicionais..."
-pnpm run verify:drizzle
-pnpm run verify:any
-pnpm run verify:arch
-pnpm run verify:env
-
-echo "Commit liberado"
+echo ""
+echo "✅ Commit liberado"

@@ -7,6 +7,7 @@
 
 import { JobData, JobResult } from './queue.js';
 import { logInfo, logError, logWarn } from '../_core/logger.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 // Tipos específicos para payloads de jobs
 export interface OcrJobPayload {
@@ -131,7 +132,7 @@ export async function processOcrJob(data: JobData): Promise<JobResult> {
     });
 
     if (!isOcrJobPayload(data.payload)) {
-      throw new Error('Invalid OCR job payload');
+      throw new ValidationError('Invalid OCR job payload');
     }
     const { imagePath, options } = data.payload;
     
@@ -179,7 +180,7 @@ export async function processScreenshotJob(data: JobData): Promise<JobResult> {
     });
 
     if (!isScreenshotJobPayload(data.payload)) {
-      throw new Error('Invalid Screenshot job payload');
+      throw new ValidationError('Invalid Screenshot job payload');
     }
     const { options, area } = data.payload;
     
@@ -241,7 +242,7 @@ export async function processLeoAnalysisJob(data: JobData): Promise<JobResult> {
     });
 
     if (!isLeoAnalysisJobPayload(data.payload)) {
-      throw new Error('Invalid Leo Analysis job payload');
+      throw new ValidationError('Invalid Leo Analysis job payload');
     }
     const { analysisType, context, parameters } = data.payload;
     
@@ -289,7 +290,7 @@ export async function processReportGenerationJob(data: JobData): Promise<JobResu
     });
 
     if (!isReportJobPayload(data.payload)) {
-      throw new Error('Invalid Report job payload');
+      throw new ValidationError('Invalid Report job payload');
     }
     const { reportType, filters, format } = data.payload;
     
@@ -337,7 +338,7 @@ export async function processDesktopAutomationJob(data: JobData): Promise<JobRes
     });
 
     if (!isAutomationJobPayload(data.payload)) {
-      throw new Error('Invalid Automation job payload');
+      throw new ValidationError('Invalid Automation job payload');
     }
     const { automationType, parameters, permissions } = data.payload;
     
@@ -385,7 +386,7 @@ export async function processNotificationJob(data: JobData): Promise<JobResult> 
     });
 
     if (!isNotificationJobPayload(data.payload)) {
-      throw new Error('Invalid Notification job payload');
+      throw new ValidationError('Invalid Notification job payload');
     }
     const { notificationType, recipients, message, channels } = data.payload;
     
@@ -433,7 +434,7 @@ export async function processBackupJob(data: JobData): Promise<JobResult> {
     });
 
     if (!isBackupJobPayload(data.payload)) {
-      throw new Error('Invalid Backup job payload');
+      throw new ValidationError('Invalid Backup job payload');
     }
     const { backupType, target, compression } = data.payload;
     
@@ -481,7 +482,7 @@ export async function processCleanupJob(data: JobData): Promise<JobResult> {
     });
 
     if (!isCleanupJobPayload(data.payload)) {
-      throw new Error('Invalid Cleanup job payload');
+      throw new ValidationError('Invalid Cleanup job payload');
     }
     const { cleanupType, target, retention } = data.payload;
     

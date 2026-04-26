@@ -164,17 +164,20 @@ class HealthWatchdog {
   
   private async checkHttpHealth(): Promise<boolean> {
     try {
+      // Use actual server port from global (handles dynamic port allocation)
+      const port = (global as typeof globalThis & { SERVER_PORT?: number }).SERVER_PORT || Number(process.env.PORT) || 3000;
+
       // Verificar se o servidor HTTP está respondendo (endpoint padrão e leve)
       const response = await Promise.race([
-        fetch(`http://127.0.0.1:${Number(process.env.PORT) || 3000}/api/health`, {
+        fetch(`http://127.0.0.1:${port}/api/health`, {
           method: 'GET',
           signal: AbortSignal.timeout(this.HTTP_TIMEOUT),
         }).then((res: Response) => res.ok),
-        new Promise<boolean>((_, reject) => 
+        new Promise<boolean>((_, reject) =>
           setTimeout(() => reject(new Error('HTTP timeout')), this.HTTP_TIMEOUT)
         )
       ]);
-      
+
       return response;
     } catch (error) {
       this.maybeLogComponentFail('http', error);

@@ -362,7 +362,8 @@ export const securityUtils = {
   sanitizeForLog: (input: unknown): string => {
     if (!isString(input)) return String(input);
     
-    return input
+    const strInput = input;
+    return strInput
       .replace(/[<>]/g, '') // Remove tags
       .replace(/javascript:/gi, '') // Remove javascript URLs
       .replace(/on\w+\s*=/gi, '') // Remove event handlers

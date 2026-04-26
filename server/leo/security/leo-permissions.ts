@@ -11,7 +11,7 @@
  * - LEO NÃO pode acessar dados de outros usuários sem permissão
  */
 
-import * as usersService from '../../services/users.service.js';
+import { usersTool } from '../../tools/users.tool.js';
 import { nanoid } from 'nanoid';
 
 export type PermissionLevel = 'consulta' | 'operacao_erp' | 'operacao_sistema' | 'admin';
@@ -547,7 +547,7 @@ export async function checkLeoPermission(
  */
 async function getUserPermission(usuario: string): Promise<LeoPermission | null> {
   try {
-    const v = await usersService.getVendedorByNome(usuario);
+    const v = await usersTool.getVendedorByNome({ nome: usuario });
     if (v) {
       return {
         usuario: v.nome,
@@ -556,7 +556,7 @@ async function getUserPermission(usuario: string): Promise<LeoPermission | null>
       };
     }
 
-    const u = await usersService.getUserByDisplayName(usuario);
+    const u = await usersTool.getUserByDisplayName({ displayName: usuario });
     if (u) {
       return {
         usuario: u.name ?? usuario,

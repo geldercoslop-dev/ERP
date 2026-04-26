@@ -1,3 +1,40 @@
+/**
+ * @wrapper-logger
+ * 
+ * WRAPPER SIMPLIFICADO DE LOGGING
+ * 
+ * Este é um wrapper conveniente sobre Pino para uso geral.
+ * Interface simplificada com funções helpers.
+ * 
+ * Recursos:
+ * - Pino (JSON estruturado)
+ * - Redaction automática de campos sensíveis
+ * - Child loggers por módulo (auth, db, api, system, security)
+ * - Funções helpers (logInfo, logError, logWarn, logDebug)
+ * 
+ * Uso recomendado:
+ * - Services gerais
+ * - Queue e worker
+ * - Middleware básico
+ * - LEO modules
+ * 
+ * Para recursos avançados (OpenTelemetry, traceId), ver:
+ * server/infra/structured-logger.ts (logger principal)
+ * 
+ * ========================================
+ * REGRA DE ARQUITETURA:
+ * Este logger será futuramente um wrapper do structured-logger.
+ * 
+ * NÃO implementar essa delegação agora.
+ * 
+ * Motivo:
+ * - evitar quebra de compatibilidade
+ * - migração será feita em fase controlada
+ * 
+ * TODO (fase futura):
+ * delegar para structured-logger mantendo API atual
+ * ========================================
+ */
 import pino from "pino";
 
 const level =

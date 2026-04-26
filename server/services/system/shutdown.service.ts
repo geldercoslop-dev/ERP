@@ -376,9 +376,9 @@ async function closeRedisConnection(): Promise<void> {
 
     globalThis.redis = undefined;
 
-    const { redisManager } = await import("../../infra/redis.js");
+    const { getRedis } = await import("../../infra/redis.js");
 
-    redisManager.clearClientAfterGracefulShutdown();
+    getRedis().clearClientAfterGracefulShutdown();
 
     logger.info("[SHUTDOWN] Redis closed", {
 

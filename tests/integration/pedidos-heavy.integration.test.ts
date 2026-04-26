@@ -33,7 +33,7 @@ import {
   pedidos,
   pendencias,
   contasReceber,
-} from "../../drizzle/schema.js";
+} from "../../drizzle/schema.ts";
 
 const TENANT = 998;
 

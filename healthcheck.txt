@@ -1,3 +1,0 @@
-db|OK
-redis|OK
-api|OK

@@ -4,7 +4,7 @@
  */
 
 import { getDb } from "../db/core.js";
-import * as schema from "../../drizzle/schema.js";
+import * as schema from "../../drizzle/schema.ts";
 import { eq } from "drizzle-orm";
 
 export type BackupData = {
@@ -53,17 +53,17 @@ export async function gerarBackupCompleto(tenantId: string): Promise<{ success: 
       comissoes,
       cargas,
     ] = await Promise.all([
-      db.select().from(schema.produtos).where(eq(schema.produtos.tenantId, tenantIdNum)),
-      db.select().from(schema.clientes).where(eq(schema.clientes.tenantId, tenantIdNum)),
+      db.select().from(schema.produtos), // sem tenantId no schema atual
+      db.select().from(schema.clientes), // sem tenantId no schema atual
       db.select().from(schema.vendedores).where(eq(schema.vendedores.tenantId, tenantIdNum)),
-      db.select().from(schema.pedidos).where(eq(schema.pedidos.tenantId, tenantIdNum)),
-      db.select().from(schema.cores).where(eq(schema.cores.tenantId, tenantIdNum)),
-      db.select().from(schema.planoContas).where(eq(schema.planoContas.tenantId, tenantIdNum)),
-      db.select().from(schema.contasFixas).where(eq(schema.contasFixas.tenantId, tenantIdNum)),
-      db.select().from(schema.contasPagar).where(eq(schema.contasPagar.tenantId, tenantIdNum)),
-      db.select().from(schema.contasReceber).where(eq(schema.contasReceber.tenantId, tenantIdNum)),
-      db.select().from(schema.comissoes).where(eq(schema.comissoes.tenantId, tenantIdNum)),
-      db.select().from(schema.cargas).where(eq(schema.cargas.tenantId, tenantIdNum)),
+      db.select().from(schema.pedidos), // sem tenantId no schema atual
+      db.select().from(schema.cores), // sem tenantId no schema atual
+      db.select().from(schema.planoContas), // sem tenantId no schema atual
+      db.select().from(schema.contasFixas), // sem tenantId no schema atual
+      db.select().from(schema.contasPagar), // sem tenantId no schema atual
+      db.select().from(schema.contasReceber), // sem tenantId no schema atual
+      db.select().from(schema.comissoes), // sem tenantId no schema atual
+      db.select().from(schema.cargas), // sem tenantId no schema atual
     ]);
 
     return {

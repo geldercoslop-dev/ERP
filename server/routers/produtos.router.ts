@@ -249,7 +249,10 @@ export const gruposPrecificacaoRouter = router({
       const result = await executeCommand(
         { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },
         async (tx) => {
-          const res = await tx.insert(db.gruposPrecificacao).values({ tenantId, ...data });
+          const res = await tx.insert(db.gruposPrecificacao).values({
+            tenantId,
+            nome: data.nome,
+          });
           const id = getInsertId(res);
           return { ...commandResult(true, ["Grupo criado"]), id };
         }

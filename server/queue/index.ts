@@ -5,7 +5,7 @@
  * Garante que tudo esteja pronto antes de aceitar jobs
  */
 
-import { redisManager } from '../infra/redis.js';
+import { getRedis } from '../infra/redis.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { queueManager } from './queue.js';
 import { workerManager } from './worker-simple.js';
@@ -106,7 +106,7 @@ class QueueSystemBootstrap {
     try {
       logInfo('Testando conexão Redis...');
       
-      const redisTest = await redisManager.testConnection();
+      const redisTest = await getRedis().testConnection();
       
       if (!redisTest.success) {
         throw new InfrastructureError(`Redis não conectado: ${redisTest.message}`);
@@ -208,7 +208,7 @@ class QueueSystemBootstrap {
 
     try {
       // Atualizar status Redis
-      const redisConnected = await redisManager.isConnected();
+      const redisConnected = await getRedis().isConnected();
       this.status.redis.connected = redisConnected;
 
       // Atualizar status filas
@@ -284,7 +284,7 @@ class QueueSystemBootstrap {
       await queueManager.shutdown();
 
       // 3. Reiniciar Redis
-      await redisManager.restart();
+      await getRedis().restart();
 
       // 4. Reinicializar tudo
       await this.initialize();
@@ -306,7 +306,7 @@ class QueueSystemBootstrap {
     try {
       await workerManager.shutdown();
       await queueManager.shutdown();
-      await redisManager.disconnect();
+      await getRedis().disconnect();
 
       this.initialized = false;
       this.status = this.createEmptyStatus();

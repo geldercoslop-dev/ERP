@@ -1,0 +1,162 @@
+[
+  {
+    "TABLE_NAME": "__drizzle_migrations",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 5,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 16384
+  },
+  {
+    "TABLE_NAME": "cargas",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 49152
+  },
+  {
+    "TABLE_NAME": "clientes",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 0
+  },
+  {
+    "TABLE_NAME": "comissoes",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 49152
+  },
+  {
+    "TABLE_NAME": "contas_fixas",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 32768
+  },
+  {
+    "TABLE_NAME": "contas_pagar",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 81920
+  },
+  {
+    "TABLE_NAME": "contas_receber",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 81920
+  },
+  {
+    "TABLE_NAME": "cores",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 0
+  },
+  {
+    "TABLE_NAME": "counters",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 16384
+  },
+  {
+    "TABLE_NAME": "fornecedores",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 0
+  },
+  {
+    "TABLE_NAME": "grupos_precificacao",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 0
+  },
+  {
+    "TABLE_NAME": "itens_pedido",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 49152
+  },
+  {
+    "TABLE_NAME": "pedidos",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 49152
+  },
+  {
+    "TABLE_NAME": "pedidos_carga",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 32768
+  },
+  {
+    "TABLE_NAME": "pendencias_compra",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 16384
+  },
+  {
+    "TABLE_NAME": "plano_contas",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 0
+  },
+  {
+    "TABLE_NAME": "produtos",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 0
+  },
+  {
+    "TABLE_NAME": "tenants",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 32768
+  },
+  {
+    "TABLE_NAME": "users",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 32768
+  },
+  {
+    "TABLE_NAME": "vendedores",
+    "TABLE_TYPE": "BASE TABLE",
+    "ENGINE": "InnoDB",
+    "TABLE_ROWS": 0,
+    "DATA_LENGTH": 16384,
+    "INDEX_LENGTH": 49152
+  }
+]

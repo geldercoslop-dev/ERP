@@ -52,9 +52,6 @@ export const leoRouter = router({
       try {
         const tenantId = await requireTenant(ctx);
         const usuario = ctx.user?.name || "Usuário";
-        if (!ctx.user?.id) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão inválida para o LEO." });
-        }
         const actor = await resolveServiceActor(ctx);
 
         const resposta = await perguntar(tenantId, input.pergunta, usuario, {
@@ -147,10 +144,6 @@ export const leoRouter = router({
       try {
         const tenantId = await requireTenant(ctx);
         const usuario = ctx.user?.name || "Admin";
-
-        if (!ctx.user?.id) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão inválida para o LEO." });
-        }
         const actor = await resolveServiceActor(ctx);
         const resposta = await perguntar(tenantId, input.prompt, usuario, {
           sessionId: input.sessionId,

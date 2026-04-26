@@ -1,11 +1,17 @@
 import mysql from "mysql2/promise";
 
+// FAIL-HARD: DATABASE_URL é obrigatório
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is required");
+}
+
+const url = new URL(process.env.DATABASE_URL);
 const c = {
-  host: process.env.DB_HOST ?? "localhost",
-  port: Number(process.env.DB_PORT ?? 3306),
-  user: process.env.DB_USER ?? "vendas",
-  password: process.env.DB_PASSWORD ?? "vendas123",
-  database: process.env.DB_NAME ?? "vendas_app",
+  host: url.hostname,
+  port: Number(url.port || "3306"),
+  user: decodeURIComponent(url.username),
+  password: decodeURIComponent(url.password),
+  database: url.pathname.slice(1).replace(/^\//, "") || "vendas_app",
 };
 
 const conn = await mysql.createConnection(c);

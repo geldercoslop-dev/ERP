@@ -179,8 +179,6 @@ export async function createCliente(
       uf: data.uf?.trim() || null,
       referencia: data.referencia?.trim() || null,
       condominio: data.condominio?.trim() || null,
-      bloco: data.bloco?.trim() || null,
-      apartamento: data.apartamento?.trim() || null,
     });
     
     const clienteId = getInsertId(result);
@@ -266,10 +264,7 @@ export async function getHistoricoCliente(
       .orderBy(desc(pedidos.createdAt))
       .limit(Math.min(Math.max(limit, 1), 50));
 
-    return { success: true, data: ensureArray(rows).map((r) => ({
-      ...r,
-      status: String(r.status),
-    })) };
+    return { success: true, data: ensureArray(rows) as Array<{ id: number; numero: number; total: string; createdAt: Date; status: string; dataEntrega: Date | null }> };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
@@ -491,7 +486,7 @@ export async function updateCliente(tenantId: number, actor: ServiceActor, id: n
       updateData.telefone = telefone;
     }
     
-    const fields: (keyof CreateClienteInput)[] = ['telefoneRecado', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'referencia', 'condominio', 'bloco', 'apartamento'];
+    const fields: (keyof CreateClienteInput)[] = ['telefoneRecado', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'referencia', 'condominio'];
     const updatePayload = updateData as Record<string, string | number | null | Date>;
     for (const f of fields) {
       const v = data[f];
@@ -555,11 +550,12 @@ export async function associarClienteVendedor(tenantId: number, clienteId: numbe
         .where(eq(clienteVendedores.id, existing[0].id));
     } else {
       await dbConn.insert(clienteVendedores).values({
+        tenantId,
         clienteId,
         vendedorId,
         tipo: principal ? "PRINCIPAL" : "SECUNDARIO",
         createdAt: new Date(),
-      } as ClienteVendedor);
+      });
     }
 
     return { success: true };
@@ -622,8 +618,6 @@ export async function getOrCreateCliente(
       uf: data.uf || null,
       referencia: data.referencia || null,
       condominio: data.condominio || null,
-      bloco: data.bloco || null,
-      apartamento: data.apartamento || null,
     });
 
     const clienteId = getInsertId(created);
@@ -639,6 +633,7 @@ export async function getOrCreateCliente(
 
 export async function ensureClienteVendedorLink(
   tx: DbConn,
+  tenantId: number,
   clienteId: number,
   vendedorId: number
 ): Promise<{ success: boolean; error?: string }> {
@@ -658,11 +653,12 @@ export async function ensureClienteVendedorLink(
 
     if (existing.length === 0) {
       await tx.insert(clienteVendedores).values({
+        tenantId,
         clienteId,
         vendedorId,
         tipo: "SECUNDARIO",
         createdAt: new Date(),
-      } as ClienteVendedor);
+      });
     }
 
     return { success: true };
@@ -702,7 +698,7 @@ export async function deleteCliente(tenantId: number, actor: ServiceActor, id: n
     }
     
     // 2. Excluir vínculos com vendedores
-    await dbConn.delete(clienteVendedores).where(and(eq(clienteVendedores.tenantId, tenantId), eq(clienteVendedores.clienteId, id)));
+    await dbConn.delete(clienteVendedores).where(eq(clienteVendedores.clienteId, id));
     
     // 3. Excluir cliente
     await dbConn.delete(clientes).where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, id)));

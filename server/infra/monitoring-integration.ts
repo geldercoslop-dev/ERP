@@ -133,8 +133,11 @@ export function exampleRouteHandler(req: AugmentedRequest, res: Response) {
     
     const duration = Date.now() - startTime;
     
+    // Validar req.user antes de acessar
+    const userId = req.user && typeof req.user === 'object' ? req.user.id : undefined;
+    
     logger.request(req.method, req.path, 200, duration, {
-      userId: req.user?.id,
+      userId,
       tenantId: req.tenantId,
       requestId: req.requestId,
       metadata: { method: req.method },
@@ -144,10 +147,13 @@ export function exampleRouteHandler(req: AugmentedRequest, res: Response) {
   } catch (error) {
     const duration = Date.now() - startTime;
     
+    // Validar req.user antes de acessar
+    const userId = req.user && typeof req.user === 'object' ? req.user.id : undefined;
+    
     logger.error('Erro na rota', error as Error, {
       metadata: { method: req.method, path: req.path },
       duration,
-      userId: req.user?.id,
+      userId,
       tenantId: req.tenantId,
     });
     

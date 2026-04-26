@@ -7,7 +7,6 @@
 
 import { Worker, Job, ConnectionOptions } from 'bullmq';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
-import { getRedisClient } from '../infra/redis.js';
 import { logInfo, logError, logWarn } from '../_core/logger.js';
 import { QUEUE_NAMES, JobData, JobResult } from './queue.js';
 import { processOcrJob } from './jobs.js';
@@ -18,6 +17,7 @@ import { processDesktopAutomationJob } from './jobs.js';
 import { processNotificationJob } from './jobs.js';
 import { processBackupJob } from './jobs.js';
 import { processCleanupJob } from './jobs.js';
+import { queueConfig, getQueueConfig } from '../infra/queue/queue.config.js';
 
 export interface WorkerConfig {
   name: string;
@@ -113,7 +113,7 @@ class WorkerManager {
     }
 
     try {
-      const redisClient = getRedisClient();
+      const redisClient = queueConfig.getConnection();
       if (!redisClient) {
         throw new InfrastructureError('Cliente Redis não disponível');
       }
@@ -139,7 +139,7 @@ class WorkerManager {
    */
   private async createWorker(queueName: string, config: WorkerConfig): Promise<void> {
     try {
-      const connection = getRedisClient();
+      const connection = queueConfig.getConnection();
       if (!connection) {
         throw new InfrastructureError('Cliente Redis não disponível');
       }

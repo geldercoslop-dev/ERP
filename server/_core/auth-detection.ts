@@ -38,15 +38,27 @@ function requireEnv(name: string): string {
 }
 
 function getRequiredDbConfig(): DatabaseConfig {
-  const host = requireEnv("DB_HOST");
-  const portRaw = requireEnv("DB_PORT");
-  const user = requireEnv("DB_USER");
-  const password = requireEnv("DB_PASSWORD");
-  const database = requireEnv("DB_NAME");
-  const port = Number.parseInt(portRaw, 10);
+  const databaseUrl = requireEnv("DATABASE_URL");
+  
+  let url: URL;
+  try {
+    url = new URL(databaseUrl);
+  } catch {
+    throw new ValidationError("[Auth Detection] DATABASE_URL inválida");
+  }
+  
+  if (url.protocol !== "mysql:" && url.protocol !== "mysql2:") {
+    throw new ValidationError("[Auth Detection] DATABASE_URL deve usar protocolo mysql://");
+  }
+  
+  const host = url.hostname;
+  const port = Number.parseInt(url.port || "3306", 10);
+  const user = decodeURIComponent(url.username);
+  const password = decodeURIComponent(url.password);
+  const database = url.pathname.replace(/^\//, "").split("/")[0];
 
   if (!Number.isFinite(port) || port <= 0) {
-    throw new ValidationError("[Auth Detection] DB_PORT inválida");
+    throw new ValidationError("[Auth Detection] Porta inválida em DATABASE_URL");
   }
 
   return { host, port, user, password, database };

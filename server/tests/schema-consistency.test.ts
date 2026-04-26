@@ -51,11 +51,16 @@ let connection: mysql.Connection;
 describe('Schema Consistency Tests', () => {
   beforeAll(async () => {
     try {
+      const databaseUrl = process.env.DATABASE_URL;
+      if (!databaseUrl) {
+        throw new Error('DATABASE_URL é obrigatório');
+      }
+      const url = new URL(databaseUrl);
       connection = await mysql.createConnection({
-        host: process.env.DB_HOST || 'localhost',
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || 'root',
-        database: process.env.DB_NAME || 'erp',
+        host: url.hostname,
+        user: decodeURIComponent(url.username),
+        password: decodeURIComponent(url.password),
+        database: url.pathname.slice(1).replace(/^\//, '') || 'erp',
         waitForConnections: true,
         connectionLimit: 1,
         queueLimit: 0,
@@ -78,9 +83,10 @@ describe('Schema Consistency Tests', () => {
     for (const table of TENANT_ID_REQUIRED) {
       it(`tabela ${table} deve ter coluna tenant_id`, async () => {
         try {
+          const databaseName = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1).replace(/^\//, '') || 'erp' : 'erp';
           const [rows] = await connection.query(
             'SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-            [process.env.DB_NAME || 'erp', table, 'tenant_id']
+            [databaseName, table, 'tenant_id']
           );
 
           expect((rows as any)[0]?.count).toBe(1);
@@ -94,9 +100,10 @@ describe('Schema Consistency Tests', () => {
 
       it(`tabela ${table} tenant_id deve ser NOT NULL`, async () => {
         try {
+          const databaseName = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1).replace(/^\//, '') || 'erp' : 'erp';
           const [rows] = await connection.query(
             'SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-            [process.env.DB_NAME || 'erp', table, 'tenant_id']
+            [databaseName, table, 'tenant_id']
           );
 
           expect((rows as any)[0]?.IS_NULLABLE).toBe('NO');
@@ -107,9 +114,10 @@ describe('Schema Consistency Tests', () => {
 
       it(`tabela ${table} tenant_id deve ser tipo INT`, async () => {
         try {
+          const databaseName = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1).replace(/^\//, '') || 'erp' : 'erp';
           const [rows] = await connection.query(
             'SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-            [process.env.DB_NAME || 'erp', table, 'tenant_id']
+            [databaseName, table, 'tenant_id']
           );
 
           const columnType = (rows as any)[0]?.COLUMN_TYPE;
@@ -126,9 +134,10 @@ describe('Schema Consistency Tests', () => {
       for (const col of columns) {
         it(`${table}.${col} deve existir em snake_case`, async () => {
           try {
+            const databaseName = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1).replace(/^\//, '') || 'erp' : 'erp';
             const [rows] = await connection.query(
               'SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-              [process.env.DB_NAME || 'erp', table, col]
+              [databaseName, table, col]
             );
 
             expect((rows as any)[0]?.count).toBe(1);
@@ -142,9 +151,10 @@ describe('Schema Consistency Tests', () => {
 
   describe('Tenants master table', () => {
     it('tabela tenants deve existir', async () => {
+      const databaseName = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1).replace(/^\//, '') || 'erp' : 'erp';
       const [rows] = await connection.query(
         'SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
-        [process.env.DB_NAME || 'erp', 'tenants']
+        [databaseName, 'tenants']
       );
 
       expect((rows as any)[0]?.count).toBe(1);
@@ -163,9 +173,10 @@ describe('Schema Consistency Tests', () => {
 
   describe('No legacy column naming', () => {
     it('vendedores não deve ter coluna userId (deve ser user_id)', async () => {
+      const databaseName = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1).replace(/^\//, '') || 'erp' : 'erp';
       const [rows] = await connection.query(
         'SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-        [process.env.DB_NAME || 'erp', 'vendedores', 'userId']
+        [databaseName, 'vendedores', 'userId']
       );
 
       // Deve ser 0 (não deve existir userId camelCase)
@@ -173,9 +184,10 @@ describe('Schema Consistency Tests', () => {
     });
 
     it('users não deve ter coluna openId (deve ser open_id)', async () => {
+      const databaseName = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1).replace(/^\//, '') || 'erp' : 'erp';
       const [rows] = await connection.query(
         'SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-        [process.env.DB_NAME || 'erp', 'users', 'openId']
+        [databaseName, 'users', 'openId']
       );
 
       // Deve ser 0 (não deve existir openId camelCase)

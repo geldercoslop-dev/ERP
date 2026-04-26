@@ -11,8 +11,11 @@
  * - SADD/SMEMBERS (Set)
  */
 
-import 'dotenv/config';
+import { initEnv } from '../_core/env/bootstrapEnv.js';
 import { Redis } from 'ioredis';
+
+// Bootstrap ENV antes de qualquer acesso ao Redis
+initEnv();
 
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);

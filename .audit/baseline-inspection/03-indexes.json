@@ -1,0 +1,504 @@
+{
+  "__drizzle_migrations": [
+    {
+      "INDEX_NAME": "id",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "cargas": [
+    {
+      "INDEX_NAME": "cargas_numero_unique",
+      "COLUMN_NAME": "numero",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "numero_idx",
+      "COLUMN_NAME": "numero",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "status_idx",
+      "COLUMN_NAME": "status",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "clientes": [
+    {
+      "INDEX_NAME": "nome_idx",
+      "COLUMN_NAME": "nome",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "telefone_idx",
+      "COLUMN_NAME": "telefone",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "comissoes": [
+    {
+      "INDEX_NAME": "comissoes_cargaId_cargas_id_fk",
+      "COLUMN_NAME": "cargaId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "pedido_idx",
+      "COLUMN_NAME": "pedidoId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "status_idx",
+      "COLUMN_NAME": "status",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "vendedor_idx",
+      "COLUMN_NAME": "vendedorId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "contas_fixas": [
+    {
+      "INDEX_NAME": "contas_fixas_fornecedorId_fornecedores_id_fk",
+      "COLUMN_NAME": "fornecedorId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "contas_fixas_planoContasId_plano_contas_id_fk",
+      "COLUMN_NAME": "planoContasId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "contas_pagar": [
+    {
+      "INDEX_NAME": "contas_pagar_contaFixaId_contas_fixas_id_fk",
+      "COLUMN_NAME": "contaFixaId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "contas_pagar_fornecedorId_fornecedores_id_fk",
+      "COLUMN_NAME": "fornecedorId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "contas_pagar_planoContasId_plano_contas_id_fk",
+      "COLUMN_NAME": "planoContasId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "status_idx",
+      "COLUMN_NAME": "status",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "vencimento_idx",
+      "COLUMN_NAME": "dataVencimento",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "contas_receber": [
+    {
+      "INDEX_NAME": "cliente_idx",
+      "COLUMN_NAME": "clienteId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "contas_receber_pedidoId_pedidos_id_fk",
+      "COLUMN_NAME": "pedidoId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "contas_receber_planoContasId_plano_contas_id_fk",
+      "COLUMN_NAME": "planoContasId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "status_idx",
+      "COLUMN_NAME": "status",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "vencimento_idx",
+      "COLUMN_NAME": "dataVencimento",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "cores": [
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "counters": [
+    {
+      "INDEX_NAME": "counters_name_unique",
+      "COLUMN_NAME": "name",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "fornecedores": [
+    {
+      "INDEX_NAME": "nome_idx",
+      "COLUMN_NAME": "nome",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "grupos_precificacao": [
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "itens_pedido": [
+    {
+      "INDEX_NAME": "itens_pedido_corId_cores_id_fk",
+      "COLUMN_NAME": "corId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "itens_pedido_produtoId_produtos_id_fk",
+      "COLUMN_NAME": "produtoId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "pedido_idx",
+      "COLUMN_NAME": "pedidoId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "pedidos": [
+    {
+      "INDEX_NAME": "cliente_idx",
+      "COLUMN_NAME": "clienteId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "numero_idx",
+      "COLUMN_NAME": "numero",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "pedidos_numero_unique",
+      "COLUMN_NAME": "numero",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "status_idx",
+      "COLUMN_NAME": "status",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "vendedor_idx",
+      "COLUMN_NAME": "vendedorId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "pedidos_carga": [
+    {
+      "INDEX_NAME": "carga_idx",
+      "COLUMN_NAME": "cargaId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "pedido_idx",
+      "COLUMN_NAME": "pedidoId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "pendencias_compra": [
+    {
+      "INDEX_NAME": "pendencias_compra_produtoId_produtos_id_fk",
+      "COLUMN_NAME": "produtoId",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "status_idx",
+      "COLUMN_NAME": "status",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "plano_contas": [
+    {
+      "INDEX_NAME": "nome_idx",
+      "COLUMN_NAME": "nome",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "tipo_idx",
+      "COLUMN_NAME": "tipo",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "produtos": [
+    {
+      "INDEX_NAME": "marca_idx",
+      "COLUMN_NAME": "marca",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "tenants": [
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "tenants_nome_empresa_idx",
+      "COLUMN_NAME": "nome_empresa",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "tenants_status_idx",
+      "COLUMN_NAME": "status",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "users": [
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "users_open_id_idx",
+      "COLUMN_NAME": "open_id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "users_tenant_id_idx",
+      "COLUMN_NAME": "tenant_id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ],
+  "vendedores": [
+    {
+      "INDEX_NAME": "nome_idx",
+      "COLUMN_NAME": "nome",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "PRIMARY",
+      "COLUMN_NAME": "id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 0,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "vendedores_tenant_id_idx",
+      "COLUMN_NAME": "tenant_id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    },
+    {
+      "INDEX_NAME": "vendedores_user_id_idx",
+      "COLUMN_NAME": "user_id",
+      "SEQ_IN_INDEX": 1,
+      "NON_UNIQUE": 1,
+      "INDEX_TYPE": "BTREE"
+    }
+  ]
+}

@@ -35,8 +35,10 @@ function sanitizeToolInput(input: unknown): Record<string, unknown> {
 }
 
 export class ToolExecutor {
-  private static readonly TOOL_TIMEOUT_MS = 15000;
-  private static readonly MAX_RETRIES = 2;
+  // HARDENING: ENV só configura parâmetros, não decide fluxo de execução
+  // Comportamento sempre definido em código
+  private static readonly TOOL_TIMEOUT_MS: number = 15000; // 15 segundos fixo
+  private static readonly MAX_RETRIES: number = 2; // 2 retries fixo
 
   private async executeWithTimeout<T>(promise: Promise<T>, timeoutMs: number, toolName: string): Promise<T> {
     return new Promise<T>((resolve, reject) => {

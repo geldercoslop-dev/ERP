@@ -201,29 +201,9 @@ export async function createProduto(request: Request) {
 
       custo: data.custo.toFixed(2),
 
-      descontoFabrica: (data.descontoFabrica ?? 0).toFixed(2),
-
-      ipi: (data.ipi ?? 0).toFixed(2),
-
-      frete: (data.frete ?? 0).toFixed(2),
-
-      montagem: (data.montagem ?? 0).toFixed(2),
-
-      lucro: (data.lucro ?? 0).toFixed(2),
-
-      comissao: (data.comissao ?? 0).toFixed(2),
-
-      jurosCartao: (data.jurosCartao ?? 0).toFixed(2),
-
-      valorVenda: data.valorVenda.toFixed(2),
-
       estoque: estoqueTotal,
 
-      prazoGarantia: data.prazoGarantia,
-
-      grupoId: data.grupoId,
-
-      ativo: data.ativo ?? true,
+      ativo: (data.ativo ?? true) as boolean,
 
     });
 

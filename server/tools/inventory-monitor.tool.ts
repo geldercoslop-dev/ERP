@@ -14,6 +14,20 @@ export const inventoryMonitorTool = {
       input.limite
     );
 
+  },
+
+  async countProdutosAtivosEstoqueAte(input: { tenantId: number; maxInclusive: number }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    return inventoryService.countProdutosAtivosEstoqueAte(input.tenantId, input.maxInclusive);
+  },
+
+  async countProdutosAtivosEstoqueZero(input: { tenantId: number }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    return inventoryService.countProdutosAtivosEstoqueZero(input.tenantId);
   }
 
 };

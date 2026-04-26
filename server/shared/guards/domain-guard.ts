@@ -3,6 +3,8 @@
  * Use em inputs críticos (status, tipo enumerado) antes de persistir ou montar query.
  */
 
+import { ValidationError } from '../../_core/errors/typed-errors.js';
+
 const isReadonlyStringList = (v: unknown): v is readonly string[] =>
   Array.isArray(v) && v.every((x) => typeof x === "string");
 
@@ -18,14 +20,14 @@ export function validateStatus<T extends readonly string[]>(
   fieldName = "status"
 ): T[number] {
   if (!isReadonlyStringList(allowed)) {
-    throw new Error("validateStatus: lista de valores inválida");
+    throw new ValidationError("validateStatus: lista de valores inválida");
   }
   if (typeof value !== "string") {
-    throw new Error(`${fieldName} inválido: esperado string, recebido ${typeof value}`);
+    throw new ValidationError(`${fieldName} inválido: esperado string, recebido ${typeof value}`);
   }
   const trimmed = value.trim();
   if (!(allowed as readonly string[]).includes(trimmed)) {
-    throw new Error(`${fieldName} inválido: "${value}" (permitidos: ${allowed.join(", ")})`);
+    throw new ValidationError(`${fieldName} inválido: "${value}" (permitidos: ${allowed.join(", ")})`);
   }
   return trimmed as T[number];
 }

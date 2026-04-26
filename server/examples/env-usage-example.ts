@@ -72,17 +72,17 @@ export class DatabaseTool {
   private connectionUrl: string;
 
   constructor() {
-    // ✅ GOOD: getDatabaseUrl() handles DATABASE_URL OR individual vars
-    this.connectionUrl = getDatabaseUrl(env);
+    // ✅ GOOD: Use DATABASE_URL directly
+    this.connectionUrl = env.DATABASE_URL;
     
-    // ✅ Log non-sensitive info (never log passwords)
+    // ✅ Parse URL for logging (never log password)
+    const url = new URL(env.DATABASE_URL);
     this.logger.info('Database configured', {
       metadata: {
-        host: env.DATABASE_HOST,
-        port: env.DATABASE_PORT,
-        database: env.DATABASE_NAME,
+        host: url.hostname,
+        port: url.port || '3306',
+        database: url.pathname.slice(1).replace(/^\//, ''),
         // ❌ NEVER log password
-        // password: env.DATABASE_PASSWORD,
       },
     });
   }
@@ -294,8 +294,7 @@ export function rateLimitMiddleware() {
 export const serviceConfig = {
   // ✅ GOOD: Centralized config based on validated env
   database: {
-    url: getDatabaseUrl(env),
-    ssl: env.DATABASE_SSL,
+    url: env.DATABASE_URL,
     maxConnections: 10,
     pool: {
       min: 2,
@@ -419,8 +418,8 @@ export function antiPatterns() {
   }
 
   // ❌ Duplicating configuration logic
-  const dbUrl = `mysql://${process.env.DB_USER}@${process.env.DB_HOST}`;
-  // Should use: getDatabaseUrl(env)
+  const dbUrl = env.DATABASE_URL;
+  // Should use: env.DATABASE_URL directly
 
   // ❌ No validation of environment
   const port = parseInt(process.env.PORT || '3000');  // Could be -1
@@ -438,9 +437,8 @@ export function bestPractices() {
   // ✅ Use validated env (typed, required, safe)
   const secret = env.JWT_ACCESS_SECRET;  // Type: string, 32+ chars guaranteed
 
-  // ✅ Use helper functions
-  const dbUrl = getDatabaseUrl(env);
-  const redisOpts = getRedisOptions(env);
+  // ✅ Use DATABASE_URL directly
+  const dbUrl = env.DATABASE_URL;
 
   // ✅ Check environment context
   if (isProduction()) {
@@ -453,11 +451,12 @@ export function bestPractices() {
   console.log(config.cache.redis.host);
 
   // ✅ Never log secrets
+  const url = new URL(env.DATABASE_URL);
   logger.info('Service initialized', {
     metadata: {
       port: env.PORT,
-      database: env.DATABASE_NAME,
-      // NOT: password: env.DATABASE_PASSWORD
+      database: url.pathname.slice(1).replace(/^\//, ''),
+      // NOT: password
     },
   });
 }

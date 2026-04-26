@@ -28,7 +28,7 @@ export async function liberarCargaParaRota(tenantId: number, cargaId: number) {
   return await dbConn.transaction(async (tx: DbTx) => {
     const pedidosCargaRows = await tx.select({ pedidoId: pedidosCarga.pedidoId })
       .from(pedidosCarga)
-      .where(eq(pedidosCarga.cargaId, cargaId));
+      .where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.cargaId, cargaId)));
     const pedidoIds = pedidosCargaRows.map((r) => r.pedidoId);
     if (pedidoIds.length === 0) throw new ValidationError("Carga sem pedidos.");
 
@@ -85,7 +85,7 @@ export async function baixarPedidoCarga(tenantId: number, pedidoCargaId: number,
     await tx.update(pedidosCarga).set({
       entregue: true,
       dataBaixa: new Date(),
-    }).where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.id, pedidoCargaId)));
+    }).where(eq(pedidosCarga.id, pedidoCargaId));
     
     // 2. Baixar o pedido no fluxo único (financeiro + comissão + contas)
     const result = await financeService.baixarPedidoDireto(tenantId, rel[0].pedidoId, data, {
@@ -96,7 +96,7 @@ export async function baixarPedidoCarga(tenantId: number, pedidoCargaId: number,
     // 3. Verificar se a carga foi toda baixada
     const cargaId = rel[0].cargaId;
     const pendentes = await tx.select().from(pedidosCarga)
-      .where(and(eq(pedidosCarga.cargaId, cargaId), eq(pedidosCarga.entregue, false)));
+      .where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.cargaId, cargaId), eq(pedidosCarga.entregue, false)));
       
     if (pendentes.length === 0) {
       await tx.update(cargas).set({ status: CargaStatus.ENTREGUE, updatedAt: new Date() }).where(and(eq(cargas.tenantId, tenantId), eq(cargas.id, cargaId)));
@@ -138,7 +138,10 @@ export async function createCarga(tenantId: number, data: CreateCargaInput) {
   assertDbConnection(dbConn);
   
   const result = await dbConn.insert(cargas).values({
-    ...data,
+    numero: data.numero,
+    cidadeRota: data.cidadeRota,
+    dataEntrega: data.dataEntrega,
+    status: data.status,
     tenantId,
   });
   const cargaId = getInsertId(result);
@@ -195,7 +198,7 @@ export async function getCargaById(tenantId: number, id: number): Promise<CargaC
     .limit(1);
   if (result.length === 0) return null;
 
-  const row = ensureObject(result[0]) as CargaComPedidos;
+  const row = ensureObject(result[0]) as unknown as CargaComPedidos;
 
   const links = await dbConn
     .select({
@@ -400,7 +403,7 @@ export async function removePedidosFromCarga(tenantId: number, cargaId: number, 
     // Se não houver mais pedidos, voltar status para GERADO
     const remainingPedidos = await tx.select()
       .from(pedidosCarga)
-      .where(eq(pedidosCarga.cargaId, cargaId));
+      .where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.cargaId, cargaId)));
 
     if (remainingPedidos.length === 0) {
       await tx.update(cargas)
@@ -461,7 +464,7 @@ export async function updatePedidoCarga(tenantId: number, pedidoCargaId: number,
     }
   }
   if (Object.keys(updateData).length > 0) {
-    await dbConn.update(pedidosCarga).set(updateData).where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.id, pedidoCargaId)));
+    await dbConn.update(pedidosCarga).set(updateData).where(eq(pedidosCarga.id, pedidoCargaId));
   }
 
   // Registrar auditoria
@@ -689,7 +692,7 @@ export async function getRelatorioEntrega(tenantId: number, cargaId: number): Pr
     .from(pedidosCarga)
     .innerJoin(pedidos, eq(pedidos.id, pedidosCarga.pedidoId))
     .innerJoin(cargas, eq(cargas.id, pedidosCarga.cargaId))
-    .where(and(eq(pedidosCarga.cargaId, cargaId), eq(cargas.tenantId, tenantId)));
+    .where(and(eq(pedidosCarga.tenantId, tenantId), eq(pedidosCarga.cargaId, cargaId), eq(cargas.tenantId, tenantId)));
 
   return rows.map((row) => ({
     pedido: row.pedido.numero,

@@ -3,6 +3,7 @@ import { globalErrorHandler, notFoundHandler } from './middleware/error-handler.
 import clientRoutes from './routes/clients.js';
 import orderRoutes from './routes/orders.js';
 import paymentRoutes from './routes/payments.js';
+import leoApprovalRoutes from './routers/leo-approvals.router.js';
 
 /**
  * API ROUTES CONFIGURATION
@@ -25,6 +26,7 @@ console.log('ROUTES REGISTERED', {
 apiRouter.use('/clients', clientRoutes);
 apiRouter.use('/orders', orderRoutes);
 apiRouter.use('/payments', paymentRoutes);
+apiRouter.use('/leo/approvals', leoApprovalRoutes);
 
 /**
  * API info endpoint

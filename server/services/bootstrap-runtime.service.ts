@@ -6,18 +6,11 @@ import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../_cor
 export async function runDatabaseBootstrapFlow(): Promise<void> {
   await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
     const db = await getDb();
-    try {
-      await bootstrapDatabase(db);
-      console.log("[BOOT] database bootstrap ok");
-    } catch (bootstrapErr) {
-      console.warn("[BOOT] database bootstrap falhou, continuando...", bootstrapErr);
-      console.log("[BOOT] server liberado mesmo com falha de migration");
-    }
+    // FALHA FATAL: bootstrap do banco é obrigatório
+    await bootstrapDatabase(db);
+    console.log("[BOOT] database bootstrap ok");
 
-    try {
-      await waitForDatabaseReady();
-    } catch (guardErr) {
-      console.warn("[BOOT] database guard check falhou, continuando...", guardErr);
-    }
+    // FALHA FATAL: database guard check é obrigatório
+    await waitForDatabaseReady();
   });
 }

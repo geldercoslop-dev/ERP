@@ -34,8 +34,6 @@ export interface SystemHealthPayload {
   };
   environment: {
     DATABASE_URL: boolean;
-    DB_HOST: boolean;
-    DB_NAME: boolean;
     PORT: boolean;
   };
   allEnvironmentOk: boolean;
@@ -88,8 +86,6 @@ function isEnvSlice(v: unknown): v is SystemHealthPayload["environment"] {
   if (!isRecord(v)) return false;
   return (
     typeof v.DATABASE_URL === "boolean" &&
-    typeof v.DB_HOST === "boolean" &&
-    typeof v.DB_NAME === "boolean" &&
     typeof v.PORT === "boolean"
   );
 }

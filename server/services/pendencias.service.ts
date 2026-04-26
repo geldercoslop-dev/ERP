@@ -1,6 +1,6 @@
 import * as db from "../db/index.js";
 import { eq, and, inArray, asc, sql } from "drizzle-orm";
-import { pendencias, pedidos, vendedores, produtos, cores } from "../../drizzle/schema.js";
+import { pendencias, pedidos, vendedores, produtos, cores } from "../../drizzle/schema.ts";
 import { PendenciaStatus, PendenciaStatusValues, type PendenciaStatusValue } from "../shared/domain-status.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
 import { assertDbConnection } from "../_core/errors/assertions.js";

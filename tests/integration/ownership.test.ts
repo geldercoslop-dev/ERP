@@ -30,7 +30,7 @@ import {
   pedidos,
   pendencias,
   contasReceber,
-} from "../../drizzle/schema.js";
+} from "../../drizzle/schema.ts";
 
 const TEST_TENANT_ID = 999;
 

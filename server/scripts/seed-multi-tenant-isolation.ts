@@ -32,18 +32,18 @@ function uniqPhone(base: string, suffix: string) {
 }
 
 async function main() {
-  const DB_HOST = process.env.DB_HOST ?? "localhost";
-  const DB_PORT = Number(process.env.DB_PORT ?? "3306");
-  const DB_USER = process.env.DB_USER ?? "vendas";
-  const DB_PASSWORD = process.env.DB_PASSWORD ?? "vendas123";
-  const DB_NAME = process.env.DB_NAME ?? "vendas_app";
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is required");
+  }
 
+  const url = new URL(databaseUrl);
   const connection = await mysql.createConnection({
-    host: DB_HOST,
-    port: DB_PORT,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
+    host: url.hostname,
+    port: parseInt(url.port || "3306", 10),
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    database: url.pathname.slice(1).replace(/^\//, "") || "vendas_app",
   });
 
   const timestampSuffix = Date.now().toString().slice(-6);
@@ -103,7 +103,6 @@ async function main() {
     senha: bcryptA,
     admin: false,
     ativo: true,
-    cidade: null,
     telefone: null,
     email: null,
     createdAt: new Date(),
@@ -117,7 +116,6 @@ async function main() {
     senha: bcryptB,
     admin: false,
     ativo: true,
-    cidade: null,
     telefone: null,
     email: null,
     createdAt: new Date(),

@@ -1,4 +1,4 @@
-import { auditLogs } from "../../drizzle/schema.js";
+import { auditLogs } from "../../drizzle/schema.ts";
 import { getDb } from "../db/index.js";
 import { logger } from "../_core/logger.js";
 

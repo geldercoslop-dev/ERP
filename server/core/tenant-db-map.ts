@@ -1,14 +1,8 @@
 import { getDb } from "../db/index.js";
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
+import { assertTenantId } from "../_core/errors/assertions.js";
 import type { Database } from "../db/core.js";
 
 export const tenantDbMap = new Map<number, Database>();
-
-function assertTenantId(tenantId: number): void {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new InfrastructureError("TENANT_REQUIRED");
-  }
-}
 
 export function setTenantDb(tenantId: number, db: Database): void {
   assertTenantId(tenantId);

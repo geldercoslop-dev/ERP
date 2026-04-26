@@ -34,6 +34,7 @@ class LeoLogManager {
   private config: LogConfig;
   private currentLogFile?: string;
   private currentFileSize: number = 0;
+  private isRotating: boolean = false; // FASE 4: Concurrency protection
 
   private constructor() {
     this.config = {
@@ -84,10 +85,35 @@ class LeoLogManager {
     const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
     this.currentLogFile = join(this.config.logDirectory, `leo-${dateStr}.log`);
 
+    // FASE 1: Garantir diretório existe
+    if (!existsSync(this.config.logDirectory)) {
+      try {
+        mkdirSync(this.config.logDirectory, { recursive: true });
+      } catch (error) {
+        console.error('[LeoLogManager] Erro ao criar diretório de logs:', error);
+        // Continuar mesmo se falhar - fail-safe
+      }
+    }
+
+    // FASE 2: Garantir arquivo existe
+    if (!existsSync(this.currentLogFile)) {
+      try {
+        writeFileSync(this.currentLogFile, '', { encoding: 'utf8' });
+      } catch (error) {
+        console.error('[LeoLogManager] Erro ao criar arquivo de log:', error);
+        // Continuar mesmo se falhar - fail-safe
+      }
+    }
+
     // Verificar tamanho do arquivo atual
     if (existsSync(this.currentLogFile)) {
-      const stats = statSync(this.currentLogFile);
-      this.currentFileSize = stats.size;
+      try {
+        const stats = statSync(this.currentLogFile);
+        this.currentFileSize = stats.size;
+      } catch (error) {
+        console.error('[LeoLogManager] Erro ao obter tamanho do arquivo:', error);
+        this.currentFileSize = 0;
+      }
     } else {
       this.currentFileSize = 0;
     }
@@ -97,6 +123,12 @@ class LeoLogManager {
    * Escreve entrada no log
    */
   writeLog(entry: LogEntry): void {
+    // FASE 4: Evitar rotação simultânea
+    if (this.isRotating) {
+      // Se está rotacionando, apenas atualiza tamanho e continua
+      // Não bloqueia escrita durante rotação
+    }
+
     try {
       // Verificar se precisa rotacionar
       if (this.currentFileSize > this.config.maxFileSize * 1024 * 1024) {
@@ -120,12 +152,14 @@ class LeoLogManager {
       }
 
       const logLine = this.formatLogEntry(entry);
-      appendFileSync(this.currentLogFile!, logLine + '\n', 'utf8');
+      // FASE 5: Normalizar encoding UTF-8
+      appendFileSync(this.currentLogFile!, logLine + '\n', { encoding: 'utf8' });
       
       // Atualizar tamanho
       this.currentFileSize += Buffer.byteLength(logLine + '\n', 'utf8');
     } catch (error) {
       console.error('[LeoLogManager] Erro ao escrever log:', error);
+      // FASE 3: Nunca travar execução por falha de log
     }
   }
 
@@ -145,8 +179,19 @@ class LeoLogManager {
    * Rotaciona arquivo de log
    */
   private rotateLogFile(forceDaily: boolean = false): void {
+    // FASE 4: Proteção contra concorrência
+    if (this.isRotating) {
+      console.warn('[LeoLogManager] Rotação já em andamento, ignorando solicitação');
+      return;
+    }
+
+    this.isRotating = true;
+
     try {
-      if (!this.currentLogFile) return;
+      if (!this.currentLogFile) {
+        this.setupCurrentLogFile();
+        return;
+      }
       
       const now = new Date();
       const timestamp = now.toISOString().replace(/[:.]/g, '-');
@@ -161,27 +206,56 @@ class LeoLogManager {
       
       const newFile = join(this.config.logDirectory, newFileName);
       
+      // FASE 2: Garantir diretório existe antes de rotacionar
+      if (!existsSync(this.config.logDirectory)) {
+        try {
+          mkdirSync(this.config.logDirectory, { recursive: true });
+        } catch (error) {
+          console.error('[LeoLogManager] Erro ao criar diretório durante rotação:', error);
+          // FASE 3: Fallback - continuar usando arquivo atual
+          this.isRotating = false;
+          return;
+        }
+      }
+
       // Se o arquivo atual existir e tiver conteúdo, mover
       if (existsSync(this.currentLogFile) && this.currentFileSize > 0) {
-        renameSync(this.currentLogFile, newFile);
-        console.log(`📋 Log rotacionado: ${this.currentLogFile} -> ${newFile}`);
+        try {
+          renameSync(this.currentLogFile, newFile);
+          console.log(`📋 Log rotacionado: ${this.currentLogFile} -> ${newFile}`);
+        } catch (error) {
+          console.error('[LeoLogManager] Erro ao mover arquivo durante rotação:', error);
+          // FASE 3: Fallback - continuar usando arquivo atual
+          this.isRotating = false;
+          return;
+        }
       }
       
       // Configurar novo arquivo
       this.setupCurrentLogFile();
       this.currentFileSize = 0;
 
-      // Registrar rotação
-      this.writeLog({
-        timestamp: new Date(),
-        level: 'INFO',
-        module: 'LeoLogManager',
-        message: `Log rotacionado${forceDaily ? ' (diário)' : ''}: ${newFileName}`,
-        traceId: 'log-rotation',
-      });
+      // Registrar rotação (não chama writeLog para evitar recursão)
+      try {
+        const rotationLog = this.formatLogEntry({
+          timestamp: new Date(),
+          level: 'INFO',
+          module: 'LeoLogManager',
+          message: `Log rotacionado${forceDaily ? ' (diário)' : ''}: ${newFileName}`,
+          traceId: 'log-rotation',
+        });
+        appendFileSync(this.currentLogFile!, rotationLog + '\n', { encoding: 'utf8' });
+      } catch (error) {
+        console.error('[LeoLogManager] Erro ao registrar rotação:', error);
+        // Não falhar se não conseguir registrar
+      }
 
     } catch (error) {
       console.error('[LeoLogManager] Erro ao rotacionar log:', error);
+      // FASE 3: Nunca throw error, apenas logar warning
+    } finally {
+      // FASE 4: Liberar flag de rotação
+      this.isRotating = false;
     }
   }
 

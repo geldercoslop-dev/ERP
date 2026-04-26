@@ -46,11 +46,7 @@ export function validateProductionEnv(): ValidationIssue[] {
     if (!isLongEnough(base.JWT_REFRESH_SECRET, ENV_SECRET_MIN_LENGTH)) {
       issues.push({ key: "JWT_REFRESH_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
     }
-    if (!isRequired(base.DB_HOST)) issues.push({ key: "DB_HOST", message: "is required" });
-    if (!isRequired(base.DB_PORT)) issues.push({ key: "DB_PORT", message: "is required" });
-    if (!isRequired(base.DB_USER)) issues.push({ key: "DB_USER", message: "is required" });
-    if (!isRequired(base.DB_PASSWORD)) issues.push({ key: "DB_PASSWORD", message: "is required" });
-    if (!isRequired(base.DB_NAME)) issues.push({ key: "DB_NAME", message: "is required" });
+    if (!isRequired(base.DATABASE_URL)) issues.push({ key: "DATABASE_URL", message: "is required" });
     if (!isRequired(base.REDIS_URL)) {
       issues.push({ key: "REDIS_URL", message: "is required" });
     }
@@ -75,7 +71,7 @@ export function validateCriticalBootEnvOrExit(env: Env): void {
   const appSecret = getTrimmedString(env, "APP_SECRET");
   const jwtAccessSecret = getTrimmedString(env, "JWT_ACCESS_SECRET");
   const jwtRefreshSecret = getTrimmedString(env, "JWT_REFRESH_SECRET");
-  const dbHost = getTrimmedString(env, "DB_HOST");
+  const databaseUrl = getTrimmedString(env, "DATABASE_URL");
   const redisHost = getTrimmedString(env, "REDIS_HOST");
 
   if (appSecret.length < ENV_SECRET_MIN_LENGTH) {
@@ -87,8 +83,8 @@ export function validateCriticalBootEnvOrExit(env: Env): void {
   if (jwtRefreshSecret.length < ENV_SECRET_MIN_LENGTH) {
     issues.push({ key: "JWT_REFRESH_SECRET", message: `must be at least ${ENV_SECRET_MIN_LENGTH} chars` });
   }
-  if (dbHost.length === 0) {
-    issues.push({ key: "DB_HOST", message: "is required" });
+  if (databaseUrl.length === 0) {
+    issues.push({ key: "DATABASE_URL", message: "is required" });
   }
   if (redisHost.length === 0) {
     issues.push({ key: "REDIS_HOST", message: "is required" });

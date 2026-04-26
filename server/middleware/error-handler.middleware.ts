@@ -36,13 +36,15 @@ export function globalErrorHandler(
   next: NextFunction
 ): void {
   const reqWithTenant = req as Request & { tenantId?: number };
+  // Validar req.user antes de acessar
+  const user = req.user && typeof req.user === 'object' ? req.user : undefined;
   // Log error
   console.error('[GlobalErrorHandler] Error:', {
     message: error.message,
     url: req.url,
     method: req.method,
     body: req.body,
-    user: req.user,
+    user,
     tenantId: reqWithTenant.tenantId,
     timestamp: new Date().toISOString()
   });

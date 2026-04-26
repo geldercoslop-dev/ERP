@@ -291,8 +291,8 @@ export class AdvancedMonitoring {
     const startTime = performance.now();
     
     try {
-      const { redisManager } = await import('../infra/redis.js');
-      await redisManager.testConnection();
+      const { getRedis } = await import('../infra/redis.js');
+      await getRedis().testConnection();
       
       const responseTime = performance.now() - startTime;
       

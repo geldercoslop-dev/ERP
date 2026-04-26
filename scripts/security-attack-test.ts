@@ -8,7 +8,9 @@
 process.env.SERVICE_ENTRY_GUARD ??= "0";
 
 /** Carrega .env da raiz antes de qualquer módulo que use DATABASE_URL. */
-import "../server/_core/loadEnv";
+import { initEnv } from "../server/_core/env/bootstrapEnv";
+
+initEnv();
 
 import { toolExecutor } from "../server/leo/agent/tool-executor";
 

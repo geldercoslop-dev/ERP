@@ -1,0 +1,2844 @@
+{
+  "database": "erp",
+  "tables": [
+    {
+      "name": "__drizzle_migrations",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "dataType": "bigint",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "hash",
+          "type": "text",
+          "dataType": "text",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "created_at",
+          "type": "bigint",
+          "dataType": "bigint",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        }
+      ],
+      "indexes": [
+        {
+          "name": "id",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "cargas",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "numero",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "UNI",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "cidadeRota",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "dataEntrega",
+          "type": "varchar(10)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "status",
+          "type": "enum('ABERTA','EM_ROTA','ENTREGUE')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "ABERTA",
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 7
+        }
+      ],
+      "indexes": [
+        {
+          "name": "cargas_numero_unique",
+          "column": "numero",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "numero_idx",
+          "column": "numero",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "status_idx",
+          "column": "status",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "clientes",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "nome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "telefone",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "telefoneRecado",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "rua",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "numero",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "bairro",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "cidade",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "uf",
+          "type": "varchar(2)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "referencia",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 10
+        },
+        {
+          "name": "condominio",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 11
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 12
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 13
+        }
+      ],
+      "indexes": [
+        {
+          "name": "nome_idx",
+          "column": "nome",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "telefone_idx",
+          "column": "telefone",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "comissoes",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "vendedorId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "pedidoId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "cargaId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "valorVenda",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "percentualComissao",
+          "type": "decimal(5,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "valorComissao",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "status",
+          "type": "enum('PENDENTE','PAGA')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "PENDENTE",
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "dataPagamento",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 10
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 11
+        }
+      ],
+      "indexes": [
+        {
+          "name": "comissoes_cargaId_cargas_id_fk",
+          "column": "cargaId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "pedido_idx",
+          "column": "pedidoId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "status_idx",
+          "column": "status",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "vendedor_idx",
+          "column": "vendedorId",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "comissoes_cargaId_cargas_id_fk",
+          "column": "cargaId",
+          "referencedTable": "cargas",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "comissoes_pedidoId_pedidos_id_fk",
+          "column": "pedidoId",
+          "referencedTable": "pedidos",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "comissoes_vendedorId_vendedores_id_fk",
+          "column": "vendedorId",
+          "referencedTable": "vendedores",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "contas_fixas",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "nome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "categoria",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "fornecedorId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "valor",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "diaVencimento",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "ativo",
+          "type": "tinyint(1)",
+          "dataType": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "planoContasId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 10
+        }
+      ],
+      "indexes": [
+        {
+          "name": "contas_fixas_fornecedorId_fornecedores_id_fk",
+          "column": "fornecedorId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "contas_fixas_planoContasId_plano_contas_id_fk",
+          "column": "planoContasId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "contas_fixas_fornecedorId_fornecedores_id_fk",
+          "column": "fornecedorId",
+          "referencedTable": "fornecedores",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "contas_fixas_planoContasId_plano_contas_id_fk",
+          "column": "planoContasId",
+          "referencedTable": "plano_contas",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "contas_pagar",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "contaFixaId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "fornecedorId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "descricao",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "categoria",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "valor",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "dataVencimento",
+          "type": "varchar(10)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "dataPagamento",
+          "type": "varchar(10)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "status",
+          "type": "enum('PENDENTE','PAGA','VENCIDA')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "PENDENTE",
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 10
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 11
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 12
+        },
+        {
+          "name": "planoContasId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 13
+        }
+      ],
+      "indexes": [
+        {
+          "name": "contas_pagar_contaFixaId_contas_fixas_id_fk",
+          "column": "contaFixaId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "contas_pagar_fornecedorId_fornecedores_id_fk",
+          "column": "fornecedorId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "contas_pagar_planoContasId_plano_contas_id_fk",
+          "column": "planoContasId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "status_idx",
+          "column": "status",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "vencimento_idx",
+          "column": "dataVencimento",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "contas_pagar_contaFixaId_contas_fixas_id_fk",
+          "column": "contaFixaId",
+          "referencedTable": "contas_fixas",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "contas_pagar_fornecedorId_fornecedores_id_fk",
+          "column": "fornecedorId",
+          "referencedTable": "fornecedores",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "contas_pagar_planoContasId_plano_contas_id_fk",
+          "column": "planoContasId",
+          "referencedTable": "plano_contas",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "contas_receber",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "pedidoId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "clienteId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "clienteNome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "descricao",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "valor",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "dataVencimento",
+          "type": "varchar(10)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "dataRecebimento",
+          "type": "varchar(10)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "status",
+          "type": "enum('PENDENTE','RECEBIDA','VENCIDA')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "PENDENTE",
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "formaPagamento",
+          "type": "varchar(50)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 10
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 11
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 12
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 13
+        },
+        {
+          "name": "planoContasId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 14
+        }
+      ],
+      "indexes": [
+        {
+          "name": "cliente_idx",
+          "column": "clienteId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "contas_receber_pedidoId_pedidos_id_fk",
+          "column": "pedidoId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "contas_receber_planoContasId_plano_contas_id_fk",
+          "column": "planoContasId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "status_idx",
+          "column": "status",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "vencimento_idx",
+          "column": "dataVencimento",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "contas_receber_clienteId_clientes_id_fk",
+          "column": "clienteId",
+          "referencedTable": "clientes",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "contas_receber_pedidoId_pedidos_id_fk",
+          "column": "pedidoId",
+          "referencedTable": "pedidos",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "contas_receber_planoContasId_plano_contas_id_fk",
+          "column": "planoContasId",
+          "referencedTable": "plano_contas",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "cores",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "nome",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 3
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "counters",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "name",
+          "type": "varchar(50)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "UNI",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "seq",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": "0",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "free",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 5
+        }
+      ],
+      "indexes": [
+        {
+          "name": "counters_name_unique",
+          "column": "name",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "fornecedores",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "nome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "telefone",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "email",
+          "type": "varchar(320)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "tipo",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "ativo",
+          "type": "tinyint(1)",
+          "dataType": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 9
+        }
+      ],
+      "indexes": [
+        {
+          "name": "nome_idx",
+          "column": "nome",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "grupos_precificacao",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "nome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "percentualMontagem",
+          "type": "decimal(5,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "percentualLucro",
+          "type": "decimal(5,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "percentualComissao",
+          "type": "decimal(5,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "percentualCartao",
+          "type": "decimal(5,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 8
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "itens_pedido",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "pedidoId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "tipo",
+          "type": "enum('LIVRE','CATALOGO')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "LIVRE",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "produtoId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "corId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "corNome",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "dataType": "text",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "marca",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "quantidade",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": "1",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "valorUnitario",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 10
+        },
+        {
+          "name": "custo",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 11
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 12
+        }
+      ],
+      "indexes": [
+        {
+          "name": "itens_pedido_corId_cores_id_fk",
+          "column": "corId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "itens_pedido_produtoId_produtos_id_fk",
+          "column": "produtoId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "pedido_idx",
+          "column": "pedidoId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "itens_pedido_corId_cores_id_fk",
+          "column": "corId",
+          "referencedTable": "cores",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "itens_pedido_pedidoId_pedidos_id_fk",
+          "column": "pedidoId",
+          "referencedTable": "pedidos",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "itens_pedido_produtoId_produtos_id_fk",
+          "column": "produtoId",
+          "referencedTable": "produtos",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "pedidos",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "numero",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "UNI",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "vendedorId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "clienteId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "clienteNome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "clienteTelefone",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "clienteTelefoneRecado",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "clienteRua",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "clienteNumero",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "clienteBairro",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 10
+        },
+        {
+          "name": "clienteCidade",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 11
+        },
+        {
+          "name": "clienteUf",
+          "type": "varchar(2)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 12
+        },
+        {
+          "name": "clienteReferencia",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 13
+        },
+        {
+          "name": "clienteCondominio",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 14
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 15
+        },
+        {
+          "name": "desconto",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 16
+        },
+        {
+          "name": "acrescimo",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 17
+        },
+        {
+          "name": "total",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 18
+        },
+        {
+          "name": "status",
+          "type": "enum('GERADO','IMPRESSO','ENTREGUE','CANCELADO')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "GERADO",
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 19
+        },
+        {
+          "name": "formaPagamento",
+          "type": "varchar(50)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 20
+        },
+        {
+          "name": "dataEntrega",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 21
+        },
+        {
+          "name": "garantiaInicio",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 22
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 23
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 24
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 25
+        }
+      ],
+      "indexes": [
+        {
+          "name": "cliente_idx",
+          "column": "clienteId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "numero_idx",
+          "column": "numero",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "pedidos_numero_unique",
+          "column": "numero",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "status_idx",
+          "column": "status",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "vendedor_idx",
+          "column": "vendedorId",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "pedidos_clienteId_clientes_id_fk",
+          "column": "clienteId",
+          "referencedTable": "clientes",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "pedidos_vendedorId_vendedores_id_fk",
+          "column": "vendedorId",
+          "referencedTable": "vendedores",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "pedidos_carga",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "cargaId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "pedidoId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "numeroPedido",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "clienteNome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "valorTotal",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 7
+        }
+      ],
+      "indexes": [
+        {
+          "name": "carga_idx",
+          "column": "cargaId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "pedido_idx",
+          "column": "pedidoId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "pedidos_carga_cargaId_cargas_id_fk",
+          "column": "cargaId",
+          "referencedTable": "cargas",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "pedidos_carga_pedidoId_pedidos_id_fk",
+          "column": "pedidoId",
+          "referencedTable": "pedidos",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "pendencias_compra",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "produtoId",
+          "type": "int",
+          "dataType": "int",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "dataType": "text",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "quantidade",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": "1",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "status",
+          "type": "enum('PENDENTE','COMPRADO','CHEGOU')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "PENDENTE",
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 8
+        }
+      ],
+      "indexes": [
+        {
+          "name": "pendencias_compra_produtoId_produtos_id_fk",
+          "column": "produtoId",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "status_idx",
+          "column": "status",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "pendencias_compra_produtoId_produtos_id_fk",
+          "column": "produtoId",
+          "referencedTable": "produtos",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "plano_contas",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "nome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "tipo",
+          "type": "enum('DESPESA','RECEITA')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "categoria",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "ativo",
+          "type": "tinyint(1)",
+          "dataType": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 7
+        }
+      ],
+      "indexes": [
+        {
+          "name": "nome_idx",
+          "column": "nome",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "tipo_idx",
+          "column": "tipo",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "produtos",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "dataType": "text",
+          "nullable": false,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "marca",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "fornecedor",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "categoria",
+          "type": "varchar(100)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "custo",
+          "type": "decimal(10,2)",
+          "dataType": "decimal",
+          "nullable": false,
+          "default": "0.00",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "estoque",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": "0",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "ativo",
+          "type": "tinyint(1)",
+          "dataType": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 10
+        }
+      ],
+      "indexes": [
+        {
+          "name": "marca_idx",
+          "column": "marca",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "tenants",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "nome_empresa",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "status",
+          "type": "enum('ACTIVE','SUSPENDED','DELETED')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "ACTIVE",
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 5
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "tenants_nome_empresa_idx",
+          "column": "nome_empresa",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "tenants_status_idx",
+          "column": "status",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "users",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "open_id",
+          "type": "varchar(64)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "UNI",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "tenant_id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "dataType": "text",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "email",
+          "type": "varchar(320)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "loginMethod",
+          "type": "varchar(64)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "role",
+          "type": "enum('user','admin')",
+          "dataType": "enum",
+          "nullable": false,
+          "default": "user",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "lastSignedIn",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 10
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "users_open_id_idx",
+          "column": "open_id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "users_tenant_id_idx",
+          "column": "tenant_id",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "users_tenant_id_tenants_id_fk",
+          "column": "tenant_id",
+          "referencedTable": "tenants",
+          "referencedColumn": "id"
+        }
+      ]
+    },
+    {
+      "name": "vendedores",
+      "type": "BASE TABLE",
+      "comment": "",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "PRI",
+          "extra": "auto_increment",
+          "comment": "",
+          "position": 1
+        },
+        {
+          "name": "tenant_id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 2
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "dataType": "int",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 3
+        },
+        {
+          "name": "nome",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": false,
+          "default": null,
+          "key": "MUL",
+          "extra": "",
+          "comment": "",
+          "position": 4
+        },
+        {
+          "name": "telefone",
+          "type": "varchar(20)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 5
+        },
+        {
+          "name": "email",
+          "type": "varchar(320)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 6
+        },
+        {
+          "name": "senha",
+          "type": "varchar(255)",
+          "dataType": "varchar",
+          "nullable": true,
+          "default": null,
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 7
+        },
+        {
+          "name": "admin",
+          "type": "tinyint(1)",
+          "dataType": "tinyint",
+          "nullable": false,
+          "default": "0",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 8
+        },
+        {
+          "name": "ativo",
+          "type": "tinyint(1)",
+          "dataType": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "key": "",
+          "extra": "",
+          "comment": "",
+          "position": 9
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED",
+          "comment": "",
+          "position": 10
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "dataType": "timestamp",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "key": "",
+          "extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "comment": "",
+          "position": 11
+        }
+      ],
+      "indexes": [
+        {
+          "name": "nome_idx",
+          "column": "nome",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "PRIMARY",
+          "column": "id",
+          "nonUnique": false,
+          "position": 1
+        },
+        {
+          "name": "vendedores_tenant_id_idx",
+          "column": "tenant_id",
+          "nonUnique": true,
+          "position": 1
+        },
+        {
+          "name": "vendedores_user_id_idx",
+          "column": "user_id",
+          "nonUnique": true,
+          "position": 1
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "vendedores_tenant_id_tenants_id_fk",
+          "column": "tenant_id",
+          "referencedTable": "tenants",
+          "referencedColumn": "id"
+        },
+        {
+          "name": "vendedores_user_id_users_id_fk",
+          "column": "user_id",
+          "referencedTable": "users",
+          "referencedColumn": "id"
+        }
+      ]
+    }
+  ]
+}

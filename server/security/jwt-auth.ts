@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import type { JwtPayload, SignOptions } from "jsonwebtoken";
 import { systemLogger } from '../_core/logger.js';
 import { parseEnv } from '../services/env.schema.js';
+import { requireBootstrap } from '../_core/bootstrap.js';
 import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 
 export interface JWTPayload {
@@ -30,12 +31,16 @@ export interface RefreshTokenPayload {
 }
 
 class JWTAuth {
-  private readonly accessTokenSecret: string;
-  private readonly refreshTokenSecret: string;
-  private readonly accessTokenExpiry: string;
-  private readonly refreshTokenExpiry: string;
+  private accessTokenSecret: string | null = null;
+  private refreshTokenSecret: string | null = null;
+  private accessTokenExpiry: string = '15m';
+  private refreshTokenExpiry: string = '7d';
 
-  constructor() {
+  private ensureInitialized(): void {
+    if (this.accessTokenSecret !== null) return;
+
+    requireBootstrap('jwt-auth.ensureInitialized');
+
     const { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } = parseEnv();
     const access = JWT_ACCESS_SECRET.trim();
     const refresh = JWT_REFRESH_SECRET.trim();
@@ -49,6 +54,16 @@ class JWTAuth {
     this.refreshTokenSecret = refresh;
     this.accessTokenExpiry = process.env.JWT_ACCESS_EXPIRY || '15m';
     this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRY || '7d';
+  }
+
+  private getAccessSecret(): string {
+    this.ensureInitialized();
+    return this.accessTokenSecret!;
+  }
+
+  private getRefreshSecret(): string {
+    this.ensureInitialized();
+    return this.refreshTokenSecret!;
   }
 
   /**
@@ -82,8 +97,8 @@ class JWTAuth {
     const refreshSign: SignOptions = {
       algorithm: "HS256",
     };
-    const accessToken = jwt.sign(accessTokenPayload, this.accessTokenSecret, accessSign);
-    const refreshToken = jwt.sign(refreshTokenPayload, this.refreshTokenSecret, refreshSign);
+    const accessToken = jwt.sign(accessTokenPayload, this.getAccessSecret(), accessSign);
+    const refreshToken = jwt.sign(refreshTokenPayload, this.getRefreshSecret(), refreshSign);
 
     const expiresIn = this.parseExpiryToSeconds(this.accessTokenExpiry);
 
@@ -108,7 +123,7 @@ class JWTAuth {
    */
   verifyAccessToken(token: string): JWTPayload {
     try {
-      const decoded = jwt.verify(token, this.accessTokenSecret, {
+      const decoded = jwt.verify(token, this.getAccessSecret(), {
         algorithms: ["HS256"],
       });
 
@@ -168,7 +183,7 @@ class JWTAuth {
    */
   verifyRefreshToken(token: string): RefreshTokenPayload {
     try {
-      const decoded = jwt.verify(token, this.refreshTokenSecret, {
+      const decoded = jwt.verify(token, this.getRefreshSecret(), {
         algorithms: ["HS256"],
       });
 
@@ -302,5 +317,19 @@ class JWTAuth {
   }
 }
 
-// Instância singleton
-export const jwtAuth = new JWTAuth();
+// Instância singleton lazy - só cria quando acessada
+let _jwtAuthInstance: JWTAuth | null = null;
+
+export function getJwtAuth(): JWTAuth {
+  if (!_jwtAuthInstance) {
+    _jwtAuthInstance = new JWTAuth();
+  }
+  return _jwtAuthInstance;
+}
+
+// Compatibilidade: exportar como getter para não quebrar imports existentes
+export const jwtAuth = new Proxy({} as JWTAuth, {
+  get(_target, prop) {
+    return getJwtAuth()[prop as keyof JWTAuth];
+  }
+});

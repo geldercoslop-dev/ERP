@@ -84,7 +84,7 @@ async function estoqueParado(tenantId: number): Promise<number> {
     .from(db.produtos)
     .where(and(
       eq(db.produtos.tenantId, tenantId),
-      sql`${db.produtos.estoque} > 0`, 
+      sql`${db.produtos.estoque} > 0`,
       eq(db.produtos.ativo, true)
     ));
     
@@ -117,7 +117,7 @@ async function estoqueBaixo(tenantId: number): Promise<number> {
     .from(db.produtos)
     .where(and(
       eq(db.produtos.tenantId, tenantId),
-      eq(db.produtos.ativo, true), 
+      eq(db.produtos.ativo, true),
       sql`${db.produtos.estoque} <= 5`
     ));
   return Number(r[0]?.count ?? 0);

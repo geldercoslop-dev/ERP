@@ -1,16 +1,11 @@
-import { redisManager } from "../infra/redis.js";
+import { getRedis } from "../infra/redis.js";
 import { ValidationError } from '../_core/errors/typed-errors.js';
+import { assertTenantId } from "../_core/errors/assertions.js";
 import { createLogger } from "../infra/structured-logger.js";
 
 type CacheKey = string;
 
 const logger = createLogger("cache-service");
-
-function assertTenantId(tenantId: number): void {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new ValidationError("TENANT_REQUIRED");
-  }
-}
 
 function assertCacheKey(key: string): void {
   if (!key || key.trim().length === 0) {
@@ -26,12 +21,7 @@ export async function getCache<T>(tenantId: number, key: CacheKey): Promise<T | 
   assertTenantId(tenantId);
   assertCacheKey(key);
 
-  const client = redisManager.getClient();
-  if (!client) {
-    const error = new Error("Redis client unavailable");
-    logger.error("Redis client unavailable during getCache", error);
-    throw error;
-  }
+  const client = getRedis().getClient();
 
   const raw = await client.get(buildTenantCacheKey(tenantId, key));
   if (!raw) return null;
@@ -52,12 +42,7 @@ export async function setCache<T>(tenantId: number, key: CacheKey, value: T, ttl
     throw new ValidationError("CACHE_TTL_REQUIRED");
   }
 
-  const client = redisManager.getClient();
-  if (!client) {
-    const error = new Error("Redis client unavailable");
-    logger.error("Redis client unavailable during setCache", error);
-    throw error;
-  }
+  const client = getRedis().getClient();
 
   try {
     await client.set(buildTenantCacheKey(tenantId, key), JSON.stringify(value), "EX", ttl);
@@ -71,12 +56,7 @@ export async function invalidateCache(tenantId: number, key: CacheKey): Promise<
   assertTenantId(tenantId);
   assertCacheKey(key);
 
-  const client = redisManager.getClient();
-  if (!client) {
-    const error = new Error("Redis client unavailable");
-    logger.error("Redis client unavailable during invalidateCache", error);
-    throw error;
-  }
+  const client = getRedis().getClient();
 
   try {
     await client.del(buildTenantCacheKey(tenantId, key));

@@ -2,8 +2,11 @@
  * Verificações locais (sem subir HTTP): ENV + schema Zod + MySQL + Redis.
  * Imports dinâmicos evitam inicializar Redis/MySQL quando VERIFY_SKIP_*=1.
  */
-import "../_core/loadEnv.js";
+import { initEnv } from "../_core/env/bootstrapEnv.js";
 import { getEnv } from "../config/env.js";
+
+// Load ENV explicitly (NO import-time side effects)
+initEnv();
 
 async function main(): Promise<void> {
   console.log("[VERIFY] [ENV] validando schema e variáveis…");

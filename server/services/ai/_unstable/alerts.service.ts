@@ -83,7 +83,7 @@ export async function verificarContasAtrasadas(): Promise<Alerta[]> {
       .from(db.contasReceber)
       .where(
         and(
-          lt(db.contasReceber.dataVencimento, hoje),
+          sql`${db.contasReceber.dataVencimento} < ${hoje}`,
           ne(db.contasReceber.status, ContaReceberStatus.RECEBIDA)
         )
       )
@@ -129,7 +129,7 @@ export async function verificarVendasBaixas(): Promise<Alerta[]> {
       .where(
         and(
           sql`${db.pedidos.createdAt} >= ${inicioDia}`,
-          lt(db.pedidos.createdAt, fimDia),
+          sql`${db.pedidos.createdAt} < ${fimDia}`,
           ne(db.pedidos.status, PedidoStatus.CANCELADO)
         )
       );
@@ -180,7 +180,7 @@ export async function verificarPedidosPendentes(): Promise<Alerta[]> {
       .from(db.pedidos)
       .where(
         and(
-          lt(db.pedidos.createdAt, tresDiasAtras),
+          sql`${db.pedidos.createdAt} < ${tresDiasAtras}`,
           ne(db.pedidos.status, PedidoStatus.ENTREGUE),
           ne(db.pedidos.status, PedidoStatus.CANCELADO)
         )
@@ -227,7 +227,7 @@ export async function verificarCargasAtrasadas(): Promise<Alerta[]> {
       .from(db.cargas)
       .where(
         and(
-          lt(db.cargas.dataEntrega, ontem),
+          sql`${db.cargas.dataEntrega} < ${ontem}`,
           ne(db.cargas.status, CargaStatus.ENTREGUE)
         )
       )

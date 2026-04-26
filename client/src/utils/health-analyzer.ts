@@ -24,8 +24,6 @@ interface SystemHealthData {
   };
   environment: {
     DATABASE_URL: boolean;
-    DB_HOST: boolean;
-    DB_NAME: boolean;
     PORT: boolean;
   };
   allEnvironmentOk: boolean;
@@ -132,8 +130,6 @@ export function analyzeHealth(data: SystemHealthData): HealthAnalysis {
     
     const missingVars: string[] = [];
     if (!data.environment.DATABASE_URL) missingVars.push('DATABASE_URL');
-    if (!data.environment.DB_HOST) missingVars.push('DB_HOST');
-    if (!data.environment.DB_NAME) missingVars.push('DB_NAME');
     if (!data.environment.PORT) missingVars.push('PORT');
     
     if (missingVars.length > 0) {

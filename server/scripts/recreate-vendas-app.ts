@@ -6,25 +6,27 @@ import mysql from "mysql2/promise";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-function getConnectionConfig(): { host: string; port: number; user: string; password: string } {
-  const host = process.env.DB_HOST?.trim();
-  const user = process.env.DB_USER?.trim();
-  const password = process.env.DB_PASSWORD;
-  
-  if (!host || !user || password === undefined) {
-    throw new Error("Credenciais obrigatórias. Defina DB_HOST, DB_USER, DB_PASSWORD.");
+function parseDatabaseUrl(): { host: string; port: number; user: string; password: string } {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL é obrigatório");
   }
-  
-  return {
-    host,
-    port: parseInt(process.env.DB_PORT ?? "3306", 10),
-    user,
-    password,
-  };
+
+  try {
+    const url = new URL(databaseUrl);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || "3306", 10),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+    };
+  } catch (error) {
+    throw new Error(`DATABASE_URL inválido: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 async function main(): Promise<void> {
-  const config = getConnectionConfig();
+  const config = parseDatabaseUrl();
   const connection = await mysql.createConnection(config);
 
   try {
@@ -36,15 +38,20 @@ async function main(): Promise<void> {
     await connection.query("CREATE DATABASE `vendas_app` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     console.log("[recreate-vendas-app] Banco 'vendas_app' criado com sucesso!");
 
-    // Atualizar .env
+    // Atualizar .env com DATABASE_URL
     const envPath = path.join(process.cwd(), ".env");
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, "utf-8");
       const lines = content.split(/\r?\n/);
-      const newLine = `DB_NAME=vendas_app`;
+      const currentDatabaseUrl = process.env.DATABASE_URL;
+      if (!currentDatabaseUrl) {
+        throw new Error("DATABASE_URL não encontrado");
+      }
+      const newDatabaseUrl = currentDatabaseUrl.replace(/\/[^/]*$/, "/vendas_app");
+      const newLine = `DATABASE_URL=${newDatabaseUrl}`;
       let found = false;
       const out = lines.map((line) => {
-        if (/^\s*DB_NAME\s*=/.test(line)) {
+        if (/^\s*DATABASE_URL\s*=/.test(line)) {
           found = true;
           return newLine;
         }
@@ -52,7 +59,7 @@ async function main(): Promise<void> {
       });
       if (!found) out.push(newLine);
       fs.writeFileSync(envPath, out.join("\n"), "utf-8");
-      console.log("[recreate-vendas-app] .env atualizado: DB_NAME=vendas_app");
+      console.log("[recreate-vendas-app] .env atualizado: DATABASE_URL aponta para vendas_app");
     }
   } finally {
     await connection.end();

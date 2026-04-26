@@ -13,7 +13,7 @@ const traceId = `sim-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 async function main() {
   const conn = await db.getDb();
   if (!conn) {
-    console.error("[simular-operacao] Banco indisponível. Configure .env (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME).");
+    console.error("[simular-operacao] Banco indisponível. Configure .env (DATABASE_URL).");
     process.exit(1);
   }
 

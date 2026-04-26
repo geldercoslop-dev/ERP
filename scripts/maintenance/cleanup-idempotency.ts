@@ -4,7 +4,9 @@
  * - "Em processamento" travado: remove registros com resultJson NULL e createdAt > 15 min.
  * Uso: tsx scripts/maintenance/cleanup-idempotency.ts
  */
-import "../../server/_core/loadEnv";
+import { initEnv } from "../../server/_core/env/bootstrapEnv";
+
+initEnv();
 import * as db from "../../server/db";
 import { sql } from "drizzle-orm";
 

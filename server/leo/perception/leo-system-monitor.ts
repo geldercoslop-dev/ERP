@@ -9,7 +9,7 @@
  * - logs
  */
 
-import { pingDatabase } from '../../services/database-health.service.js';
+import { databaseHealthTool } from '../../tools/database-health.tool.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 import { leoEvents } from '../memory/leo-events.js';
 import { performance } from 'perf_hooks';
@@ -260,7 +260,7 @@ export class LeoSystemMonitor {
     const startTime = performance.now();
 
     try {
-      const ping = await pingDatabase('LEO');
+      const ping = await databaseHealthTool.pingSystem();
 
       if (!ping.ok) {
         return {

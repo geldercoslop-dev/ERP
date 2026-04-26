@@ -1,15 +1,17 @@
 /**
  * Scheduler Robusto do LEO
- * 
+ *
  * Sistema responsável por executar tarefas recorrentes
  * Suporta expressões cron e agendamento inteligente
+ *
+ * HARDENING: Removed leoTaskQueue direct access - all execution must go through Execution Gate
+ * HARDENING: All tools must be called via Execution Gate, never directly
  */
 
-import { leoTaskQueue } from '../tasks/leo-task-queue.js';
-import { LeoTaskType, LeoTaskPriority, LeoTaskStatus } from '../types.js';
 import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 import { leoEvents } from '../memory/leo-events.js';
+import { executeLeoActionGate, type ExecutionGateRequest } from '../runtime/execution-gate.js';
 
 type InsertLeoActionLogParams = { usuario: string; acao: string; entidade: string; dados?: string | null; resultado: string };
 async function insertLeoActionLog(params: InsertLeoActionLogParams): Promise<void> {
@@ -33,6 +35,7 @@ export interface ScheduledTask {
   createdBy?: string;
   description?: string;
   timezone?: string;
+  tenantId?: number; // Obrigatório para tarefas que usam tools layer
 }
 
 export interface ScheduleStats {
@@ -143,9 +146,12 @@ class LeoScheduler {
   private scheduledTasks = new Map<string, ScheduledTask>();
   private isRunning: boolean = false;
   private schedulerInterval?: NodeJS.Timeout;
-  private readonly CHECK_INTERVAL = 60000; // Verificar a cada minuto
+  private readonly CHECK_INTERVAL: number;
 
   private constructor() {
+    // HARDENING: ENV só configura parâmetros, não decide fluxo de execução
+    // Comportamento sempre definido em código
+    this.CHECK_INTERVAL = 60000; // 60 segundos fixo - não depende de ENV para fluxo
     this.loadScheduledTasks();
   }
 
@@ -375,50 +381,80 @@ class LeoScheduler {
   }
 
   /**
-   * Executa uma tarefa agendada
+   * Executa uma tarefa agendada via Execution Gate
+   * HARDENING: Scheduler é APENAS trigger - toda lógica está no payload
+   * NÃO existe business logic no scheduler
    */
   private async runScheduledTask(task: ScheduledTask): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       console.log(`⏰ Executando tarefa agendada: ${task.name}`);
-      
-      // Adicionar à fila de tarefas
-      const success = await leoTaskQueue.addTask({
-        id: `scheduled_${task.id}_${Date.now()}`,
-        type: task.type as LeoTaskType,
-        priority: this.mapPriorityToLeoTaskPriority(task.priority),
-        payload: task.payload,
-        userId: task.createdBy,
-        sessionId: 'scheduler',
-        maxAttempts: 3,
-        timeout: task.timeout,
-        status: LeoTaskStatus.PENDING
-      });
-      
-      if (success) {
-        task.lastRun = new Date();
-        task.runCount++;
-        task.errorCount = 0; // Reset error count on success
-        
-        // Calcular próximo horário de execução
-        task.nextRun = this.calculateNextRun(task.schedule);
-        
-        console.log(`✅ Tarefa ${task.name} executada com sucesso`);
-      } else {
-        task.errorCount++;
-        console.log(`❌ Falha ao enfileirar tarefa ${task.name}`);
+
+      // EXECUTION GATE: All tasks must go through Execution Gate
+      if (!task.tenantId || !Number.isInteger(task.tenantId) || task.tenantId <= 0) {
+        throw new ValidationError('tenantId obrigatório para tarefa agendada');
       }
-      
+
+      // VALIDAÇÃO: Payload deve conter toolName e action (scheduler é trigger only)
+      const toolName = task.payload?.toolName as string;
+      const action = task.payload?.action as string;
+      const parameters = (task.payload?.parameters as Record<string, unknown>) || {};
+
+      if (!toolName || !action) {
+        throw new ValidationError(
+          'Payload da tarefa deve conter toolName e action. Scheduler é trigger only, não contém lógica de negócio.'
+        );
+      }
+
+      // EXECUTION GATE: Execute through the gate (scheduler é apenas trigger)
+      const gateRequest: ExecutionGateRequest = {
+        action,
+        toolName,
+        parameters: { ...parameters, tenantId: task.tenantId },
+        context: {
+          tenantId: task.tenantId,
+          userId: 0, // System user for scheduled tasks
+        },
+        source: 'scheduler',
+      };
+
+      const gateResult = await executeLeoActionGate(gateRequest);
+
+      if (!gateResult.success) {
+        throw new InfrastructureError(`Execution Gate falhou: ${gateResult.message}`);
+      }
+
+      console.log(`✅ Tarefa ${task.name} executada com sucesso via Execution Gate`);
+
+      task.lastRun = new Date();
+      task.runCount++;
+      task.errorCount = 0;
+      task.nextRun = this.calculateNextRun(task.schedule);
+
+      await insertLeoActionLog({
+        usuario: 'leo-scheduler',
+        acao: task.type,
+        entidade: 'leo_scheduler',
+        dados: JSON.stringify({
+          taskId: task.id,
+          name: task.name,
+          tenantId: task.tenantId,
+          toolName,
+          action,
+        }),
+        resultado: 'SUCESSO',
+      });
+
     } catch (error) {
       task.errorCount++;
-      
+
       console.error(`❌ Erro ao executar tarefa agendada: ${task.name}`, error);
 
       // Desabilitar tarefa se excedeu limite de erros
       if (task.errorCount >= (task.maxErrors || 5)) {
         task.enabled = false;
-        
+
         await leoEvents.registerEvent({
           tipo: 'scheduler_tarefa_desabilitada',
           descricao: `Tarefa agendada "${task.name}" desabilitada após ${task.errorCount} erros`,
@@ -461,6 +497,7 @@ class LeoScheduler {
 
   /**
    * Cria tarefas padrão do sistema
+   * HARDENING: Scheduler é trigger only - payload contém toolName, action, parameters
    */
   async createDefaultTasks(): Promise<void> {
     const defaultTasks = [
@@ -471,16 +508,25 @@ class LeoScheduler {
         priority: 'media' as const,
         enabled: true,
         description: 'Analisa vendas e detecta anomalias a cada hora',
-        payload: { timeframe: '1h' },
+        payload: {
+          toolName: 'salesAnalyticsTool',
+          action: 'getReportVendasPeriodo',
+          parameters: { timeframe: '1h' },
+        },
       },
       {
         name: 'Verificação de Estoque',
         type: 'verificar_estoque_critico',
         schedule: '*/10 * * * *', // A cada 10 minutos
         priority: 'alta' as const,
-        enabled: true,
-        description: 'Verifica produtos com estoque crítico',
-        payload: { threshold: 10 },
+        enabled: false, // Disabled by default - requires tenantId to be set manually
+        description: 'Verifica produtos com estoque crítico (requer tenantId manual)',
+        payload: {
+          toolName: 'inventoryMonitorTool',
+          action: 'listProdutosBaixoEstoqueLeo',
+          parameters: { threshold: 10 },
+        },
+        tenantId: undefined as number | undefined, // Must be set manually per tenant
       },
       {
         name: 'Relatório Diário',
@@ -489,7 +535,11 @@ class LeoScheduler {
         priority: 'media' as const,
         enabled: true,
         description: 'Gera relatório diário das operações',
-        payload: { type: 'daily_summary' },
+        payload: {
+          toolName: 'salesAnalyticsTool',
+          action: 'getReportVendasPeriodo',
+          parameters: { type: 'daily_summary' },
+        },
       },
       {
         name: 'Limpeza de Logs',
@@ -498,7 +548,11 @@ class LeoScheduler {
         priority: 'baixa' as const,
         enabled: true,
         description: 'Limpa logs antigos do sistema (mantém 30 dias)',
-        payload: { maxAge: 30 },
+        payload: {
+          toolName: 'system',
+          action: 'limparLogsAntigos',
+          parameters: { maxAge: 30 },
+        },
       },
       {
         name: 'Limpeza de Arquivos Temporários',
@@ -507,7 +561,11 @@ class LeoScheduler {
         priority: 'baixa' as const,
         enabled: true,
         description: 'Limpa arquivos temporários antigos (mantém 48 horas)',
-        payload: { maxAgeHours: 48 },
+        payload: {
+          toolName: 'system',
+          action: 'limparArquivosTemporarios',
+          parameters: { maxAgeHours: 48 },
+        },
       },
       {
         name: 'Monitoramento de Sistema',
@@ -516,7 +574,11 @@ class LeoScheduler {
         priority: 'critica' as const,
         enabled: true,
         description: 'Monitora saúde do sistema',
-        payload: { detailed: false },
+        payload: {
+          toolName: 'system',
+          action: 'healthCheck',
+          parameters: { detailed: false },
+        },
       },
     ];
 
@@ -590,19 +652,6 @@ class LeoScheduler {
       }
     } catch (error) {
       console.error('[LeoScheduler] Erro ao carregar tarefas agendadas:', error);
-    }
-  }
-
-  /**
-   * Mapeia prioridade do scheduler para LeoTaskPriority
-   */
-  private mapPriorityToLeoTaskPriority(priority: 'critica' | 'alta' | 'media' | 'baixa'): LeoTaskPriority {
-    switch (priority) {
-      case 'critica': return LeoTaskPriority.CRITICAL;
-      case 'alta': return LeoTaskPriority.HIGH;
-      case 'media': return LeoTaskPriority.MEDIUM;
-      case 'baixa': return LeoTaskPriority.LOW;
-      default: return LeoTaskPriority.MEDIUM;
     }
   }
 

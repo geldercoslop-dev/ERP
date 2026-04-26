@@ -11,6 +11,8 @@ build/
 !.env.example
 !.env.development.example
 !.env.production.example
+!.env.server.example
+!.env.client.example
 
 # Logs
 *.log

@@ -1,5 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { getRedisClient } from "../infra/redis.js";
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 export type RedisRateLimitOptions = {
   name: string;
@@ -49,7 +50,7 @@ function normalizeIp(req: Request): string {
 function getTenantIdFromRequest(req: Request): number {
   const tenantId = (req as { user?: { tenantId?: number }; tenantId?: number }).user?.tenantId || (req as { tenantId?: number }).tenantId;
   if (!tenantId || typeof tenantId !== 'number' || tenantId <= 0) {
-    throw new Error("RATE_LIMIT: tenantId obrigatório no request para isolamento multi-tenant");
+    throw new ValidationError("RATE_LIMIT: tenantId obrigatório no request para isolamento multi-tenant");
   }
   return tenantId;
 }
@@ -85,13 +86,13 @@ export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): 
 
     const redis = getRedisClient();
     if (!redis) {
-      next();
-      return;
+      throw new Error("Redis unavailable - rate limit enforced");
     }
 
     try {
+      const tenantId = getTenantIdFromRequest(req);
       const endpoint = (req.path || req.url || "unknown").split("?")[0];
-      const key = `ratelimit:${keySuffix(req)}:${name}:${normalizeIp(req)}:${endpoint}`;
+      const key = `tenant:${tenantId}:ratelimit:${name}:${normalizeIp(req)}:${endpoint}`;
       const now = Date.now();
       const raw = (await redis.eval(
         LUA_FIXED_WINDOW,
@@ -136,7 +137,7 @@ export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): 
         path: req.originalUrl || req.url,
         error: error instanceof Error ? error.message : String(error),
       });
-      next();
+      throw new Error("Redis rate limit operation failed");
     }
   };
 }

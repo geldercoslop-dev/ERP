@@ -6,7 +6,7 @@
 
 import { memoryCache, initCache } from "./memory-cache.js";
 import { getCacheStats } from "./safe-cache.js";
-import { redisManager } from "../infra/redis.js";
+import { getRedis } from "../infra/redis.js";
 import express from "express";
 import { requireAdmin } from "./requireAdmin.js";
 import { logInfo, logWarning, logError } from "./service-logger.js";
@@ -18,27 +18,29 @@ const CLEANUP_INTERVAL = 300; // 5 minutos
  * Inicializa o sistema de cache
  */
 export function initCacheSystem(): void {
-  // Validar conexão Redis antes de inicializar
-  validateRedisConnection();
-  
+  // Validar conexão Redis antes de inicializar (non-blocking)
+  validateRedisConnection().catch(() => {
+    logWarning("CACHE_WARNING", "Redis não disponível, operando sem cache distribuído", { service: "cache-manager" });
+  });
+
   // Inicializar cache com TTL padrão e limpeza periódica
   initCache({
     defaultTtl: 30, // 30 segundos por padrão
     cleanupInterval: CLEANUP_INTERVAL
   });
-  
+
   logInfo("Sistema de cache inicializado", {
     payload: { cleanupInterval: CLEANUP_INTERVAL }
   });
 }
 
 /**
- * Valida conexão com Redis no boot
+ * Valida conexão com Redis no boot (non-blocking)
  */
 async function validateRedisConnection(): Promise<void> {
   try {
-    const isHealthy = await redisManager.isConnected();
-    
+    const isHealthy = await getRedis().isConnected();
+
     if (isHealthy) {
       logInfo("Redis conectado com sucesso", { service: "cache-manager" });
     } else {

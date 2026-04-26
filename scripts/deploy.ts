@@ -154,8 +154,10 @@ class DeployManager {
       const backupFile = join(backupDir, 'database.sql');
       
       try {
+        const url = new URL(process.env.DATABASE_URL);
+        const database = url.pathname.slice(1).replace(/^\//, '');
         execSync(
-          `mysqldump --single-transaction --routines --triggers "${process.env.DB_NAME}" > "${backupFile}"`,
+          `mysqldump --single-transaction --routines --triggers "${database}" > "${backupFile}"`,
           { stdio: 'inherit' }
         );
         console.log('✅ Backup do banco criado');
@@ -339,8 +341,10 @@ class DeployManager {
       
       // Restaurar banco se disponível
       const dbBackup = join(latestBackup, 'database.sql');
-      if (existsSync(dbBackup)) {
-        execSync(`mysql "${process.env.DB_NAME}" < "${dbBackup}"`, { stdio: 'inherit' });
+      if (existsSync(dbBackup) && process.env.DATABASE_URL) {
+        const url = new URL(process.env.DATABASE_URL);
+        const database = url.pathname.slice(1).replace(/^\//, '');
+        execSync(`mysql "${database}" < "${dbBackup}"`, { stdio: 'inherit' });
       }
       
       console.log('✅ Rollback concluído');

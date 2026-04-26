@@ -1,4 +1,4 @@
-import * as configuracoesService from "../../services/configuracoes.service.js";
+import { configuracoesTool } from "../../tools/configuracoes.tool.js";
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 const PREFIX = "leo_memory_";
@@ -13,7 +13,7 @@ export async function getMemoria(usuario: string, chave: string, tenantId: numbe
     throw new ValidationError("tenantId obrigatório no contexto");
   }
   try {
-    const valor = await configuracoesService.getConfig(key(tenantId, usuario, chave));
+    const valor = await configuracoesTool.getConfig({ tenantId, usuario, chave: key(tenantId, usuario, chave) });
     return valor ?? null;
   } catch {
     return null;
@@ -26,7 +26,7 @@ export async function setMemoria(usuario: string, chave: string, valor: string, 
     throw new ValidationError("tenantId obrigatório no contexto");
   }
   try {
-    await configuracoesService.setConfig(key(tenantId, usuario, chave), valor);
+    await configuracoesTool.setConfig({ tenantId, usuario, chave: key(tenantId, usuario, chave), valor });
   } catch (e) {
     console.error("[LEO memory] Erro ao setMemoria:", (e as Error)?.message ?? e);
     throw e;
@@ -40,7 +40,7 @@ export async function listarChavesMemoria(usuario: string, tenantId: number): Pr
   }
   try {
     const pattern = `${PREFIX}${tenantId}_${usuario}_%`;
-    const chaves = await configuracoesService.listConfigKeysLike(pattern);
+    const chaves = await configuracoesTool.listConfigKeysLike({ tenantId, usuario, pattern });
     const prefix = `${PREFIX}${tenantId}_${usuario}_`;
     return chaves.map((c) => c.replace(prefix, ""));
   } catch (e) {
@@ -55,7 +55,7 @@ export async function removerMemoria(usuario: string, chaveMemoria: string, tena
     throw new ValidationError("tenantId obrigatório no contexto");
   }
   try {
-    await configuracoesService.deleteConfigByChave(key(tenantId, usuario, chaveMemoria));
+    await configuracoesTool.deleteConfigByChave({ tenantId, usuario, chave: key(tenantId, usuario, chaveMemoria) });
   } catch (e) {
     console.error("[LEO memory] Erro ao removerMemoria:", (e as Error)?.message ?? e);
     throw e;

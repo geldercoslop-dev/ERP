@@ -7,9 +7,9 @@
  */
 
 import { enviarMensagemTelegram } from "../../integrations/telegram.service.js";
-import * as ordersService from "../../services/orders.service.js";
+import { salesAnalyticsTool } from "../../tools/sales-analytics.tool.js";
+import { inventoryMonitorTool } from "../../tools/inventory-monitor.tool.js";
 import { ValidationError } from '../../_core/errors/typed-errors.js';
-import * as inventoryService from "../../services/inventory.service.js";
 import type { RequestWithTenant } from "../../types/request-with-tenant.js";
 
 // HARDENING: insight-engine.js foi removido (módulo instável _unstable)
@@ -45,7 +45,7 @@ export async function enviarNotificacoesInteligentes(req: RequestWithTenant, tar
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
-    const zero = await inventoryService.countProdutosAtivosEstoqueZero(tenantId);
+    const zero = await inventoryMonitorTool.countProdutosAtivosEstoqueZero({ tenantId });
     if (zero > 0) linhas.push(`⚠️ Estoque zerado: ${zero} produto(s) com 0 un.`);
   } catch {
     void 0;
@@ -62,7 +62,7 @@ export async function enviarNotificacoesInteligentes(req: RequestWithTenant, tar
     }
     const ontem = new Date();
     ontem.setDate(ontem.getDate() - 1);
-    const p = await ordersService.findPedidoGrandeRecente(tenantId, PEDIDO_GRANDE_MIN, ontem);
+    const p = await salesAnalyticsTool.findPedidoGrandeRecente({ tenantId, minValor: PEDIDO_GRANDE_MIN, since: ontem });
     if (p) linhas.push(`💰 Pedido grande registrado: #${p.numero ?? "?"} — R$ ${Number(p.total ?? 0).toFixed(2)}`);
   } catch {
     void 0;
@@ -94,7 +94,7 @@ export async function enviarNotificacoesInteligentes(req: RequestWithTenant, tar
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
-    const nums = await ordersService.listNumerosPedidosEmRotaAtrasados(tenantId, FRETE_ATRASADO_DIAS, 5);
+    const nums = await salesAnalyticsTool.listNumerosPedidosEmRotaAtrasados({ tenantId, diasAtraso: FRETE_ATRASADO_DIAS, limite: 5 });
     if (nums.length > 0) {
       const joined = nums.map((n) => `#${n}`).join(", ");
       linhas.push(`🚚 Frete atrasado: pedido(s) ${joined} em rota há mais de ${FRETE_ATRASADO_DIAS} dias.`);

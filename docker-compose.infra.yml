@@ -4,11 +4,13 @@ services:
     image: mysql:8.4
     container_name: vendas-mysql
     restart: always
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: erp
-      MYSQL_USER: vendas
-      MYSQL_PASSWORD: vendas
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -59,7 +61,7 @@ services:
       - .env
     environment:
       NODE_ENV: development
-      # DATABASE_URL e Redis: definir em .env (host MySQL = vendas-mysql, ver .env.example)
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
       REDIS_PORT: "6379"

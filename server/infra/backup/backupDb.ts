@@ -19,41 +19,28 @@ const BACKUP_PREFIX = "backup_";
 const RETENTION_COUNT_DEFAULT = 30;
 
 function getDbConfig(): { host: string; port: number; user: string; password: string; database: string } {
-  if (process.env.DATABASE_URL?.trim()) {
-    try {
-      const url = new URL(process.env.DATABASE_URL);
-      const database = url.pathname.replace(/^\//, "").trim();
-      if (!url.hostname || !url.username || url.password === undefined || !database) {
-        throw new InfrastructureError("DATABASE_URL incompleta.");
-      }
-      return {
-        host: url.hostname,
-        port: parseInt(url.port || "3306", 10),
-        user: url.username,
-        password: url.password,
-        database,
-      };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new InfrastructureError(`[backupDb] DATABASE_URL inválida: ${msg}. Defina DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME.`);
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new InfrastructureError("DATABASE_URL é obrigatório");
+  }
+
+  try {
+    const url = new URL(databaseUrl);
+    const database = url.pathname.replace(/^\//, "").trim();
+    if (!url.hostname || !url.username || url.password === undefined || !database) {
+      throw new InfrastructureError("DATABASE_URL incompleta.");
     }
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || "3306", 10),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new InfrastructureError(`[backupDb] DATABASE_URL inválida: ${msg}`);
   }
-  const host = process.env.DB_HOST?.trim();
-  const user = process.env.DB_USER?.trim();
-  const password = process.env.DB_PASSWORD;
-  const database = process.env.DB_NAME?.trim();
-  if (!host || !user || password === undefined || !database) {
-    throw new InfrastructureError(
-      "[backupDb] Credenciais obrigatórias. Defina DATABASE_URL ou todas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME."
-    );
-  }
-  return {
-    host,
-    port: parseInt(process.env.DB_PORT ?? "3306", 10),
-    user,
-    password,
-    database,
-  };
 }
 
 function logBackup(traceId: string, level: "info" | "warn" | "error", message: string, extra?: Record<string, unknown>) {

@@ -5,27 +5,28 @@ import "dotenv/config";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 
-function getConnectionConfig(): { host: string; port: number; user: string; password: string; database: string } {
-  const host = process.env.DB_HOST?.trim();
-  const user = process.env.DB_USER?.trim();
-  const password = process.env.DB_PASSWORD || "";
-  const database = process.env.DB_NAME?.trim() || "vendas_app";
-  
-  if (!host || !user || password === undefined) {
-    throw new Error("Credenciais obrigatórias. Defina DB_HOST, DB_USER, DB_PASSWORD.");
+function parseDatabaseUrl(): { host: string; port: number; user: string; password: string; database: string } {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL é obrigatório");
   }
-  
-  return {
-    host,
-    port: parseInt(process.env.DB_PORT ?? "3306", 10),
-    user,
-    password,
-    database,
-  };
+
+  try {
+    const url = new URL(databaseUrl);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || "3306", 10),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.slice(1).replace(/^\//, "") || "vendas_app",
+    };
+  } catch (error) {
+    throw new Error(`DATABASE_URL inválido: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 async function resetAdminPassword(): Promise<void> {
-  const config = getConnectionConfig();
+  const config = parseDatabaseUrl();
   const connection = await mysql.createConnection(config);
 
   try {

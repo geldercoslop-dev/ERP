@@ -43,6 +43,7 @@ export function initializeOpenTelemetry(): NodeSDK {
 
 // Middleware para criar spans HTTP personalizados
 export function createHttpSpanMiddleware() {
+  // ANY_INTENTIONAL: Express middleware signature - infrastructure instrumentation
   return (req: any, res: any, next: any) => {
     const tracer = trace.getTracer('erp-http');
     const span = tracer.startSpan(`HTTP ${req.method} ${req.path}`, {

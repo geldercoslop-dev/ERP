@@ -18,6 +18,13 @@
  * - All code MUST be pre-compiled to JavaScript
  * - Environment variables validated before startup
  * - Fail-fast on invalid configuration
+ *
+ * ## Bootstrap Architecture:
+ * - ZERO import-time side effects
+ * - All initialization happens through bootstrapServer()
+ * - System fails immediately if accessed before bootstrap
+ * - Auto-healing with controlled retries
+ * - Safe boot mode (DEGRADED) for non-critical failures
  */
 
 console.log("[BOOT] entry: server/index.ts");
@@ -79,11 +86,30 @@ function validateProductionRuntime(): void {
 validateProductionRuntime();
 
 // ============================================================================
-// Import Core Application
+// BOOTSTRAP CENTRAL ÚNICO com Auto-Healing - ZERO import-time side effects
 // ============================================================================
 
-// Load service protection layer first
-import "./_core/init-protection.js";
+import { bootstrapServer } from "./_core/bootstrap.js";
+import { startServer } from "./_core/index.js";
+import { initializeServiceProtection } from "./_core/init-protection.js";
+import { systemLogger } from "./_core/logger.js";
+import { getSystemState } from "./_core/runtime-health.js";
 
-// Start main application
-import "./_core/index.js";
+// Execute bootstrap - ALL initialization happens here
+void bootstrapServer()
+  .then(() => {
+    const systemState = getSystemState();
+    systemLogger.info({ health: systemState.health, degradedMode: systemState.degradedMode }, '[BOOT] Bootstrap concluído, iniciando proteção de serviços...');
+    
+    initializeServiceProtection();
+    systemLogger.info('[BOOT] Proteção de serviços iniciada, iniciando servidor...');
+    
+    return startServer();
+  })
+  .catch((error: unknown) => {
+    systemLogger.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      '[BOOT] falha ao inicializar servidor'
+    );
+    process.exit(1);
+  });

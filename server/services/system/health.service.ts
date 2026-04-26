@@ -95,9 +95,8 @@ async function pingRedis(ms: number): Promise<boolean> {
   try {
     return await withTimeout(withExternalRequestTimeout(
       (async () => {
-        const { redisManager } = await import("../../infra/redis.js");
-        const client = redisManager.getClient();
-        if (!client) return false;
+        const { getRedis } = await import("../../infra/redis.js");
+        const client = getRedis().getClient();
         const pong = await client.ping();
         return pong === "PONG";
       })(),

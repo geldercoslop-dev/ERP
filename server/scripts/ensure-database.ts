@@ -6,47 +6,36 @@
  * 1. Se vendas_app existir → usar (nunca criar)
  * 2. Se grs existir → usar (nunca criar)
  * 3. Se nenhum existir → criar grs
- * 4. Atualiza .env com DB_NAME=banco escolhido
+ * 4. Atualiza .env com DATABASE_URL apontando para banco escolhido
  *
- * Requer: DB_HOST, DB_USER, DB_PASSWORD (e opcionalmente DB_PORT) no .env. DB_NAME é opcional (será definido).
+ * Requer: DATABASE_URL no .env.
  */
 import "dotenv/config";
 import mysql from "mysql2/promise";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-function getConnectionConfig(): { host: string; port: number; user: string; password: string } {
-  if (process.env.DATABASE_URL?.trim()) {
-    try {
-      const url = new URL(process.env.DATABASE_URL);
-      if (!url.hostname || !url.username || url.password === undefined) {
-        throw new Error("DATABASE_URL incompleta.");
-      }
-      return {
-        host: url.hostname,
-        port: parseInt(url.port || "3306", 10),
-        user: url.username,
-        password: url.password,
-      };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`DATABASE_URL inválida: ${msg}. Defina DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD.`);
+function parseDatabaseUrl(): { host: string; port: number; user: string; password: string } {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL é obrigatório");
+  }
+
+  try {
+    const url = new URL(databaseUrl);
+    if (!url.hostname || !url.username || url.password === undefined) {
+      throw new Error("DATABASE_URL incompleta.");
     }
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || "3306", 10),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`DATABASE_URL inválida: ${msg}`);
   }
-  const host = process.env.DB_HOST?.trim();
-  const user = process.env.DB_USER?.trim();
-  const password = process.env.DB_PASSWORD;
-  if (!host || !user || password === undefined) {
-    throw new Error(
-      "Credenciais obrigatórias. Defina DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD (DB_NAME será definido automaticamente)."
-    );
-  }
-  return {
-    host,
-    port: parseInt(process.env.DB_PORT ?? "3306", 10),
-    user,
-    password,
-  };
 }
 
 function getEnvPath(): string {
@@ -54,15 +43,20 @@ function getEnvPath(): string {
   return path.join(root, ".env");
 }
 
-function updateEnvDbName(chosenDb: string): boolean {
+function updateEnvDatabaseUrl(chosenDb: string): boolean {
   const envPath = getEnvPath();
   if (!fs.existsSync(envPath)) return false;
   const content = fs.readFileSync(envPath, "utf-8");
   const lines = content.split(/\r?\n/);
-  const newLine = `DB_NAME=${chosenDb}`;
+  const currentDatabaseUrl = process.env.DATABASE_URL;
+  if (!currentDatabaseUrl) {
+    throw new Error("DATABASE_URL não encontrado no .env");
+  }
+  const newDatabaseUrl = currentDatabaseUrl.replace(/\/[^/]*$/, `/${chosenDb}`);
+  const newLine = `DATABASE_URL=${newDatabaseUrl}`;
   let found = false;
   const out = lines.map((line) => {
-    if (/^\s*DB_NAME\s*=/.test(line)) {
+    if (/^\s*DATABASE_URL\s*=/.test(line)) {
       found = true;
       return newLine;
     }
@@ -74,7 +68,7 @@ function updateEnvDbName(chosenDb: string): boolean {
 }
 
 async function main(): Promise<any> {
-  const config = getConnectionConfig();
+  const config = parseDatabaseUrl();
   const connection = await mysql.createConnection(config);
   let chosenDb: string;
 
@@ -103,13 +97,12 @@ async function main(): Promise<any> {
 
   const envPath = getEnvPath();
   if (fs.existsSync(envPath)) {
-    const updated = updateEnvDbName(chosenDb);
+    const updated = updateEnvDatabaseUrl(chosenDb);
     if (updated) {
-      console.log("[ensure-database] .env atualizado: DB_NAME=" + chosenDb);
+      console.log("[ensure-database] .env atualizado: DATABASE_URL aponta para " + chosenDb);
     }
   }
 
-  process.env.DB_NAME = chosenDb;
   console.log("[ensure-database] Banco a ser usado:", chosenDb);
 }
 

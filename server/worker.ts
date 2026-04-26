@@ -1,9 +1,12 @@
-import "./_core/loadEnv.js";
+import { initEnv } from "./_core/env/bootstrapEnv.js";
 
-import { queueService } from "./_core/queue-service.js";
+import { queueSystem } from "./queue/index.js";
 import { ValidationError } from './_core/errors/typed-errors.js';
 import { systemLogger } from "./_core/logger.js";
 import { waitForRedis } from "./infra/redis.js";
+
+// Load ENV explicitly (NO import-time side effects)
+initEnv();
 
 async function startWorker(): Promise<void> {
   try {
@@ -15,8 +18,7 @@ async function startWorker(): Promise<void> {
       throw new ValidationError("Redis não ficou pronto a tempo para o worker");
     }
 
-    await queueService.initialize();
-    await queueService.startWorkers();
+    await queueSystem.initialize();
 
     systemLogger.info({ pid: process.pid }, "[WORKER] BullMQ worker iniciado (consumer isolado)");
   } catch (error) {
@@ -32,7 +34,7 @@ async function shutdownWorker(signal: string): Promise<void> {
   systemLogger.info({ signal, pid: process.pid }, "[WORKER] encerrando");
 
   try {
-    await queueService.close();
+    await queueSystem.shutdown();
     process.exit(0);
   } catch (error) {
     systemLogger.error(

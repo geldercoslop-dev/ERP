@@ -90,7 +90,7 @@ export async function produtoSemGiro(tenantId: number): Promise<BusinessInsight 
     .from(db.produtos)
     .where(and(
       eq(db.produtos.tenantId, tenantId),
-      eq(db.produtos.ativo, true), 
+      eq(db.produtos.ativo, true),
       sql`${db.produtos.estoque} > 0`
     ));
     

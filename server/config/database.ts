@@ -4,7 +4,8 @@ import { systemLogger } from "../_core/logger.js";
 import { createLogger } from "../infra/structured-logger.js";
 import { recordDatabase } from "../infra/metrics.js";
 import { instrumentMySQL } from "../infra/mysql-instrumentation.js";
-import { parseEnv } from "../services/env.schema.js";
+import { getEnv } from "../_core/env.js";
+import { requireBootstrap } from "../_core/bootstrap.js";
 import { executeWithResilience } from "../resilience/query-wrapper.js";
 import { resolveRuntimeServiceHost } from "./runtime-host-resolver.js";
 import { InfrastructureError } from "../_core/errors/typed-errors.js";
@@ -20,7 +21,8 @@ let _pool: mysql.Pool | null = null;
 
 /** Falha imediata se DATABASE_URL não estiver definido. */
 export function requireDatabaseUrl(): string {
-  const raw = parseEnv().DATABASE_URL.trim();
+  requireBootstrap('database.requireDatabaseUrl');
+  const raw = getEnv().DATABASE_URL.trim();
   if (!raw) {
     throw new InfrastructureError(
       "DATABASE_URL é obrigatório. Ex.: mysql://usuario:senha@host:3306/nome_do_banco"
@@ -160,23 +162,6 @@ export async function checkDatabasePoolHealth(): Promise<boolean> {
 
 function getDatabaseConfig(): mysql.PoolOptions {
   const config = getMysqlPoolOptionsFromEnv();
-  
-  // LOG TEMPORÁRIO PARA DIAGNÓSTICO
-  console.log("DB CONFIG:", {
-    host: config.host,
-    port: config.port,
-    user: config.user,
-    database: config.database,
-    hasPassword: !!config.password,
-    connectionLimit: config.connectionLimit,
-    connectTimeout: config.connectTimeout,
-    envDbUrl: process.env.DATABASE_URL ? "SET" : "NOT_SET",
-    envDbHost: process.env.DB_HOST,
-    envDbPort: process.env.DB_PORT,
-    envDbUser: process.env.DB_USER,
-    envDbName: process.env.DB_NAME
-  });
-  
   return config;
 }
 
@@ -184,6 +169,8 @@ function getDatabaseConfig(): mysql.PoolOptions {
  * Cria e retorna um pool de conexões MySQL
  */
 export async function getConnectionPool(): Promise<mysql.Pool> {
+  requireBootstrap('database.getConnectionPool');
+  
   if (_pool) {
     globalThis.db = _pool;
     return _pool;

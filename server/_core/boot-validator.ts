@@ -171,11 +171,7 @@ export class BootValidator {
         stack: errorStack,
         code: errorCode,
         config: {
-          host: process.env.DB_HOST || process.env.DATABASE_HOST,
-          port: process.env.DB_PORT || process.env.DATABASE_PORT,
-          user: process.env.DB_USER || process.env.DATABASE_USER,
-          database: process.env.DB_NAME || process.env.DATABASE_NAME,
-          ssl: process.env.DATABASE_SSL
+          databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT_SET'
         }
       });
       

@@ -19,7 +19,7 @@ import {
   contasReceber,
   pendencias,
   idempotencyKeys,
-} from "../../drizzle/schema.js";
+} from "../../drizzle/schema.ts";
 import * as inventoryService from "./inventory.service.js";
 import * as clientesService from "./clientes.service.js";
 import {

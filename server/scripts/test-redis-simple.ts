@@ -1,5 +1,8 @@
-import 'dotenv/config';
+import { initEnv } from '../_core/env/bootstrapEnv.js';
 import { Redis } from 'ioredis';
+
+// Bootstrap ENV antes de qualquer acesso ao Redis
+initEnv();
 
 console.log('🔥 Starting Redis Runtime Test...\n');
 

@@ -10,8 +10,8 @@
 import { nanoid } from 'nanoid';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { leoComputerControl } from './leo-computer-control.js';
-import { leoErpService } from '../../services/leo-service.js';
-import { ADMIN_ACTOR } from '../../_core/service-actor.js';
+import { leoErpTool } from '../../tools/leo-erp.tool.js';
+import type { ServiceActor } from '../../_core/service-actor.js';
 import { leoEvents } from '../memory/leo-events.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 
@@ -212,25 +212,25 @@ export class LeoAutomation {
   /**
    * Executa uma ação específica
    */
-  private async executarAcao(tenantId: number, acao: string, dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
+  private async executarAcao(tenantId: number, acao: string, dados: Record<string, unknown>, actor?: ServiceActor): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log(`[LeoAutomation] Executando ação: ${acao}`);
 
       switch (acao) {
         case 'backup_automatico':
           return await this.executarBackupAutomatico(dados);
-        
+
         case 'checar_estoque':
           if (!Number.isInteger(tenantId) || tenantId <= 0) {
             throw new ValidationError("tenantId obrigatório para ação checar_estoque");
           }
           return await this.checarEstoque(tenantId, dados && typeof dados === "object" ? (dados as Record<string, unknown>) : {});
-        
+
         case 'analisar_vendas':
           if (!Number.isInteger(tenantId) || tenantId <= 0) {
             throw new ValidationError("tenantId obrigatório para ação analisar_vendas");
           }
-          return await this.analisarVendas(tenantId, dados && typeof dados === "object" ? (dados as Record<string, unknown>) : {});
+          return await this.analisarVendas(tenantId, dados && typeof dados === "object" ? (dados as Record<string, unknown>) : {}, actor);
         
         case 'limpar_logs_antigos':
           return await this.limparLogsAntigos(dados);
@@ -297,7 +297,7 @@ export class LeoAutomation {
       if (!Number.isInteger(tenantId) || tenantId <= 0) {
         throw new ValidationError("tenantId obrigatório para checarEstoque");
       }
-      const resultado = await leoErpService.getEstoque(tenantId, { alertaBaixo: true });
+      const resultado = await leoErpTool.getEstoque({ tenantId, filtros: { alertaBaixo: true } });
       
       if (resultado.success && resultado.alertas) {
         const { estoqueBaixo, estoqueCritico } = resultado.alertas;
@@ -329,20 +329,26 @@ export class LeoAutomation {
   /**
    * Analisa vendas
    */
-  private async analisarVendas(tenantId: number, dados: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
+  private async analisarVendas(tenantId: number, dados: Record<string, unknown>, actor?: ServiceActor): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
       console.log('[LeoAutomation] Analisando vendas');
       if (!Number.isInteger(tenantId) || tenantId <= 0) {
         throw new ValidationError("tenantId obrigatório para analisarVendas");
       }
+
+      // Actor must be provided - NEVER hardcoded
+      if (!actor) {
+        throw new ValidationError("actor required for analisarVendas - must be provided from context");
+      }
+
       // Obter pedidos dos últimos 7 dias
       const seteDiasAtras = new Date();
       seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-      
-      const resultado = await leoErpService.getPedidos(tenantId, ADMIN_ACTOR, {
+
+      const resultado = await leoErpTool.getPedidos({ tenantId, actor, filtros: {
         dataInicio: seteDiasAtras,
         limite: 1000,
-      });
+      }});
       
       if (resultado.success) {
         const totalPedidos = resultado.total || 0;
@@ -470,18 +476,13 @@ export class LeoAutomation {
   }
 
   /**
-   * Inicia verificação periódica de tarefas
+   * Event-driven task execution - NO polling
+   * HARDENING: Removed setInterval polling - tasks should be triggered via Execution Gate or events
    */
   private iniciarVerificacaoPeriodica(): void {
-    setInterval(async () => {
-      if (!this.isRunning) return;
-      
-      try {
-        await this.carregarTarefasPendentes();
-      } catch (error) {
-        console.error('[LeoAutomation] Erro na verificação periódica:', error);
-      }
-    }, 60000); // Verificar a cada minuto
+    // NO POLLING - Tasks should be triggered via Execution Gate or external events
+    // This method is kept for compatibility but does nothing
+    console.log('[LeoAutomation] Polling disabled - use Execution Gate for task execution');
   }
 
   /**

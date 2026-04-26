@@ -8,12 +8,20 @@ import * as mysql from "mysql2/promise";
 async function simulateFailureAndRecovery() {
   console.log("🔥 Simulando falha do banco e recuperação...");
   
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is required");
+  }
+
+  const url = new URL(databaseUrl);
+  const database = url.pathname.slice(1).replace(/^\//, "") || "vendas_app";
+  
   // Configuração sem especificar o banco para forçar erro
   const configWithoutDb: mysql.PoolOptions = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306', 10),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
+    host: url.hostname,
+    port: parseInt(url.port || "3306", 10),
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -27,7 +35,7 @@ async function simulateFailureAndRecovery() {
   // Configuração correta
   const configWithDb: mysql.PoolOptions = {
     ...configWithoutDb,
-    database: process.env.DB_NAME || 'vendas_app',
+    database,
   };
 
   console.log("\n1. Testando configuração correta...");

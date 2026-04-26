@@ -1,7 +1,14 @@
 /**
- * Queue Service - Compatibilidade com Sistema Antigo
+ * Queue Service - DEPRECIADO
  * 
- * Mantém interface existente enquanto usa BullMQ internamente
+ * ⚠️ ESTE ARQUIVO ESTÁ DEPRECIADO E PODE SER REMOVIDO
+ * 
+ * Motivo: Migrado para queueSystem (server/queue/index.ts)
+ * - worker.ts agora usa queueSystem.initialize()
+ * - queueSystem é mais completo (Redis + filas + workers)
+ * - Último uso removido em 2026-04-25
+ * 
+ * Antes de remover: verificar se não há outros usos
  */
 
 import { bullMQManager, QueueJobData, QUEUES } from './bullmq-queue.js';

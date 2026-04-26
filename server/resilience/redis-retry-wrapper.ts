@@ -1,7 +1,7 @@
 /**
  * Redis Retry Wrapper
  * Implementa exponential backoff para operações Redis
- * Nunca deixa o servidor quebrado - fallback automático
+ * Fail-hard - lança erro após todas as tentativas falharem
  */
 
 import { createLogger } from '../infra/structured-logger.js';
@@ -47,12 +47,12 @@ export class RedisRetryWrapper {
   private async executeWithRetry<T>(
     operation: () => Promise<T>,
     operationName: string
-  ): Promise<T | null> {
+  ): Promise<T> {
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= this.options.maxRetries; attempt++) {
       try {
-        const result = await Promise.race<T | never>([
+        const result = await Promise.race([
           operation(),
           new Promise<never>(
             (_, reject) =>
@@ -61,7 +61,7 @@ export class RedisRetryWrapper {
                 5000 // 5s timeout per operation
               )
           ),
-        ]);
+        ]) as T;
 
         if (attempt > 1) {
           logger.info(`Redis retry success on attempt ${attempt}`, {
@@ -100,8 +100,7 @@ export class RedisRetryWrapper {
       },
     });
 
-    // Retorna null em vez de throw para graceful fallback
-    return null;
+    throw new Error(`Redis operation failed after ${this.options.maxRetries} retries: ${lastError!.message}`);
   }
 
   // =============== Operações Comuns ===============

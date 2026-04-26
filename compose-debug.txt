@@ -1,15 +1,0 @@
- Image erp-app Building 
- Image erp-app Building 
-Sending build context to Docker daemon  524.5kBSending build context to Docker daemon  1.057MBSending build context to Docker daemon  1.584MBSending build context to Docker daemon   2.11MBSending build context to Docker daemon  2.634MBSending build context to Docker daemon  3.158MBSending build context to Docker daemon  3.683MBSending build context to Docker daemon  4.207MBSending build context to Docker daemon  4.732MBSending build context to Docker daemon  4.806MB
-Step 1/17 : FROM node:20-alpine AS builder
- ---> f598378b5240
-Step 2/17 : WORKDIR /app
- ---> Using cache
- ---> 935301b2100b
-Step 3/17 : COPY package.json pnpm-lock.yaml ./
- ---> Using cache
- ---> 98484769e9a6
-Step 4/17 : RUN corepack enable && pnpm install --frozen-lockfile --ignore-scripts
- ---> Running in 646f2b1aab4c
-[91m! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-10.33.0.tgz
-[0mThe command '/bin/sh -c corepack enable && pnpm install --frozen-lockfile --ignore-scripts' returned a non-zero code: 137

@@ -1,15 +1,10 @@
 /**
  * Sentry – carregar ANTES do Express (obrigatório em ESM).
  * Rode com: tsx --import ./instrument.ts server/_core/index.ts
+ * 
+ * NOTA: O carregamento do .env é feito exclusivamente em server/_core/loadEnv.ts
+ * Este arquivo NÃO carrega .env para evitar dupla injeção.
  */
-import path from "path";
-import { fileURLToPath } from "url";
-import dotenv from "dotenv";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, ".env") });
-console.log("[BOOT] instrument.ts — dotenv .env carregado");
-
 import * as Sentry from "@sentry/node";
 
 const dsn = process.env.SENTRY_DSN?.trim();

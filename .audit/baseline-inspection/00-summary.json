@@ -1,0 +1,31 @@
+{
+  "database": "erp",
+  "tableCount": 20,
+  "tables": [
+    "__drizzle_migrations",
+    "cargas",
+    "clientes",
+    "comissoes",
+    "contas_fixas",
+    "contas_pagar",
+    "contas_receber",
+    "cores",
+    "counters",
+    "fornecedores",
+    "grupos_precificacao",
+    "itens_pedido",
+    "pedidos",
+    "pedidos_carga",
+    "pendencias_compra",
+    "plano_contas",
+    "produtos",
+    "tenants",
+    "users",
+    "vendedores"
+  ],
+  "inspectionDate": "2026-04-25T13:12:41.458Z",
+  "totalColumns": 191,
+  "totalIndexes": 66,
+  "totalForeignKeys": 22,
+  "totalConstraints": 47
+}

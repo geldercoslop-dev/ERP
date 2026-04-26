@@ -3,21 +3,19 @@
  * Uso: tsx server/scripts/health-check.ts (ou npm run health-check se configurado).
  * Retorna exit 0 se tudo ok, exit 1 em falha.
  */
-import "../_core/loadEnv.js";
+import { initEnv } from "../_core/env/bootstrapEnv.js";
 import * as db from "../db/index.js";
 
+// Load ENV explicitly (NO import-time side effects)
+initEnv();
+
 function hasDbConfig(): boolean {
-  if (process.env.DATABASE_URL?.trim()) return true;
-  const host = process.env.DB_HOST?.trim();
-  const user = process.env.DB_USER?.trim();
-  const password = process.env.DB_PASSWORD;
-  const database = process.env.DB_NAME?.trim();
-  return !!(host && user && password !== undefined && database);
+  return !!(process.env.DATABASE_URL?.trim());
 }
 
 async function main(): Promise<void> {
   if (!hasDbConfig()) {
-    console.error("[health-check] Falha: banco não configurado (DATABASE_URL ou DB_*).");
+    console.error("[health-check] Falha: banco não configurado (DATABASE_URL).");
     process.exit(1);
   }
 

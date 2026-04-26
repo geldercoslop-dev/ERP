@@ -4,19 +4,9 @@
  */
 
 import { ADMIN_ACTOR, type ServiceActor } from "../_core/service-actor.js";
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
+import { InfrastructureError } from "../_core/errors/typed-errors.js";
 
 export * from "./core.js";
-
-// Exportar tabelas do schema para uso em services
-export {
-  caixaMensal,
-  boletos,
-  promocoes,
-  promocoesItens,
-  pendencias,
-} from "./core.js";
-
 export { getConnectionPool } from "../config/database.js";
 
 export { gerarBackupCompleto } from "../services/backup.service.js";
@@ -211,9 +201,9 @@ export async function createClienteVinculo(tenantId: number, clienteId: number, 
   return cli.associarClienteVendedor(tenantId, clienteId, vendedorId, tipo === "PRINCIPAL");
 }
 
-export async function ensureClienteVendedorLink(tx: unknown, clienteId: number, vendedorId: number) {
+export async function ensureClienteVendedorLink(tx: unknown, tenantId: number, clienteId: number, vendedorId: number) {
   const cli = await import("../services/clientes.service.js");
-  return cli.ensureClienteVendedorLink(tx as never, clienteId, vendedorId);
+  return cli.ensureClienteVendedorLink(tx as never, tenantId, clienteId, vendedorId);
 }
 
 // ===== PEDIDOS / FINANCEIRO / LOGÍSTICA (wrappers para services) =====

@@ -6,8 +6,11 @@
  *
  * Rate limit: configurável por env RATE_LIMIT_WINDOW_MS e RATE_LIMIT_MAX (ex: 60000 e 120).
  * CORS: em produção defina ALLOWED_ORIGINS (separado por vírgula), ex: https://app.seudominio.com
+ *
+ * CRITICAL: loadEnv() is now called inside bootstrapServer() - NO import-time side effects
  */
-import "./loadEnv.js";
+import "../../instrument.js";
+import { bootstrapServer } from "./bootstrap.js";
 import { InfrastructureError } from './errors/typed-errors.js';
 
 // Forçar stdin para detecção de SIGINT no Windows
@@ -62,6 +65,7 @@ import { httpHardeningMiddleware } from "../middleware/http-hardening.js";
 import { apiRouter } from "../api-routes.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard.js";
 import { getDb } from "../db/index.js";
+import { getBootState, getBootStateInfo, markReady } from "./boot-state.js";
 
 // Exportar funções de padronização de resposta
 export { ensureArray, ensureObject, ensureCreatedResult, ensureUpdateResult, ensureDeleteResult } from "./service-response.js";
@@ -135,13 +139,34 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
   res.setHeader("Cache-Control", "no-store");
 
   try {
+    const bootState = getBootState();
+    const bootStateInfo = getBootStateInfo();
+
+    // Se ainda está em boot, retorna 503 com status "booting"
+    if (bootState === "booting") {
+      if (isResponseLocked(res)) {
+        systemLogger.warn({ path: req.path, requestId: getRequestId(req) }, "[HEALTH] resposta suprimida por timeout/resposta encerrada");
+        return;
+      }
+      res.status(503).json({
+        status: "booting",
+        bootState: bootStateInfo,
+        message: "Sistema ainda em inicialização",
+      });
+      return;
+    }
+
     let dbUp = false;
     let redisUp = false;
 
     try {
-      const db = await getDb();
-      await db.execute("SELECT 1");
-      dbUp = true;
+      // Use direct pool connection for health check (bypasses SERVICE_ENTRY_GUARD)
+      const { getConnectionPool } = await import("../config/database.js");
+      const pool = await getConnectionPool();
+      if (pool) {
+        await pool.query("SELECT 1");
+        dbUp = true;
+      }
     } catch {
       dbUp = false;
     }
@@ -154,7 +179,40 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
       redisUp = false;
     }
 
-    const ok = dbUp && redisUp;
+    // Se estado é error, retorna 503 independente de DB/Redis
+    if (bootState === "error") {
+      if (isResponseLocked(res)) {
+        systemLogger.warn({ path: req.path, requestId: getRequestId(req) }, "[HEALTH] resposta suprimida por timeout/resposta encerrada");
+        return;
+      }
+      res.status(503).json({
+        status: "error",
+        bootState: bootStateInfo,
+        db: dbUp ? "ok" : "error",
+        redis: redisUp ? "ok" : "error",
+        message: bootStateInfo.reason,
+      });
+      return;
+    }
+
+    // Se estado é degraded, retorna 200 mas com warnings
+    if (bootState === "degraded") {
+      if (isResponseLocked(res)) {
+        systemLogger.warn({ path: req.path, requestId: getRequestId(req) }, "[HEALTH] resposta suprimida por timeout/resposta encerrada");
+        return;
+      }
+      res.status(200).json({
+        status: "degraded",
+        bootState: bootStateInfo,
+        db: dbUp ? "ok" : "error",
+        redis: redisUp ? "ok" : "error",
+        message: bootStateInfo.reason,
+      });
+      return;
+    }
+
+    // Estado ready - retorna 200 se DB OK (Redis opcional)
+    const ok = dbUp;
 
     if (isResponseLocked(res)) {
       systemLogger.warn({ path: req.path, requestId: getRequestId(req) }, "[HEALTH] resposta suprimida por timeout/resposta encerrada");
@@ -163,6 +221,7 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
 
     res.status(ok ? 200 : 503).json({
       status: ok ? "ok" : "error",
+      bootState: bootStateInfo,
       db: dbUp ? "ok" : "error",
       redis: redisUp ? "ok" : "error",
     });
@@ -210,14 +269,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 export async function startServer() {
-  // Fail-fast ENV centralizado
-  validateRequiredEnv();
-  console.log("ENV DEBUG:", {
-    DATABASE_URL: process.env.DATABASE_URL,
-    REDIS_HOST: process.env.REDIS_HOST,
-    JWT_SECRET: process.env.JWT_SECRET ? "OK" : "MISSING",
-  });
-  systemLogger.info("[ENV] variáveis obrigatórias ok (services + core)");
+  // BOOTSTRAP CENTRAL ÚNICO - TODA inicialização crítica passa por aqui
+  await bootstrapServer();
+
   const env = getEnv();
   secureConsoleMiddleware();
   systemLogger.info("[BOOT] inicialização do servidor");
@@ -238,38 +292,9 @@ export async function startServer() {
     process.exit(1);
   });
 
-  // Espera DB subir com retry/backoff (evita crash imediato / restart loop)
-  try {
-    systemLogger.info("[DB] aguardando MySQL ficar pronto…");
-    await waitForDatabaseReady();
-    systemLogger.info("[DB] MySQL pronto");
-  } catch (e) {
-    systemLogger.error({ e }, "[DB] falha ao aguardar MySQL");
-    process.exit(1);
-  }
-
   // Bootstrap do banco (migrations) + seed mínimo (admin) precisam de contexto de serviço autorizado.
-  try {
-    await runDatabaseBootstrapFlow();
-  } catch (e) {
-    console.warn("[BOOTSTRAP][DB] falha no contexto", e);
-    console.log('[BOOT] server liberado mesmo com falha crítica');
-  }
-
-  // Espera Redis subir (evita crash imediato / restart loop)
-  try {
-    const timeoutMs = Math.max(5_000, Number(process.env.REDIS_BOOT_TIMEOUT_MS || 30_000));
-    systemLogger.info({ timeoutMs }, "[REDIS] aguardando Redis ficar pronto…");
-    const ok = await waitForRedis(timeoutMs);
-    if (!ok) {
-      systemLogger.error("[REDIS] falha: Redis não ficou pronto a tempo");
-      process.exit(1);
-    }
-    systemLogger.info("[REDIS] Redis pronto");
-  } catch (e) {
-    systemLogger.error({ e }, "[REDIS] falha ao aguardar Redis");
-    process.exit(1);
-  }
+  // FALHA FATAL: se bootstrap falhar, sistema NÃO sobe
+  await runDatabaseBootstrapFlow();
 
   systemLogger.info("[BOOT] sistema de cache…");
   initCacheSystem();
@@ -300,20 +325,15 @@ export async function startServer() {
   setupMonitoring(app);
   systemLogger.info("[BOOT] monitoramento ok");
 
-  try {
-    systemLogger.info("[BOOT] usuário admin…");
-    await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
-      await ensureBootstrapAdminUser(1);
-      if (process.env.K6_MODE === 'true') {
-        await ensureBootstrapK6User(1);
-      }
-    });
-    systemLogger.info("[BOOT] admin ok");
-  } catch (e) {
-    systemLogger.error({ e }, "[ERROR] ensureAdminUser");
-    systemLogger.warn("[ERROR] ensureAdminUser falhou, continuando mesmo assim (migration ainda em progresso)");
-    console.log('[BOOT] server liberado mesmo com falha de usuario admin');
-  }
+  // FALHA FATAL: usuário admin é obrigatório
+  systemLogger.info("[BOOT] usuário admin…");
+  await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
+    await ensureBootstrapAdminUser(1);
+    if (process.env.K6_MODE === 'true') {
+      await ensureBootstrapK6User(1);
+    }
+  });
+  systemLogger.info("[BOOT] admin ok");
 
   systemLogger.info("[BOOT] middlewares de segurança…");
   
@@ -891,15 +911,19 @@ export async function startServer() {
   shutdownMiddleware.forEach((middleware) => app.use(middleware));
   console.log("[BOOT] graceful shutdown configurado");
 
-  if (process.env.ENABLE_HEALTH_WATCHDOG !== "0") {
-    const watchdog = getHealthWatchdog();
-    watchdog.start();
-    console.log("[BOOT] health watchdog ativo");
-  }
-
   server.listen(port, () => {
     systemLogger.info(`[BOOT] servidor ouvindo em http://localhost:${port}/`);
     (global as typeof globalThis & { SERVER_PORT?: number }).SERVER_PORT = port;
+
+    // Mark system as ready after server is listening
+    markReady("Servidor iniciado e pronto para receber tráfego");
+
+    // Start health watchdog AFTER server is listening to avoid race condition
+    if (process.env.ENABLE_HEALTH_WATCHDOG !== "0") {
+      const watchdog = getHealthWatchdog();
+      watchdog.start();
+      console.log("[BOOT] health watchdog ativo");
+    }
   });
 
 }

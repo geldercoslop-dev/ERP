@@ -17,8 +17,8 @@ async function main(): Promise<void> {
   console.log("[DB] ok");
 
   console.log("[REDIS] testando conexão…");
-  const { redisManager } = await import("../infra/redis.js");
-  const r = await redisManager.testConnection();
+  const { getRedis } = await import("../infra/redis.js");
+  const r = await getRedis().testConnection();
   if (!r.success) {
     console.error("[REDIS] falha:", r.message);
     process.exit(1);

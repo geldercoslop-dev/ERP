@@ -9,11 +9,7 @@ import { app } from '../_core/index.js';
 
 // Configurar variáveis de ambiente para testes
 process.env.JWT_SECRET = 'test-jwt-secret-32-chars-minimum-length';
-process.env.DB_HOST = 'localhost';
-process.env.DB_PORT = '3306';
-process.env.DB_USER = 'test';
-process.env.DB_PASSWORD = 'test';
-process.env.DB_NAME = 'test';
+process.env.DATABASE_URL = 'mysql://test:test@localhost:3306/test';
 process.env.REDIS_HOST = 'localhost';
 process.env.REDIS_PORT = '6379';
 

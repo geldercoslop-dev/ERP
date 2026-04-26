@@ -6,8 +6,20 @@
  */
 
 import { Queue, Worker, QueueEvents } from 'bullmq';
-import { redis as connection } from '../core/redis.service.js';
 import { ValidationError } from './errors/typed-errors.js';
+import { queueConfig } from '../infra/queue/queue.config.js';
+
+let _connection: any = null;
+
+function getBullMQConnection(): any {
+  if (!_connection) {
+    _connection = queueConfig.getConnection();
+    if (!_connection) {
+      throw new ValidationError('Redis connection is required for BullMQ');
+    }
+  }
+  return _connection;
+}
 
 // Tipos para jobs
 export interface BullMQJob<T = unknown> {
@@ -70,7 +82,7 @@ function startWorkers<T = unknown>(
       }
     },
     {
-      connection,
+      connection: getBullMQConnection(),
       concurrency: options.concurrency || 1,
       autorun: options.autorun !== false,
     }
@@ -92,7 +104,7 @@ export class BullMQQueueManager {
     }
 
     const queue = new Queue(name, {
-      connection,
+      connection: getBullMQConnection(),
       defaultJobOptions: {
         removeOnComplete: 100,
         removeOnFail: 50,
@@ -200,7 +212,7 @@ export class BullMQQueueManager {
       return this.events.get(queueName)!;
     }
 
-    const events = new QueueEvents(queueName, { connection });
+    const events = new QueueEvents(queueName, { connection: getBullMQConnection() });
     this.events.set(queueName, events);
 
     // Event listeners padrão
@@ -319,7 +331,8 @@ export class BullMQQueueManager {
     this.events.clear();
 
     // Fechar conexão Redis
-    await connection.quit();
+    const conn = getBullMQConnection();
+    await conn.quit();
     console.log('[BullMQ] All connections closed');
   }
 
@@ -333,7 +346,7 @@ export class BullMQQueueManager {
   }> {
     try {
       // Testar conexão Redis
-      await connection.ping();
+      await getBullMQConnection().ping();
       
       return {
         redis: true,

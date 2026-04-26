@@ -1,4 +1,4 @@
-import * as ordersService from '../../services/orders.service.js';
+import { salesAnalyticsTool } from '../../tools/sales-analytics.tool.js';
 import { logInfo, logError } from '../../_core/logger.js';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 
@@ -42,7 +42,8 @@ export class LeoSalesAnalysis {
           })()
         : undefined;
 
-      const { sumTotal, count } = await ordersService.aggregateTicketPedidos(tenantId, {
+      const { sumTotal, count } = await salesAnalyticsTool.aggregateTicketPedidos({
+        tenantId,
         vendedorId,
         since: daysAgo,
       });
@@ -82,16 +83,16 @@ export class LeoSalesAnalysis {
       const previousPeriodStart = new Date(currentPeriodStart);
       previousPeriodStart.setDate(previousPeriodStart.getDate() - days);
 
-      const currentTotal = await ordersService.sumPedidosTotalBetween(
+      const currentTotal = await salesAnalyticsTool.sumPedidosTotalBetween({
         tenantId,
-        currentPeriodStart,
-        new Date()
-      );
-      const previousTotal = await ordersService.sumPedidosTotalBetween(
+        startDate: currentPeriodStart,
+        endDate: new Date()
+      });
+      const previousTotal = await salesAnalyticsTool.sumPedidosTotalBetween({
         tenantId,
-        previousPeriodStart,
-        currentPeriodStart
-      );
+        startDate: previousPeriodStart,
+        endDate: currentPeriodStart
+      });
 
       let percentage = 0;
       let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';

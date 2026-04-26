@@ -181,7 +181,7 @@ export async function getFinanceiroResumoCache(): Promise<{ aReceber: number; aP
     if (!dbConnection) return { aPagar: 0, aReceber: 0, vencidas: 0, aVencer: 0 };
     
     const hoje = new Date();
-    const daqui30dias = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const daqui30dias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     
     // Contas a receber
     const contasReceber = await dbConnection

@@ -1,16 +1,30 @@
 // Teste direto de conexão com banco - SELECT 1
 import mysql from 'mysql2/promise';
 
+function parseDatabaseUrl(): { host: string; port: number; user: string; password: string; database: string } {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL é obrigatório');
+  }
+
+  try {
+    const url = new URL(databaseUrl);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || '3306'),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.slice(1).replace(/^\//, '') || 'vendas_app',
+    };
+  } catch (error) {
+    throw new Error(`DATABASE_URL inválido: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 async function testarConexaoDireta() {
   console.log('🔍 TESTE DIRETO DE CONEXÃO - SELECT 1\n');
   
-  const config = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    user: process.env.DB_USER || 'vendas',
-    password: process.env.DB_PASSWORD || 'vendas123',
-    database: process.env.DB_NAME || 'vendas_app'
-  };
+  const config = parseDatabaseUrl();
   
   console.log('📋 Configuração:');
   console.log(`   Host: ${config.host}`);
@@ -83,8 +97,9 @@ async function testarConexaoDireta() {
 async function testarPortaMySQL() {
   console.log('\n🔍 TESTE RÁPIDO DE PORTA MYSQL');
   
-  const port = parseInt(process.env.DB_PORT || '3306');
-  const host = process.env.DB_HOST || 'localhost';
+  const config = parseDatabaseUrl();
+  const port = config.port;
+  const host = config.host;
   
   try {
     const net = require('net');

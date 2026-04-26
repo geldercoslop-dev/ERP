@@ -82,12 +82,24 @@ function getClientIP(req: Request): string {
     return forwardedFor.split(',')[0].trim();
   }
   
+  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+    return forwardedFor[0].split(',')[0].trim();
+  }
+  
   if (isString(realIP)) {
     return realIP.trim();
   }
   
+  if (Array.isArray(realIP) && realIP.length > 0) {
+    return realIP[0].trim();
+  }
+  
   if (isString(cfConnectingIP)) {
     return cfConnectingIP.trim();
+  }
+  
+  if (Array.isArray(cfConnectingIP) && cfConnectingIP.length > 0) {
+    return cfConnectingIP[0].trim();
   }
   
   // Fallback para connection.remoteAddress

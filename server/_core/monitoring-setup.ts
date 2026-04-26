@@ -42,6 +42,7 @@ export function setupMonitoring(app: Express): void {
 /**
  * Configura o monitoramento de banco de dados
  */
+// ANY_INTENTIONAL: Generic DB connection type - infrastructure monitoring needs to work with any DB driver
 export function setupDatabaseMonitoring(connection: any): any {
   logger.info('Configurando monitoramento de banco de dados...');
   

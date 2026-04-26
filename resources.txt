@@ -1,3 +1,0 @@
-db|FALTA
-redis|FALTA
-api|FALTA

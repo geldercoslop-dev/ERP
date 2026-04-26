@@ -1,5 +1,5 @@
 import { logInfo, logError } from '../../_core/logger.js';
-import * as inventoryService from '../../services/inventory.service.js';
+import { inventoryMonitorTool } from '../../tools/inventory-monitor.tool.js';
 import { LeoTaskPriority } from '../../../shared/types/index.js';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 
@@ -37,9 +37,9 @@ export class LeoStockMonitor {
       throw new ValidationError("tenantId obrigatório");
     }
     try {
-      const rows = await inventoryService.listProdutosBaixoEstoqueLeo(tenantId, 20);
+      const rows = await inventoryMonitorTool.listProdutosBaixoEstoqueLeo({ tenantId, limite: 20 });
 
-      const alerts: StockAlert[] = rows.map((product) => {
+      const alerts: StockAlert[] = rows.map((product: any) => {
         const currentStock = Number(product.estoque || 0);
         const minStock =
           currentStock <= 5 ? 20 : currentStock <= 10 ? 15 : currentStock <= 20 ? 25 : 30;

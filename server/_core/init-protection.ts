@@ -3,6 +3,9 @@
  * 
  * Este módulo deve ser importado no início da aplicação para
  * aplicar proteção a todos os serviços.
+ * 
+ * CRÍTICO: initializeServiceProtection() deve ser chamado explicitamente,
+ * NÃO executa automaticamente no import-time.
  */
 import * as clientesService from '../services/clientes.service.js';
 import * as inventoryService from '../services/inventory.service.js';
@@ -15,6 +18,9 @@ import { logInfo } from './service-logger.js';
 
 /**
  * Aplica proteção a todos os serviços conhecidos
+ * 
+ * Esta função deve ser chamada explicitamente após bootstrapServer().
+ * NÃO executa automaticamente no import-time.
  */
 export function initializeServiceProtection(): void {
   logInfo('Iniciando proteção de serviços...');
@@ -31,6 +37,3 @@ export function initializeServiceProtection(): void {
   
   logInfo('Proteção de serviços aplicada com sucesso');
 }
-
-// Executar a inicialização automaticamente
-initializeServiceProtection();

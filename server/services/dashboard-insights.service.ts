@@ -216,28 +216,29 @@ async function getPedidosAtrasados(
   conn: DbConn,
   tenantId: number
 ): Promise<PedidoAtrasado[]> {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  const hojeDate = new Date();
+  const hoje = hojeDate.toISOString();
 
   const rows = await conn
     .select({
       pedidoId: db.pedidos.id,
-      clienteNome: db.pedidos.clienteNome,
+      clienteNome: db.clientes.nome,
       dataEntrega: db.pedidos.dataEntrega,
     })
     .from(db.pedidos)
+    .innerJoin(db.clientes, eq(db.pedidos.clienteId, db.clientes.id))
     .where(
       and(
         eq(db.pedidos.tenantId, tenantId),
         ne(db.pedidos.status, PedidoStatusValues[3]),
         sql`${db.pedidos.dataEntrega} IS NOT NULL`,
-        lt(db.pedidos.dataEntrega, hoje)
+        lt(db.pedidos.dataEntrega, hojeDate)
       )
     );
 
   return rows.map((r) => {
     const dataEntrega = r.dataEntrega ? new Date(r.dataEntrega) : new Date();
-    const diasAtraso = Math.floor((hoje.getTime() - dataEntrega.getTime()) / (1000 * 60 * 60 * 24));
+    const diasAtraso = Math.floor((hojeDate.getTime() - dataEntrega.getTime()) / (1000 * 60 * 60 * 24));
     return {
       pedidoId: r.pedidoId,
       cliente: r.clienteNome ?? "",
@@ -250,8 +251,8 @@ async function getContasVencidas(
   conn: DbConn,
   tenantId: number
 ): Promise<ContaVencida[]> {
-  const hoje = new Date();
-  hoje.setHours(23, 59, 59, 999);
+  const hojeDate = new Date();
+  const hoje = hojeDate.toISOString();
 
   const rows = await conn
     .select({
@@ -264,7 +265,7 @@ async function getContasVencidas(
       and(
         eq(db.contasReceber.tenantId, tenantId),
         eq(db.contasReceber.status, ContaReceberStatusValues[0]),
-        lt(db.contasReceber.dataVencimento, hoje)
+        lt(db.contasReceber.dataVencimento, hojeDate)
       )
     )
     .orderBy(desc(db.contasReceber.valor))
@@ -272,7 +273,7 @@ async function getContasVencidas(
 
   return rows.map((r) => {
     const venc = r.dataVencimento ? new Date(r.dataVencimento) : new Date();
-    const diasAtraso = Math.floor((hoje.getTime() - venc.getTime()) / (1000 * 60 * 60 * 24));
+    const diasAtraso = Math.floor((hojeDate.getTime() - venc.getTime()) / (1000 * 60 * 60 * 24));
     return {
       cliente: r.clienteNome ?? "",
       valor: Number(r.valor ?? 0),

@@ -10,12 +10,15 @@
  * Uso: npm run test:consistency
  */
 
-import '../_core/loadEnv.js';
+import { initEnv } from '../_core/env/bootstrapEnv.js';
 import { setupTestData, cleanupTestData } from './setup-test-data.js';
 import { DatabaseConsistencyTester } from './database-consistency.test.js';
 import pino from 'pino';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// Load ENV explicitly (NO import-time side effects)
+initEnv();
 
 const logger = pino();
 

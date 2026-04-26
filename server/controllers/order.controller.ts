@@ -6,6 +6,7 @@ import { OrderTool } from '../tools/order.tool.js';
 import { OrderService } from '../services/order.service.js';
 
 import { createOrderSafe, cancelOrderSafe, updateOrderStatusSafe, OrderItem, CreateOrderData } from '../modules/safe-order.module.js';
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 
 
@@ -55,11 +56,16 @@ class OrderController {
 
       const payload: Payload = req.body;
 
-      const tenantId = req.user.tenantId; // Garantido pelo contrato protegido
+      // Validar req.user antes de acessar tenantId
+      if (!req.user || typeof req.user !== 'object') {
+        throw new ValidationError('Usuário não autenticado');
+      }
+
+      const tenantId = req.user.tenantId;
       
       // Validar tenantId obrigatório
       if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
-        throw new Error('TenantId inválido ou ausente');
+        throw new ValidationError('TenantId inválido ou ausente');
       }
 
 
@@ -83,42 +89,42 @@ class OrderController {
       
       // Validar estrutura do payload
       if (!payload || typeof payload !== 'object') {
-        throw new Error('Payload inválido');
+        throw new ValidationError('Payload inválido');
       }
       
       // Validar campos obrigatórios CreateOrderData
       if (!('clienteNome' in payload) || typeof payload.clienteNome !== 'string' || payload.clienteNome.trim() === '') {
-        throw new Error('clienteNome é obrigatório');
+        throw new ValidationError('clienteNome é obrigatório');
       }
       
       if (!('formaPagamento' in payload) || typeof payload.formaPagamento !== 'string' || payload.formaPagamento.trim() === '') {
-        throw new Error('formaPagamento é obrigatório');
+        throw new ValidationError('formaPagamento é obrigatório');
       }
       
       // Validar itens obrigatórios
       if (!('itens' in payload) || !Array.isArray(payload.itens)) {
-        throw new Error('itens é obrigatório e deve ser array');
+        throw new ValidationError('itens é obrigatório e deve ser array');
       }
       
       // Validar estrutura dos itens
       const itens = payload.itens as unknown[];
       for (const [index, item] of itens.entries()) {
         if (!item || typeof item !== 'object') {
-          throw new Error(`Item ${index} inválido: esperado objeto`);
+          throw new ValidationError(`Item ${index} inválido: esperado objeto`);
         }
         
         const itemObj = item as Record<string, unknown>;
         if (!('produtoId' in itemObj) || typeof itemObj.produtoId !== 'number' || itemObj.produtoId <= 0) {
-          throw new Error(`Item ${index}: produtoId inválido`);
+          throw new ValidationError(`Item ${index}: produtoId inválido`);
         }
         if (!('quantidade' in itemObj) || typeof itemObj.quantidade !== 'number' || itemObj.quantidade <= 0) {
-          throw new Error(`Item ${index}: quantidade inválida`);
+          throw new ValidationError(`Item ${index}: quantidade inválida`);
         }
         if (!('valorUnitario' in itemObj) || typeof itemObj.valorUnitario !== 'number' || itemObj.valorUnitario < 0) {
-          throw new Error(`Item ${index}: valorUnitario inválido`);
+          throw new ValidationError(`Item ${index}: valorUnitario inválido`);
         }
         if (!('total' in itemObj) || typeof itemObj.total !== 'number' || itemObj.total < 0) {
-          throw new Error(`Item ${index}: total inválido`);
+          throw new ValidationError(`Item ${index}: total inválido`);
         }
       }
       
@@ -231,6 +237,17 @@ class OrderController {
 
     try {
 
+      // Validar req.user antes de acessar tenantId
+      if (!req.user || typeof req.user !== 'object') {
+        throw new ValidationError('Usuário não autenticado');
+      }
+
+      const tenantId = req.user.tenantId;
+      
+      if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+        throw new ValidationError('TenantId inválido ou ausente');
+      }
+
       const payload: Payload = {
 
         page: parseInt(req.query?.page as string) || 1,
@@ -253,7 +270,7 @@ class OrderController {
 
         dataFim: req.query?.dataFim as string,
 
-        tenantId: req.user.tenantId
+        tenantId
 
       };
 
@@ -323,6 +340,15 @@ class OrderController {
 
         return;
 
+      }
+
+      // Validar req.user antes de acessar tenantId
+      if (!req.user || typeof req.user !== 'object') {
+        res.status(401).json({
+          success: false,
+          error: 'Usuário não autenticado'
+        });
+        return;
       }
 
       const tenantId = req.user.tenantId;
@@ -414,6 +440,15 @@ class OrderController {
         });
         return;
       }
+      // Validar req.user antes de acessar tenantId
+      if (!req.user || typeof req.user !== 'object') {
+        res.status(401).json({
+          success: false,
+          error: 'Usuário não autenticado'
+        });
+        return;
+      }
+
       const tenantId = req.user.tenantId;
       if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
         res.status(400).json({

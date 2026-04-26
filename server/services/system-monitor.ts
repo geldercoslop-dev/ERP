@@ -7,7 +7,7 @@
 
 import { Request, Response } from 'express';
 import { performance } from 'perf_hooks';
-import { redisManager } from '../infra/redis.js';
+import { getRedis } from '../infra/redis.js';
 import { queueManager } from '../queue/queue.js';
 import { workerManager } from '../queue/worker-simple.js';
 import { leoMemoryManager } from '../leo/memory/memory-manager.js';
@@ -425,7 +425,7 @@ export class SystemMonitorService {
 
   private async getRedisStatus() {
     try {
-      const redisStatus = await redisManager.getStatus();
+      const redisStatus = await getRedis().getStatus();
       return {
         connected: redisStatus.connected,
         latency: redisStatus.uptime,

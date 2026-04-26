@@ -1,6 +1,6 @@
 import { getDb } from '../db/index.js';
 import { systemLogger } from '../_core/logger.js';
-import { redisManager } from '../infra/redis.js';
+import { getRedis } from '../infra/redis.js';
 import { getErrorMessage } from '../utils/safe-error.js';
 import { parseEnv } from './env.schema.js';
 
@@ -74,8 +74,6 @@ export interface SystemHealthResponse {
   };
   environment: {
     DATABASE_URL: boolean;
-    DB_HOST: boolean;
-    DB_NAME: boolean;
     PORT: boolean;
   };
   allEnvironmentOk: boolean;
@@ -154,7 +152,7 @@ async function checkRedisHealth(): Promise<{
   const startTime = Date.now();
   try {
     const ok = await withTimeout(
-      redisManager.isConnected(),
+      getRedis().isConnected(),
       REDIS_HEALTH_TIMEOUT_MS,
       'Redis health check'
     );
@@ -223,8 +221,6 @@ export function buildSystemHealthFailureResponse(error: unknown): SystemHealthRe
     },
     environment: {
       DATABASE_URL: false,
-      DB_HOST: false,
-      DB_NAME: false,
       PORT: false,
     },
     allEnvironmentOk: false,
@@ -249,8 +245,6 @@ function checkEnvironment() {
         return false;
       }
     })(),
-    DB_HOST: !!process.env.DB_HOST,
-    DB_NAME: !!process.env.DB_NAME,
     PORT: !!process.env.PORT
   };
   

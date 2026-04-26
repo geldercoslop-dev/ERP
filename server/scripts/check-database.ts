@@ -1,40 +1,33 @@
 /**
  * Script para verificar a conexão e o schema do banco de dados.
  * Uso: npm run check:db
+ * FAIL-HARD: DATABASE_URL é obrigatório
  */
 import "dotenv/config";
 import mysql from "mysql2/promise";
 
-async function checkDatabase() {
-  let config: { host: string; port: number; user: string; password: string; database: string };
-  if (process.env.DATABASE_URL) {
-    try {
-      const url = new URL(process.env.DATABASE_URL);
-      config = {
-        host: url.hostname,
-        port: parseInt(url.port || "3306", 10),
-        user: url.username,
-        password: url.password,
-        database: url.pathname.slice(1).replace(/^\//, "") || "vendas_app",
-      };
-    } catch (_) {
-      config = {
-        host: process.env.DB_HOST || "localhost",
-        port: parseInt(process.env.DB_PORT || "3306", 10),
-        user: process.env.DB_USER || "vendas",
-        password: process.env.DB_PASSWORD || process.env.DB_PASS || "vendas123",
-        database: process.env.DB_NAME || "vendas_app",
-      };
-    }
-  } else {
-    config = {
-      host: process.env.DB_HOST || "localhost",
-      port: parseInt(process.env.DB_PORT || "3306", 10),
-      user: process.env.DB_USER || "vendas",
-      password: process.env.DB_PASSWORD || process.env.DB_PASS || "vendas123",
-      database: process.env.DB_NAME || "vendas_app",
-    };
+function parseDatabaseUrl(): { host: string; port: number; user: string; password: string; database: string } {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL é obrigatório");
   }
+
+  try {
+    const url = new URL(databaseUrl);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || "3306", 10),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.slice(1).replace(/^\//, "") || "vendas_app",
+    };
+  } catch (error) {
+    throw new Error(`DATABASE_URL inválido: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+async function checkDatabase() {
+  const config = parseDatabaseUrl();
 
   console.log("Verificando conexão com o banco de dados...");
   console.log("Configuração:", { host: config.host, port: config.port, user: config.user, database: config.database });

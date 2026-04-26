@@ -7,9 +7,11 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import * as mysql from "mysql2/promise";
 import { getConnectionPool } from "../config/database.js";
-import * as schema from "../../drizzle/schema.js";
+import * as schema from "../../drizzle/schema.ts";
+import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { setupDatabaseMonitoring } from "../_core/monitoring-setup.js";
 import { toDbResult } from "../_core/db-result.js";
+import { requireBootstrap } from "../_core/bootstrap.js";
 import {
   users,
   vendedores,
@@ -34,7 +36,7 @@ import {
   promocoes,
   promocoesItens,
   pendencias,
-} from "../../drizzle/schema.js";
+} from "../../drizzle/schema.ts";
 
 // Re-exportar tabelas para uso em services
 export {
@@ -61,7 +63,7 @@ export {
   promocoes,
   promocoesItens,
   pendencias,
-} from "../../drizzle/schema.js";
+} from "../../drizzle/schema.ts";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { assertServiceEntryIfEnabled } from "../_core/service-entry-guard.js";
 
@@ -75,6 +77,7 @@ export async function getPool(): Promise<mysql.Pool> {
 }
 
 export async function getDb(): Promise<Database> {
+  requireBootstrap('db.getDb');
   assertServiceEntryIfEnabled();
   if (!db) {
     pool = await getConnectionPool();
@@ -308,7 +311,7 @@ export async function findOrCreateUserByOpenId(
   void tenantId;
   const existing = await getUserByOpenId(openId);
   if (existing) return existing;
-  const now = new Date();
+  const now = new Date().toISOString();
   const created = await insertUser({
     tenantId,
     openId,
@@ -316,12 +319,12 @@ export async function findOrCreateUserByOpenId(
     email: null,
     loginMethod: "local",
     role: "user",
-    createdAt: now,
-    updatedAt: now,
-    lastSignedIn: now,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
   });
   const user = await getUserById(created.id);
-  if (!user) throw new Error("Falha ao criar usuário");
+  if (!user) throw new InfrastructureError("Falha ao criar usuário");
   return user;
 }
 
@@ -333,19 +336,18 @@ export async function ensureAdminUser(tenantId: number): Promise<void> {
     await upsertUser(tenantId, { ...adminUser, role: "admin", updatedAt: new Date() });
     const existingVendedor = await getVendedorByUserId(adminUser.id);
     if (existingVendedor) return;
-    const now = new Date();
+    const now = new Date().toISOString();
     await createVendedor({
       tenantId,
       userId: adminUser.id,
       nome: "Administrador",
       email: "admin@local.com",
       senha: null,
-      cidade: null,
       telefone: null,
       admin: true,
       ativo: true,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   } catch (e) {
     if (process.env.NODE_ENV === "development") {
@@ -365,7 +367,7 @@ export async function reserveIdempotencyKey(
   key: string
 ): Promise<{ reserved: boolean; resultJson?: string | null; traceId?: string | null }> {
   try {
-    await tx.insert(idempotencyKeys).values({ tenantId: 1, commandName, key, resultJson: null });
+    await tx.insert(idempotencyKeys).values({ tenantId: 0, commandName, key, resultJson: null });
     return { reserved: true };
   } catch {
     const row = await tx
@@ -467,6 +469,23 @@ export type AuditAction =
   | "dashboard_view"
   | "leo_action";
 
+/**
+ * @deprecated-audit-write
+ * 
+ * NÃO usar diretamente.
+ * 
+ * REGRA:
+ * Toda escrita deve passar por:
+ * server/services/audit-log.service.ts
+ * 
+ * Motivo:
+ * - sanitização
+ * - validação
+ * - padronização de payload
+ * 
+ * TODO (fase futura):
+ * delegar automaticamente para audit-log.service.ts
+ */
 export async function insertAuditLog(
   params: {
     tenantId?: number | null;

@@ -91,4 +91,4 @@ export {
 
 // Legacy exports for backward compatibility
 export { leoLongMemory } from './memory/leo-long-memory.js';
-export { perguntar } from '../services/ai/erp-ai.service.js';
+// export { perguntar } from '../services/ai/erp-ai.service.js'; // REMOVIDO: violação da tool layer

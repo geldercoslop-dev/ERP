@@ -108,9 +108,9 @@ export async function createPromocao(tenantId: number, data: CreatePromocaoInput
   const res = await dbConn.insert(promocoes).values({
     tenantId,
     nome: payload.nome,
-    inicio: payload.inicio,
-    fim: payload.fim,
-    ativo: payload.ativo ?? true,
+    inicio: payload.inicio instanceof Date ? payload.inicio : new Date(payload.inicio),
+    fim: payload.fim instanceof Date ? payload.fim : new Date(payload.fim),
+    ativo: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -139,9 +139,12 @@ export async function updatePromocao(tenantId: number, id: number, data: UpdateP
   const dbConn = await getDb();
   assertDbConnection(dbConn);
   
-  const updateData = {
+  const updateData: Partial<typeof promocoes.$inferInsert> = {
     ...payload,
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    inicio: payload.inicio instanceof Date ? payload.inicio : (payload.inicio ? new Date(payload.inicio) : undefined),
+    fim: payload.fim instanceof Date ? payload.fim : (payload.fim ? new Date(payload.fim) : undefined),
+    ativo: payload.ativo !== undefined ? payload.ativo : undefined,
   };
   
   const existing = await getPromocaoById(tenantId, id);

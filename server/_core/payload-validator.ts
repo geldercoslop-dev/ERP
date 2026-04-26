@@ -83,21 +83,22 @@ function validateValue(
 
   // String validations
   if (isString(value)) {
-    if (rule.minLength !== undefined && value.length < rule.minLength) {
+    const strValue = value;
+    if (rule.minLength !== undefined && strValue.length < rule.minLength) {
       return {
         isValid: false,
         error: `Field '${key}' must be at least ${rule.minLength} characters`
       };
     }
     
-    if (rule.maxLength !== undefined && value.length > rule.maxLength) {
+    if (rule.maxLength !== undefined && strValue.length > rule.maxLength) {
       return {
         isValid: false,
         error: `Field '${key}' must be at most ${rule.maxLength} characters`
       };
     }
     
-    if (rule.pattern && !rule.pattern.test(value)) {
+    if (rule.pattern && !rule.pattern.test(strValue)) {
       return {
         isValid: false,
         error: `Field '${key}' format is invalid`
@@ -107,7 +108,7 @@ function validateValue(
     // Sanitization
     let sanitized = value;
     if (rule.sanitize) {
-      sanitized = value
+      sanitized = strValue
         .trim()
         .replace(/[<>]/g, '') // Remove tags
         .replace(/javascript:/gi, '') // Remove JS URLs
@@ -119,14 +120,15 @@ function validateValue(
 
   // Number validations
   if (isNumber(value)) {
-    if (rule.min !== undefined && value < rule.min) {
+    const numValue = value;
+    if (rule.min !== undefined && numValue < rule.min) {
       return {
         isValid: false,
         error: `Field '${key}' must be at least ${rule.min}`
       };
     }
     
-    if (rule.max !== undefined && value > rule.max) {
+    if (rule.max !== undefined && numValue > rule.max) {
       return {
         isValid: false,
         error: `Field '${key}' must be at most ${rule.max}`
@@ -332,7 +334,7 @@ export function sanitizePayload(payload: Record<string, unknown>): Record<string
     } else if (isNumber(value) || isBoolean(value)) {
       sanitized[key] = value;
     } else if (isObject(value) && !Array.isArray(value)) {
-      sanitized[key] = sanitizePayload(value as Record<string, unknown>);
+      sanitized[key] = sanitizePayload(value);
     } else {
       // Skip arrays and unknown types
       continue;

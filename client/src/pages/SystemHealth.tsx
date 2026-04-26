@@ -7,6 +7,7 @@ import { MetricBox } from '../components/MetricBox';
 import { analyzeHealth, HealthAnalysis, getHealthTrend, formatHealthScore } from '../utils/health-analyzer';
 import { useSystemHealth } from '../hooks/useSystemHealth';
 import type { SystemHealthPayload } from '../types/system-health';
+import { LeoObservabilityDashboard } from '../modules/leo-observability/LeoObservabilityDashboard';
 
 export default function SystemHealth() {
   const {
@@ -272,18 +273,6 @@ export default function SystemHealth() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">DB_HOST:</span>
-                  <span className={`text-sm font-medium ${health.environment.DB_HOST ? 'text-green-600' : 'text-red-600'}`}>
-                    {health.environment.DB_HOST ? '✓ Configurado' : '✗ Ausente'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">DB_NAME:</span>
-                  <span className={`text-sm font-medium ${health.environment.DB_NAME ? 'text-green-600' : 'text-red-600'}`}>
-                    {health.environment.DB_NAME ? '✓ Configurado' : '✗ Ausente'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">PORT:</span>
                   <span className={`text-sm font-medium ${health.environment.PORT ? 'text-green-600' : 'text-red-600'}`}>
                     {health.environment.PORT ? '✓ Configurado' : '✗ Ausente'}
@@ -340,6 +329,11 @@ export default function SystemHealth() {
           ) : null}
         </>
       ) : null}
+
+      {/* LEO Observability Dashboard - Nova camada de observabilidade */}
+      <div className="border-t pt-6 mt-6">
+        <LeoObservabilityDashboard />
+      </div>
     </div>
   );
 }

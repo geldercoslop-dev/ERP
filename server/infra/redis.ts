@@ -13,6 +13,7 @@ import { recordRedis } from "./metrics.js";
 import { createLogger } from "./structured-logger.js";
 import { instrumentRedis } from "./redis-instrumentation.js";
 import { resolveRuntimeServiceHost } from "../config/runtime-host-resolver.js";
+import { requireBootstrap } from "../_core/bootstrap.js";
 
 const logger = createLogger("redis");
 
@@ -20,7 +21,7 @@ const logger = createLogger("redis");
  * Instância ioredis: os .d.ts não expõem EventEmitter/connect/status de forma estável
  * com `InstanceType<typeof Redis>` neste projeto — compomos com EventEmitter.
  */
-type IoredisClient = InstanceType<typeof Redis> &
+export type IoredisClient = InstanceType<typeof Redis> &
   Pick<EventEmitter, "on" | "once" | "off" | "emit"> & {
     connect(): Promise<void>;
     status: string;
@@ -113,17 +114,28 @@ function parseRedisConfigFromEnv(): RedisConfig {
 class RedisManager {
   private static instance: RedisManager;
   private client: IoredisClient | null = null;
-  private config: RedisConfig;
+  private config: RedisConfig | null = null;
   private connectionAttempts: number = 0;
   private maxConnectionAttempts: number = 10;
   private lastConnectionTime: Date | null = null;
   private statusCache: RedisStatus | null = null;
   private statusCacheExpiry: number = 30000; // 30 segundos
+  private lastHealthCheck: number = 0;
+  private isHealthyCache: boolean = false;
+  private initialized: boolean = false;
 
   private constructor() {
-    this.config = parseRedisConfigFromEnv();
+    // Lazy initialization - don't parse ENV or connect in constructor
+    // This allows system to start without Redis configured
+  }
 
+  private ensureInitialized(): void {
+    if (this.initialized) {
+      return;
+    }
+    this.config = parseRedisConfigFromEnv();
     this.initializeClient();
+    this.initialized = true;
   }
 
   public static getInstance(): RedisManager {
@@ -137,22 +149,29 @@ class RedisManager {
    * Inicializa cliente Redis com configurações robustas
    */
   private initializeClient(): void {
+    if (!this.config) {
+      throw new InfrastructureError("Redis config not available - ENV not loaded");
+    }
     try {
       this.client = new Redis(this.config) as IoredisClient;
 
-      // Aplicar instrumentação OpenTelemetry
+      // Aplicar instrumentação OpenTelemetry (só se habilitado)
       instrumentRedis({ client: this.client });
-      logger.info('Redis OpenTelemetry instrumentation enabled');
+      if (process.env.ENABLE_REDIS_TRACING === "true") {
+        logger.info('Redis OpenTelemetry instrumentation enabled');
+      }
 
       // Event handlers para monitoramento
       this.client.on('connect', () => {
         this.connectionAttempts = 0;
         this.lastConnectionTime = new Date();
-        logInfo('Redis conectado com sucesso', {
-          host: this.config.host,
-          port: this.config.port,
-          db: this.config.db,
-        });
+        if (this.config) {
+          logInfo('Redis conectado com sucesso', {
+            host: this.config.host,
+            port: this.config.port,
+            db: this.config.db,
+          });
+        }
       });
 
       this.client.on('ready', () => {
@@ -207,15 +226,17 @@ class RedisManager {
 
   /**
    * Obtém cliente Redis conectado
+   * FAIL-HARD: nunca retorna client inválido
    */
-  public getClient(): IoredisClient | null {
+  public getClient(): IoredisClient {
+    this.ensureInitialized();
+    
     if (!this.client) {
-      logError('Cliente Redis não inicializado');
-      return null;
+      throw new InfrastructureError("Redis client not initialized");
     }
 
     if (this.client.status !== "ready") {
-      logWarn("Redis não está pronto", { status: this.client.status });
+      throw new InfrastructureError(`Redis not ready (status: ${this.client.status})`);
     }
 
     return this.client;
@@ -223,25 +244,48 @@ class RedisManager {
 
   /**
    * Verifica se Redis está conectado e funcionando
+   * Usa cache de 5 segundos para evitar ping excessivo
    */
   public async isConnected(): Promise<boolean> {
+    this.ensureInitialized();
+    return this.isHealthy();
+  }
+
+  /**
+   * Verifica saúde do Redis com cache (5 segundos)
+   * Evita ping excessivo em chamadas frequentes
+   */
+  public async isHealthy(): Promise<boolean> {
+    const now = Date.now();
+
+    // Retornar cache se válido (5 segundos)
+    if (now - this.lastHealthCheck < 5000) {
+      return this.isHealthyCache;
+    }
+
     const startTime = Date.now();
     try {
       const client = this.getClient();
-      if (!client) return false;
-
       const result = await client.ping();
       const duration = Date.now() - startTime;
-      recordRedis(duration, result === 'PONG');
-      logger.info('Redis ping', {
+      
+      this.isHealthyCache = result === 'PONG';
+      this.lastHealthCheck = now;
+      
+      recordRedis(duration, this.isHealthyCache);
+      logger.info('Redis health check', {
         duration,
-        success: result === 'PONG',
+        success: this.isHealthyCache,
       });
-      return result === 'PONG';
+      
+      return this.isHealthyCache;
     } catch (error) {
       const duration = Date.now() - startTime;
+      this.isHealthyCache = false;
+      this.lastHealthCheck = now;
+      
       recordRedis(duration, false);
-      logger.error('Redis ping failed', error instanceof Error ? error : new Error(String(error)), {
+      logger.error('Redis health check failed', error instanceof Error ? error : new Error(String(error)), {
         duration,
       });
       logError('Falha ao verificar conexão Redis', error as Error);
@@ -253,6 +297,7 @@ class RedisManager {
    * Obtém status detalhado do Redis
    */
   public async getStatus(): Promise<RedisStatus> {
+    this.ensureInitialized();
     const now = Date.now();
     
     // Usar cache se ainda válido
@@ -292,9 +337,9 @@ class RedisManager {
 
       this.statusCache = {
         connected: isConnected,
-        host: this.config.host,
-        port: this.config.port,
-        db: this.config.db,
+        host: this.config!.host,
+        port: this.config!.port,
+        db: this.config!.db,
         memory: {
           used: memory.used || 0,
           peak: memory.peak || 0,
@@ -316,9 +361,9 @@ class RedisManager {
       
       return {
         connected: false,
-        host: this.config.host,
-        port: this.config.port,
-        db: this.config.db,
+        host: this.config!.host,
+        port: this.config!.port,
+        db: this.config!.db,
         memory: { used: 0, peak: 0, rss: 0 },
         stats: {
           totalCommandsProcessed: 0,
@@ -423,15 +468,17 @@ class RedisManager {
     this.connectionAttempts = 0;
     this.lastConnectionTime = null;
     this.statusCache = null;
+    this.initialized = false;
     
-    this.initializeClient();
+    this.ensureInitialized();
   }
 
   /**
    * Obtém configuração atual
    */
   public getConfig(): Omit<RedisConfig, 'password'> {
-    const { password, ...safeConfig } = this.config;
+    this.ensureInitialized();
+    const { password, ...safeConfig } = this.config!;
     return safeConfig;
   }
 
@@ -451,17 +498,44 @@ class RedisManager {
   }
 }
 
-// Exportar instância singleton
-export const redisManager = RedisManager.getInstance();
+// Lazy initialization - no singleton at import time
+let redisInstance: RedisManager | null = null;
+
+/**
+ * Lazy getter for RedisManager instance
+ * Initializes on first call, not at import time
+ */
+export function getRedis(): RedisManager {
+  if (!redisInstance) {
+    redisInstance = RedisManager.getInstance();
+  }
+  return redisInstance;
+}
 
 // Exportar cliente para uso direto
-export function getRedisClient(): IoredisClient | null {
-  return redisManager.getClient();
+export function getRedisClient(): IoredisClient {
+  requireBootstrap('redis.getRedisClient');
+  return getRedis().getClient();
+}
+
+/**
+ * Obtém cliente Redis configurado para BullMQ
+ * BullMQ exige maxRetriesPerRequest: null para workers
+ */
+export function getBullMQClient(): IoredisClient {
+  const config = parseRedisConfigFromEnv();
+  const bullMQConfig = {
+    ...config,
+    maxRetriesPerRequest: null as null,
+  };
+  
+  const client = new Redis(bullMQConfig) as IoredisClient;
+  return client;
 }
 
 // Exportar funções de utilidade
 export async function isRedisReady(): Promise<boolean> {
-  return redisManager.isConnected();
+  return getRedis().isConnected();
 }
 
 export async function waitForRedis(timeout: number = 10000): Promise<boolean> {

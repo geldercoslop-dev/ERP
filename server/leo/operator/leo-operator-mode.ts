@@ -12,7 +12,7 @@ import leoOcr from '../perception/leo-ocr.js';
 import { leoAutomation } from '../actions/leo-automation.js';
 import { leoSystemMonitor } from '../perception/leo-system-monitor.js';
 import { leoEvents } from '../memory/leo-events.js';
-import { leoErpService } from '../../services/leo-service.js';
+import { leoErpTool } from '../../tools/leo-erp.tool.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 import type { Payload } from "../../../shared/types/index.js";
 

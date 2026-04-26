@@ -118,9 +118,6 @@ const leoRouterWithMiddleware = router({
         if (!ctx.tenantId) {
           throw new ValidationError("Tenant ID is required for fallback");
         }
-        if (!ctx.user?.id) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão inválida para o LEO." });
-        }
         const actor = await resolveServiceActor(ctx);
         const fallbackResponse = await perguntar(ctx.tenantId, input.pergunta, usuario, {
           userId: ctx.user.id,

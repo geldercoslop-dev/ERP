@@ -1,5 +1,6 @@
 import { getRedisClient } from "../infra/redis.js";
 import { createLogger } from "../infra/structured-logger.js";
+import { ValidationError } from '../_core/errors/typed-errors.js';
 
 const logger = createLogger("rate-limit-service");
 
@@ -22,7 +23,6 @@ class RateLimitExceededError extends Error {
 
 const WINDOW_MS = 60_000; // 60 seconds
 const MAX_ATTEMPTS = 5;
-const REDIS_KEY_PREFIX = "ratelimit:service:";
 
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
@@ -35,7 +35,7 @@ function toError(error: unknown): Error {
  */
 export async function checkRateLimit(key: string, tenantId: number): Promise<void> {
   if (!tenantId || typeof tenantId !== 'number' || tenantId <= 0) {
-    throw new Error("RATE_LIMIT: tenantId obrigatório para isolamento multi-tenant");
+    throw new ValidationError("RATE_LIMIT: tenantId obrigatório para isolamento multi-tenant");
   }
 
   const redis = getRedisClient();
@@ -46,7 +46,7 @@ export async function checkRateLimit(key: string, tenantId: number): Promise<voi
   }
 
   try {
-    const redisKey = `${REDIS_KEY_PREFIX}${tenantId}:${key}`;
+    const redisKey = `tenant:${tenantId}:ratelimit:${key}`;
     const ttlSeconds = Math.ceil(WINDOW_MS / 1000);
 
     // Evita pipeline aqui porque a instrumentação envolve `pipeline()` em Promise.
@@ -75,7 +75,7 @@ export async function checkRateLimit(key: string, tenantId: number): Promise<voi
  */
 export async function clearRateLimitForKey(key: string, tenantId: number): Promise<void> {
   if (!tenantId || typeof tenantId !== 'number' || tenantId <= 0) {
-    throw new Error("RATE_LIMIT: tenantId obrigatório para isolamento multi-tenant");
+    throw new ValidationError("RATE_LIMIT: tenantId obrigatório para isolamento multi-tenant");
   }
 
   const redis = getRedisClient();
@@ -86,7 +86,7 @@ export async function clearRateLimitForKey(key: string, tenantId: number): Promi
   }
 
   try {
-    const redisKey = `${REDIS_KEY_PREFIX}${tenantId}:${key}`;
+    const redisKey = `tenant:${tenantId}:ratelimit:${key}`;
     await redis.del(redisKey);
   } catch (error) {
     logger.warn("Error clearing rate limit for key:", {
@@ -100,7 +100,7 @@ export async function clearRateLimitForKey(key: string, tenantId: number): Promi
  */
 export async function getRateLimitCount(key: string, tenantId: number): Promise<number> {
   if (!tenantId || typeof tenantId !== 'number' || tenantId <= 0) {
-    throw new Error("RATE_LIMIT: tenantId obrigatório para isolamento multi-tenant");
+    throw new ValidationError("RATE_LIMIT: tenantId obrigatório para isolamento multi-tenant");
   }
 
   const redis = getRedisClient();
@@ -110,7 +110,7 @@ export async function getRateLimitCount(key: string, tenantId: number): Promise<
   }
 
   try {
-    const redisKey = `${REDIS_KEY_PREFIX}${tenantId}:${key}`;
+    const redisKey = `tenant:${tenantId}:ratelimit:${key}`;
     const count = await redis.get(redisKey);
     return parseInt(count || "0", 10);
   } catch (error) {

@@ -20,7 +20,11 @@ function isRequestWithTenant(req: Request): req is RequestWithTenant {
 }
 
 export function getTenantFromRequest(req: RequestWithTenant): number {
-  if (!req.user?.tenantId || !Number.isFinite(req.user.tenantId) || req.user.tenantId <= 0) {
+  // Validar req.user antes de acessar
+  if (!req.user || typeof req.user !== 'object') {
+    throw new ValidationError("Usuário não autenticado");
+  }
+  if (!req.user.tenantId || !Number.isFinite(req.user.tenantId) || req.user.tenantId <= 0) {
     throw new ValidationError("tenantId obrigatório no request.");
   }
   return req.user.tenantId;

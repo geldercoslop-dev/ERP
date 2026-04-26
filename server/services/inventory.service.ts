@@ -4,11 +4,10 @@ import type { NewProduto as InsertProduto, InsertCor } from "../db/index.js";
 import {
   produtos,
   cores,
-  pendencias,
   itensPedido,
   gruposPrecificacao,
-} from "../../drizzle/schema.js";
-import { PendenciaStatus } from "../shared/domain-status.js";
+} from "../../drizzle/schema.ts";
+// import { PendenciaStatus } from "../shared/domain-status.js"; // não usado - tabela pendencias não existe
 import { nanoid } from "nanoid";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
@@ -475,30 +474,30 @@ export async function ajusteRapidoEstoque(
     traceId: audit?.traceId ?? nanoid(10),
   });
   
-  if (tipo === "entrada" && ajuste > 0) {
-    let qtdRestante = ajuste;
-    const pendenciasAtivas = await dbConn.select().from(pendencias)
-      .where(
-        and(
-          eq(pendencias.tenantId, tenantId),
-          eq(pendencias.produtoId, produtoId),
-          inArray(pendencias.status, [PendenciaStatus.PENDENTE, PendenciaStatus.COMPRADO])
-        )
-      )
-      .orderBy(asc(pendencias.dataPedido));
-
-    for (const p of pendenciasAtivas) {
-      if (qtdRestante <= 0) break;
-      const qtdParaBaixa = Math.min(p.quantidade, qtdRestante);
-      if (qtdParaBaixa === p.quantidade) {
-        await dbConn
-          .update(pendencias)
-          .set({ status: PendenciaStatus.RESOLVIDO, dataResolvido: new Date() })
-          .where(eq(pendencias.id, p.id));
-        qtdRestante -= qtdParaBaixa;
-      } else break;
-    }
-  }
+  // NOTA: Tabela pendencias não existe no schema atual - funcionalidade desativada
+  // if (tipo === "entrada" && ajuste > 0) {
+  //   let qtdRestante = ajuste;
+  //   const pendenciasAtivas = await dbConn.select().from(pendencias)
+  //     .where(
+  //       and(
+  //         eq(pendencias.tenantId, tenantId),
+  //         eq(pendencias.produtoId, produtoId),
+  //         inArray(pendencias.status, [PendenciaStatus.PENDENTE, PendenciaStatus.COMPRADO])
+  //       )
+  //     )
+  //     .orderBy(asc(pendencias.dataPedido));
+  //   for (const p of pendenciasAtivas) {
+  //     if (qtdRestante <= 0) break;
+  //     const qtdParaBaixa = Math.min(p.quantidade, qtdRestante);
+  //     if (qtdParaBaixa === p.quantidade) {
+  //       await dbConn
+  //         .update(pendencias)
+  //         .set({ status: PendenciaStatus.RESOLVIDO, dataResolvido: new Date() })
+  //         .where(eq(pendencias.id, p.id));
+  //       qtdRestante -= qtdParaBaixa;
+  //     } else break;
+  //   }
+  // }
   void import("../_core/cache-invalidation.js")
     .then((m) => m.invalidateInventoryCachesForTenant(tenantId))
     .catch(() => {});

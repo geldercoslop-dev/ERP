@@ -1,7 +1,17 @@
 import { Queue, Worker, type Job, type JobsOptions } from "bullmq";
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
+import { assertTenantId } from '../_core/errors/assertions.js';
 import { logger } from "../_core/logger.js";
-import { redis } from './redis.service.js';
+import { queueConfig } from '../infra/queue/queue.config.js';
+
+let _redis: any = null;
+
+function getQueueRedis(): any {
+  if (!_redis) {
+    _redis = queueConfig.getConnection();
+  }
+  return _redis;
+}
 
 type TenantPayload = {
   tenantId: number;
@@ -15,12 +25,6 @@ const QUEUE_PREFIX = "tenant-queue";
 
 const queueRegistry = new Map<string, Queue<TenantPayload>>();
 const workerRegistry = new Map<string, Worker<TenantPayload>>();
-
-function assertTenantId(tenantId: number): void {
-  if (!Number.isInteger(tenantId) || tenantId <= 0) {
-    throw new InfrastructureError("TENANT_REQUIRED");
-  }
-}
 
 function assertTraceId(traceId: string): void {
   if (!traceId || traceId.trim().length === 0) {
@@ -37,7 +41,7 @@ function getOrCreateQueue(jobName: string): Queue<TenantPayload> {
   const existing = queueRegistry.get(queueName);
   if (existing) return existing;
 
-  const queue = new Queue<TenantPayload>(queueName, { connection: redis });
+  const queue = new Queue<TenantPayload>(queueName, { connection: getQueueRedis() });
   queueRegistry.set(queueName, queue);
   return queue;
 }
@@ -85,7 +89,7 @@ export function process(
 
       await handler(job.data);
     },
-    { connection: redis }
+    { connection: getQueueRedis() }
   );
 
   workerRegistry.set(queueName, worker);

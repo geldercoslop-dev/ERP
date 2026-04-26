@@ -1,6 +1,7 @@
 /**
  * Módulo de tools do LEO — registro centralizado por domínio.
- * clientes/, pedidos/, financeiro/, estoque/, analytics/
+ * clientes/, pedidos/, financeiro/, estoque/, logistica/
+ * HARDENING: analytics/ removed - was empty and should be implemented before adding to registry
  */
 
 import type { ToolDefinition } from "../agent/tool-registry.js";
@@ -12,7 +13,6 @@ import { buscarPedidoTool, listarPedidosTool, criarPedidoTool, verPedidoTool } f
 import { resumoFinanceiroTool, baixarPedidoTool, listarContasReceberTool } from "./financeiro/index.js";
 import { estoqueTool, buscarProdutoTool } from "./estoque/index.js";
 import { verCargasTool, verPedidosEntregaTool, verHistoricoRotaTool } from "./logistica/index.js";
-import { analyticsToolList } from "./analytics/index.js";
 
 const LEO_TOOLS = [
   clientesTool,
@@ -29,7 +29,6 @@ const LEO_TOOLS = [
   verCargasTool,
   verPedidosEntregaTool,
   verHistoricoRotaTool,
-  ...analyticsToolList,
 ];
 
 function toRegistryContext(ctx: SecureToolContext): LeoToolContext {

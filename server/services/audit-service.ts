@@ -9,7 +9,7 @@ import { nanoid } from 'nanoid';
 import { loggerInstance as logger } from '../utils/logger.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { getDb } from '../db/index.js';
-import { auditLogs as auditLog } from '../../drizzle/schema.js';
+import { auditLogs as auditLogs } from '../../drizzle/schema.js';
 import { eq, sql, and, desc, like, gte, lte, type SQL } from 'drizzle-orm';
 import { ContaReceberStatus, PedidoStatus } from '../shared/domain-status.js';
 import { MySql2Database } from 'drizzle-orm/mysql2';
@@ -78,64 +78,64 @@ export async function buscarRegistros(
     const conditions: SQL[] = [];
     
     if (filtros.tenantId) {
-      conditions.push(eq(auditLog.tenantId, filtros.tenantId));
+      conditions.push(eq(auditLogs.tenantId, filtros.tenantId));
     }
     
     if (filtros.tipo) {
-      conditions.push(eq(auditLog.entity, filtros.tipo));
+      conditions.push(eq(auditLogs.entity, filtros.tipo));
     }
     
     if (filtros.acao) {
-      conditions.push(like(auditLog.action, `%${filtros.acao}%`));
+      conditions.push(like(auditLogs.action, `%${filtros.acao}%`));
     }
     
     if (filtros.usuarioId) {
-      conditions.push(eq(auditLog.actorUserId, filtros.usuarioId));
+      conditions.push(eq(auditLogs.actorUserId, filtros.usuarioId));
     }
     
     if (filtros.vendedorId) {
-      conditions.push(eq(auditLog.actorVendedorId, filtros.vendedorId));
+      conditions.push(eq(auditLogs.actorVendedorId, filtros.vendedorId));
     }
     
     if (filtros.entidadeId) {
-      conditions.push(eq(auditLog.entityId, filtros.entidadeId));
+      conditions.push(eq(auditLogs.entityId, filtros.entidadeId));
     }
     
     if (filtros.traceId) {
-      conditions.push(eq(auditLog.traceId, filtros.traceId));
+      conditions.push(eq(auditLogs.traceId, filtros.traceId));
     }
     
     if (filtros.dataInicio) {
-      conditions.push(gte(auditLog.createdAt, filtros.dataInicio));
+      conditions.push(gte(auditLogs.createdAt, filtros.dataInicio));
     }
     
     if (filtros.dataFim) {
-      conditions.push(lte(auditLog.createdAt, filtros.dataFim));
+      conditions.push(lte(auditLogs.createdAt, filtros.dataFim));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : sql`1=1`;
 
     const rows = await dbConnection
       .select({
-        id: auditLog.id,
-        entity: auditLog.entity,
-        action: auditLog.action,
-        entityId: auditLog.entityId,
-        payloadJson: auditLog.payloadJson,
-        actorUserId: auditLog.actorUserId,
-        actorVendedorId: auditLog.actorVendedorId,
-        createdAt: auditLog.createdAt,
-        traceId: auditLog.traceId,
+        id: auditLogs.id,
+        entity: auditLogs.entity,
+        action: auditLogs.action,
+        entityId: auditLogs.entityId,
+        payloadJson: auditLogs.payloadJson,
+        actorUserId: auditLogs.actorUserId,
+        actorVendedorId: auditLogs.actorVendedorId,
+        createdAt: auditLogs.createdAt,
+        traceId: auditLogs.traceId,
       })
-      .from(auditLog)
+      .from(auditLogs)
       .where(whereClause)
-      .orderBy(desc(auditLog.createdAt))
+      .orderBy(desc(auditLogs.createdAt))
       .limit(filtros.limit ?? 100_000)
       .offset(filtros.offset ?? 0);
 
     const totalResult = await dbConnection
       .select({ count: sql`count(*)` })
-      .from(auditLog)
+      .from(auditLogs)
       .where(whereClause);
 
     return rows.map((row) => {
@@ -187,10 +187,10 @@ export async function gerarResumoAuditoria(
     // Total de operações no período
     const totalResult = await dbConnection
       .select({ total: sql`count(*)` })
-      .from(auditLog)
+      .from(auditLogs)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`createdAt >= '${dataInicio.toISOString()}'`
         )
       );
@@ -198,33 +198,33 @@ export async function gerarResumoAuditoria(
     // Operações por tipo
     const tipoResult = await dbConnection
       .select({
-        entity: auditLog.entity,
+        entity: auditLogs.entity,
         count: sql`count(*)`
       })
-      .from(auditLog)
+      .from(auditLogs)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`createdAt >= '${dataInicio.toISOString()}'`
         )
       )
-      .groupBy(auditLog.entity);
+      .groupBy(auditLogs.entity);
 
     // Operações por usuário
     const usuarioResult = await dbConnection
       .select({
-        actorUserId: auditLog.actorUserId,
+        actorUserId: auditLogs.actorUserId,
         count: sql`count(*)`
       })
-      .from(auditLog)
+      .from(auditLogs)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`createdAt >= '${dataInicio.toISOString()}'`,
           sql`actorUserId IS NOT NULL`
         )
       )
-      .groupBy(auditLog.actorUserId);
+      .groupBy(auditLogs.actorUserId);
 
     // Operações últimas 24h
     const data24h = new Date();
@@ -232,10 +232,10 @@ export async function gerarResumoAuditoria(
 
     const ultimas24hResult = await dbConnection
       .select({ total: sql`count(*)` })
-      .from(auditLog)
+      .from(auditLogs)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`createdAt >= '${data24h.toISOString()}'`
         )
       );
@@ -243,10 +243,10 @@ export async function gerarResumoAuditoria(
     // Operações com erro
     const errosResult = await dbConnection
       .select({ total: sql`count(*)` })
-      .from(auditLog)
+      .from(auditLogs)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`createdAt >= '${dataInicio.toISOString()}'`,
           sql`(action LIKE '%ERRO%' OR payloadJson LIKE '%error%')`
         )
@@ -299,7 +299,7 @@ export async function insertAuditLog(data: AuditLogData): Promise<{ success: boo
         createdAt: new Date()
       };
 
-      await dbConnection.insert(auditLog).values(record);
+      await dbConnection.insert(auditLogs).values(record);
       
       return createResponse(true, 'Log de auditoria inserido com sucesso');
     } catch (error: unknown) {
@@ -329,7 +329,7 @@ export async function verificarConsistenciaDados(
       .from(sql`produtos`)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`estoque < 0`
         )
       );
@@ -352,7 +352,7 @@ export async function verificarConsistenciaDados(
       .from(sql`pedidos`)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`status != ${PedidoStatus.CANCELADO}`
         )
       );
@@ -362,7 +362,7 @@ export async function verificarConsistenciaDados(
       .from(sql`contas_receber`)
       .where(
         and(
-          eq(auditLog.tenantId, tenantId),
+          eq(auditLogs.tenantId, tenantId),
           sql`status = ${ContaReceberStatus.RECEBIDA}`
         )
       );

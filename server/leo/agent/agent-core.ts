@@ -1,4 +1,3 @@
-import { toolExecutor, ToolExecutionContext, ToolExecutionResult } from './tool-executor.js';
 import { toolRegistry } from './tool-registry.js';
 import { modelRouter } from './model-router.js';
 import { promptBuilder } from './prompt-builder.js';
@@ -7,6 +6,8 @@ import { agentPermissions } from '../security/agent-permissions.js';
 import { LeoActionsLog } from '../utils/leo-actions-log.js';
 import { buildLeoSessionKey, leoSessionGate } from '../runtime/leo-session-gate.js';
 import { createSecureExecutionContext, SecureAgentContext } from '../security/secure-context.js';
+import { executeLeoActionGate, type ExecutionGateRequest } from '../runtime/execution-gate.js';
+import type { ToolExecutionResult } from './tool-executor.js';
 
 export interface AgentRequest {
   message: string;
@@ -124,119 +125,48 @@ export class LeoAgentCore {
   /**
    * Plan actions based on model response with improved reasoning
    * USA CONTEXTO SEGURO - IGNORA INPUT MALICIOSO
+   * EXECUTION GATE: TODA execução passa pelo gate centralizado
    */
   async planActions(modelResponse: ModelResponse, secureContext: SecureAgentContext): Promise<ToolExecutionResult[]> {
     if (!modelResponse.toolCalls || modelResponse.toolCalls.length === 0) {
       return [];
     }
 
-    const context: ToolExecutionContext = {
-      tenantId: secureContext.tenantId,
-      userId: secureContext.userId,
-      role: secureContext.role,
-      userRole: secureContext.userRole,
-      vendedorId: secureContext.vendedorId,
-    };
-
     // Enhanced reasoning loop: reason → decide → execute → observe → respond
     const results: ToolExecutionResult[] = [];
     
     for (const toolCall of modelResponse.toolCalls) {
-      // Check permissions before execution with CONTEXTO SEGURO
-      const permission = agentPermissions.hasPermission(toolCall.toolName, {
-        tenantId: secureContext.tenantId,
-        userRole: secureContext.userRole,
-        userId: secureContext.userId,
-        vendedorId: secureContext.vendedorId,
-        role: secureContext.role,
-        action: toolCall.toolName
-      });
-
-      if (!permission.allowed) {
-        results.push({
-          toolName: toolCall.toolName,
-          success: false,
-          error: permission.reason || 'Permissão negada',
-          executionTime: 0,
-          data: undefined
-        });
-        continue;
-      }
-
-      // Log tool execution attempt with CONTEXTO SEGURO
-      await LeoActionsLog.logAction({
+      // EXECUTION GATE: Passar toda execução pelo gate
+      const gateRequest: ExecutionGateRequest = {
+        action: toolCall.toolName,
         toolName: toolCall.toolName,
-        executionTime: 0,
-        result: 'partial',
-        tenantId: secureContext.tenantId,
-        userId: secureContext.userId,
-        vendedorId: secureContext.vendedorId,
-        input: toolCall.input as Record<string, unknown>,
-        metadata: { 
-          reasoning: 'permission_check',
-          allowed: permission.allowed,
-          requiresConfirmation: permission.requiresConfirmation
+        parameters: toolCall.input as Record<string, unknown>,
+        context: {
+          tenantId: secureContext.tenantId,
+          userId: secureContext.userId,
+          role: secureContext.role,
+          userRole: secureContext.userRole,
+          vendedorId: secureContext.vendedorId,
+          sessionId: secureContext.sessionId,
         },
-        timestamp: new Date(),
-      });
+        source: 'agent',
+      };
 
-      // Execute tool with confirmation if required
-      let toolResult: ToolExecutionResult;
-      try {
-        if (permission.requiresConfirmation) {
-          toolResult = await toolExecutor.executeTool(toolCall.toolName, toolCall.input, context);
-        } else {
-          toolResult = await toolExecutor.executeTool(toolCall.toolName, toolCall.input, context);
-        }
-      } catch (execErr) {
-        const errorMessage = execErr instanceof Error ? execErr.message : String(execErr);
-        toolResult = {
-          toolName: toolCall.toolName,
-          success: false,
-          error: errorMessage,
-          executionTime: 0,
-        };
-      }
-
-      // Log actual execution with CONTEXTO SEGURO
-      await LeoActionsLog.logAction({
-        timestamp: new Date(),
+      const gateResult = await executeLeoActionGate(gateRequest);
+      
+      // Converter resultado do gate para ToolExecutionResult
+      const toolResult: ToolExecutionResult = {
         toolName: toolCall.toolName,
-        executionTime: toolResult.executionTime || 0,
-        result: toolResult.success ? 'success' : 'error',
-        errorMessage: toolResult.error,
-        tenantId: secureContext.tenantId,
-        userId: secureContext.userId,
-        vendedorId: secureContext.vendedorId,
-        input: toolCall.input as Record<string, unknown>,
-        output: toolResult.data as Record<string, unknown> | undefined,
-        metadata: {
-          reasoning: 'tool_executed',
-          dangerous: permission.dangerous
-        }
-      });
+        success: gateResult.success,
+        error: gateResult.message,
+        executionTime: gateResult.executionTime,
+        data: gateResult.data,
+      };
 
       results.push(toolResult);
     }
     
     return results;
-  }
-
-  /**
-   * Execute a single tool
-   */
-  async executeTool(toolName: string, input: unknown, context: ToolExecutionContext): Promise<ToolExecutionResult> {
-    try {
-      return await toolExecutor.executeTool(toolName, input, context);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      return {
-        toolName,
-        success: false,
-        error: errorMessage,
-        executionTime: 0,
-      };
-    }
   }
 
   /**

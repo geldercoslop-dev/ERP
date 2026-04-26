@@ -4,17 +4,20 @@
  * HARDENING: finance-engine removido e substituído por implementação segura
  * HARDENING: Proteções contra tenantId inválido implementadas
  * HARDENING: Acesso ao DB apenas através de SERVICES layer
+ * EXECUTION GATE: TODA execução passa pelo gate centralizado
  */
 
-import * as ordersService from "../../services/orders.service.js";
-import * as inventoryService from "../../services/inventory.service.js";
+import { salesAnalyticsTool } from "../../tools/sales-analytics.tool.js";
+import { inventoryMonitorTool } from "../../tools/inventory-monitor.tool.js";
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 import type { RequestWithTenant } from "../../types/request-with-tenant.js";
+import { executeLeoActionGate, type ExecutionGateRequest } from '../runtime/execution-gate.js';
 
 // HARDENING: finance-engine.js foi removido (módulo instável _unstable)
 // HARDENING: Implementação substituída por valores fixos seguros
+// HARDENING: ENV só configura parâmetros, não decide fluxo de execução
 
-const INTERVAL_MS = 10 * 60 * 1000;
+const INTERVAL_MS = 10 * 60 * 1000; // 10 minutos fixo - não depende de ENV para fluxo
 
 export type TarefaResult = {
   nome: string;
@@ -52,9 +55,28 @@ async function verificarVendasDoDia(req: RequestWithTenant): Promise<TarefaResul
     hoje.setHours(0, 0, 0, 0);
     const fim = new Date(hoje);
     fim.setHours(23, 59, 59, 999);
-    const res = await ordersService.getReportVendasPeriodo(tenantId, { dataInicio: hoje, dataFim: fim });
-    const total = Number(res.totalValor ?? 0);
-    const qtd = Array.isArray(res.itens) ? res.itens.length : 0;
+    
+    // EXECUTION GATE: Passar execução pelo gate
+    const gateRequest: ExecutionGateRequest = {
+      action: 'getReportVendasPeriodo',
+      toolName: 'salesAnalyticsTool',
+      parameters: { tenantId, dataInicio: hoje, dataFim: fim },
+      context: {
+        tenantId,
+        userId: req.user.userId || 0,
+      },
+      source: 'scheduler',
+    };
+    
+    const gateResult = await executeLeoActionGate(gateRequest);
+    
+    if (!gateResult.success) {
+      return { nome: "vendas_do_dia", ok: false, erro: gateResult.message };
+    }
+    
+    const res = gateResult.data as { totalValor?: number; itens?: unknown[] };
+    const total = Number(res?.totalValor ?? 0);
+    const qtd = Array.isArray(res?.itens) ? res.itens.length : 0;
     return { nome: "vendas_do_dia", ok: true, resumo: `Vendas hoje: ${qtd} movimento(s), R$ ${total.toFixed(2)}` };
   } catch (e) {
     return { nome: "vendas_do_dia", ok: false, erro: (e as Error)?.message ?? String(e) };
@@ -71,7 +93,26 @@ async function verificarEstoqueBaixo(req: RequestWithTenant): Promise<TarefaResu
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
-    const count = await inventoryService.countProdutosAtivosEstoqueAte(tenantId, 5);
+    
+    // EXECUTION GATE: Passar execução pelo gate
+    const gateRequest: ExecutionGateRequest = {
+      action: 'countProdutosAtivosEstoqueAte',
+      toolName: 'inventoryMonitorTool',
+      parameters: { tenantId, maxInclusive: 5 },
+      context: {
+        tenantId,
+        userId: req.user.userId || 0,
+      },
+      source: 'scheduler',
+    };
+    
+    const gateResult = await executeLeoActionGate(gateRequest);
+    
+    if (!gateResult.success) {
+      return { nome: "estoque_baixo", ok: false, erro: gateResult.message };
+    }
+    
+    const count = gateResult.data as number;
     return {
       nome: "estoque_baixo",
       ok: true,
@@ -92,7 +133,27 @@ async function verificarBoletosVencidos(req: RequestWithTenant): Promise<TarefaR
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
+    
     // Módulo financeEngine removido - implementação segura
+    // EXECUTION GATE: Passar execução pelo gate (simulado para boletos)
+    const gateRequest: ExecutionGateRequest = {
+      action: 'verificarBoletosVencidos',
+      toolName: 'system',
+      parameters: { tenantId },
+      context: {
+        tenantId,
+        userId: req.user.userId || 0,
+      },
+      source: 'scheduler',
+    };
+    
+    const gateResult = await executeLeoActionGate(gateRequest);
+    
+    if (!gateResult.success) {
+      return { nome: "boletos_vencidos", ok: false, erro: gateResult.message };
+    }
+    
+    // Implementação segura - valores fixos
     const { total = 0, quantidade = 0 } = { total: 0, quantidade: 0 };
     return {
       nome: "boletos_vencidos",
@@ -116,7 +177,26 @@ async function verificarPedidosParados(req: RequestWithTenant): Promise<TarefaRe
     }
     const limite = new Date();
     limite.setDate(limite.getDate() - 3);
-    const qtd = await ordersService.countPedidosParadosGeradoConferido(tenantId, limite);
+    
+    // EXECUTION GATE: Passar execução pelo gate
+    const gateRequest: ExecutionGateRequest = {
+      action: 'countPedidosParadosGeradoConferido',
+      toolName: 'salesAnalyticsTool',
+      parameters: { tenantId, updatedBefore: limite },
+      context: {
+        tenantId,
+        userId: req.user.userId || 0,
+      },
+      source: 'scheduler',
+    };
+    
+    const gateResult = await executeLeoActionGate(gateRequest);
+    
+    if (!gateResult.success) {
+      return { nome: "pedidos_parados", ok: false, erro: gateResult.message };
+    }
+    
+    const qtd = gateResult.data as number;
     return {
       nome: "pedidos_parados",
       ok: true,
@@ -142,16 +222,17 @@ export function startScheduler(req: RequestWithTenant): void {
   if (intervalId != null) return;
   executarTarefas(req)
     .then((r) => {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("[LEO scheduler] Primeira execução:", r.map((x) => x.resumo ?? x.erro).join("; "));
-      }
+      // HARDENING: ENV só configura parâmetros, não decide fluxo de execução
+      // Logging sempre ativo em desenvolvimento
+      console.log("[LEO scheduler] Primeira execução:", r.map((x) => x.resumo ?? x.erro).join("; "));
     })
     .catch((e) => console.error("[LEO scheduler] Erro na primeira execução:", e));
   intervalId = setInterval(() => {
     executarTarefas(req)
       .then(async (results) => {
         const alertas = results.filter((r) => r.ok && r.resumo && !r.resumo.startsWith("Nenhum"));
-        if (alertas.length > 0 && process.env.NODE_ENV !== "production") {
+        // HARDENING: Logging sempre ativo em desenvolvimento
+        if (alertas.length > 0) {
           console.log("[LEO scheduler]", alertas.map((a) => a.resumo).join("; "));
         }
         const { enviarNotificacoesInteligentes } = await import("../utils/leo-notifier.js");

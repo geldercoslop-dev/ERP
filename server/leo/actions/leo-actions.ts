@@ -6,7 +6,7 @@
 
 import type { Payload } from '../../../shared/types/index.js';
 import { LeoRuntimeContext } from '../utils/leo-context.js';
-import { leoErpService } from '../../services/leo-service.js';
+import { leoErpTool } from '../../tools/leo-erp.tool.js';
 import { actorFromLeoRuntimeContext } from '../../_core/service-actor.js';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { stripSensitiveIdsFromUnknown } from '../../_core/strip-sensitive-payload.js';
@@ -160,7 +160,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
 
     switch (entity) {
       case 'cliente':
-        const resultadoClientes = await leoErpService.getClientes(tenantId, actorConsulta);
+        const resultadoClientes = await leoErpTool.getClientes({ tenantId, actor: actorConsulta });
         if (parametros && typeof parametros === 'object') {
           const params = parametros as { nome?: string };
           if (params.nome) {
@@ -175,7 +175,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
         };
 
       case 'pedido':
-        const resultadoPedidos = await leoErpService.getPedidos(tenantId, actorConsulta);
+        const resultadoPedidos = await leoErpTool.getPedidos({ tenantId, actor: actorConsulta });
         if (parametros && typeof parametros === 'object') {
           const params = parametros as { status?: string };
           if (params.status) {
@@ -190,7 +190,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
         };
 
       case 'estoque':
-        const resultadoEstoque = await leoErpService.getEstoque(tenantId);
+        const resultadoEstoque = await leoErpTool.getEstoque({ tenantId });
         if (parametros && typeof parametros === 'object') {
           const params = parametros as { categoria?: string };
           if (params.categoria) {
@@ -215,7 +215,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
             executionTime: Date.now() - startTime,
           };
         }
-        const resultadoFinanceiro = await leoErpService.getFinanceiro(tenantId, actor);
+        const resultadoFinanceiro = await leoErpTool.getFinanceiro({ tenantId, actor });
         if (parametros && typeof parametros === 'object') {
           const params = parametros as { tipo?: string };
           if (params.tipo) {
@@ -289,7 +289,7 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
             itens: itens as PedidoInput['itens'],
             observacoes: typeof stripped.observacoes === 'string' ? stripped.observacoes : undefined,
           };
-          const resultado = await leoErpService.criarPedido(tenantId, pedidoPayload, actorOp);
+          const resultado = await leoErpTool.criarPedido({ tenantId, pedido: pedidoPayload, actor: actorOp });
           return {
             success: resultado.success,
             message: resultado.message || 'Pedido criado com sucesso',
@@ -301,7 +301,7 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
           if (pedidoId === undefined) {
             return { success: false, message: 'pedidoId é obrigatório', executionTime: Date.now() - startTime };
           }
-          const resultado = await leoErpService.editarPedido(pedidoId, parametros ?? {}, context.usuario?.id ?? 0);
+          const resultado = await leoErpTool.editarPedido({ pedidoId, dados: parametros ?? {}, usuarioId: context.usuario?.id ?? 0 });
           return {
             success: resultado.success,
             message: resultado.message || 'Pedido atualizado com sucesso',
@@ -314,7 +314,7 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
           if (pedidoId === undefined) {
             return { success: false, message: 'pedidoId é obrigatório', executionTime: Date.now() - startTime };
           }
-          const resultado = await leoErpService.cancelarPedido(pedidoId, motivo, context.usuario?.id ?? 0);
+          const resultado = await leoErpTool.cancelarPedido({ pedidoId, motivo, usuarioId: context.usuario?.id ?? 0 });
           return {
             success: resultado.success,
             message: resultado.message || 'Pedido cancelado com sucesso',
@@ -346,7 +346,7 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
               tipo: params.tipo as 'ENTRADA' | 'SAIDA' | 'AJUSTE',
               motivo: 'motivo' in params && typeof params.motivo === 'string' ? params.motivo : undefined,
             };
-            const resultado = await leoErpService.ajustarEstoque(estoqueInput, userId);
+            const resultado = await leoErpTool.ajustarEstoque({ estoque: estoqueInput, usuarioId: userId });
             return {
               success: resultado.success,
               message: resultado.message || 'Estoque ajustado com sucesso',

@@ -133,12 +133,15 @@ export function errorTrackingMiddleware() {
     const startTime = req.startTime || Date.now();
     const duration = Date.now() - startTime;
     
+    // Validar req.user antes de acessar
+    const userId = req.user && typeof req.user === 'object' ? req.user.id : undefined;
+    
     StructuredErrorLogger.error(error, {
       route: req.path,
       method: req.method,
       path: req.url,
       payload: req.body,
-      userId: req.user?.id,
+      userId,
       tenantId: req.tenantId,
       requestId: req.requestId,
       duration,

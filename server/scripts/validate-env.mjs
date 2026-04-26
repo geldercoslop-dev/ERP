@@ -21,11 +21,7 @@ for (const [name, min] of checks) {
   }
 }
 
-if (!process.env.DB_HOST || process.env.DB_HOST.trim() === "") issues.push("DB_HOST is required");
-if (!process.env.DB_PORT || process.env.DB_PORT.trim() === "") issues.push("DB_PORT is required");
-if (!process.env.DB_USER || process.env.DB_USER.trim() === "") issues.push("DB_USER is required");
-if (!process.env.DB_PASSWORD || process.env.DB_PASSWORD.trim() === "") issues.push("DB_PASSWORD is required");
-if (!process.env.DB_NAME || process.env.DB_NAME.trim() === "") issues.push("DB_NAME is required");
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === "") issues.push("DATABASE_URL is required");
 
 if (!process.env.REDIS_HOST || process.env.REDIS_HOST.trim() === "") {
   issues.push("REDIS_HOST is required");

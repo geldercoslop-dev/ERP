@@ -1,6 +1,6 @@
 import * as db from "../db/index.js";
 import { eq, and, sql } from "drizzle-orm";
-import { produtos } from "../../drizzle/schema.js";
+import { produtos } from "../../drizzle/schema.ts";
 import { isRecord } from "../_core/type-guards.js";
 import { assertDbConnection } from "../_core/errors/assertions.js";
 

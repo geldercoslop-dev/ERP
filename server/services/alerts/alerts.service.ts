@@ -62,7 +62,7 @@ export async function gerarAlertasOperacionais(
       tipo: "pedido_parado",
       mensagem: `Pedido #${p.numero} gerado há mais de 24h sem conferência`,
       entidade: { tipo: "pedido", id: p.id, numero: p.numero ?? undefined },
-      data: p.createdAt ?? new Date(),
+      data: p.createdAt ? new Date(p.createdAt) : new Date(),
     });
   }
 
@@ -86,7 +86,7 @@ export async function gerarAlertasOperacionais(
       tipo: "carga_atrasada",
       mensagem: `Carga #${c.numero} aberta há mais de 12h sem envio para rota`,
       entidade: { tipo: "carga", id: c.id, numero: c.numero ?? undefined },
-      data: c.createdAt ?? new Date(),
+      data: c.createdAt ? new Date(c.createdAt) : new Date(),
     });
   }
 
@@ -117,7 +117,7 @@ export async function gerarAlertasOperacionais(
       tipo: "entrega_pendente",
       mensagem: `Pedido #${p.numero} em rota há mais de 48h`,
       entidade: { tipo: "pedido", id: p.id, numero: p.numero ?? undefined },
-      data: p.updatedAt ?? new Date(),
+      data: p.updatedAt ? new Date(p.updatedAt) : new Date(),
     });
   }
 
@@ -154,7 +154,7 @@ export async function gerarAlertasOperacionais(
       tipo: "financeiro_pendente",
       mensagem: `Pedido #${p.numero} entregue mas ainda com valor a receber`,
       entidade: { tipo: "pedido", id: p.id, numero: p.numero ?? undefined },
-      data: p.updatedAt ?? new Date(),
+      data: p.updatedAt ? new Date(p.updatedAt) : new Date(),
     });
   }
 

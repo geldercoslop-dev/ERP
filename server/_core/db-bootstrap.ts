@@ -1,5 +1,6 @@
 import { getConnectionPool } from "../config/database.js";
 import { logger } from "../utils/logger.js";
+import { validateMigrationConsistency, MigrationDriftError } from "./migration-guard.js";
 
 const MAX_ATTEMPTS = Math.max(1, Number(process.env.DB_BOOT_MAX_ATTEMPTS) || 20);
 const INITIAL_MS = Math.max(100, Number(process.env.DB_BOOT_BACKOFF_MS) || 1000);
@@ -15,9 +16,20 @@ export async function waitForDatabaseReady(): Promise<void> {
       const pool = await getConnectionPool();
       await pool.query("SELECT 1 AS ok");
       logger.info({ msg: "db_boot_ok", attempt, maxAttempts: MAX_ATTEMPTS } as Record<string, unknown>);
+      
+      // Validar consistência de migrations após conexão estabelecida
+      await validateMigrationConsistency();
+      
       return;
     } catch (e: unknown) {
       const err = e instanceof Error ? e : new Error(String(e));
+      
+      // MigrationDriftError é fatal - não retry
+      if (err instanceof MigrationDriftError) {
+        logger.error({ msg: "db_boot_fatal_migration_drift", error: err.message } as Record<string, unknown>);
+        throw err;
+      }
+      
       const code = typeof e === "object" && e !== null && "code" in e ? String((e as { code?: unknown }).code) : undefined;
       logger.error({
         msg: "db_boot_retry",

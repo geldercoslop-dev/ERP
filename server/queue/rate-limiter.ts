@@ -26,7 +26,6 @@ export interface JobRateLimitEntry {
   payload?: unknown;
 }
 
-const REDIS_KEY_PREFIX = "job:ratelimit:";
 const ONE_MINUTE = 60_000;
 
 function toError(error: unknown): Error {
@@ -66,9 +65,14 @@ class JobRateLimiter {
    */
   public async canExecute(
     jobType: string,
+    tenantId: number,
     entity?: string,
     entityId?: string
   ): Promise<boolean> {
+    if (!tenantId || typeof tenantId !== 'number' || tenantId <= 0) {
+      throw new Error("RATE_LIMIT: tenantId obrigatório para isolamento multi-tenant");
+    }
+
     const redis = getRedisClient();
     if (!redis) {
       logger.warn("Redis not available, allowing job execution");
@@ -83,7 +87,7 @@ class JobRateLimiter {
     try {
       const now = Date.now();
       const oneMinuteAgo = now - ONE_MINUTE;
-      const redisKey = `${REDIS_KEY_PREFIX}${jobType}`;
+      const redisKey = `tenant:${tenantId}:ratelimit:job:${jobType}`;
 
       // Usar Redis sorted set com timestamps como scores
       // Remove entradas antigas
@@ -161,13 +165,14 @@ class JobRateLimiter {
    */
   public async executeWithLimits(
     jobType: string,
+    tenantId: number,
     entity: string | undefined,
     entityId: string | undefined,
     payload: unknown,
     callback: () => void | Promise<void>
   ): Promise<boolean> {
     // Verificar rate limit
-    const canExecute = await this.canExecute(jobType, entity, entityId);
+    const canExecute = await this.canExecute(jobType, tenantId, entity, entityId);
     if (!canExecute) {
       return false;
     }
@@ -228,26 +233,27 @@ class JobRateLimiter {
       const oneMinuteAgo = now - ONE_MINUTE;
 
       for (const [jobType, config] of Array.from(this.config.entries())) {
-        const redisKey = `${REDIS_KEY_PREFIX}${jobType}`;
+        // Nota: stats não precisa de tenantId específico, usa wildcard para agregação
+        const redisKeyPattern = `tenant:*:ratelimit:job:${jobType}`;
+        const keys = await redis.keys(redisKeyPattern);
+        
+        for (const key of keys) {
+          await redis.zremrangebyscore(key, "-inf", oneMinuteAgo);
+          const count = await redis.zcard(key);
+          const activeDebounces = Array.from(this.debounceCache.keys()).filter((k) =>
+            k.startsWith(jobType)
+          ).length;
 
-        // Limpar entradas antigas
-        await redis.zremrangebyscore(redisKey, "-inf", oneMinuteAgo);
-
-        // Contar jobs
-        const count = await redis.zcard(redisKey);
-        const activeDebounces = Array.from(this.debounceCache.keys()).filter((k) =>
-          k.startsWith(jobType)
-        ).length;
-
-        stats[jobType] = {
-          jobsLastMinute: count,
-          maxJobsPerMinute: config.maxJobsPerMinute || "unlimited",
-          activeDebounces,
-          utilizationRate:
-            config.maxJobsPerMinute && config.maxJobsPerMinute > 0
-              ? `${((count / config.maxJobsPerMinute) * 100).toFixed(1)}%`
-              : "N/A",
-        };
+          stats[jobType] = {
+            jobsLastMinute: count,
+            maxJobsPerMinute: config.maxJobsPerMinute || "unlimited",
+            activeDebounces,
+            utilizationRate:
+              config.maxJobsPerMinute && config.maxJobsPerMinute > 0
+                ? `${((count / config.maxJobsPerMinute) * 100).toFixed(1)}%`
+                : "N/A",
+          };
+        }
       }
     } catch (error) {
       logger.error("Error getting rate limit stats:", toError(error));
@@ -273,8 +279,11 @@ class JobRateLimiter {
     if (redis) {
       try {
         for (const jobType of this.config.keys()) {
-          const redisKey = `${REDIS_KEY_PREFIX}${jobType}`;
-          await redis.zremrangebyscore(redisKey, "-inf", oneMinuteAgo);
+          const redisKeyPattern = `tenant:*:ratelimit:job:${jobType}`;
+          const keys = await redis.keys(redisKeyPattern);
+          for (const key of keys) {
+            await redis.zremrangebyscore(key, "-inf", oneMinuteAgo);
+          }
         }
         logger.debug(
           `Cleanup complete: ${this.config.size} rate limit types monitored`
@@ -334,12 +343,13 @@ export function initializeRateLimits(): void {
 // Funções de conveniência
 export async function executeJobWithLimits(
   jobType: string,
+  tenantId: number,
   entity: string | undefined,
   entityId: string | undefined,
   payload: unknown,
   callback: () => void | Promise<void>
 ): Promise<boolean> {
-  return jobRateLimiter.executeWithLimits(jobType, entity, entityId, payload, callback);
+  return jobRateLimiter.executeWithLimits(jobType, tenantId, entity, entityId, payload, callback);
 }
 
 export async function getRateLimitStats(): Promise<Record<string, unknown>> {

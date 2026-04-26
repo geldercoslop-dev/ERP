@@ -16,6 +16,11 @@ interface RedisInstrumentationConfig {
 export function instrumentRedis(config: RedisInstrumentationConfig) {
   const { client } = config;
   
+  // Só ativa instrumentação se explicitamente habilitado
+  if (process.env.ENABLE_REDIS_TRACING !== "true") {
+    return client;
+  }
+  
   // Wrapper para métodos principais do Redis
   const methodsToInstrument = [
     'get', 'set', 'setex', 'del', 'exists', 'expire', 'ttl',

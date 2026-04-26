@@ -1,32 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { clientes, clienteVendedores, vendedores, cargas, comissoes, pedidos, fornecedores, contasFixas, planoContas, contasPagar, contasReceber, cores, itensPedido, produtos, pedidosCarga, users } from "./schema.js";
-
-export const clienteVendedoresRelations = relations(clienteVendedores, ({one}) => ({
-	cliente: one(clientes, {
-		fields: [clienteVendedores.clienteId],
-		references: [clientes.id]
-	}),
-	vendedore: one(vendedores, {
-		fields: [clienteVendedores.vendedorId],
-		references: [vendedores.id]
-	}),
-}));
-
-export const clientesRelations = relations(clientes, ({many}) => ({
-	clienteVendedores: many(clienteVendedores),
-	contasRecebers: many(contasReceber),
-	pedidos: many(pedidos),
-}));
-
-export const vendedoresRelations = relations(vendedores, ({one, many}) => ({
-	clienteVendedores: many(clienteVendedores),
-	comissoes: many(comissoes),
-	pedidos: many(pedidos),
-	user: one(users, {
-		fields: [vendedores.userId],
-		references: [users.id]
-	}),
-}));
+import { cargas, comissoes, pedidos, vendedores, fornecedores, contasFixas, planoContas, contasPagar, clientes, contasReceber, cores, itensPedido, produtos, pedidosCarga, pendenciasCompra, tenants, users } from "./schema";
 
 export const comissoesRelations = relations(comissoes, ({one}) => ({
 	cargas: one(cargas, {
@@ -61,6 +34,19 @@ export const pedidosRelations = relations(pedidos, ({one, many}) => ({
 		references: [vendedores.id]
 	}),
 	pedidosCargas: many(pedidosCarga),
+}));
+
+export const vendedoresRelations = relations(vendedores, ({one, many}) => ({
+	comissoes: many(comissoes),
+	pedidos: many(pedidos),
+	tenant: one(tenants, {
+		fields: [vendedores.tenantId],
+		references: [tenants.id]
+	}),
+	user: one(users, {
+		fields: [vendedores.userId],
+		references: [users.id]
+	}),
 }));
 
 export const contasFixasRelations = relations(contasFixas, ({one, many}) => ({
@@ -116,6 +102,11 @@ export const contasReceberRelations = relations(contasReceber, ({one}) => ({
 	}),
 }));
 
+export const clientesRelations = relations(clientes, ({many}) => ({
+	contasRecebers: many(contasReceber),
+	pedidos: many(pedidos),
+}));
+
 export const itensPedidoRelations = relations(itensPedido, ({one}) => ({
 	core: one(cores, {
 		fields: [itensPedido.corId],
@@ -137,6 +128,7 @@ export const coresRelations = relations(cores, ({many}) => ({
 
 export const produtosRelations = relations(produtos, ({many}) => ({
 	itensPedidos: many(itensPedido),
+	pendenciasCompras: many(pendenciasCompra),
 }));
 
 export const pedidosCargaRelations = relations(pedidosCarga, ({one}) => ({
@@ -150,6 +142,22 @@ export const pedidosCargaRelations = relations(pedidosCarga, ({one}) => ({
 	}),
 }));
 
-export const usersRelations = relations(users, ({many}) => ({
+export const pendenciasCompraRelations = relations(pendenciasCompra, ({one}) => ({
+	produto: one(produtos, {
+		fields: [pendenciasCompra.produtoId],
+		references: [produtos.id]
+	}),
+}));
+
+export const usersRelations = relations(users, ({one, many}) => ({
+	tenant: one(tenants, {
+		fields: [users.tenantId],
+		references: [tenants.id]
+	}),
+	vendedores: many(vendedores),
+}));
+
+export const tenantsRelations = relations(tenants, ({many}) => ({
+	users: many(users),
 	vendedores: many(vendedores),
 }));

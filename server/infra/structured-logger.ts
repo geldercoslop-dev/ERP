@@ -1,3 +1,23 @@
+/**
+ * @official-core-logger
+ * 
+ * LOGGER PRINCIPAL DO SISTEMA
+ * 
+ * Este é o logger oficial para uso em todo o sistema.
+ * Recursos avançados:
+ * - Pino (JSON estruturado)
+ * - OpenTelemetry integration (traceId automático)
+ * - Observability context (requestId, userId, tenantId)
+ * - Error tracking integrado
+ * - Factory pattern para módulos específicos
+ * 
+ * Uso recomendado:
+ * - Serviços que precisam de observabilidade avançada
+ * - Middleware e resilience
+ * - Security e monitoring
+ * 
+ * Para uso simples, ver: server/_core/logger.ts (wrapper)
+ */
 import { ErrorContext } from './logger-core.js';
 import pino from "pino";
 import { getObservabilityContext } from "./observability-context.js";

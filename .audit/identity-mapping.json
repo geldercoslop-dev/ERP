@@ -1,0 +1,116 @@
+[
+  {
+    "status": "EXISTENTE",
+    "exportName": "cargas",
+    "tableName": "cargas",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "clientes",
+    "tableName": "clientes",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "comissoes",
+    "tableName": "comissoes",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "contasFixas",
+    "tableName": "contas_fixas",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "contasPagar",
+    "tableName": "contas_pagar",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "contasReceber",
+    "tableName": "contas_receber",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "cores",
+    "tableName": "cores",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "counters",
+    "tableName": "counters",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "fornecedores",
+    "tableName": "fornecedores",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "gruposPrecificacao",
+    "tableName": "grupos_precificacao",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "itensPedido",
+    "tableName": "itens_pedido",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "pedidos",
+    "tableName": "pedidos",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "pedidosCarga",
+    "tableName": "pedidos_carga",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "pendenciasCompra",
+    "tableName": "pendencias_compra",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "planoContas",
+    "tableName": "plano_contas",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "produtos",
+    "tableName": "produtos",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "tenants",
+    "tableName": "tenants",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "users",
+    "tableName": "users",
+    "note": "Nome idêntico no schema e DB"
+  },
+  {
+    "status": "EXISTENTE",
+    "exportName": "vendedores",
+    "tableName": "vendedores",
+    "note": "Nome idêntico no schema e DB"
+  }
+]

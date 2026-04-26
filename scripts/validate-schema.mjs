@@ -22,38 +22,32 @@ dotenv.config({ path: path.join(__dirname, '../.env'), override: false });
 const checkOnly = process.argv.includes('--check-only');
 
 /**
- * Config de conexão: DATABASE_URL tem precedência; senão DB_* (compatível com .env.production).
+ * Config de conexão: DATABASE_URL é obrigatório (fail-hard).
  */
 function getMysqlConnectionOptions() {
   const raw = process.env.DATABASE_URL?.trim();
-  if (raw) {
-    try {
-      const u = new URL(raw);
-      if (u.protocol !== 'mysql:' && !raw.startsWith('mysql://')) {
-        throw new Error('DATABASE_URL deve usar protocolo mysql://');
-      }
-      const database = (u.pathname || '').replace(/^\//, '').split('?')[0];
-      if (!database) {
-        throw new Error('DATABASE_URL sem nome do banco no path');
-      }
-      return {
-        host: u.hostname,
-        port: u.port ? Number(u.port) : 3306,
-        user: decodeURIComponent(u.username),
-        password: decodeURIComponent(u.password),
-        database,
-      };
-    } catch (e) {
-      throw new Error(`DATABASE_URL inválida: ${e.message}`);
-    }
+  if (!raw) {
+    throw new Error('DATABASE_URL é obrigatório');
   }
-  return {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'root',
-    database: process.env.DB_NAME || 'erp',
-  };
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'mysql:' && !raw.startsWith('mysql://')) {
+      throw new Error('DATABASE_URL deve usar protocolo mysql://');
+    }
+    const database = (u.pathname || '').replace(/^\//, '').split('?')[0];
+    if (!database) {
+      throw new Error('DATABASE_URL sem nome do banco no path');
+    }
+    return {
+      host: u.hostname,
+      port: u.port ? Number(u.port) : 3306,
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      database,
+    };
+  } catch (e) {
+    throw new Error(`DATABASE_URL inválida: ${e.message}`);
+  }
 }
 
 /**
@@ -109,7 +103,7 @@ async function validateSchema() {
   } catch (e) {
     console.error('💥 Configuração de banco inválida:');
     console.error(e.message);
-    console.error('\n⚠️  Defina DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME');
+    console.error('\n⚠️  Defina DATABASE_URL no .env');
     process.exit(1);
   }
   const dbName = connOpts.database;
@@ -229,7 +223,7 @@ async function validateSchema() {
   } catch (err) {
     console.error('💥 Erro ao conectar ao banco ou validar schema:');
     console.error(err.message);
-    console.error('\n⚠️  Verifique DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME');
+    console.error('\n⚠️  Verifique DATABASE_URL no .env');
     process.exit(1);
   }
 }

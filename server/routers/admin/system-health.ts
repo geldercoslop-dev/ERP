@@ -14,6 +14,7 @@ import { leoLoopProtection } from '../../leo/security/leo-loop-protection.js';
 import { logInfo, logError } from '../../_core/logger.js';
 import type { HealthCheck } from "../../../shared/types/index.js";
 import { pingDatabase } from '../../services/database-health.service.js';
+import { leoExecutionAdapter } from '../../monitoring/leo-execution-adapter.js';
 
 export interface SystemHealth {
   status: 'healthy' | 'degraded' | 'critical';
@@ -320,4 +321,57 @@ export async function collectSystemMetrics(): Promise<Record<string, unknown>> {
       gc: {},
     },
   };
+}
+
+/**
+ * Endpoint de observabilidade de execuções do LEO
+ * Expõe dados do ExecutionRegistry através do adapter de observabilidade
+ */
+export async function getLeoExecutionRecords(req: Request, res: Response): Promise<void> {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+    const status = req.query.status as 'started' | 'completed' | 'failed' | 'blocked' | undefined;
+    const tenantId = req.query.tenantId ? parseInt(req.query.tenantId as string) : undefined;
+    const origin = req.query.origin as string | undefined;
+    const actor = req.query.actor as string | undefined;
+
+    const result = leoExecutionAdapter.getExecutionRecords({
+      limit,
+      status,
+      tenantId,
+      origin,
+      actor,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    logError('Erro ao obter registros de execução do LEO', error as Error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+    });
+  }
+}
+
+/**
+ * Endpoint de estatísticas de execuções do LEO
+ */
+export async function getLeoExecutionStats(req: Request, res: Response): Promise<void> {
+  try {
+    const stats = leoExecutionAdapter.getExecutionStats();
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    logError('Erro ao obter estatísticas de execução do LEO', error as Error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+    });
+  }
 }

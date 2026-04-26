@@ -11,10 +11,9 @@
 
 import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
-import * as ordersService from '../../services/orders.service.js';
-import * as clientesService from '../../services/clientes.service.js';
-import * as inventoryService from '../../services/inventory.service.js';
-import { ADMIN_ACTOR } from '../../_core/service-actor.js';
+import { learningSalesTool } from '../../tools/learning-sales.tool.js';
+import { learningClientsTool } from '../../tools/learning-clients.tool.js';
+import { learningInventoryTool } from '../../tools/learning-inventory.tool.js';
 import { leoLongMemory } from '../memory/leo-long-memory.js';
 
 const DEFAULT_LEO_TENANT_ID = 1;
@@ -122,8 +121,8 @@ export class LeoLearningEngine {
   private async learnFromSales(tenantId: number): Promise<void> {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const rows = await ordersService.leoAggregatePedidosByDayAndVendedor(tenantId, thirtyDaysAgo);
-      const salesData: Record<string, unknown>[] = rows.map((r) => ({
+      const rows = await learningSalesTool.getMetrics({ tenantId, since: thirtyDaysAgo });
+      const salesData: Record<string, unknown>[] = rows.map((r: any) => ({
         date: r.day,
         count: r.count,
         total: r.total,
@@ -142,11 +141,11 @@ export class LeoLearningEngine {
    */
   private async learnFromCustomers(tenantId: number): Promise<void> {
     try {
-      const rows = await clientesService.listClientesComMetricasPedidos(tenantId, ADMIN_ACTOR, 500);
+      const rows = await learningClientsTool.getMetrics({ tenantId, limit: 500 });
       if (!rows.success || !rows.data) {
         throw new InfrastructureError(rows.error ?? 'Falha ao carregar métricas de clientes');
       }
-      const customerData: Record<string, unknown>[] = rows.data.map((c) => ({
+      const customerData: Record<string, unknown>[] = rows.data.map((c: any) => ({
         id: c.id,
         nome: c.nome,
         dataCriacao: c.createdAt,
@@ -166,8 +165,8 @@ export class LeoLearningEngine {
    */
   private async learnFromInventory(tenantId: number): Promise<void> {
     try {
-      const rows = await inventoryService.listProdutosResumoLeoLearning(tenantId);
-      const inventoryData: Record<string, unknown>[] = rows.map((p) => ({
+      const rows = await learningInventoryTool.getProductSummary({ tenantId });
+      const inventoryData: Record<string, unknown>[] = rows.map((p: any) => ({
         id: p.id,
         descricao: p.descricao,
         estoqueAtual: p.estoque,
@@ -187,7 +186,7 @@ export class LeoLearningEngine {
    */
   private async learnFromPricing(tenantId: number): Promise<void> {
     try {
-      const rows = await inventoryService.listProdutoVendasStatsLeoLearning(tenantId);
+      const rows = await learningInventoryTool.getSalesStats({ tenantId });
       const pricingData: Array<{
         produtoId: number;
         descricao: string | null;

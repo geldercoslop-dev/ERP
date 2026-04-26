@@ -1,0 +1,230 @@
+{
+  "__drizzle_migrations": [
+    {
+      "CONSTRAINT_NAME": "id",
+      "CONSTRAINT_TYPE": "UNIQUE"
+    },
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "cargas": [
+    {
+      "CONSTRAINT_NAME": "cargas_numero_unique",
+      "CONSTRAINT_TYPE": "UNIQUE"
+    },
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "clientes": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "comissoes": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "comissoes_cargaId_cargas_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "comissoes_pedidoId_pedidos_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "comissoes_vendedorId_vendedores_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "contas_fixas": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_fixas_fornecedorId_fornecedores_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_fixas_planoContasId_plano_contas_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "contas_pagar": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_pagar_contaFixaId_contas_fixas_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_pagar_fornecedorId_fornecedores_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_pagar_planoContasId_plano_contas_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "contas_receber": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_receber_clienteId_clientes_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_receber_pedidoId_pedidos_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "contas_receber_planoContasId_plano_contas_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "cores": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "counters": [
+    {
+      "CONSTRAINT_NAME": "counters_name_unique",
+      "CONSTRAINT_TYPE": "UNIQUE"
+    },
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "fornecedores": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "grupos_precificacao": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "itens_pedido": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "itens_pedido_corId_cores_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "itens_pedido_pedidoId_pedidos_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "itens_pedido_produtoId_produtos_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "pedidos": [
+    {
+      "CONSTRAINT_NAME": "pedidos_numero_unique",
+      "CONSTRAINT_TYPE": "UNIQUE"
+    },
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "pedidos_clienteId_clientes_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "pedidos_vendedorId_vendedores_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "pedidos_carga": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "pedidos_carga_cargaId_cargas_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "pedidos_carga_pedidoId_pedidos_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "pendencias_compra": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "pendencias_compra_produtoId_produtos_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "plano_contas": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "produtos": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "tenants": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    }
+  ],
+  "users": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "users_open_id_idx",
+      "CONSTRAINT_TYPE": "UNIQUE"
+    },
+    {
+      "CONSTRAINT_NAME": "users_tenant_id_tenants_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ],
+  "vendedores": [
+    {
+      "CONSTRAINT_NAME": "PRIMARY",
+      "CONSTRAINT_TYPE": "PRIMARY KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "vendedores_tenant_id_tenants_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    },
+    {
+      "CONSTRAINT_NAME": "vendedores_user_id_users_id_fk",
+      "CONSTRAINT_TYPE": "FOREIGN KEY"
+    }
+  ]
+}

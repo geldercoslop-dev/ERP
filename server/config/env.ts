@@ -265,6 +265,7 @@ export function validateJwtSecretStrength(
 /**
  * Constrói URL de conexão MySQL a partir de variáveis individuais
  * Prioriza DATABASE_URL se presente
+ * FAIL-HARD: sem fallback - todas as variáveis são obrigatórias
  * 
  * @param env - Variáveis de ambiente validadas
  * @returns String de conexão MySQL
@@ -274,11 +275,16 @@ export function getDatabaseUrl(env: EnvConfig): string {
     return env.DATABASE_URL;
   }
 
+  // FAIL-HARD: todas as variáveis são obrigatórias
+  if (!env.DATABASE_HOST || !env.DATABASE_PORT || !env.DATABASE_USER || !env.DATABASE_NAME) {
+    throw new Error('DATABASE_URL, DATABASE_HOST, DATABASE_PORT, DATABASE_USER, and DATABASE_NAME are required');
+  }
+
   const password = env.DATABASE_PASSWORD ? `:${env.DATABASE_PASSWORD}` : '';
-  const host = env.DATABASE_HOST || 'localhost';
-  const port = env.DATABASE_PORT || 3306;
-  const user = env.DATABASE_USER || 'vendas';
-  const name = env.DATABASE_NAME || 'vendas_app';
+  const host = env.DATABASE_HOST;
+  const port = env.DATABASE_PORT;
+  const user = env.DATABASE_USER;
+  const name = env.DATABASE_NAME;
 
   return `mysql://${user}${password}@${host}:${port}/${name}`;
 }

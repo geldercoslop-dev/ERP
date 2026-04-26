@@ -4,8 +4,11 @@
  * Em produção: rode após backup e confira /api/health.
  */
 import path from "path";
-import "../_core/loadEnv.js";
+import { initEnv } from "../_core/env/bootstrapEnv.js";
 import { createServiceContext, runWithServiceContext } from "../core/service-context.js";
+
+// Load ENV explicitly (NO import-time side effects)
+initEnv();
 
 async function main(): Promise<void> {
   await runWithServiceContext(createServiceContext(), async () => {

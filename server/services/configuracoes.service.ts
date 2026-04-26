@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "../db/index.js";
-import { configuracoes } from "../../drizzle/schema.js";
+import { configuracoes } from "../../drizzle/schema.ts";
 import { getConfig as getConfigCore, setConfig as setConfigCore } from "../db/core.js";
 import { assertDbConnection } from "../_core/errors/assertions.js";
 

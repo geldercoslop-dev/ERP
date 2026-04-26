@@ -1,7 +1,7 @@
 /**
  * Restaura dump MySQL a partir de um arquivo .sql.
  * Valida existência, extensão .sql e que o caminho é arquivo antes de executar. Não faz overwrite de arquivo (apenas restaura no DB).
- * Credenciais exclusivamente de env (DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME). Sem fallback.
+ * Credenciais exclusivamente de env (DATABASE_URL). Sem fallback.
  * Uso: npx tsx server/scripts/restore-db.ts <caminho-do-arquivo.sql>
  * Ex.: npx tsx server/scripts/restore-db.ts backups/backup_20260306_120000.sql
  */
@@ -14,42 +14,29 @@ import { nanoid } from "nanoid";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
 
-function getDbConfig(): { host: string; port: number; user: string; password: string; database: string } {
-  if (process.env.DATABASE_URL?.trim()) {
-    try {
-      const url = new URL(process.env.DATABASE_URL);
-      const database = url.pathname.replace(/^\//, "").trim();
-      if (!url.hostname || !url.username || url.password === undefined || !database) {
-        throw new Error("DATABASE_URL incompleta.");
-      }
-      return {
-        host: url.hostname,
-        port: parseInt(url.port || "3306", 10),
-        user: url.username,
-        password: url.password,
-        database,
-      };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`[restore-db] DATABASE_URL inválida: ${msg}. Defina DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME.`);
+function parseDatabaseUrl(): { host: string; port: number; user: string; password: string; database: string } {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL é obrigatório");
+  }
+
+  try {
+    const url = new URL(databaseUrl);
+    const database = url.pathname.replace(/^\//, "").trim();
+    if (!url.hostname || !url.username || url.password === undefined || !database) {
+      throw new Error("DATABASE_URL incompleta.");
     }
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || "3306", 10),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`[restore-db] DATABASE_URL inválida: ${msg}`);
   }
-  const host = process.env.DB_HOST?.trim();
-  const user = process.env.DB_USER?.trim();
-  const password = process.env.DB_PASSWORD;
-  const database = process.env.DB_NAME?.trim();
-  if (!host || !user || password === undefined || !database) {
-    throw new Error(
-      "[restore-db] Credenciais obrigatórias. Defina DATABASE_URL ou todas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME."
-    );
-  }
-  return {
-    host,
-    port: parseInt(process.env.DB_PORT ?? "3306", 10),
-    user,
-    password,
-    database,
-  };
 }
 
 function log(traceId: string, level: "info" | "warn" | "error", message: string, extra?: Record<string, unknown>) {
@@ -66,7 +53,9 @@ function log(traceId: string, level: "info" | "warn" | "error", message: string,
 }
 
 async function main(): Promise<void> {
-  await import("../_core/loadEnv.js");
+  // Load ENV explicitly (NO import-time side effects)
+  const { initEnv } = await import("../_core/env/bootstrapEnv.js");
+  initEnv();
   const traceId = nanoid(10);
   const fileArg = process.argv[2];
   if (!fileArg || !fileArg.trim()) {
@@ -89,7 +78,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const config = getDbConfig();
+  const config = parseDatabaseUrl();
   log(traceId, "info", "Iniciando restore", {
     file: path.basename(filePath),
     database: config.database,

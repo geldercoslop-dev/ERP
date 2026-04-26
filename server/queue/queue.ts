@@ -14,7 +14,6 @@ import { InfrastructureError } from '../_core/errors/typed-errors.js';
  * Import direto de `QueueOptions` falha quando `compilerOptions.types` é restrito no tsconfig do servidor.
  */
 type BullMQQueueOptions = NonNullable<ConstructorParameters<typeof Queue>[1]>;
-import { getRedisClient } from '../infra/redis.js';
 import { logInfo, logError, logWarn } from '../_core/logger-rotation.js';
 import type { LeoTask, Payload } from "../../shared/types/index.js";
 import {
@@ -22,6 +21,7 @@ import {
   wasJobExecuted,
 } from './idempotency.js';
 import { executeJobWithLimits } from './rate-limiter.js';
+import { queueConfig, getQueueConfig } from '../infra/queue/queue.config.js';
 
 /** Payload genérico de jobs (alinhado a `shared/types` Payload) */
 export type QueuePayload = Payload;
@@ -154,100 +154,64 @@ class QueueManager {
     }
 
     try {
-      const redisClient = getRedisClient();
+      const redisClient = queueConfig.getConnection();
       if (!redisClient) {
         throw new InfrastructureError('Cliente Redis não disponível');
       }
 
-      // Configurações padrão para todas as filas
+      // Configurações padrão para todas as filas (centralizadas)
       const defaultQueueConfig: QueueConfigOptions = {
         connection: redisClient,
-        defaultJobOptions: {
-          removeOnComplete: 100, // Manter 100 jobs completos
-          removeOnFail: 50,      // Manter 50 jobs falhos
-          attempts: 3,           // 3 tentativas
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
-          },
-        },
+        defaultJobOptions: queueConfig.jobOptions,
       };
 
-      // Inicializar filas individuais com configurações específicas
+      // Inicializar filas individuais com configurações específicas da config centralizada
+      const ocrConfig = getQueueConfig('OCR');
       await this.createQueue(QUEUE_NAMES.OCR, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 2, // OCR pode falhar por imagem corrompida
-          backoff: {
-            type: 'fixed',
-            delay: 5000,
-          },
-        },
+        defaultJobOptions: ocrConfig.jobOptions,
       });
 
+      const screenshotConfig = getQueueConfig('SCREENSHOT');
       await this.createQueue(QUEUE_NAMES.SCREENSHOT, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 3,
-        },
+        defaultJobOptions: screenshotConfig.jobOptions,
       });
 
+      const leoAnalysisConfig = getQueueConfig('LEO_ANALYSIS');
       await this.createQueue(QUEUE_NAMES.LEO_ANALYSIS, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 2, // Análises podem ser repetidas
-          delay: 1000, // Pequeno delay para evitar sobrecarga
-        },
+        defaultJobOptions: leoAnalysisConfig.jobOptions,
       });
 
+      const reportConfig = getQueueConfig('REPORT_GENERATION');
       await this.createQueue(QUEUE_NAMES.REPORT_GENERATION, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 1, // Relatórios falham geralmente por dados ausentes
-        },
+        defaultJobOptions: reportConfig.jobOptions,
       });
 
+      const desktopConfig = getQueueConfig('DESKTOP_AUTOMATION');
       await this.createQueue(QUEUE_NAMES.DESKTOP_AUTOMATION, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 2,
-          removeOnComplete: 50, // Manter menos jobs de automação
-        },
+        defaultJobOptions: desktopConfig.jobOptions,
       });
 
+      const notificationsConfig = getQueueConfig('NOTIFICATIONS');
       await this.createQueue(QUEUE_NAMES.NOTIFICATIONS, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 5, // Notificações devem tentar mais
-          backoff: {
-            type: 'exponential',
-            delay: 1000,
-          },
-        },
+        defaultJobOptions: notificationsConfig.jobOptions,
       });
 
+      const backupConfig = getQueueConfig('BACKUP');
       await this.createQueue(QUEUE_NAMES.BACKUP, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 1,
-          removeOnComplete: 10, // Manter poucos backups
-        },
+        defaultJobOptions: backupConfig.jobOptions,
       });
 
+      const cleanupConfig = getQueueConfig('CLEANUP');
       await this.createQueue(QUEUE_NAMES.CLEANUP, {
         ...defaultQueueConfig,
-        defaultJobOptions: {
-          ...defaultQueueConfig.defaultJobOptions,
-          attempts: 1,
-          removeOnComplete: 5,
-        },
+        defaultJobOptions: cleanupConfig.jobOptions,
       });
 
       this.isInitialized = true;
@@ -313,9 +277,11 @@ class QueueManager {
       }
 
       const payload = data.payload as QueuePayload;
+      const tenantId = typeof payload.tenantId === 'number' ? payload.tenantId : 1;
       // Verificar rate limit antes de adicionar
       const canExecute = await executeJobWithLimits(
         data.type,
+        tenantId,
         data.entity,
         data.entityId,
         payload,

@@ -57,7 +57,6 @@ export async function ensureBootstrapK6User(tenantId: number = 1): Promise<void>
       nome: 'k6 load user',
       email,
       senha: null,
-      cidade: null,
       telefone: null,
       admin: false,
       ativo: true,

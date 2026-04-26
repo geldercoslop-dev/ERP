@@ -1,7 +1,7 @@
 /**
  * Gera dump MySQL (mysqldump) e salva em backups/ com timestamp.
  * Não sobrescreve arquivo existente. Aplica retenção (últimos 30 backups).
- * Credenciais exclusivamente de env (DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME). Sem fallback.
+ * Credenciais exclusivamente de env (DATABASE_URL). Sem fallback.
  * Uso: npm run backup:db ou tsx server/scripts/backup-db.ts
  */
 import path from "path";
@@ -14,7 +14,9 @@ const root = path.resolve(__dirname, "../..");
 const BACKUPS_DIR = path.join(root, "backups");
 
 async function main(): Promise<void> {
-  await import("../_core/loadEnv.js");
+  // Load ENV explicitly (NO import-time side effects)
+  const { initEnv } = await import("../_core/env/bootstrapEnv.js");
+  initEnv();
   const traceId = nanoid(10);
   await runBackup({ backupsDir: BACKUPS_DIR, traceId });
 }

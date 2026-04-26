@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { getDb } from '../db/index.js';
 import { eq, and, sql, count, sum } from 'drizzle-orm';
-import { pedidos, itensPedido, produtos, contasReceber, contasPagar } from '../../drizzle/schema.js';
+import { pedidos, itensPedido, produtos, contasReceber, contasPagar } from "../../drizzle/schema.ts";
 import pino from 'pino';
 
 const logger = pino();

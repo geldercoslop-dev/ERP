@@ -188,7 +188,7 @@ export async function boletosPorCliente(
     .select()
     .from(db.boletos)
     .where(db.and(db.eq(db.boletos.tenantId, tenantIdNum), db.eq(db.boletos.clienteId, clienteId)));
-  return lista.map((b: { id: number; numeroPedido: number | null; valorAberto: unknown; dataVencimento: Date; status: string | null }) => ({
+  return lista.map((b) => ({
     id: b.id,
     numeroPedido: b.numeroPedido ?? 0,
     valorAberto: Number(b.valorAberto ?? 0),

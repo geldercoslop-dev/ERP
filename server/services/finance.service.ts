@@ -138,6 +138,7 @@ export async function baixarPedidoDireto(
       const clienteRows = await tx.select({ clienteId: clienteVendedores.clienteId })
         .from(clienteVendedores)
         .where(and(
+          eq(clienteVendedores.tenantId, tenantId),
           eq(clienteVendedores.vendedorId, actor.vendedorId)
         )).limit(1);
       if (clienteRows.length === 0) {
@@ -172,7 +173,7 @@ export async function baixarPedidoDireto(
 
     // 2. Atualizar status do pedido para ENTREGUE
     await tx.update(pedidos)
-      .set({ 
+      .set({
         status: PedidoStatus.ENTREGUE,
         dataEntrega: new Date(),
         updatedAt: new Date()
@@ -380,9 +381,9 @@ export async function baixarBoletoParcial(
 
         // 6. ATUALIZAR BOLETO
         await transaction.update(boletos)
-          .set({ 
-            valorAberto: novoAberto.toString(), 
-            status: novoStatus, 
+          .set({
+            valorAberto: novoAberto.toString(),
+            status: novoStatus,
             updatedAt: new Date()
           })
           .where(and(eq(boletos.tenantId, tenantId), eq(boletos.id, boletoId)));

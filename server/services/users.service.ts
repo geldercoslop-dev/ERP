@@ -2,7 +2,7 @@ import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
 import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index.js";
 import type { NewUser as InsertUser, NewVendedor as InsertVendedor, Database } from "../db/index.js";
 import type { User, Vendedor } from "../db/index.js";
-import { users, vendedores } from "../../drizzle/schema.js";
+import { users, vendedores } from "../../drizzle/schema.ts";
 import { nanoid } from "nanoid";
 import { recordQueryTime } from "../_core/system-monitor.js";
 import { logAuditAction } from "./audit-log.service.js";
@@ -247,16 +247,17 @@ export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor)
       );
 
       // Return updated vendedor
-      const updatedVendedor = await dbConn.select().from(vendedores).where(eq(vendedores.id, existing[0].id)).limit(1);
+      const updatedVendedor = await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, existing[0].id))).limit(1);
       return { success: true, data: updatedVendedor[0] };
     } else {
       // Create new vendedor
       const result = await dbConn.insert(vendedores).values({
         tenantId,
+        userId: vendedor.userId,
         nome: nomeVendedor,
         telefone: vendedor.telefone || null,
         email: vendedor.email || null,
-        ativo: vendedor.ativo ?? true,
+        ativo: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -272,7 +273,7 @@ export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor)
       );
 
       // Return created vendedor
-      const createdVendedor = await dbConn.select().from(vendedores).where(eq(vendedores.id, vendedorId)).limit(1);
+      const createdVendedor = await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, vendedorId))).limit(1);
       return { success: true, data: createdVendedor[0] };
     }
   } catch (error) {
@@ -288,9 +289,8 @@ export async function getVendedorById(id: number, tenantId?: number): Promise<Ve
   const dbConn = await getDb();
   assertDbConnection(dbConn);
   
-  const result = tenantId
-    ? await dbConn.select().from(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, id))).limit(1)
-    : await dbConn.select().from(vendedores).where(eq(vendedores.id, id)).limit(1);
+  const conditions = tenantId ? [eq(vendedores.tenantId, tenantId), eq(vendedores.id, id)] : [eq(vendedores.id, id)];
+  const result = await dbConn.select().from(vendedores).where(and(...conditions)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -321,9 +321,7 @@ export async function listVendedores(
     conditions.push(sql`(nome LIKE ${`%${search}%`} OR telefone LIKE ${`%${search}%`} OR email LIKE ${`%${search}%`})`);
   }
   
-  if (typeof active === "boolean") {
-    conditions.push(eq(vendedores.ativo, active));
-  }
+  if (active !== undefined) conditions.push(eq(vendedores.ativo, active));
 
   // Build order by
   let orderBy: SQL<unknown>;

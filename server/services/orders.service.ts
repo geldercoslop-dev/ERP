@@ -1,5 +1,5 @@
 import { eq, and, desc, asc, sql, inArray, ne, gte, lt } from "drizzle-orm";
-import { clientes, vendedores } from "../../drizzle/schema.js";
+import { clientes, vendedores } from "../../drizzle/schema.ts";
 import { getDb, pedidos, itensPedido, contasReceber, produtos, insertAuditLog, clienteVendedores, counters, idempotencyKeys, pendencias, getInsertId } from "../db/index.js";
 import type { Pedido, ItemPedido, Produto } from "../db/index.js";
 import type { InsertPedido, InsertItemPedido } from "../db/index.js";
@@ -88,6 +88,7 @@ export async function getClienteRowForPedidoCreate(
     .select()
     .from(clienteVendedores)
     .where(and(
+      eq(clienteVendedores.tenantId, tenantId),
       eq(clienteVendedores.clienteId, clienteId),
       eq(clienteVendedores.vendedorId, actor.vendedorId)
     ))
@@ -434,8 +435,6 @@ export async function createPedidoSafe(
       clienteUf: input.cliente?.uf ?? input.clienteUf ?? clienteSnapshot.uf ?? null,
       clienteReferencia: input.cliente?.referencia ?? input.clienteReferencia ?? clienteSnapshot.referencia ?? null,
       clienteCondominio: input.cliente?.condominio ?? input.clienteCondominio ?? clienteSnapshot.condominio ?? null,
-      clienteBloco: input.cliente?.bloco ?? input.clienteBloco ?? clienteSnapshot.bloco ?? null,
-      clienteApartamento: input.cliente?.apartamento ?? input.clienteApartamento ?? clienteSnapshot.apartamento ?? null,
       subtotal: input.subtotal.toString(),
       desconto: input.desconto.toString(),
       frete: input.frete.toString(),
@@ -611,6 +610,7 @@ async function pedidoAcessivelViaCliente(
     .select()
     .from(clienteVendedores)
     .where(and(
+      eq(clienteVendedores.tenantId, tenantId),
       eq(clienteVendedores.clienteId, clienteId),
       eq(clienteVendedores.vendedorId, actor.vendedorId)
     ))
@@ -776,6 +776,7 @@ export async function listPedidosTrpcPage(
         .select({ clienteId: clienteVendedores.clienteId })
         .from(clienteVendedores)
         .where(and(
+          eq(clienteVendedores.tenantId, tenantId),
           eq(clienteVendedores.vendedorId, actor.vendedorId)
         ));
       
@@ -998,14 +999,7 @@ export async function getPedidosByCliente(tenantId: number, clienteId: number): 
   .orderBy(desc(pedidos.createdAt));
   
   // Garantir que o retorno seja sempre um array
-  return ensureArray(result as Array<{
-    id: number;
-    numero: number;
-    total: string;
-    status: string;
-    createdAt: Date;
-    dataEntrega: Date | null;
-  }>);
+  return ensureArray(result);
 }
 
 /**
@@ -1046,8 +1040,8 @@ export async function getReportVendasPeriodo(tenantId: number, params: { dataIni
       .where(
         and(
           eq(pedidos.tenantId, tenantId),
-          sql`${pedidos.createdAt} >= ${params.dataInicio}`,
-          sql`${pedidos.createdAt} <= ${params.dataFim}`,
+          sql`${pedidos.createdAt} >= ${params.dataInicio.toISOString()}`,
+          sql`${pedidos.createdAt} <= ${params.dataFim.toISOString()}`,
           ne(pedidos.status, PedidoStatus.CANCELADO)
         )
       )

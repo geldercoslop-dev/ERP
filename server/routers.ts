@@ -3,7 +3,7 @@ import { ValidationError } from './_core/errors/typed-errors.js';
 import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
-import { publicProcedure, protectedProcedure, requireRole, router } from "./_core/trpc.js";
+import { publicProcedure, protectedProcedure, adminProcedure, requireRole, router } from "./_core/trpc.js";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { SQL } from "./db/index.js";
@@ -20,6 +20,8 @@ import { requireTenant } from "./_core/tenant.js";
 import { checkRateLimit, clearRateLimitForKey } from "./services/rateLimitService.js";
 import { logAuth } from "./services/auditService.js";
 import { leoRouter } from "./routers/leo.js";
+import { leoAdminRouter } from "./routers/leo-admin.js";
+import { adminRouter } from "./routers/admin/index.js";
 import { resolveServiceActor } from "./_core/service-actor.js";
 import { auditEntityChange } from "./_core/domain-audit.js";
 import * as cachedClientes from "./services/cached-clientes.service.js";
@@ -183,17 +185,11 @@ import * as produtosRoutes from "./routes/produtos.js";
 import * as clientesRoutes from "./routes/clientes.js";
 import * as promocoesRoutes from "./routes/promocoes.js";
 
-// Procedure apenas para admin
-const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== 'admin') {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado. Apenas administradores.' });
-  }
-  return next({ ctx });
-});
-
 export const appRouter = router({
   system: systemRouter,
   leo: leoRouter,
+  leoAdmin: leoAdminRouter,
+  admin: adminRouter,
   api: router({
     clients: router({
       create: publicProcedure.mutation(() => ({ success: true, message: 'Clients API - Use /api/clients' })),
@@ -479,14 +475,6 @@ export const appRouter = router({
         admin: z.boolean().default(false),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Verificar se o usuário é admin
-        if (!ctx.user || ctx.user.role !== 'admin') {
-          throw new TRPCError({ 
-            code: "FORBIDDEN", 
-            message: "Acesso negado. Apenas administradores podem cadastrar vendedores." 
-          });
-        }
-        
         try {
           console.log("[vendedores.create] Iniciando criação de vendedor:", { 
             nome: input.nome,
@@ -529,15 +517,30 @@ export const appRouter = router({
           const cidade = (input.cidade != null && typeof input.cidade === "string") ? input.cidade.trim() || null : null;
 
           const tenantId = await requireTenant(ctx);
+          const now = new Date();
+          
+          // Create user first
+          const createdUser = await db.insertUser({
+            tenantId,
+            openId: `vendedor_${Date.now()}_${input.nome.replace(/\s/g, '').toLowerCase()}`,
+            name: input.nome,
+            email: email,
+            loginMethod: "local",
+            role: input.admin ? "admin" : "user",
+            createdAt: now,
+            updatedAt: now,
+            lastSignedIn: now,
+          });
+          
           const data: Parameters<typeof db.createVendedor>[0] = {
             tenantId,
+            userId: createdUser.id,
             nome: input.nome.trim().toUpperCase(),
             senha: senhaHash,
             admin: input.admin,
             ativo: true,
             telefone,
             email,
-            cidade: cidade ? cidade.toUpperCase() : null,
           };
 
           // Criar vendedor
@@ -927,8 +930,8 @@ export const appRouter = router({
           { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },
           async (tx) => {
             const res = await tx.insert(db.gruposPrecificacao).values({
-              nome: data.nome,
               tenantId,
+              nome: data.nome,
             });
             const id = db.getInsertId(res);
             return { ...commandResult(true, ["Grupo criado"]), id };
@@ -1819,8 +1822,6 @@ export const appRouter = router({
                 uf: input.cliente.uf || null,
                 referencia: input.cliente.referencia || null,
                 condominio: input.cliente.condominio || null,
-                bloco: input.cliente.bloco || null,
-                apartamento: input.cliente.apartamento || null,
               });
               clienteId = db.getInsertId(created);
             }
@@ -1831,7 +1832,7 @@ export const appRouter = router({
           }
 
           // Vínculo idempotente: se já existe (clienteId, vendedorId), não insere; senão PRINCIPAL ou SECUNDARIO conforme já existir principal.
-          await db.ensureClienteVendedorLink(tx, clienteId, vendedor.id);
+          await db.ensureClienteVendedorLink(tx, vendedor.tenantId, clienteId, vendedor.id);
           markPhase("clienteLinkMs", tMark);
           tMark = Date.now();
 
