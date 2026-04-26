@@ -45,30 +45,44 @@ services:
   # docker compose -f docker-compose.infra.yml up -d
   # docker compose -f docker-compose.infra.yml logs -f app
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    image: erp-app-dev
+    image: erp-app-dev:latest
     container_name: vendas-app
-    working_dir: /app
     restart: unless-stopped
+
     depends_on:
       vendas-mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
+
     env_file:
       - .env
+
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+
+      DB_HOST: vendas-mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: erp
+
+      APP_SECRET: ${APP_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+
     ports:
       - "3000:3000"
+
     networks:
       - vendas-network
+
     command: sh -c "pnpm dev"
 
 volumes:
