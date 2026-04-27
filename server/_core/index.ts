@@ -39,7 +39,6 @@ import { globalTimeoutMiddleware } from "../resilience/timeout-middleware.js";
 import { setupGracefulShutdown } from "../resilience/graceful-shutdown.js";
 import { getHealthWatchdog } from "../monitoring/health-watchdog.js";
 import { requestShutdown } from "../services/system/shutdown.service.js";
-import { getEnv } from "../config/env.js";
 import { validateShutdownAuthPayload } from "../services/system/payload-validation.service.js";
 import { systemLogger } from "./logger.js";
 import { createFailureSimulationRoutes } from "../resilience/failure-simulator.js";
@@ -64,7 +63,6 @@ import { securityHeadersMiddleware } from "../security/security-headers.js";
 import { httpHardeningMiddleware } from "../middleware/http-hardening.js";
 import { apiRouter } from "../api-routes.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./service-entry-guard.js";
-import { getDb } from "../db/index.js";
 import { getBootState, getBootStateInfo, markReady } from "./boot-state.js";
 
 // Exportar funções de padronização de resposta
@@ -272,7 +270,9 @@ export async function startServer() {
   // BOOTSTRAP CENTRAL ÚNICO - TODA inicialização crítica passa por aqui
   await bootstrapServer();
 
-  const env = getEnv();
+  // Import getEnv only after bootstrap to avoid import-time ENV access
+  const envModule = await import("../config/env.js");
+  const env = envModule.getEnv();
   secureConsoleMiddleware();
   systemLogger.info("[BOOT] inicialização do servidor");
 

@@ -6,7 +6,7 @@
  */
 
 import { getDb } from '../db/index.js';
-import { produtos, clientes, usuarios, vendedores, tenants } from "../../drizzle/schema.ts";
+import { produtos, clientes, usuarios, vendedores, tenants } from "../../drizzle/schema.js";
 import { eq } from 'drizzle-orm';
 import pino from 'pino';
 

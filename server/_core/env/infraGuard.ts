@@ -11,7 +11,7 @@
  * NÃO bloqueia DEV, BLOQUEIA PROD se falhar, ALERTA CI
  */
 
-import { detectRuntimeContext, isDevelopment, isProduction, isCI } from './runtimeContext';
+import { detectRuntimeContext, isDevelopment, isProduction, isCI } from './runtimeContext.js';
 
 export type InfraService = 'redis' | 'mysql' | 'env';
 

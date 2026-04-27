@@ -1,4 +1,3 @@
-import { getDb } from '../db/index.js';
 import { getConnectionPool, getPoolStats, requireDatabaseUrl } from '../config/database.js';
 import { systemLogger } from './logger.js';
 import * as mysql from 'mysql2/promise';

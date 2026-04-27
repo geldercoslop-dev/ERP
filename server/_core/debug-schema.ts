@@ -2,7 +2,7 @@
  * Debug da estrutura do schema Drizzle
  */
 
-import * as schema from "../../drizzle/schema.ts";
+import * as schema from "../../drizzle/schema.js";
 
 console.log('=== DEBUG SCHEMA STRUCTURE ===\n');
 console.log('Schema keys:', Object.keys(schema));

@@ -7,7 +7,6 @@
 import { bullMQManager, QueueJobData, BullMQJob, QUEUES } from './bullmq-queue.js';
 import { enqueueAuditLog } from './queue-handlers.js';
 import { AuditAction } from '../db/core.js';
-import * as db from '../db/core.js';
 import { ValidationError } from './errors/typed-errors.js';
 import { logInfo, logError } from './service-logger.js';
 
@@ -49,6 +48,7 @@ export class AuditLogWorker {
   }
 
   private async handleAuditLog(job: BullMQJob<AuditLogJobData>): Promise<void> {
+    const db = await import('../db/core.js');
     const { tenantId, traceId, data: rawData } = job.data;
     const data = rawData as Record<string, unknown>;
     

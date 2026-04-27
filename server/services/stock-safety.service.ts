@@ -7,7 +7,7 @@
 import { runStockTransaction } from './db-transaction.js';
 import * as db from '../db/index.js';
 import { eq, sql, and } from 'drizzle-orm';
-import { produtos, itensPedido } from "../../drizzle/schema.ts";
+import { produtos, itensPedido } from "../../drizzle/schema.js";
 import { executeQuery } from '../config/database.js';
 import { isRecord } from '../_core/type-guards.js';
 import { assertTenantId } from '../_core/errors/assertions.js';

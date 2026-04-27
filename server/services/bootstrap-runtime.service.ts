@@ -1,10 +1,10 @@
-import { getDb } from "../db/index.js";
 import { waitForDatabaseReady } from "../_core/db-bootstrap.js";
 import { bootstrapDatabase } from "./bootstrap.service.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../_core/service-entry-guard.js";
 
 export async function runDatabaseBootstrapFlow(): Promise<void> {
   await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
+    const { getDb } = await import("../db/core.js");
     const db = await getDb();
     // FALHA FATAL: bootstrap do banco é obrigatório
     await bootstrapDatabase(db);

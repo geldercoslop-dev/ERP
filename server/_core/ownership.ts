@@ -5,7 +5,6 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { TrpcContext } from "./context.js";
-import * as db from "../db/index.js";
 
 export type OwnershipContext = {
   user: { id: number; role: string } | null;
@@ -27,6 +26,7 @@ function getOptionalNumberField(source: unknown, field: string): number | null {
  * Não usar para admin (admin não passa por ownership de cliente).
  */
 export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vendedor">): Promise<number> {
+  const db = await import("../db/index.js");
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão necessária." });
   }
@@ -63,6 +63,7 @@ export async function assertOwnership(
   entity: OwnableEntity,
   entityId: number
 ): Promise<void> {
+  const db = await import("../db/index.js");
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão necessária." });
   }

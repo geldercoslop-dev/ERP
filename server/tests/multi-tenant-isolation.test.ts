@@ -7,7 +7,7 @@ import * as ordersService from '../services/orders.service.js';
 import { jwtAuth, type JWTPayload } from '../security/jwt-auth.js';
 import { getDb } from '../db/index.js';
 import { eq, or } from 'drizzle-orm';
-import { users, produtos, clientes, pedidos, vendedores } from "../../drizzle/schema.ts";
+import { users, produtos, clientes, pedidos, vendedores } from "../../drizzle/schema.js";
 import { runWithServiceInvocationAsync, buildBootstrapInvocation } from '../_core/service-entry-guard.js';
 
 const TENANT_A = 9001;

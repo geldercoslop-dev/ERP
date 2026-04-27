@@ -26,12 +26,14 @@ import { runRuntimeHealthCheck, attemptMigrationRepair, type SystemHealthReport,
 declare global {
   var __BOOTSTRAPPED__: boolean;
   var __BOOTSTRAP_ERROR__: Error | null;
+  var __BOOTSTRAP_IN_PROGRESS__: boolean;
 }
 
 // Inicializar estado global
 if (typeof globalThis.__BOOTSTRAPPED__ === 'undefined') {
   globalThis.__BOOTSTRAPPED__ = false;
   globalThis.__BOOTSTRAP_ERROR__ = null;
+  globalThis.__BOOTSTRAP_IN_PROGRESS__ = false;
 }
 
 /**
@@ -95,6 +97,9 @@ export async function bootstrapServer(): Promise<void> {
     systemLogger.warn('[BOOTSTRAP] Já inicializado, ignorando chamada duplicada');
     return;
   }
+
+  // Marcar bootstrap como em progresso
+  globalThis.__BOOTSTRAP_IN_PROGRESS__ = true;
 
   const startTime = Date.now();
   systemLogger.info('[BOOTSTRAP] Iniciando bootstrap central com auto-healing...');
@@ -179,6 +184,7 @@ export async function bootstrapServer(): Promise<void> {
     // 6. Marcar bootstrap como completo
     globalThis.__BOOTSTRAPPED__ = true;
     globalThis.__BOOTSTRAP_ERROR__ = null;
+    globalThis.__BOOTSTRAP_IN_PROGRESS__ = false;
     updateSystemState({ booted: true });
 
     const duration = Date.now() - startTime;
@@ -188,6 +194,7 @@ export async function bootstrapServer(): Promise<void> {
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     globalThis.__BOOTSTRAP_ERROR__ = err;
+    globalThis.__BOOTSTRAP_IN_PROGRESS__ = false;
     systemLogger.error({ error: err.message }, '[BOOTSTRAP] FALHA CRÍTICA no bootstrap');
     throw err;
   }
@@ -203,4 +210,5 @@ export function resetBootstrapForTesting(): void {
   }
   globalThis.__BOOTSTRAPPED__ = false;
   globalThis.__BOOTSTRAP_ERROR__ = null;
+  globalThis.__BOOTSTRAP_IN_PROGRESS__ = false;
 }

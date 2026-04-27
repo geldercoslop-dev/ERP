@@ -1,5 +1,4 @@
 import { sql } from "drizzle-orm";
-import { getDb } from "../db/index.js";
 import { getConnectionPool } from "../config/database.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../_core/service-entry-guard.js";
 
@@ -21,6 +20,7 @@ export async function validateBootDatabaseConnection(): Promise<BootDatabaseVali
   const missingTables: string[] = [];
 
   const db = await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
+    const { getDb } = await import("../db/core.js");
     return getDb();
   });
 

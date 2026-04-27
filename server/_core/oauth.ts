@@ -1,6 +1,5 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
-import * as db from "../db/index.js";
 import { getSessionCookieOptions } from "./cookies.js";
 import { sdk } from "./sdk.js";
 import type { RequestWithTenant } from "../types/request-with-tenant.js";
@@ -37,6 +36,7 @@ function getQueryParam(req: Request, key: string): string | undefined {
 
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
+    const db = await import("../db/index.js");
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
 

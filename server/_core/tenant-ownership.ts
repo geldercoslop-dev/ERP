@@ -3,7 +3,6 @@
  * Não confia em tenantId/role vindos do cliente — reconstrói a partir do banco.
  */
 
-import { getUserById, getVendedorById, getVendedorByUserId } from "../db/core.js";
 import type { SecureRole, SecureToolContext } from "./secure-context.js";
 import { securityLogger } from "./logger.js";
 import type { UserWithTenant, VendedorWithTenant } from "../types/schema-extended.js";
@@ -64,6 +63,7 @@ export async function validateTenantOwnership(
   claimedTenantId: number,
   options?: { claimedVendedorId?: number }
 ): Promise<ResolvedLeoToolIdentity> {
+  const { getUserById, getVendedorById, getVendedorByUserId } = await import("../db/core.js");
   if (!Number.isInteger(userId) || userId <= 0) {
     logInvalidAttempt("userId inválido", { userId, claimedTenantId });
     throw new InfrastructureError(`${SECURITY_PREFIX} userId inválido`);

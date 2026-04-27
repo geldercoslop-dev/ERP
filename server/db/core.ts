@@ -7,7 +7,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import * as mysql from "mysql2/promise";
 import { getConnectionPool } from "../config/database.js";
-import * as schema from "../../drizzle/schema.ts";
+import * as schema from "../../drizzle/schema.js";
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { setupDatabaseMonitoring } from "../_core/monitoring-setup.js";
 import { toDbResult } from "../_core/db-result.js";
@@ -36,7 +36,7 @@ import {
   promocoes,
   promocoesItens,
   pendencias,
-} from "../../drizzle/schema.ts";
+} from "../../drizzle/schema.js";
 
 // Re-exportar tabelas para uso em services
 export {
@@ -63,7 +63,7 @@ export {
   promocoes,
   promocoesItens,
   pendencias,
-} from "../../drizzle/schema.ts";
+} from "../../drizzle/schema.js";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { assertServiceEntryIfEnabled } from "../_core/service-entry-guard.js";
 
@@ -78,7 +78,37 @@ export async function getPool(): Promise<mysql.Pool> {
 
 export async function getDb(): Promise<Database> {
   requireBootstrap('db.getDb');
-  assertServiceEntryIfEnabled();
+  if (!db) {
+    pool = await getConnectionPool();
+    
+    // Aplicar monitoramento de consultas lentas
+    const monitoredPool = setupDatabaseMonitoring(pool);
+    
+    db = drizzle(monitoredPool, {
+      schema: { ...schema },
+      mode: "default",
+      logger: false,
+    }) as Database;
+  }
+  return db;
+}
+
+/**
+ * Internal DB access for bootstrap-time operations.
+ * This bypasses requireBootstrap check because it's only called
+ * during bootstrapServer() flow when bootstrap is not yet complete.
+ * 
+ * WARNING: Only use this in bootstrap-related code paths.
+ * Regular code MUST use getDb() which has requireBootstrap protection.
+ */
+export async function getDbForBootstrap(): Promise<Database> {
+  if (!globalThis.__BOOTSTRAP_IN_PROGRESS__) {
+    throw new Error(
+      "FORBIDDEN: getDbForBootstrap só pode ser usado durante bootstrap. " +
+      "Use getDb() para acesso regular ao banco de dados."
+    );
+  }
+  
   if (!db) {
     pool = await getConnectionPool();
     

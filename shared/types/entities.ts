@@ -27,7 +27,7 @@ import type {
   clienteVendedores,
   fornecedores,
   idempotencyKeys,
-} from "../../drizzle/schema.ts";
+} from "../../drizzle/schema.js";
 
 // Re-export das tabelas Drizzle (para uso em queries tipadas)
 export type {

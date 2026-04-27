@@ -21,7 +21,8 @@ let _pool: mysql.Pool | null = null;
 
 /** Falha imediata se DATABASE_URL não estiver definido. */
 export function requireDatabaseUrl(): string {
-  requireBootstrap('database.requireDatabaseUrl');
+  // REMOVIDO: requireBootstrap('database.requireDatabaseUrl') - chamado durante bootstrap
+  // O fluxo de bootstrapServer() controla quando as conexões podem ser acessadas
   const raw = getEnv().DATABASE_URL.trim();
   if (!raw) {
     throw new InfrastructureError(
@@ -169,7 +170,8 @@ function getDatabaseConfig(): mysql.PoolOptions {
  * Cria e retorna um pool de conexões MySQL
  */
 export async function getConnectionPool(): Promise<mysql.Pool> {
-  requireBootstrap('database.getConnectionPool');
+  // REMOVIDO: requireBootstrap('database.getConnectionPool') - chamado durante bootstrap
+  // O fluxo de bootstrapServer() controla quando as conexões podem ser acessadas
   
   if (_pool) {
     globalThis.db = _pool;

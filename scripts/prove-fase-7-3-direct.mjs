@@ -7,7 +7,7 @@
 
 import { bootstrapServer } from '../server/_core/bootstrap.ts';
 import { getDb } from '../server/db/index.ts';
-import { pedidos, produtos, itensPedido, auditLogs } from '../drizzle/schema.ts';
+import { pedidos, produtos, itensPedido, auditLogs } from '../drizzle/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { 

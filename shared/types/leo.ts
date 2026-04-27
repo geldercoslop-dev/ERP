@@ -12,10 +12,10 @@ export type GenericPayload = Record<string, unknown>;
 export type Payload = Record<string, unknown>;
 
 /** Padrão de retorno obrigatório para actions de desktop/automação (pós-remoção robotjs) */
-export type ActionResult = {
+export interface ActionResult {
   success: boolean;
   message: string;
-};
+}
 
 // ===== ENUNS PADRONIZADOS =====
 

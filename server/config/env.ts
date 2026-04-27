@@ -309,6 +309,7 @@ export function getRedisOptions(env: EnvConfig) {
 
 /**
  * Configurações estruturadas para compatibilidade
+ * NOTA: Estes getters chamam getEnv() - só use após bootstrapServer()
  */
 export const config = {
   get database() {
@@ -323,7 +324,7 @@ export const config = {
       ssl: env.DATABASE_SSL,
     };
   },
-  
+
   get server() {
     const env = getEnv();
     return {
@@ -336,7 +337,7 @@ export const config = {
       corsOrigin: env.CORS_ORIGIN || env.ALLOWED_ORIGINS,
     };
   },
-  
+
   get security() {
     const env = getEnv();
     return {
@@ -350,7 +351,7 @@ export const config = {
       trustProxy: env.TRUST_PROXY,
     };
   },
-  
+
   get logging() {
     const env = getEnv();
     return {
@@ -360,7 +361,7 @@ export const config = {
       maxFiles: env.LOG_MAX_FILES,
     };
   },
-  
+
   get cache() {
     const env = getEnv();
     return {
@@ -373,7 +374,7 @@ export const config = {
       },
     };
   },
-  
+
   get email() {
     const env = getEnv();
     return {
@@ -387,7 +388,7 @@ export const config = {
       from: env.EMAIL_FROM,
     };
   },
-  
+
   get monitoring() {
     const env = getEnv();
     return {
@@ -396,7 +397,7 @@ export const config = {
       metricsPort: env.METRICS_PORT,
     };
   },
-  
+
   get backup() {
     const env = getEnv();
     return {
@@ -406,7 +407,7 @@ export const config = {
       dir: env.BACKUP_DIR,
     };
   },
-  
+
   get leo() {
     const env = getEnv();
     return {
@@ -418,28 +419,9 @@ export const config = {
 };
 
 // ============================================================================
-// BOOTSTRAP: Validação de environment ao carregar o módulo (fail-fast)
+// BOOTSTRAP: ENV não é mais carregado no import-time
 // ============================================================================
-
-/**
- * Environment validado
- * Inicializado com fail-fast pattern no carregamento do módulo
- * Se há erro, o programa encerra imediatamente
- */
-export const env = getEnv();
-
-// Informações de validação de segurança
-if (isProduction()) {
-  const jwtAccessStrength = validateJwtSecretStrength(env.JWT_ACCESS_SECRET, 'JWT_ACCESS_SECRET');
-  const jwtRefreshStrength = validateJwtSecretStrength(env.JWT_REFRESH_SECRET, 'JWT_REFRESH_SECRET');
-  const appSecretStrength = validateJwtSecretStrength(env.APP_SECRET, 'APP_SECRET');
-
-  // Log apenas se algum secret estiver em nível "acceptable" (entre 32 e 64)
-  if (jwtAccessStrength.strength === 'acceptable' || 
-      jwtRefreshStrength.strength === 'acceptable' || 
-      appSecretStrength.strength === 'acceptable') {
-    console.warn('⚠️  AVISO DE SEGURANÇA: JWT secrets com força "acceptable" (32-64 chars)');
-    console.warn('   Recomendado: Usar secrets com 64+ caracteres em produção');
-    console.warn('   Gerador: openssl rand -base64 32 | head -c 64');
-  }
-}
+// REMOVIDO: export const env = getEnv(); (causava import-time side effect)
+// REMOVIDO: validação de segurança no import-time (dependia de env)
+// Use getEnv() após bootstrapServer() ser chamado
+// Validação de segurança movida para runtime se necessário

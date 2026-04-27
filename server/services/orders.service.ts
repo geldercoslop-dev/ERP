@@ -1,5 +1,5 @@
 import { eq, and, desc, asc, sql, inArray, ne, gte, lt } from "drizzle-orm";
-import { clientes, vendedores } from "../../drizzle/schema.ts";
+import { clientes, vendedores } from "../../drizzle/schema.js";
 import { getDb, pedidos, itensPedido, contasReceber, produtos, insertAuditLog, clienteVendedores, counters, idempotencyKeys, pendencias, getInsertId } from "../db/index.js";
 import type { Pedido, ItemPedido, Produto } from "../db/index.js";
 import type { InsertPedido, InsertItemPedido } from "../db/index.js";

@@ -1,11 +1,11 @@
 import { queueManager } from './queue-manager.js';
-import * as db from '../db/index.js';
 import type { AuditAction } from '../db/core.js';
 
 /**
  * Handler para jobs de audit log
  */
 async function auditLogHandler(job: unknown): Promise<void> {
+  const db = await import('../db/index.js');
   const jobData = ((job as Record<string, unknown>).data as Record<string, unknown>);
   
   await db.insertAuditLog({

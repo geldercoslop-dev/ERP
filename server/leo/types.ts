@@ -1,10 +1,11 @@
 /**
  * Ponto central de exportação de tipos LEO para o servidor
- * Reexporta todos os tipos de `shared/types`
+ * Reexporta todos os tipos de `shared/types` via barrel index.js
+ * Enums são exportados como valores (não type-only) pois são usados em runtime
  */
 
 export {
-  // Enums
+  // Enums (valores em runtime)
   LeoEventType,
   LeoEventStatus,
   LeoEventPriority,
@@ -15,7 +16,9 @@ export {
   LeoTaskType,
   LeoTaskPriority,
   LeoTaskStatus,
-  
+} from "../../shared/types/index.js";
+
+export type {
   // Interfaces principais
   LeoEvent,
   LeoAction,
@@ -39,6 +42,11 @@ export {
   
   // Tipos globais
   GenericPayload,
-  Payload,
-  ActionResult
+  Payload
 } from "../../shared/types/index.js";
+
+// ActionResult definido localmente para garantir ESM compatibility
+export interface ActionResult {
+  success: boolean;
+  message: string;
+}

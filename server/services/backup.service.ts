@@ -4,7 +4,7 @@
  */
 
 import { getDb } from "../db/core.js";
-import * as schema from "../../drizzle/schema.ts";
+import * as schema from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
 
 export type BackupData = {

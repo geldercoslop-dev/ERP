@@ -7,7 +7,7 @@
 
 import { getDb, getInsertId } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
-import { produtos } from "../../drizzle/schema.ts";
+import { produtos } from "../../drizzle/schema.js";
 import { logger, logError, logInfo } from '../utils/logger.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 

@@ -6,7 +6,7 @@ import {
   cores,
   itensPedido,
   gruposPrecificacao,
-} from "../../drizzle/schema.ts";
+} from "../../drizzle/schema.js";
 // import { PendenciaStatus } from "../shared/domain-status.js"; // não usado - tabela pendencias não existe
 import { nanoid } from "nanoid";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";

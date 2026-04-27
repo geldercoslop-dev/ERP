@@ -7,6 +7,7 @@ import { ADMIN_ACTOR, type ServiceActor } from "../_core/service-actor.js";
 import { InfrastructureError } from "../_core/errors/typed-errors.js";
 
 export * from "./core.js";
+export { getDbForBootstrap } from "./core.js";
 export { getConnectionPool } from "../config/database.js";
 
 export { gerarBackupCompleto } from "../services/backup.service.js";

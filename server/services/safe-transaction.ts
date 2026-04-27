@@ -7,7 +7,7 @@
 
 import { getDb } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
-import { pedidos, produtos, contasReceber, contasPagar } from "../../drizzle/schema.ts";
+import { pedidos, produtos, contasReceber, contasPagar } from "../../drizzle/schema.js";
 import { ContaPagarStatus, ContaReceberStatus, PedidoStatus, PedidoStatusValues } from "../shared/domain-status.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
 import { loggerInstance as logger, logError } from '../utils/logger.js';

@@ -22,7 +22,6 @@
  * Remover dependência de db.insertAuditLog
  */
 import type { AuditAction } from "../db/core.js";
-import * as db from "../db/index.js";
 
 type RouterCtxUser = { id: number; role: string } | null | undefined;
 
@@ -37,6 +36,7 @@ export async function auditEntityChange(
   entityId: string | number | null | undefined,
   payload?: Record<string, unknown>
 ): Promise<void> {
+  const db = await import("../db/index.js");
   const u = ctx.user;
   await db.insertAuditLog({
     tenantId,

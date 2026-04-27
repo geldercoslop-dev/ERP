@@ -5,7 +5,6 @@ import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import { ENV } from "./env.js";
-import * as db from "../db/index.js";
 import type { RequestWithTenant } from "../types/request-with-tenant.js";
 import { ValidationError } from "./errors/typed-errors.js";
 import type {
@@ -25,7 +24,7 @@ export type SessionPayload = {
   name: string;
 };
 
-type DbUser = typeof db.users.$inferSelect;
+type DbUser = typeof import("../db/index.js").users.$inferSelect;
 
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
@@ -264,6 +263,7 @@ class SDKServer {
 
   async authenticateRequest(req: Request): Promise<DbUser> {
     // Regular authentication flow
+    const db = await import("../db/index.js");
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
     const session = await this.verifySession(sessionCookie);

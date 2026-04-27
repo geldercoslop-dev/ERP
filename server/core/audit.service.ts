@@ -1,5 +1,4 @@
-import { auditLogs } from "../../drizzle/schema.ts";
-import { getDb } from "../db/index.js";
+import { auditLogs } from "../../drizzle/schema.js";
 import { logger } from "../_core/logger.js";
 
 export type AuditAction = "READ" | "WRITE" | "DELETE";
@@ -28,6 +27,7 @@ export async function logAudit(
   entity: string,
   metadata: AuditMetadata = {}
 ): Promise<void> {
+  const { getDb } = await import("../db/index.js");
   const traceId = typeof metadata.traceId === "string" ? metadata.traceId : null;
   const userId = typeof metadata.userId === "number" ? metadata.userId : null;
 

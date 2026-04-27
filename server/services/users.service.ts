@@ -2,7 +2,7 @@ import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
 import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index.js";
 import type { NewUser as InsertUser, NewVendedor as InsertVendedor, Database } from "../db/index.js";
 import type { User, Vendedor } from "../db/index.js";
-import { users, vendedores } from "../../drizzle/schema.ts";
+import { users, vendedores } from "../../drizzle/schema.js";
 import { nanoid } from "nanoid";
 import { recordQueryTime } from "../_core/system-monitor.js";
 import { logAuditAction } from "./audit-log.service.js";

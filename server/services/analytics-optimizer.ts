@@ -7,7 +7,7 @@
 import { getDb } from '../db/index.js';
 import { executeQuery } from '../config/database.js';
 import { sql, eq, and, lt, desc } from 'drizzle-orm';
-import { pedidos, itensPedido, produtos, contasReceber, contasPagar } from "../../drizzle/schema.ts";
+import { pedidos, itensPedido, produtos, contasReceber, contasPagar } from "../../drizzle/schema.js";
 import { ContaPagarStatus, ContaReceberStatus, PedidoStatus } from '../shared/domain-status.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { assertDbConnection } from '../_core/errors/assertions.js';

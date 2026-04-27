@@ -1,4 +1,3 @@
-import { getDb } from "../db/index.js";
 import { assertTenantId } from "../_core/errors/assertions.js";
 import type { Database } from "../db/core.js";
 
@@ -20,5 +19,6 @@ export async function getDbByTenant(tenantId: number): Promise<Database | null> 
   const mappedDb = tenantDbMap.get(tenantId);
   if (mappedDb) return mappedDb;
 
+  const { getDb } = await import("../db/index.js");
   return getDb();
 }

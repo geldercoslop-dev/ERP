@@ -10,7 +10,7 @@ process.env.REDIS_PORT = "6379";
 process.env.SERVICE_ENTRY_GUARD = "0";
 
 import { getDb } from '../server/db/index.js';
-import { tenants, users, vendedores } from "../drizzle/schema.ts";
+import { tenants, users, vendedores } from "../drizzle/schema.js";
 import { runWithServiceInvocationAsync, buildBootstrapInvocation } from '../server/_core/service-entry-guard.js';
 import { format } from 'node:util';
 

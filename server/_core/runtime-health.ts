@@ -6,12 +6,12 @@
  * Detects drift and attempts controlled auto-repair.
  */
 
+import { sql } from "drizzle-orm";
 import { getEnv } from "./env.js";
 import { systemLogger } from "./logger.js";
 import { waitForDatabaseReady } from "./db-bootstrap.js";
 import { waitForRedis } from "../infra/redis.js";
 import { validateRequiredEnv } from "../services/env.service.js";
-import { getDb } from "../db/index.js";
 
 /**
  * Health status levels
@@ -134,10 +134,12 @@ async function checkEnvHealth(): Promise<ComponentHealth> {
 async function checkDatabaseHealth(): Promise<ComponentHealth> {
   try {
     await waitForDatabaseReady();
-    const db = await getDb();
+    const { getDb, getDbForBootstrap } = await import("../db/core.js");
+    // During bootstrap, use getDbForBootstrap. After bootstrap, use getDb.
+    const db = globalThis.__BOOTSTRAP_IN_PROGRESS__ ? await getDbForBootstrap() : await getDb();
     
-    // Execute simple query to validate connection
-    await db.execute({ sql: 'SELECT 1 AS ping' } as any);
+    // Execute simple query to validate connection using raw SQL
+    await db.execute(sql`SELECT 1 AS ping`);
     
     return {
       name: 'Database',
@@ -213,13 +215,17 @@ async function checkSchemaHealth(): Promise<ComponentHealth> {
  */
 export async function checkMigrationDrift(): Promise<MigrationDriftResult> {
   try {
-    const db = await getDb();
+    const { getDb, getDbForBootstrap } = await import("../db/core.js");
+    // During bootstrap, use getDbForBootstrap. After bootstrap, use getDb.
+    const db = globalThis.__BOOTSTRAP_IN_PROGRESS__ ? await getDbForBootstrap() : await getDb();
     
-    // Check if migrations table exists
-    const tables = await db.execute({ 
-      sql: 'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
-      values: ['__drizzle_migrations']
-    } as any);
+    // Check if migrations table exists using raw SQL
+    const tables = await db.execute(sql`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = '__drizzle_migrations'
+    `);
     
     if (!tables || (tables as any).length === 0) {
       // No migrations table - this is expected for fresh installations
@@ -229,10 +235,10 @@ export async function checkMigrationDrift(): Promise<MigrationDriftResult> {
       };
     }
     
-    // Get applied migrations from database
-    const appliedMigrations = await db.execute({
-      sql: 'SELECT hash FROM __drizzle_migrations ORDER BY created_at DESC'
-    } as any);
+    // Get applied migrations from database using raw SQL
+    const appliedMigrations = await db.execute(sql`
+      SELECT hash FROM __drizzle_migrations ORDER BY created_at DESC
+    `);
     
     // Read journal file
     const fs = await import('fs');
@@ -292,7 +298,9 @@ export async function attemptMigrationRepair(): Promise<boolean> {
     systemLogger.info('[HEALTH] Attempting auto-repair of migrations...');
     
     const { migrate } = await import("drizzle-orm/mysql2/migrator");
-    const db = await getDb();
+    const { getDb, getDbForBootstrap } = await import("../db/core.js");
+    // During bootstrap, use getDbForBootstrap. After bootstrap, use getDb.
+    const db = globalThis.__BOOTSTRAP_IN_PROGRESS__ ? await getDbForBootstrap() : await getDb();
     
     await migrate(db, { migrationsFolder: './drizzle' });
     

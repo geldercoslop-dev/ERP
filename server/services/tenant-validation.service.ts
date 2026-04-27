@@ -1,5 +1,5 @@
 import { getDb } from "../db/core.js";
-import { users } from "../../drizzle/schema.ts";
+import { users } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../_core/service-entry-guard.js";
 import type { UserWithTenant } from "../types/schema-extended.js";

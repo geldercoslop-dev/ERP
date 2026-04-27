@@ -3,7 +3,6 @@
  * admin: visão do tenant inteiro; vendedor: apenas vínculos próprios / pedidos próprios.
  */
 import type { TrpcContext } from "./context.js";
-import * as db from "../db/index.js";
 import { ValidationError, InfrastructureError } from "./errors/typed-errors.js";
 
 export type ServiceActorRole = "admin" | "vendedor";
@@ -40,6 +39,7 @@ export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vende
     throw new ValidationError("tenantId obrigatório para resolver actor de serviço");
   }
   const tenantId = String(ctx.tenantId);
+  const db = await import("../db/index.js");
   const v =
     ctx.vendedor ??
     (await db.getVendedorByUserId(ctx.user.id)) ??

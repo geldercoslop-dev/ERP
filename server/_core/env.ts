@@ -1,10 +1,10 @@
 import { parseEnv } from "../services/env.schema.js";
-import { requireBootstrap } from "./bootstrap.js";
 
 let _env: ReturnType<typeof parseEnv> | null = null;
 
 export function getEnv() {
-  requireBootstrap('env.getEnv');
+  // REMOVIDO: requireBootstrap('env.getEnv') - causava circular import
+  // A validação de bootstrap é feita pelo fluxo de bootstrapServer()
   if (!_env) {
     _env = parseEnv();
   }

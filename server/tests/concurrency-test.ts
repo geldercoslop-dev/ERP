@@ -1,6 +1,6 @@
 import { createPedidoSafe } from '../services/orders.service.js';
 import { getDb, pedidos, idempotencyKeys } from '../db/index.js';
-import { auditLogs } from "../../drizzle/schema.ts";
+import { auditLogs } from "../../drizzle/schema.js";
 import { eq } from 'drizzle-orm';
 import { runWithServiceInvocationAsync, buildBootstrapInvocation } from '../_core/service-entry-guard.js';
 import { initEnv } from '../_core/env/bootstrapEnv.js';

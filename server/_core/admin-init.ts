@@ -1,7 +1,6 @@
 // Script de inicialização segura do administrador
 // Substitui senha hardcoded por variável de ambiente com hash bcrypt
 
-import * as db from "../db/index.js";
 import bcrypt from 'bcryptjs';
 import { ValidationError } from './errors/typed-errors.js';
 
@@ -10,6 +9,7 @@ import { ValidationError } from './errors/typed-errors.js';
  * Usa ADMIN_INITIAL_PASSWORD do ambiente ou gera erro
  */
 export async function ensureInitialAdmin(tenantId: number): Promise<void> {
+  const db = await import("../db/index.js");
   if (!Number.isFinite(tenantId) || tenantId <= 0) {
     throw new ValidationError("tenantId é obrigatório para inicializar admin.");
   }

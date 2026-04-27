@@ -18,7 +18,7 @@
  */
 
 import { logger } from './logger.js';
-import * as schema from "../../drizzle/schema.ts";
+import * as schema from "../../drizzle/schema.js";
 
 /**
  * Schema Field Metadata

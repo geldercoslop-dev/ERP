@@ -5,7 +5,7 @@
 import { jsPDF } from "jspdf";
 import * as db from "../../db/index.js";
 import { getDb, clienteVendedores } from "../../db/index.js";
-import { pedidos, itensPedido, produtos, clientes, contasReceber } from "../../../drizzle/schema.ts";
+import { pedidos, itensPedido, produtos, clientes, contasReceber } from "../../../drizzle/schema.js";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
 import { ValidationError } from "../../_core/errors/typed-errors.js";
