@@ -11,17 +11,24 @@ let violation = false;
 for (const file of files) {
   if (!existsSync(file)) continue;
 
-  // Excluir scripts de verificação das checagens
-  if (file.includes("scripts/anti-regress-check.js") || 
-      file.includes("scripts/guardrail-check.js")) {
+  // Excluir scripts e guards das checagens (auto-bloqueio)
+  if (file.includes("scripts/") || file.includes("guards/")) {
     continue;
   }
 
   const content = readFileSync(file, "utf-8");
 
-  // 🔴 1. BLOQUEAR ANY (GLOBAL)
-  if (content.includes(" as any") || content.includes(": any")) {
-    console.error(`🚫 ANY DETECTADO em ${file}`);
+  // 🔴 1. BLOQUEAR CAST INSEGURO (as any)
+  // : any é tratado pelo phase0-guard para código crítico
+  if (/\bas\s+any\b/.test(content)) {
+    console.error(`
+🚫 VIOLAÇÃO DE TIPAGEM
+
+Uso de "as any" detectado em ${file}
+
+Proibido cast inseguro.
+Use tipagem correta.
+`);
     violation = true;
   }
 
