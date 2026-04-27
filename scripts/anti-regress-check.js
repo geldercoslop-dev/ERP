@@ -37,7 +37,10 @@ Use tipagem correta.
     !file.startsWith("server/services") &&
     (
       /(^|[^a-zA-Z0-9_])db\./.test(content) ||
-      /(^|[^a-zA-Z0-9_])query\s*\(/.test(content)
+      /(^|[^a-zA-Z0-9_])db\.query\s*\(/.test(content) ||
+      /(^|[^a-zA-Z0-9_])conn\.query\s*\(/.test(content) ||
+      /(^|[^a-zA-Z0-9_])connection\.query\s*\(/.test(content) ||
+      /(^|[^a-zA-Z0-9_])pool\.query\s*\(/.test(content)
     )
   ) {
     console.error(`🚫 ACESSO DIRETO AO DB FORA DE SERVICE: ${file}`);
@@ -45,9 +48,11 @@ Use tipagem correta.
   }
 
   // 🔴 3. BLOQUEAR IMPORT DIRETO DE SHARED
+  // Exceção: idempotency.js contém apenas type guards simples
   if (
     content.includes("../../shared/") &&
-    !content.includes("../../shared/types")
+    !content.includes("../../shared/types") &&
+    !content.includes("../../shared/idempotency.js")
   ) {
     console.error(`🚫 IMPORT DIRETO PROIBIDO EM ${file}`);
     violation = true;

@@ -11,12 +11,16 @@ import {
   normalizeTelefone,
   normalizeNomeSobrenome,
   NewCliente,
+  type Database,
 } from "../db/core.js";
 import type { Cliente, ClienteVendedor } from "../db/core.js";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 import { validateTenantAccess, globalDbAuditor } from "../_core/tenant-validator.js";
 import { assertVendedorActor, type ServiceActor } from "../_core/service-actor.js";
 import { assertDbConnection } from "../_core/errors/assertions.js";
+
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
+type DbConn = Database;
 
 export type CreateClienteInput = {
   nome: string;
@@ -55,10 +59,6 @@ export type CreateClienteWithVendedorInput = {
   bloco?: string | null;
   apartamento?: string | null;
 };
-
-// Type REAL da connection Drizzle
-import type { Database } from '../db/core.js';
-type DbConn = Database;
 
 /** Vínculo cliente_vendedores válido no tenant (prova de escopo vendedor). */
 async function vendedorLinkedToCliente(
@@ -632,7 +632,7 @@ export async function getOrCreateCliente(
 }
 
 export async function ensureClienteVendedorLink(
-  tx: DbConn,
+  tx: DbTx,
   tenantId: number,
   clienteId: number,
   vendedorId: number
@@ -663,8 +663,85 @@ export async function ensureClienteVendedorLink(
 
     return { success: true };
   } catch (error) {
+    console.error("[ensureClienteVendedorLink] Error:", error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+/**
+ * Resolve cliente in createVenda transaction:
+ * - Normalizes telefone and nome/sobrenome
+ * - Searches for existing cliente by normalized fields
+ * - Creates new cliente if not found
+ * - Ensures cliente-vendedor link
+ * Returns clienteId
+ */
+export async function resolveClienteVendaInTransaction(
+  tx: DbTx,
+  tenantId: number,
+  vendedorId: number,
+  clienteData: {
+    nome: string;
+    telefone?: string | null;
+    telefoneRecado?: string | null;
+    rua?: string | null;
+    numero?: string | null;
+    bairro?: string | null;
+    cidade?: string | null;
+    uf?: string | null;
+    referencia?: string | null;
+    condominio?: string | null;
+  }
+): Promise<number> {
+  if (!clienteData.telefone) {
+    throw new Error("Telefone é obrigatório");
+  }
+  const telefoneNorm = normalizeTelefone(clienteData.telefone);
+  const { nomeNorm, sobrenomeNorm } = normalizeNomeSobrenome(clienteData.nome);
+  const nn = nomeNorm.slice(0, 120);
+  const sn = sobrenomeNorm.slice(0, 120);
+
+  const existing = await tx
+    .select({ id: clientes.id })
+    .from(clientes)
+    .where(
+      and(
+        eq(clientes.tenantId, tenantId),
+        eq(clientes.telefoneNorm, telefoneNorm),
+        eq(clientes.nomeNorm, nn),
+        eq(clientes.sobrenomeNorm, sn)
+      )
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0].id;
+  }
+
+  const tel = clienteData.telefone === '' || clienteData.telefone == null ? null : (clienteData.telefone || null);
+  const created = await tx.insert(clientes).values({
+    tenantId,
+    nome: clienteData.nome,
+    telefone: tel,
+    telefoneNorm: telefoneNorm.slice(0, 32),
+    nomeNorm: nn,
+    sobrenomeNorm: sn,
+    telefoneRecado: clienteData.telefoneRecado || null,
+    rua: clienteData.rua || null,
+    numero: clienteData.numero || null,
+    bairro: clienteData.bairro || null,
+    cidade: clienteData.cidade || null,
+    uf: clienteData.uf || null,
+    referencia: clienteData.referencia || null,
+    condominio: clienteData.condominio || null,
+  });
+
+  const clienteId = getInsertId(created);
+
+  // Ensure cliente-vendedor link
+  await ensureClienteVendedorLink(tx, tenantId, clienteId, vendedorId);
+
+  return clienteId;
 }
 
 export async function deleteCliente(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean; error?: string }> {
@@ -1023,4 +1100,56 @@ export async function listClientesComMetricasPedidos(
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+// ===== WRAPPER FUNCTIONS FOR ROUTER COMPATIBILITY =====
+// These functions match the DB layer contract for direct router replacement
+
+export async function searchClientes(tenantId: number, term: string): Promise<Cliente[]> {
+  const ADMIN_ACTOR: ServiceActor = { role: "admin" };
+  const res = await listClientes(tenantId, ADMIN_ACTOR, { page: 1, pageSize: 50, busca: term });
+  return res.success && res.data ? res.data.items : [];
+}
+
+export async function searchClientesByVendedor(tenantId: number, term: string, vendedorId: number): Promise<Cliente[]> {
+  const actor: ServiceActor = { role: "vendedor", vendedorId };
+  const res = await listClientes(tenantId, actor, { page: 1, pageSize: 50, busca: term });
+  return res.success && res.data ? res.data.items : [];
+}
+
+export async function searchClientesGlobal(tenantId: number, term: string, limit: number, actor: ServiceActor): Promise<Cliente[]> {
+  const res = await listClientes(tenantId, actor, { page: 1, pageSize: Math.min(limit, 100), busca: term });
+  return res.success && res.data ? res.data.items : [];
+}
+
+export async function createClienteRouter(tenantId: number, input: CreateClienteWithVendedorInput, vendedorId?: number): Promise<{ id: number }> {
+  const data = { ...input, vendedorIdPrincipal: vendedorId };
+  const result = await createCliente(tenantId, data);
+  if (!result.success || !result.data) {
+    throw new Error(result.error ?? "Falha ao criar cliente");
+  }
+  return result.data;
+}
+
+export async function getVendedorPrincipalDoClienteRouter(tenantId: number, clienteId: number): Promise<{ vendedorId: number; vendedorNome: string } | undefined> {
+  const result = await getVendedorPrincipalDoCliente(tenantId, clienteId);
+  if (!result.success) {
+    throw new Error(result.error ?? "Falha ao buscar vendedor principal");
+  }
+  return result.data;
+}
+
+export async function createClienteVinculo(tenantId: number, clienteId: number, vendedorId: number, tipo: "PRINCIPAL" | "SECUNDARIO"): Promise<void> {
+  const result = await associarClienteVendedor(tenantId, clienteId, vendedorId, tipo === "PRINCIPAL");
+  if (!result.success) {
+    throw new Error(result.error ?? "Falha ao criar vínculo");
+  }
+}
+
+export async function updateClienteRouter(tenantId: number, actor: ServiceActor, id: number, data: Partial<CreateClienteInput>): Promise<{ success: boolean; error?: string }> {
+  return await updateCliente(tenantId, actor, id, data);
+}
+
+export async function deleteClienteById(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean; error?: string }> {
+  return await deleteCliente(tenantId, actor, id);
 }

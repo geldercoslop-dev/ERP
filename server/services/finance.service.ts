@@ -64,8 +64,9 @@ export type CreateContaReceberInput = {
   vendedorId?: number | null;
   descricao: string;
   valor: number;
-  dataVencimento: Date;
-  status: ContaReceberStatusValue;
+  dataVencimento: Date | string;
+  status?: ContaReceberStatusValue;
+  formaPagamento?: "PIX" | "BOLETO" | "CARTAO" | "DINHEIRO";
   observacoes?: string;
   pedidoNumero?: number;
 };
@@ -612,13 +613,14 @@ export async function getPlanoContas(
   return { items: ensureArray(items) as PlanoConta[], total, page, pageSize };
 }
 
-export async function createPlanoContas(tenantId: number, data: Omit<PlanoConta, 'id'>): Promise<{ id: number }> {
+export async function createPlanoContas(tenantId: number, data: unknown): Promise<{ id: number }> {
   try {
     assertRequiredId(tenantId, "tenantId");
-    assertRequiredPayload(data, "Dados do plano de contas obrigatórios");
+    const parsed = data as { nome: string; tipo: "RECEITA" | "DESPESA" };
+    assertRequiredPayload(parsed, "Dados do plano de contas obrigatórios");
     const dbConn = await getDb();
     assertDbConnection(dbConn);
-    const result = await dbConn.insert(planoContas).values({ ...data, tenantId });
+    const result = await dbConn.insert(planoContas).values({ nome: parsed.nome, tipo: parsed.tipo, tenantId, ativo: true });
     const id = getInsertId(result);
     if (!Number.isInteger(id) || id <= 0) {
       throw new InfrastructureError("Falha ao criar plano de contas");
@@ -706,17 +708,47 @@ export async function listContasFixas(
   return { items: items as ContaFixa[], total, page, pageSize };
 }
 
-export async function createContaFixa(tenantId: number, data: Omit<ContaFixa, 'id' | 'ativo'>): Promise<{ id: number }> {
+export async function createContaFixa(tenantId: number, data: unknown): Promise<{ id: number }> {
   assertRequiredId(tenantId, "tenantId");
-  assertRequiredPayload(data, "Dados da conta fixa obrigatórios");
+  const raw = data as Record<string, unknown>;
+  const descricao = typeof raw.nome === "string" ? raw.nome : typeof raw.descricao === "string" ? raw.descricao : String(raw.descricao ?? "");
+  const valorStr = typeof raw.valorPadrao === "string" ? raw.valorPadrao : String(raw.valor ?? "0");
+  const valor = Number(valorStr);
+  const diaVencimento = Number(raw.diaVencimento);
+  if (!Number.isFinite(valor) || !Number.isInteger(diaVencimento)) {
+    throw new InfrastructureError("Dados de conta fixa inválidos");
+  }
+  
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  const result = await dbConn.insert(contasFixas).values({ ...data, tenantId, ativo: true });
-  const id = getInsertId(result);
-  if (!Number.isInteger(id) || id <= 0) {
+  
+  const result = await dbConn.insert(contasFixas).values({
+    tenantId,
+    nome: descricao,
+    valor: valorStr,
+    diaVencimento,
+    planoContasId: raw.planoContasId ? Number(raw.planoContasId) : null,
+    descricao: null,
+    fornecedorId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  const contaId = getInsertId(result);
+  if (!Number.isInteger(Number(contaId)) || Number(contaId) <= 0) {
     throw new InfrastructureError("Falha ao criar conta fixa");
   }
-  return { id };
+
+  // Registrar auditoria
+  await insertAuditLog({
+    tenantId,
+    action: "create",
+    entity: "conta_fixa",
+    entityId: String(contaId),
+    payloadJson: JSON.stringify(data),
+    traceId: nanoid(10),
+  });
+
+  return { id: Number(contaId) };
 }
 
 export async function gerarContasFixasMes(tenantId: number, mesAno: string): Promise<{ success: boolean; count: number }> {
@@ -792,15 +824,17 @@ export async function createContaReceber(tenantId: number, data: CreateContaRece
   const dbConn = await getDb();
   assertDbConnection(dbConn);
   
-  const statusCr = validateStatus(data.status, ContaReceberStatusValues, "contaReceber.status");
+  const dataVencimento = data.dataVencimento instanceof Date ? data.dataVencimento : new Date(data.dataVencimento);
+  const statusCr = validateStatus(data.status ?? "PENDENTE", ContaReceberStatusValues, "contaReceber.status");
   const result = await dbConn.insert(contasReceber).values({
     tenantId,
     clienteNome: data.clienteNome,
     vendedorId: data.vendedorId ?? null,
     descricao: data.descricao,
     valor: String(data.valor),
-    dataVencimento: data.dataVencimento,
+    dataVencimento,
     status: statusCr,
+    formaPagamento: data.formaPagamento ?? null,
     observacoes: data.observacoes ?? null,
     pedidoNumero: data.pedidoNumero ?? null,
   });
@@ -822,21 +856,28 @@ export async function createContaReceber(tenantId: number, data: CreateContaRece
   return { id: Number(contaId) };
 }
 
-export async function createContaPagar(tenantId: number, data: CreateContaPagarInput): Promise<{ id: number }> {
+export async function createContaPagar(tenantId: number, data: unknown): Promise<{ id: number }> {
   assertRequiredId(tenantId, "tenantId");
-  assertRequiredPayload(data, "Dados da conta a pagar obrigatórios");
+  const raw = data as Record<string, unknown>;
+  const dataVenc = raw.dataVencimento;
+  const dataVencimento = dataVenc instanceof Date ? dataVenc : new Date(typeof dataVenc === "string" ? dataVenc : String(dataVenc ?? ""));
+  if (Number.isNaN(dataVencimento.getTime())) throw new InfrastructureError("dataVencimento inválida");
+  
+  const valor = typeof raw.valor === "string" ? Number(raw.valor) : typeof raw.valor === "number" ? raw.valor : 0;
+  const descricao = typeof raw.descricao === "string" ? raw.descricao : "";
+  
   const dbConn = await getDb();
   assertDbConnection(dbConn);
   
-  const statusCp = validateStatus(data.status, ContaPagarStatusValues, "contaPagar.status");
+  const statusCp = validateStatus(raw.status ?? "PENDENTE", ContaPagarStatusValues, "contaPagar.status");
   const result = await dbConn.insert(contasPagar).values({
     tenantId,
-    fornecedor: data.fornecedor,
-    descricao: data.descricao,
-    valor: String(data.valor),
-    dataVencimento: data.dataVencimento,
+    fornecedor: String(raw.fornecedor),
+    descricao,
+    valor: String(valor),
+    dataVencimento,
     status: statusCp,
-    planoContasId: data.planoContasId ?? null,
+    planoContasId: raw.planoContasId ? Number(raw.planoContasId) : null,
   });
   const contaId = getInsertId(result);
   if (!Number.isInteger(Number(contaId)) || Number(contaId) <= 0) {
@@ -863,6 +904,24 @@ export type ListContasReceberFiltros = {
   page?: number;
   pageSize?: number;
 };
+
+export async function getAllContasReceber(tenantId: number): Promise<ContaReceber[]> {
+  assertRequiredId(tenantId, "tenantId");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  return await dbConn.select().from(contasReceber).where(eq(contasReceber.tenantId, tenantId)) as ContaReceber[];
+}
+
+export async function getContasReceberByVendedor(tenantId: number, vendedorId: number): Promise<ContaReceber[]> {
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(vendedorId, "vendedorId");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  return await dbConn
+    .select()
+    .from(contasReceber)
+    .where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.vendedorId, vendedorId))) as ContaReceber[];
+}
 
 /** Conta a receber por id com isolamento de tenant (LEO / fluxos com ownership). */
 export async function getContaReceberByIdForTenant(

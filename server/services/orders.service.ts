@@ -1,6 +1,7 @@
-import { eq, and, desc, asc, sql, inArray, ne, gte, lt } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray, ne, gte, lt, SQL } from "drizzle-orm";
 import { clientes, vendedores } from "../../drizzle/schema.js";
 import { getDb, pedidos, itensPedido, contasReceber, produtos, insertAuditLog, clienteVendedores, counters, idempotencyKeys, pendencias, getInsertId } from "../db/index.js";
+import { roundToTwo } from "../utils/financialUtils.js";
 import type { Pedido, ItemPedido, Produto } from "../db/index.js";
 import type { InsertPedido, InsertItemPedido } from "../db/index.js";
 import { nanoid } from "nanoid";
@@ -970,6 +971,207 @@ export async function updatePedidoStatus(tenantId: number, id: number, status: s
   });
 }
 
+export async function buscarPedidos(
+  tenantId: number,
+  actor: ServiceActor,
+  query?: string
+): Promise<{ pedidos: Array<{
+    id: number;
+    numero: number;
+    clienteNome: string;
+    clienteCidade: string | null;
+    clienteUf: string | null;
+    vendedorId: number;
+    vendedorNome: string | null;
+    total: string;
+    status: string;
+    formaPagamento: string | null;
+    createdAt: Date;
+    dataEntrega: Date | null;
+  }>; total: number }> {
+  assertRequiredId(tenantId, "tenantId");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const conditions = [eq(pedidos.tenantId, tenantId)];
+
+  if (actor.role === "vendedor") {
+    assertVendedorActor(actor);
+    const clienteVendedorSubquery = dbConn
+      .select({ clienteId: clienteVendedores.clienteId })
+      .from(clienteVendedores)
+      .where(and(
+        eq(clienteVendedores.tenantId, tenantId),
+        eq(clienteVendedores.vendedorId, actor.vendedorId)
+      ));
+    conditions.push(inArray(pedidos.clienteId, clienteVendedorSubquery));
+  }
+
+  if (query?.trim()) {
+    const term = `%${query.trim()}%`;
+    conditions.push(
+      sql`LOWER(${pedidos.clienteNome}) LIKE LOWER(${term}) OR ${pedidos.numero} LIKE ${term}`
+    );
+  }
+
+  const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+
+  const rows = await dbConn
+    .select({
+      id: pedidos.id,
+      numero: pedidos.numero,
+      clienteNome: pedidos.clienteNome,
+      clienteCidade: pedidos.clienteCidade,
+      clienteUf: pedidos.clienteUf,
+      vendedorId: pedidos.vendedorId,
+      vendedorNome: vendedores.nome,
+      total: pedidos.total,
+      status: pedidos.status,
+      formaPagamento: pedidos.formaPagamento,
+      createdAt: pedidos.createdAt,
+      dataEntrega: pedidos.dataEntrega,
+    })
+    .from(pedidos)
+    .innerJoin(clientes, eq(pedidos.clienteId, clientes.id))
+    .innerJoin(vendedores, eq(pedidos.vendedorId, vendedores.id))
+    .where(whereClause)
+    .orderBy(desc(pedidos.createdAt));
+
+  return { pedidos: rows, total: rows.length };
+}
+
+export async function listPedidosConferencia(
+  tenantId: number,
+  actor: ServiceActor,
+  input?: {
+    status?: "TODOS" | "GERADO" | "CONFERIDO";
+    busca?: string;
+    dataInicio?: Date;
+    dataFim?: Date;
+    somenteNaoConferidos?: boolean;
+    page?: number;
+    pageSize?: number;
+  }
+): Promise<{
+  items: Array<{
+    id: number;
+    numero: number;
+    clienteNome: string;
+    status: string;
+    createdAt: Date;
+    conferido: boolean;
+  }>;
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}> {
+  assertRequiredId(tenantId, "tenantId");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const conditions = [eq(pedidos.tenantId, tenantId)];
+
+  if (actor.role === "vendedor") {
+    assertVendedorActor(actor);
+    const clienteVendedorSubquery = dbConn
+      .select({ clienteId: clienteVendedores.clienteId })
+      .from(clienteVendedores)
+      .where(and(
+        eq(clienteVendedores.tenantId, tenantId),
+        eq(clienteVendedores.vendedorId, actor.vendedorId)
+      ));
+    conditions.push(inArray(clientes.id, clienteVendedorSubquery));
+  }
+
+  const tab = input?.status ?? "TODOS";
+  if (tab === "GERADO") {
+    conditions.push(eq(pedidos.status, "GERADO"));
+  } else if (tab === "CONFERIDO") {
+    conditions.push(eq(pedidos.status, "CONFERIDO"));
+  } else {
+    conditions.push(inArray(pedidos.status, ["GERADO", "CONFERIDO"]));
+  }
+
+  if (input?.somenteNaoConferidos) {
+    conditions.push(eq(pedidos.status, "GERADO"));
+  }
+
+  if (input?.busca?.trim()) {
+    const term = `%${input.busca.trim()}%`;
+    conditions.push(
+      sql`LOWER(${pedidos.clienteNome}) LIKE LOWER(${term}) OR ${pedidos.numero} LIKE ${term}`
+    );
+  }
+
+  if (input?.dataInicio) {
+    conditions.push(sql`${pedidos.createdAt} >= ${input.dataInicio}`);
+  }
+
+  if (input?.dataFim) {
+    const end = new Date(input.dataFim);
+    end.setHours(23, 59, 59, 999);
+    conditions.push(sql`${pedidos.createdAt} <= ${end}`);
+  }
+
+  const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+
+  const page = input?.page ?? 1;
+  const pageSize = Math.min(input?.pageSize ?? 80, 200);
+
+  const rows = await dbConn
+    .select({
+      id: pedidos.id,
+      numero: pedidos.numero,
+      clienteNome: pedidos.clienteNome,
+      status: pedidos.status,
+      createdAt: pedidos.createdAt,
+    })
+    .from(pedidos)
+    .innerJoin(clientes, eq(pedidos.clienteId, clientes.id))
+    .innerJoin(vendedores, eq(pedidos.vendedorId, vendedores.id))
+    .where(whereClause)
+    .orderBy(desc(pedidos.createdAt))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const items = rows.map((r) => ({
+    ...r,
+    conferido: r.status === "CONFERIDO",
+  }));
+
+  return { items, total: items.length, page, pageSize, hasMore: false };
+}
+
+export async function marcarPedidoConferido(
+  tenantId: number,
+  pedidoId: number,
+  tx?: DbTx
+): Promise<{ success: boolean }> {
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(pedidoId, "pedidoId");
+  const dbConn = tx ?? await getDb();
+  assertDbConnection(dbConn);
+
+  await dbConn.update(pedidos).set({ status: "CONFERIDO" }).where(and(eq(pedidos.id, pedidoId), eq(pedidos.tenantId, tenantId)));
+  return { success: true };
+}
+
+export async function atualizarStatusPedido(
+  tenantId: number,
+  pedidoId: number,
+  novoStatus: string,
+  tx?: DbTx
+): Promise<{ success: boolean }> {
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(pedidoId, "pedidoId");
+  const dbConn = tx ?? await getDb();
+  assertDbConnection(dbConn);
+
+  await dbConn.update(pedidos).set({ status: novoStatus }).where(and(eq(pedidos.id, pedidoId), eq(pedidos.tenantId, tenantId)));
+  return { success: true };
+}
+
 /**
  * Busca pedidos recentes de um cliente
  */
@@ -1258,4 +1460,230 @@ export async function leoAggregatePedidosByDayAndVendedor(
     total: Number(r.total ?? 0),
     avgTicket: Number(r.avgTicket ?? 0),
   }));
+}
+
+/**
+ * Helper function for createVenda: generates next pedido number using counter with FOR UPDATE.
+ * Preserves the exact logic from the original router implementation.
+ */
+export async function getNextPedidoNumberInTransaction(
+  tx: DbTx,
+  tenantId: number
+): Promise<number> {
+  const readCounterForUpdate = async () => {
+    const result = await tx.execute(sql`
+      SELECT seq FROM counters
+      WHERE tenant_id = ${tenantId} AND name = 'pedidos'
+      FOR UPDATE
+    `);
+    const rows = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : [];
+    return rows as Array<{ seq: number | null }>;
+  };
+
+  let counterRows = await readCounterForUpdate();
+  const currentSeq = Number(counterRows?.[0]?.seq ?? 0);
+
+  let numero: number;
+  if (!counterRows || counterRows.length === 0) {
+    numero = 1;
+    try {
+      await tx.insert(counters).values({ tenantId, name: 'pedidos', seq: 1, free: null });
+    } catch (e) {
+      if (!isDuplicateKeyError(e)) throw e;
+      // Race condition: another transaction inserted first
+      counterRows = await readCounterForUpdate();
+      const seq = Number(counterRows?.[0]?.seq ?? 0);
+      numero = seq + 1;
+      await tx.update(counters).set({ seq: numero }).where(and(eq(counters.tenantId, tenantId), eq(counters.name, 'pedidos')));
+    }
+  } else {
+    numero = currentSeq + 1;
+    await tx.update(counters).set({ seq: numero }).where(and(eq(counters.tenantId, tenantId), eq(counters.name, 'pedidos')));
+  }
+
+  return numero;
+}
+
+/**
+ * Helper function for createVenda: inserts pedido in transaction.
+ * Receives the fully constructed payload from the router and inserts it.
+ * Returns the insert result in the same format expected by the router.
+ */
+export async function insertPedidoInTransaction(
+  tx: DbTx,
+  payload: InsertPedido
+) {
+  const result = await tx.insert(pedidos).values(payload);
+  return result;
+}
+
+/**
+ * Helper function for createVenda: processes estoque validation, pendências creation, and estoque update.
+ * Matches the exact logic from the router's createVenda implementation.
+ * Returns { statusPedido, gerouPendencia }
+ */
+export async function processEstoqueEPendenciasInTransaction(
+  tx: DbTx,
+  tenantId: number,
+  vendedorId: number,
+  pedidoId: number,
+  itens: Array<Record<string, unknown>>,
+  auditContext: {
+    actorUserId: number | null;
+    actorVendedorId: number | null;
+  }
+): Promise<{ statusPedido: 'GERADO' | 'PENDENTE_ESTOQUE'; gerouPendencia: boolean }> {
+  const catalogIds = Array.from(
+    new Set(
+      itens
+        .filter((x): x is Record<string, unknown> & { produtoId: number } => x.tipo === 'CATALOGO' && typeof x.produtoId === 'number')
+        .map((x) => x.produtoId)
+    )
+  );
+
+  const estoquePorProduto: Record<number, number> = {};
+  if (catalogIds.length > 0) {
+    const rows = await tx
+      .select({ id: produtos.id, estoque: produtos.estoque })
+      .from(produtos)
+      .where(and(eq(produtos.tenantId, tenantId), inArray(produtos.id, catalogIds)))
+      .for("update");
+    for (const r of rows) {
+      estoquePorProduto[Number(r.id)] = Number(r.estoque ?? 0);
+    }
+  }
+
+  const itensComFalta: Set<number> = new Set();
+  for (const i of itens) {
+    if (i.tipo === 'CATALOGO' && typeof i.produtoId === 'number') {
+      const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
+      const quantidade = typeof i.quantidade === 'number' ? i.quantidade : 0;
+      if (estoqueAtual < quantidade) itensComFalta.add(i.produtoId);
+    }
+  }
+  const statusPedido = itensComFalta.size > 0 ? 'PENDENTE_ESTOQUE' : 'GERADO';
+
+  let gerouPendencia = false;
+  for (const i of itens) {
+    if (i.tipo === 'CATALOGO' && typeof i.produtoId === 'number') {
+      const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
+      const quantidade = typeof i.quantidade === 'number' ? i.quantidade : 0;
+      const falta = estoqueAtual < quantidade;
+
+      if (statusPedido === 'PENDENTE_ESTOQUE' && falta) {
+        gerouPendencia = true;
+        const qtdPendente = estoqueAtual > 0 ? quantidade - estoqueAtual : quantidade;
+        await tx.insert(pendencias).values({
+          tenantId,
+          pedidoId,
+          vendedorId,
+          produtoId: i.produtoId,
+          corId: (typeof i.corId === 'number' ? i.corId : null),
+          quantidade: qtdPendente,
+          status: 'PENDENTE',
+        });
+      }
+
+      if (statusPedido === 'GERADO' && !falta) {
+        const novoEstoque = estoqueAtual - quantidade;
+        await tx.update(produtos)
+          .set({ estoque: novoEstoque })
+          .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, i.produtoId)));
+
+        await insertAuditLog({
+          actorUserId: auditContext.actorUserId,
+          actorVendedorId: auditContext.actorVendedorId,
+          action: "SAIDA",
+          entity: "estoque",
+          entityId: String(i.produtoId),
+          payloadJson: JSON.stringify({
+            pedidoId,
+            produtoId: i.produtoId,
+            quantidade,
+            saldoAnterior: estoqueAtual,
+            saldoNovo: novoEstoque,
+          }),
+          traceId: nanoid(10),
+        }, tx);
+      }
+    }
+  }
+
+  // Update pedido status based on estoque result
+  await tx.update(pedidos)
+    .set({ status: statusPedido })
+    .where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId)));
+
+  return { statusPedido, gerouPendencia };
+}
+
+/**
+ * Helper function for createVenda: extracts pedidoId from insert result.
+ * This replaces direct db.getInsertId call in router.
+ */
+export function extractPedidoIdFromInsert(pedidoInsert: unknown): number {
+  const pedidoId = getInsertId(pedidoInsert);
+  if (!pedidoId) {
+    throw new InfrastructureError('Falha ao obter pedidoId do insert');
+  }
+  return pedidoId;
+}
+
+/**
+ * Helper function for createVenda: inserts itensPedido and contasReceber in transaction.
+ * Receives the pedidoId and necessary data.
+ */
+export async function insertItensPedidoAndContasReceberInTransaction(
+  tx: DbTx,
+  pedidoId: number,
+  tenantId: number,
+  numero: number,
+  vendedorId: number,
+  itens: Array<{
+    tipo: string;
+    produtoId?: number | null;
+    corId?: number | null;
+    corNome?: string | null;
+    descricao: string;
+    marca?: string | null;
+    quantidade: number;
+    valorUnitario: number;
+    custo: number;
+    prazoGarantia?: number;
+    isPremio?: boolean;
+  }>,
+  clienteNome: string,
+  total: number
+): Promise<void> {
+  // Insert itensPedido
+  const itensPedidoRows = itens.map((i) => ({
+    tenantId,
+    pedidoId,
+    tipo: (i.tipo === 'CATALOGO' ? 'CATALOGO' : 'LIVRE') as 'LIVRE' | 'CATALOGO',
+    produtoId: i.produtoId || null,
+    corId: i.corId || null,
+    corNome: i.corNome || null,
+    descricao: `${i.descricao}${i.corNome ? ` ${i.corNome}` : ''}`.trim(),
+    marca: i.marca || null,
+    quantidade: i.quantidade,
+    valorUnitario: i.isPremio ? "0" : roundToTwo(i.valorUnitario).toString(),
+    custo: i.custo.toString(),
+    prazoGarantia: i.prazoGarantia,
+  }));
+  await tx.insert(itensPedido).values(itensPedidoRows);
+
+  // Insert contasReceber (provisório)
+  const venc = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  await tx.insert(contasReceber).values({
+    tenantId,
+    pedidoNumero: numero,
+    clienteNome,
+    vendedorId,
+    descricao: `Fiado - Pedido #${numero}`,
+    valor: roundToTwo(total).toFixed(2),
+    dataVencimento: venc,
+    status: 'PENDENTE',
+    formaPagamento: null,
+    observacoes: 'Gerada automaticamente no pedido. Será substituída/ajustada na baixa.',
+  });
 }

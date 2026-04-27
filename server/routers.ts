@@ -6,8 +6,7 @@ import { systemRouter } from "./_core/systemRouter.js";
 import { publicProcedure, protectedProcedure, adminProcedure, requireRole, router } from "./_core/trpc.js";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { SQL } from "./db/index.js";
-import * as db from "./db/index.js";
+import { and, eq } from "drizzle-orm";
 import * as pdf from "./pdf.js";
 import { roundToTwo, sumWithPrecision, subtractWithPrecision, multiplyWithPrecision } from "./utils/financialUtils.js";
 import { nanoid } from "nanoid";
@@ -25,6 +24,17 @@ import { adminRouter } from "./routers/admin/index.js";
 import { resolveServiceActor } from "./_core/service-actor.js";
 import { auditEntityChange } from "./_core/domain-audit.js";
 import * as cachedClientes from "./services/cached-clientes.service.js";
+import * as inventoryService from "./services/inventory.service.js";
+import * as configuracoesService from "./services/configuracoes.service.js";
+import * as systemService from "./services/system.service.js";
+import * as auditService from "./services/audit-service.js";
+import * as pendenciasService from "./services/pendencias.service.js";
+import * as clientesService from "./services/clientes.service.js";
+import { resolveClienteVendaInTransaction } from "./services/clientes.service.js";
+import * as financeService from "./services/finance.service.js";
+import * as boletosService from "./services/boletos.service.js";
+import * as usersService from "./services/users.service.js";
+import type { Vendedor, InsertVendedor } from "./services/users.service.js";
 import { logger } from "./_core/logger.js";
 import { getPoolStatsSnapshot } from "./config/database.js";
 import {
@@ -33,8 +43,20 @@ import {
   listPedidosTrpcPage,
   getPedidoWithItensForActor,
   getPedidoByIdForActor,
+  getPedidoById,
   getItensPedido,
   PedidoAccessError,
+  buscarPedidos,
+  listPedidosConferencia,
+  marcarPedidoConferido,
+  atualizarStatusPedido,
+  updatePedido,
+  deletePedido,
+  getNextPedidoNumberInTransaction,
+  insertPedidoInTransaction,
+  processEstoqueEPendenciasInTransaction,
+  extractPedidoIdFromInsert,
+  insertItensPedidoAndContasReceberInTransaction,
 } from "./services/orders.service.js";
 import * as logisticaService from "./services/logistica.service.js";
 import { buscarRegistros } from "./services/audit-service.js";
@@ -165,10 +187,10 @@ async function getBcrypt(): Promise<{
 }
 
 /** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
-async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: db.Vendedor | null }) {
+async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: Vendedor | null }) {
   if (ctx.vendedor) return ctx.vendedor;
   if (!ctx.user || ctx.user.role === "admin") return null;
-  return (await db.getVendedorById(ctx.user.id)) ?? null;
+  return (await usersService.getVendedorByUserId(ctx.user.id)) ?? null;
 }
 
 function mapPedidoAccessError(e: unknown): never {
@@ -277,7 +299,7 @@ export const appRouter = router({
             timestamp: Date.now(),
           });
 
-        const user = await db.getUserByOpenId(username);
+        const user = await usersService.getUserByOpenIdGlobal(username);
         if (!user) {
           audit(false);
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário inválido" });
@@ -310,7 +332,7 @@ export const appRouter = router({
           const sessionValue = `u:${user.id}`;
           ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
           ctx.res.cookie("session", sessionValue, cookieOptions);
-          await db.touchLastSignedIn(user.id);
+          await usersService.touchLastSignedInGlobal(user.id);
           clearRateLimitForKey(rateLimitKey, user.tenantId);
           audit(true);
           if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (admin)`);
@@ -323,7 +345,7 @@ export const appRouter = router({
           };
         }
 
-        const vendedor = await db.getVendedorByUserId(user.id);
+        const vendedor = await usersService.getVendedorByUserId(user.id);
         if (!vendedor) {
           audit(false);
           throw new TRPCError({
@@ -340,7 +362,7 @@ export const appRouter = router({
                 const sessionValue = `v:${user.tenantId}:${vendedor.id}`;
                 ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
                 ctx.res.cookie("session", sessionValue, cookieOptions);
-                await db.touchLastSignedIn(user.id);
+                await usersService.touchLastSignedInGlobal(user.id);
                 clearRateLimitForKey(rateLimitKey, user.tenantId);
                 audit(true);
                 if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (vendedor)`);
@@ -375,7 +397,7 @@ export const appRouter = router({
     impersonateVendedor: adminProcedure
       .input(z.object({ vendedorId: z.number().int().positive() }))
       .mutation(async ({ input, ctx }) => {
-        const vendedor = await db.getVendedorById(input.vendedorId);
+        const vendedor = await usersService.getVendedorById(input.vendedorId);
         if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
         const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
         const currentToken = typeof ctx.req.headers.cookie === "string"
@@ -391,7 +413,7 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
         ctx.res.cookie("session", sessionValue, cookieOptions);
         const traceId = nanoid(10);
-        await db.insertAuditLog({
+        await auditService.insertAuditLog({
           actorUserId: ctx.user.id,
           actorVendedorId: null,
           action: "IMPERSONATE_START",
@@ -416,7 +438,7 @@ export const appRouter = router({
       ctx.res.clearCookie(ADMIN_SESSION_COOKIE, { path: "/", maxAge: 0, expires: new Date(0) });
       const adminUserId = adminToken.startsWith("u:") ? parseInt(adminToken.slice(2), 10) : null;
       const traceId = nanoid(10);
-      await db.insertAuditLog({
+      await auditService.insertAuditLog({
         actorUserId: Number.isFinite(adminUserId) ? adminUserId : null,
         actorVendedorId: ctx.vendedor?.id ?? null,
         action: "IMPERSONATE_STOP",
@@ -463,7 +485,7 @@ export const appRouter = router({
   // ===== VENDEDORES =====
   vendedores: router({
     list: adminProcedure.query(async () => {
-      return await db.getAllVendedores();
+      return await usersService.getAllVendedores();
     }),
     create: adminProcedure
       .input(z.object({
@@ -484,7 +506,7 @@ export const appRouter = router({
           });
           
           // Verificar se já existe um vendedor com o mesmo nome
-          const existingVendedor = await db.getVendedorByNome(input.nome);
+          const existingVendedor = await usersService.getVendedorByNome(input.nome);
           if (existingVendedor) {
             console.error(`[vendedores.create] Já existe um vendedor com o nome: ${input.nome}`);
             throw new TRPCError({
@@ -520,7 +542,7 @@ export const appRouter = router({
           const now = new Date();
           
           // Create user first
-          const createdUser = await db.insertUser({
+          const createdUser = await usersService.insertUser({
             tenantId,
             openId: `vendedor_${Date.now()}_${input.nome.replace(/\s/g, '').toLowerCase()}`,
             name: input.nome,
@@ -532,7 +554,7 @@ export const appRouter = router({
             lastSignedIn: now,
           });
           
-          const data: Parameters<typeof db.createVendedor>[0] = {
+          const data: Parameters<typeof usersService.createVendedor>[0] = {
             tenantId,
             userId: createdUser.id,
             nome: input.nome.trim().toUpperCase(),
@@ -544,12 +566,12 @@ export const appRouter = router({
           };
 
           // Criar vendedor
-          const result = await db.createVendedor(data);
+          const result = await usersService.createVendedor(data);
           console.log("[vendedores.create] Vendedor criado com sucesso:", result);
           
           // Verificar se o vendedor foi realmente criado
           if (result.id) {
-            const createdVendedor = await db.getVendedorById(result.id);
+            const createdVendedor = await usersService.getVendedorById(result.id);
             console.log("[vendedores.create] Verificação pós-criação:", createdVendedor ? {
               id: createdVendedor.id,
               nome: createdVendedor.nome,
@@ -558,12 +580,12 @@ export const appRouter = router({
           }
           
           if (result?.id) {
-            await db.insertAuditLog({
+            await auditService.insertAuditLog({
               actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
               actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
               action: "create",
               entity: "vendedor",
-              entityId: result.id,
+              entityId: String(result.id),
               payloadJson: JSON.stringify({ nome: input.nome }),
             });
           }
@@ -603,12 +625,12 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { id, senha, ...rest } = input;
         const bcrypt = await getBcrypt();
-        let data: Partial<db.InsertVendedor> = rest as Partial<db.InsertVendedor>;
+        let data: Partial<InsertVendedor> = rest as Partial<InsertVendedor>;
         
         if (senha) {
           if (bcrypt) {
             try {
-              data = { ...rest, senha: await bcrypt.hash(senha, 10) } as Partial<db.InsertVendedor>;
+              data = { ...rest, senha: await bcrypt.hash(senha, 10) } as Partial<InsertVendedor>;
             } catch (error) {
               console.error("[vendedores.update] Erro ao gerar hash com bcrypt:", error);
               throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao gerar hash de senha (bcrypt obrigatório)" });
@@ -617,13 +639,13 @@ export const appRouter = router({
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "bcrypt indisponível (obrigatório)" });
           }
         }
-        const out = await db.updateVendedor(id, data);
-        await db.insertAuditLog({
+        const out = await usersService.updateVendedor(id, data);
+        await auditService.insertAuditLog({
           actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
           actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
           action: "update",
           entity: "vendedor",
-          entityId: id,
+          entityId: String(id),
           payloadJson: JSON.stringify({ nome: input.nome ?? undefined }),
         });
         return out;
@@ -631,13 +653,13 @@ export const appRouter = router({
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        const out = await db.deleteVendedor(input.id);
-        await db.insertAuditLog({
+        const out = await usersService.deleteVendedor(input.id);
+        await auditService.insertAuditLog({
           actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
           actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
           action: "delete",
           entity: "vendedor",
-          entityId: input.id,
+          entityId: String(input.id),
         });
         return out;
       }),
@@ -649,24 +671,24 @@ export const appRouter = router({
         password: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const vendedor = await db.getVendedorById(input.vendedorId);
+        const vendedor = await usersService.getVendedorById(input.vendedorId);
         if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
         const tenantId = await requireTenant(ctx);
-        const user = await db.findOrCreateUserByOpenId(tenantId, input.openId.trim().toLowerCase(), vendedor.nome);
+        const user = await usersService.findOrCreateUserByOpenId(tenantId, input.openId.trim().toLowerCase(), vendedor.nome);
         if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao criar/buscar usuário" });
-        await db.updateVendedor(input.vendedorId, { userId: user.id });
+        await usersService.updateVendedor(input.vendedorId, { userId: user.id });
         if (input.password != null && input.password !== "") {
           const bcrypt = await getBcrypt();
           if (!bcrypt) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "bcrypt indisponível (obrigatório)" });
           const hashed = await bcrypt.hash(input.password, 10);
-          await db.updateVendedorSenha(input.vendedorId, hashed);
+          await usersService.updateVendedorSenha(input.vendedorId, hashed);
         }
-        await db.insertAuditLog({
+        await auditService.insertAuditLog({
           actorUserId: ctx.user?.id ?? null,
           actorVendedorId: null,
           action: "update",
           entity: "vendedor",
-          entityId: input.vendedorId,
+          entityId: String(input.vendedorId),
           payloadJson: JSON.stringify({ linkUser: user.id, openId: input.openId }),
         });
         return { ok: true, userId: user.id, vendedorId: input.vendedorId };
@@ -685,7 +707,7 @@ export const appRouter = router({
         const tenantId = await requireTenant(ctx);
         const page = input?.page ?? 1;
         const pageSize = Math.min(input?.pageSize ?? 50, 100);
-        const { items, total } = await db.getProdutosComPrecoVigentePaged(tenantId, {
+        const { items, total } = await inventoryService.getProdutosComPrecoVigentePaged(tenantId, {
           page,
           pageSize,
           refDate: new Date(),
@@ -703,7 +725,7 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.getProdutoById(tenantId, input.id);
+        return await inventoryService.getProdutoById(tenantId, input.id);
       }),
 
     create: adminProcedure
@@ -741,7 +763,7 @@ export const appRouter = router({
             valorVenda: Number(data.valorVenda).toFixed(2),
           };
           const tenantId = await requireTenant(ctx);
-          return await db.updateProduto(tenantId, id, patch, version);
+          return await inventoryService.updateProduto(tenantId, id, patch, version);
         } catch (error) {
           if (error instanceof Error && error.message.includes("modificado por outro usuário")) {
             throw new TRPCError({ 
@@ -776,7 +798,7 @@ export const appRouter = router({
         const q = (input.query ?? "").trim();
         const page = input.page ?? 1;
         const pageSize = Math.min(input.pageSize ?? 50, 100);
-        const { items, total } = await db.getProdutosComPrecoVigentePaged(tenantId, {
+        const { items, total } = await inventoryService.getProdutosComPrecoVigentePaged(tenantId, {
           page,
           pageSize,
           query: q || undefined,
@@ -806,7 +828,7 @@ export const appRouter = router({
         };
         try {
           const tenantId = await requireTenant(ctx);
-          await db.updateEstoqueProduto(tenantId, input.id, qtd, audit);
+          await inventoryService.updateEstoqueProduto(tenantId, { id: input.id, quantidade: qtd, audit });
           return { message: "Estoque atualizado" };
         } catch (e: unknown) {
           if (hasStockErrorCode(e) && (e.code === "ESTOQUE_NEGATIVO" || e.code === "ESTOQUE_INSUFICIENTE")) {
@@ -871,8 +893,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        await db.criarNotaEntrada(tenantId, {
-          tenantId,
+        await inventoryService.criarNotaEntrada(tenantId, {
           marca: input.marca,
           dataChegada: new Date(input.dataChegada),
           valorTotal: input.valorTotal,
@@ -890,36 +911,35 @@ export const appRouter = router({
   cores: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      return await db.getAllCores(tenantId);
+      return await inventoryService.listCores(tenantId);
     }),
     create: adminProcedure
       .input(z.object({ nome: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.createCor(tenantId, input);
+        return await inventoryService.createCor(tenantId, input);
       }),
     update: adminProcedure
       .input(z.object({ id: z.number(), nome: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        await db.updateCor(tenantId, input.id, { nome: input.nome });
+        await inventoryService.updateCor(tenantId, input.id, { nome: input.nome });
         return { ok: true as const };
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        await db.deleteCor(tenantId, input.id);
+        await inventoryService.deleteCor(tenantId, input.id);
         return { ok: true as const };
       }),
   }),
 
   // ===== GRUPOS =====
   gruposPrecificacao: router({
-    list: protectedProcedure.query(async () => {
-      const db_conn = await db.getDb();
-      if (!db_conn) return [];
-      return await db_conn.select().from(db.gruposPrecificacao);
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const tenantId = await requireTenant(ctx);
+      return await inventoryService.listGruposPrecificacao(tenantId);
     }),
     create: adminProcedure
       .input(z.object({ nome: z.string().min(1), idempotencyKey: z.string().max(64).optional() }))
@@ -929,12 +949,8 @@ export const appRouter = router({
         const result = await executeCommand(
           { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },
           async (tx) => {
-            const res = await tx.insert(db.gruposPrecificacao).values({
-              tenantId,
-              nome: data.nome,
-            });
-            const id = db.getInsertId(res);
-            return { ...commandResult(true, ["Grupo criado"]), id };
+            const res = await inventoryService.createGrupoPrecificacao(tenantId, data, tx);
+            return { ...commandResult(true, ["Grupo criado"]), id: res.id };
           }
         );
         if (isInProgress(result)) return result;
@@ -958,14 +974,14 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { id, ...data } = input;
         const tenantId = await requireTenant(ctx);
-        await db.updateGrupoPrecificacao(tenantId, id, data);
+        await inventoryService.updateGrupoPrecificacao(tenantId, id, data);
         return { ok: true as const };
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        await db.deleteGrupoPrecificacao(tenantId, input.id);
+        await inventoryService.deleteGrupoPrecificacao(tenantId, input.id);
         return { ok: true as const };
       }),
   }),
@@ -986,7 +1002,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const traceId = nanoid(10);
         const tenantId = await requireTenant(ctx);
-        const out = await db.ajusteRapidoEstoque(
+        const out = await inventoryService.ajusteRapidoEstoque(
           tenantId,
           input.produtoId,
           input.quantidade,
@@ -1035,10 +1051,10 @@ export const appRouter = router({
       .input(z.object({ term: z.string() }))
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        if (ctx.user.role === "admin") return await db.searchClientes(tenantId, input.term);
+        if (ctx.user.role === "admin") return await clientesService.searchClientes(tenantId, input.term);
         const vendedor = await getVendedorFromContext(ctx);
         if (!vendedor) return [];
-        return await db.searchClientesByVendedor(tenantId, input.term, vendedor.id);
+        return await clientesService.searchClientesByVendedor(tenantId, input.term, vendedor.id);
       }),
     
     create: protectedProcedure
@@ -1069,7 +1085,7 @@ export const appRouter = router({
         const vendedorId = user.role === "admin"
           ? input.vendedorIdPrincipal
           : (await getVendedorFromContext(ctx))?.id;
-        const created = await db.createCliente(tenantId, input, vendedorId);
+        const created = await clientesService.createClienteRouter(tenantId, input, vendedorId);
         const cid = (created as { id?: number })?.id;
         if (cid != null) {
           await auditEntityChange(ctx, tenantId, "create", "cliente", cid, {
@@ -1085,14 +1101,14 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
         const actor = await resolveServiceActor(ctx);
-        return await db.searchClientesGlobal(tenantId, input.term, input.limit ?? 50, actor);
+        return await clientesService.searchClientesGlobal(tenantId, input.term, input.limit ?? 50, actor);
       }),
 
     getVendedorPrincipal: protectedProcedure
       .input(z.object({ clienteId: z.number() }))
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.getVendedorPrincipalDoCliente(tenantId, input.clienteId);
+        return await clientesService.getVendedorPrincipalDoClienteRouter(tenantId, input.clienteId);
       }),
 
     vinculate: protectedProcedure
@@ -1101,7 +1117,7 @@ export const appRouter = router({
         const vendedor = await getVendedorFromContext(ctx);
         if (!vendedor) throw new TRPCError({ code: "BAD_REQUEST", message: "Vendedor não identificado." });
         const tenantId = await requireTenant(ctx);
-        await db.createClienteVinculo(tenantId, input.clienteId, vendedor.id, input.tipo ?? "SECUNDARIO");
+        await clientesService.createClienteVinculo(tenantId, input.clienteId, vendedor.id, input.tipo ?? "SECUNDARIO");
         return { ok: true };
       }),
     
@@ -1125,7 +1141,7 @@ export const appRouter = router({
         await assertOwnership(ctx, "cliente", input.id);
         const actor = await resolveServiceActor(ctx);
         const { id, ...data } = input;
-        const out = await db.updateCliente(tenantId, actor, id, data);
+        const out = await clientesService.updateClienteRouter(tenantId, actor, id, data);
         await auditEntityChange(ctx, tenantId, "update", "cliente", id, {
           nome: input.nome,
           telefone: input.telefone,
@@ -1139,7 +1155,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
         const actor = await resolveServiceActor(ctx);
-        const out = await db.deleteClienteById(tenantId, actor, input.id);
+        const out = await clientesService.deleteClienteById(tenantId, actor, input.id);
         await auditEntityChange(ctx, tenantId, "delete", "cliente", input.id, {});
         return out;
       }),
@@ -1283,7 +1299,7 @@ export const appRouter = router({
         if (patch.formaPagamento !== undefined) data.formaPagamento = patch.formaPagamento;
         if (patch.status !== undefined) data.status = patch.status;
         try {
-          return await db.updatePedido(tenantId, actor, id, data);
+          return await updatePedido(tenantId, actor, id, data);
         } catch (e) {
           mapPedidoAccessError(e);
           throw e;
@@ -1296,7 +1312,7 @@ export const appRouter = router({
         const tenantId = await requireTenant(ctx);
         const actor = await resolveServiceActor(ctx);
         try {
-          return await db.deletePedido(tenantId, actor, input.id);
+          return await deletePedido(tenantId, actor, input.id);
         } catch (e) {
           if (e instanceof Error && e.message.includes("ENTREGUE")) {
             throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
@@ -1309,64 +1325,9 @@ export const appRouter = router({
     buscar: protectedProcedure
       .input(z.object({ query: z.string().optional() }))
       .query(async ({ input, ctx }) => {
-        const db_conn = await db.getDb();
-        if (!db_conn) return { pedidos: [], total: 0 };
         const tenantId = await requireTenant(ctx);
-        const filters: SQL[] = [db.eq(db.pedidos.tenantId, tenantId)];
-        if (ctx.user.role !== "admin") {
-          let ownerUid: number;
-          try {
-            ownerUid = await resolveOwnerUserId(ctx);
-          } catch {
-            return { pedidos: [], total: 0 };
-          }
-          // Validar via clienteVendedores
-          const db_conn = await db.getDb();
-          if (!db_conn) return { pedidos: [], total: 0 };
-          
-          const clienteVendedorSubquery = db_conn.select({ clienteId: db.clienteVendedores.clienteId })
-            .from(db.clienteVendedores)
-            .where(db.and(
-              db.eq(db.clienteVendedores.vendedorId, ownerUid)
-            ));
-          filters.push(db.inArray(db.pedidos.clienteId, clienteVendedorSubquery));
-        }
-        if (input.query?.trim()) {
-          const term = `%${input.query.trim()}%`;
-          const buscaOr = db.or(
-            db.sql`LOWER(${db.pedidos.clienteNome}) LIKE LOWER(${term})`,
-            db.sql`${db.pedidos.numero} LIKE ${term}`
-          );
-          if (buscaOr) filters.push(buscaOr);
-        }
-        const whereSql: SQL | undefined =
-          filters.length === 0
-            ? undefined
-            : filters.length === 1
-              ? (filters[0] ?? undefined)
-              : db.and(...filters);
-        const base = db_conn
-          .select({
-            id: db.pedidos.id,
-            numero: db.pedidos.numero,
-            clienteNome: db.pedidos.clienteNome,
-            clienteCidade: db.pedidos.clienteCidade,
-            clienteUf: db.pedidos.clienteUf,
-            vendedorId: db.pedidos.vendedorId,
-            vendedorNome: db.vendedores.nome,
-            total: db.pedidos.total,
-            status: db.pedidos.status,
-            formaPagamento: db.pedidos.formaPagamento,
-            createdAt: db.pedidos.createdAt,
-            dataEntrega: db.pedidos.dataEntrega,
-          })
-          .from(db.pedidos)
-          .innerJoin(db.clientes, db.eq(db.pedidos.clienteId, db.clientes.id))
-          .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id));
-        const rows = await (whereSql === undefined ? base : base.where(whereSql)).orderBy(
-          db.desc(db.pedidos.createdAt)
-        );
-        return { pedidos: rows, total: rows.length };
+        const actor = await resolveServiceActor(ctx);
+        return await buscarPedidos(tenantId, actor, input.query);
       }),
 
     /** Pedidos aptos a formar carga (status GERADO no serviço de logística). */
@@ -1408,92 +1369,17 @@ export const appRouter = router({
           .optional()
       )
       .query(async ({ ctx, input }) => {
-        const db_conn = await db.getDb();
-        if (!db_conn) return { items: [] as const, total: 0, page: 1, pageSize: 80, hasMore: false };
         const tenantId = await requireTenant(ctx);
-        const filters: SQL[] = [db.eq(db.pedidos.tenantId, tenantId)];
-        if (ctx.user.role !== "admin") {
-          let ownerUid: number;
-          try {
-            ownerUid = await resolveOwnerUserId(ctx);
-          } catch {
-            return { items: [], total: 0, page: 1, pageSize: 80, hasMore: false };
-          }
-          // Validar via clienteVendedores
-          const db_conn = await db.getDb();
-          if (!db_conn) return { pedidos: [], total: 0 };
-          
-          const clienteVendedorSubquery = db_conn.select({ clienteId: db.clienteVendedores.clienteId })
-            .from(db.clienteVendedores)
-            .where(db.and(
-              db.eq(db.clienteVendedores.vendedorId, ownerUid)
-            ));
-          filters.push(db.inArray(db.clientes.id, clienteVendedorSubquery));
-        }
-        const tab = input?.status ?? "TODOS";
-        if (tab === "GERADO") {
-          filters.push(db.eq(db.pedidos.status, "GERADO"));
-        } else if (tab === "CONFERIDO") {
-          filters.push(db.eq(db.pedidos.status, "CONFERIDO"));
-        } else {
-          filters.push(db.inArray(db.pedidos.status, ["GERADO", "CONFERIDO"]));
-        }
-        if (input?.somenteNaoConferidos) {
-          filters.push(db.eq(db.pedidos.status, "GERADO"));
-        }
-        if (input?.busca?.trim()) {
-          const term = `%${input.busca.trim()}%`;
-          const buscaOr = db.or(
-            db.sql`LOWER(${db.pedidos.clienteNome}) LIKE LOWER(${term})`,
-            db.sql`${db.pedidos.numero} LIKE ${term}`
-          );
-          if (buscaOr) filters.push(buscaOr);
-        }
-        if (input?.dataInicio) {
-          filters.push(db.sql`${db.pedidos.createdAt} >= ${input.dataInicio}`);
-        }
-        if (input?.dataFim) {
-          const end = new Date(input.dataFim);
-          end.setHours(23, 59, 59, 999);
-          filters.push(db.sql`${db.pedidos.createdAt} <= ${end}`);
-        }
-        const whereSql: SQL | undefined =
-          filters.length === 0
-            ? undefined
-            : filters.length === 1
-              ? (filters[0] ?? undefined)
-              : db.and(...filters);
-        const page = input?.page ?? 1;
-        const pageSize = Math.min(input?.pageSize ?? 80, 200);
-        const sel = {
-          id: db.pedidos.id,
-          numero: db.pedidos.numero,
-          clienteNome: db.pedidos.clienteNome,
-          status: db.pedidos.status,
-          createdAt: db.pedidos.createdAt,
-        };
-        const listBase = db_conn
-          .select(sel)
-          .from(db.pedidos)
-          .innerJoin(db.clientes, db.eq(db.pedidos.clienteId, db.clientes.id))
-          .innerJoin(db.vendedores, db.eq(db.pedidos.vendedorId, db.vendedores.id));
-        const listFiltered = whereSql === undefined ? listBase : listBase.where(whereSql);
-        const rows = await listFiltered
-          .orderBy(db.desc(db.pedidos.createdAt))
-          .limit(pageSize)
-          .offset((page - 1) * pageSize);
-        const items = rows.map((r) => ({
-          ...r,
-          conferido: r.status === "CONFERIDO",
-        }));
-        return { items, total: items.length, page, pageSize, hasMore: false };
+        const actor = await resolveServiceActor(ctx);
+        return await listPedidosConferencia(tenantId, actor, input);
       }),
 
     marcarConferido: protectedProcedure
       .input(z.object({ id: z.number(), idempotencyKey: z.string().max(64).optional() }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(input.id);
+        const tenantId = await requireTenant(ctx);
+        const pedido = await getPedidoById(tenantId, input.id);
         if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
         if (pedido.status === "CONFERIDO") {
           return { ok: true as const, already: true as const };
@@ -1507,7 +1393,7 @@ export const appRouter = router({
         const result = await executeCommand(
           { commandName: "pedidos.marcarConferido", idempotencyKey: input.idempotencyKey },
           async (tx) => {
-            await tx.update(db.pedidos).set({ status: "CONFERIDO" }).where(db.eq(db.pedidos.id, input.id));
+            await marcarPedidoConferido(tenantId, input.id, tx);
             return { ...commandResult(true, ["Conferido"]), success: true };
           }
         );
@@ -1524,7 +1410,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(input.id);
+        const tenantId = await requireTenant(ctx);
+        const pedido = await getPedidoById(tenantId, input.id);
         if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
         const atual = pedido.status as PedidoStatus;
         const proximo = input.status as PedidoStatus;
@@ -1543,7 +1430,7 @@ export const appRouter = router({
         const result = await executeCommand(
           { commandName: "pedidos.updateStatus", idempotencyKey: input.idempotencyKey ?? undefined },
           async (tx) => {
-            await tx.update(db.pedidos).set({ status: proximo }).where(db.eq(db.pedidos.id, input.id));
+            await atualizarStatusPedido(tenantId, input.id, proximo, tx);
             return { ...commandResult(true, ["Status atualizado"]), success: true };
           }
         );
@@ -1574,15 +1461,15 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        const pedido = await db.getPedidoById(input.id);
+        const tenantId = await requireTenant(ctx);
+        const pedido = await getPedidoById(tenantId, input.id);
         if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
         try {
           const actor = await resolveServiceActor(ctx);
           const result = await executeCommand(
             { commandName: "baixarPedidoDireto", idempotencyKey: input.idempotencyKey },
             async (tx) => {
-              const tenantId = await requireTenant(ctx);
-              const out = await db.baixarPedidoDireto(
+              const out = await financeService.baixarPedidoDireto(
                 tenantId,
                 input.id,
                 {
@@ -1594,14 +1481,14 @@ export const appRouter = router({
                   boletoVencimentos: input.boletoVencimentos,
                   boletoPrimeiroVencimento: input.boletoPrimeiroVencimento,
                 },
-                actor
+                { tx, actor }
               );
               return { ok: true, traceId: nanoid(10), ...out };
             }
           );
           if (isInProgress(result)) return result;
 
-          await db.insertAuditLog({
+          await auditService.insertAuditLog({
             actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
             actorVendedorId: ctx.user?.role !== "admin" ? (await getVendedorFromContext(ctx))?.id : null,
             action: "BAIXA",
@@ -1764,9 +1651,9 @@ export const appRouter = router({
             async (tx) => {
               let tMark = Date.now();
               const isAdmin = ctx.user?.role === "admin";
-              let vendedor: db.Vendedor | null = ctx.vendedor ?? null;
+              let vendedor: Vendedor | null = ctx.vendedor ?? null;
               if (!vendedor && isAdmin && input.vendedorId) {
-                vendedor = await db.getVendedorById(input.vendedorId);
+                vendedor = await usersService.getVendedorById(input.vendedorId);
               }
               if (!vendedor && !isAdmin) {
                 vendedor = await getVendedorFromContext(ctx);
@@ -1791,83 +1678,22 @@ export const appRouter = router({
             if (!nomeOk || !telOk) {
               throw new TRPCError({ code: "BAD_REQUEST", message: "Informe telefone e nome." });
             }
-            const telefoneNorm = db.normalizeTelefone(input.cliente.telefone);
-            const { nomeNorm, sobrenomeNorm } = db.normalizeNomeSobrenome(input.cliente.nome);
-            const nn = nomeNorm.slice(0, 120);
-            const sn = sobrenomeNorm.slice(0, 120);
-            const existing = await tx.select({ id: db.clientes.id }).from(db.clientes)
-              .where(db.and(
-                db.eq(db.clientes.tenantId, vendedor.tenantId),
-                db.eq(db.clientes.telefoneNorm, telefoneNorm),
-                db.eq(db.clientes.nomeNorm, nn),
-                db.eq(db.clientes.sobrenomeNorm, sn)
-              ))
-              .limit(1);
-            if (existing.length > 0) {
-              clienteId = existing[0].id;
-            } else {
-              const tel = input.cliente.telefone === '' || input.cliente.telefone == null ? null : (input.cliente.telefone || null);
-              const created = await tx.insert(db.clientes).values({
-                tenantId: vendedor.tenantId,
-                nome: input.cliente.nome,
-                telefone: tel,
-                telefoneNorm: telefoneNorm.slice(0, 32),
-                nomeNorm: nn,
-                sobrenomeNorm: sn,
-                telefoneRecado: input.cliente.telefoneRecado || null,
-                rua: input.cliente.rua || null,
-                numero: input.cliente.numero || null,
-                bairro: input.cliente.bairro || null,
-                cidade: input.cliente.cidade || null,
-                uf: input.cliente.uf || null,
-                referencia: input.cliente.referencia || null,
-                condominio: input.cliente.condominio || null,
-              });
-              clienteId = db.getInsertId(created);
-            }
+            clienteId = await resolveClienteVendaInTransaction(
+              tx,
+              vendedor.tenantId,
+              vendedor.id,
+              input.cliente
+            );
           }
 
           if (!clienteId) {
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Falha ao criar cliente.' });
           }
-
-          // Vínculo idempotente: se já existe (clienteId, vendedorId), não insere; senão PRINCIPAL ou SECUNDARIO conforme já existir principal.
-          await db.ensureClienteVendedorLink(tx, vendedor.tenantId, clienteId, vendedor.id);
           markPhase("clienteLinkMs", tMark);
           tMark = Date.now();
 
           // 2) Número do pedido (travado para não duplicar, por tenant)
-          const tenantIdForCounter = vendedor.tenantId;
-          const readCounterForUpdate = async () => {
-            const result = await tx.execute(db.sql`
-              SELECT seq FROM counters
-              WHERE tenant_id = ${tenantIdForCounter} AND name = 'pedidos'
-              FOR UPDATE
-            `);
-            const rows = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : [];
-            return rows as CounterSelectRow[];
-          };
-
-          let counterRows = await readCounterForUpdate();
-          const currentSeq = Number(counterRows?.[0]?.seq ?? 0);
-
-          let numero: number;
-          if (!counterRows || counterRows.length === 0) {
-            numero = 1;
-            try {
-              await tx.insert(db.counters).values({ tenantId: tenantIdForCounter, name: 'pedidos', seq: 1, free: null });
-            } catch (e) {
-              if (!isDuplicateKeyError(e)) throw e;
-              // Duas transações viram fila vazia: FOR UPDATE não trava linha inexistente; a outra inseriu primeiro.
-              counterRows = await readCounterForUpdate();
-              const seq = Number(counterRows?.[0]?.seq ?? 0);
-              numero = seq + 1;
-              await tx.update(db.counters).set({ seq: numero }).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
-            }
-          } else {
-            numero = currentSeq + 1;
-            await tx.update(db.counters).set({ seq: numero }).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));
-          }
+          const numero = await getNextPedidoNumberInTransaction(tx, vendedor.tenantId);
           markPhase("counterMs", tMark);
           tMark = Date.now();
 
@@ -1931,39 +1757,8 @@ export const appRouter = router({
 
           // 4) Estoque: verificar se algum item de catálogo tem estoque insuficiente (FOR UPDATE).
           // Se tiver: salvar pedido como PENDENTE_ESTOQUE, criar pendências, NÃO mexer no estoque. Idempotência mantida.
-          const catalogIds = Array.from(
-            new Set(
-              input.itens
-                .filter((x): x is (typeof input.itens)[number] & { produtoId: number } => x.tipo === 'CATALOGO' && typeof x.produtoId === 'number')
-                .map((x) => x.produtoId)
-            )
-          );
-          const estoquePorProduto: Record<number, number> = {};
-          if (catalogIds.length > 0) {
-            const rows = await tx
-              .select({ id: db.produtos.id, estoque: db.produtos.estoque })
-              .from(db.produtos)
-              .where(
-                db.and(db.eq(db.produtos.tenantId, vendedor.tenantId), db.inArray(db.produtos.id, catalogIds))
-              )
-              .for("update");
-            for (const r of rows) {
-              estoquePorProduto[Number(r.id)] = Number(r.estoque ?? 0);
-            }
-          }
-          markPhase("estoqueLockMs", tMark);
-          tMark = Date.now();
-          const itensComFalta: Set<number> = new Set();
-          for (const i of input.itens) {
-            if (i.tipo === 'CATALOGO' && i.produtoId) {
-              const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
-              if (estoqueAtual < i.quantidade) itensComFalta.add(i.produtoId);
-            }
-          }
-          const statusPedido = itensComFalta.size > 0 ? 'PENDENTE_ESTOQUE' : 'GERADO';
-
           // 5) Pedido (com status GERADO ou PENDENTE_ESTOQUE)
-          const pedidoInsert = await tx.insert(db.pedidos).values({
+          const pedidoInsert = await insertPedidoInTransaction(tx, {
             tenantId: vendedor.tenantId,
             numero,
             vendedorId: vendedor.id,
@@ -1984,100 +1779,47 @@ export const appRouter = router({
             desconto: roundToTwo(input.desconto).toFixed(2),
             frete: roundToTwo(input.frete).toFixed(2),
             total: roundToTwo(input.total).toFixed(2),
-            status: statusPedido,
+            status: 'GERADO', // Will be updated by processEstoqueEPendenciasInTransaction
             formaPagamento: pagamentoPlanejado,
             observacoes: input.observacoes || null,
           } as never);
 
-          const pedidoId = db.getInsertId(pedidoInsert);
-          if (!pedidoId) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Falha ao criar pedido.' });
+          const pedidoId = extractPedidoIdFromInsert(pedidoInsert);
           markPhase("pedidoInsertMs", tMark);
           tMark = Date.now();
 
-          // 6) Catálogo: pendências + baixa de estoque (mesma ordem de linhas que antes)
-          for (const i of input.itens) {
-            if (i.tipo === 'CATALOGO' && i.produtoId) {
-              const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
-              const falta = estoqueAtual < i.quantidade;
-              if (statusPedido === 'PENDENTE_ESTOQUE' && falta) {
-                gerouPendencia = true;
-                const qtdPendente = estoqueAtual > 0 ? i.quantidade - estoqueAtual : i.quantidade;
-                await tx.insert(db.pendencias).values({
-                  tenantId: vendedor.tenantId,
-                  pedidoId,
-                  vendedorId: vendedor.id,
-                  produtoId: i.produtoId,
-                  corId: i.corId || null,
-                  quantidade: qtdPendente,
-                  status: 'PENDENTE',
-                });
-              }
-              if (statusPedido === 'GERADO' && !falta) {
-                const novoEstoque = estoqueAtual - i.quantidade;
-                await tx.update(db.produtos)
-                  .set({ estoque: novoEstoque })
-                  .where(
-                    db.and(
-                      db.eq(db.produtos.tenantId, vendedor.tenantId),
-                      db.eq(db.produtos.id, i.produtoId)
-                    )
-                  );
-                await db.insertAuditLog({
-                  actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
-                  actorVendedorId: ctx.user?.role !== "admin" ? vendedor?.id ?? null : null,
-                  action: "SAIDA",
-                  entity: "estoque",
-                  entityId: String(i.produtoId),
-                  payloadJson: JSON.stringify({
-                    pedidoId,
-                    produtoId: i.produtoId,
-                    quantidade: i.quantidade,
-                    saldoAnterior: estoqueAtual,
-                    saldoNovo: novoEstoque,
-                  }),
-                  traceId: nanoid(10),
-                }, tx);
-              }
+          // 6) Catálogo: estoque validation, pendências + baixa de estoque
+          const estoqueResult = await processEstoqueEPendenciasInTransaction(
+            tx,
+            vendedor.tenantId,
+            vendedor.id,
+            pedidoId,
+            input.itens,
+            {
+              actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
+              actorVendedorId: ctx.user?.role !== "admin" ? vendedor?.id ?? null : null,
             }
-          }
+          );
+          gerouPendencia = estoqueResult.gerouPendencia;
           markPhase("catalogoEstoqueMs", tMark);
           tMark = Date.now();
 
-          const itensPedidoRows = input.itens.map((i) => ({
-            tenantId: vendedor.tenantId,
+          // 7) Insert itensPedido and contasReceber via service function
+          await insertItensPedidoAndContasReceberInTransaction(
+            tx,
             pedidoId,
-            tipo: i.tipo,
-            produtoId: i.produtoId || null,
-            corId: i.corId || null,
-            corNome: i.corNome || null,
-            descricao: `${i.descricao}${i.corNome ? ` ${i.corNome}` : ''}`.trim(),
-            marca: i.marca || null,
-            quantidade: i.quantidade,
-            valorUnitario: i.isPremio ? 0 : roundToTwo(i.valorUnitario),
-            custo: i.custo,
-            prazoGarantia: i.prazoGarantia,
-          }));
-          await tx.insert(db.itensPedido).values(itensPedidoRows as never);
+            vendedor.tenantId,
+            numero,
+            vendedor.id,
+            input.itens,
+            input.cliente.nome,
+            roundToTwo(input.total)
+          );
           markPhase("itensBatchInsertMs", tMark);
           tMark = Date.now();
-
-          // 7) Contas a Receber (provisório) — o real será gerado/ajustado na baixa (carga/entrega)
-          const venc = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-          await tx.insert(db.contasReceber).values({
-            tenantId: vendedor.tenantId,
-            pedidoNumero: numero,
-            clienteNome: input.cliente.nome,
-            vendedorId: vendedor.id,
-            descricao: `Fiado - Pedido #${numero}`,
-            valor: roundToTwo(input.total).toFixed(2),
-            dataVencimento: venc,
-            status: 'PENDENTE',
-            formaPagamento: null,
-            observacoes: 'Gerada automaticamente no pedido. Será substituída/ajustada na baixa.',
-          } as never);
           markPhase("contaReceberMs", tMark);
 
-              return { ok: true, traceId: nanoid(10), pedidoId, numero, clienteId, gerouPendencia, pendenteEstoque: statusPedido === 'PENDENTE_ESTOQUE' };
+              return { ok: true, traceId: nanoid(10), pedidoId, numero, clienteId, gerouPendencia, pendenteEstoque: estoqueResult.statusPedido === 'PENDENTE_ESTOQUE' };
             }
           );
         if (isInProgress(result)) return result;
@@ -2094,7 +1836,7 @@ export const appRouter = router({
           "[CONCURRENCY] Sucesso registrado em memória"
         );
 
-        await db.insertAuditLog({
+        await auditService.insertAuditLog({
           actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
           actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
           action: "create",
@@ -2126,14 +1868,14 @@ export const appRouter = router({
   cargas: router({
     list: adminProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      return await db.getAllCargas(tenantId);
+      return await logisticaService.listCargas(tenantId);
     }),
-    
+
     getById: adminProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.getCargaById(tenantId, input.id);
+        return await logisticaService.getCargaById(tenantId, input.id);
       }),
 
     getPontosMapa: adminProcedure
@@ -2170,7 +1912,18 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.createCarga(tenantId, input);
+        const result = await logisticaService.createCarga(tenantId, {
+          numero: 0,
+          cidadeRota: input.cidadeRota,
+          dataEntrega: input.dataEntrega,
+          status: 'ABERTA',
+        });
+
+        if (input.pedidosIds && input.pedidosIds.length > 0) {
+          await logisticaService.addPedidosToCarga(tenantId, result.id, input.pedidosIds);
+        }
+
+        return result;
       }),
 
     // Editar carga (incluir/remover pedidos). Mantém status dos pedidos sincronizado.
@@ -2182,7 +1935,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.updateCargaPedidos(tenantId, input.cargaId, input.addIds || []);
+        return await logisticaService.addPedidosToCarga(tenantId, input.cargaId, input.addIds || []);
       }),
     
     
@@ -2192,7 +1945,7 @@ export const appRouter = router({
       .input(z.object({ cargaId: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.fecharCarga(tenantId, input.cargaId);
+        return await logisticaService.liberarCargaParaRota(tenantId, input.cargaId);
       }),
 
     // Romaneio PDF da carga (server-side)
@@ -2216,7 +1969,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        const result = await db.baixarPedidoCarga(tenantId, input.pedidoCargaId, {
+        const result = await logisticaService.baixarPedidoCarga(tenantId, input.pedidoCargaId, {
           entradaForma: input.entradaForma,
           entradaValor: input.entradaValor,
           segundaForma: input.segundaForma,
@@ -2257,7 +2010,7 @@ pendencias: router({
     const tenantId = await requireTenant(ctx);
     const vendedorId = ctx.user?.role === "admin" ? undefined : (await getVendedorFromContext(ctx))?.id;
     if (ctx.user?.role !== "admin" && vendedorId == null) return [];
-    return await db.listPendencias(tenantId, vendedorId ?? undefined);
+    return await pendenciasService.listPendencias(tenantId, vendedorId ?? undefined);
   }),
 
   updateStatus: protectedProcedure
@@ -2268,7 +2021,7 @@ pendencias: router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = await requireTenant(ctx);
       const vendedorId = ctx.user?.role === "admin" ? undefined : (await getVendedorFromContext(ctx))?.id;
-      await db.updateStatusPendencia(tenantId, input.id, input.status, vendedorId);
+      await pendenciasService.updateStatusPendencia(tenantId, input.id, input.status, vendedorId);
       return { ok: true as const };
     }),
 }),
@@ -2290,26 +2043,14 @@ pendencias: router({
         };
         let boletosData: BoletoRow[] = [];
         if (ctx.user.role === 'admin') {
-          const db_conn = await db.getDb();
-          if (!db_conn) return [];
-          boletosData = (await db_conn.select({
-            id: db.boletos.id,
-            numeroPedido: db.boletos.numeroPedido,
-            valorOriginal: db.boletos.valorOriginal,
-            valorAberto: db.boletos.valorAberto,
-            dataVencimento: db.boletos.dataVencimento,
-            status: db.boletos.status,
-            createdAt: db.boletos.createdAt,
-            clienteId: db.boletos.clienteId,
-            clienteNome: db.clientes.nome
-          })
-          .from(db.boletos)
-          .innerJoin(db.clientes, db.eq(db.boletos.clienteId, db.clientes.id))) as BoletoRow[];
+          const tenantId = await requireTenant(ctx);
+          const { listBoletosAdmin } = await import("./services/boletos.service.js");
+          boletosData = await listBoletosAdmin(tenantId);
         } else {
           const vendedor = await getVendedorFromContext(ctx);
           if (!vendedor) return [];
           const tenantId = await requireTenant(ctx);
-          const page = await db.getBoletosByVendedor(tenantId, vendedor.id);
+          const page = await financeService.getBoletosByVendedor(tenantId, vendedor.id);
           boletosData = page.items;
         }
 
@@ -2331,7 +2072,7 @@ pendencias: router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.baixarBoletoParcial(tenantId, input.boletoId, input.valorPago);
+        return await financeService.baixarBoletoParcial(tenantId, input.boletoId, input.valorPago);
       }),
 
     gerarPDF: protectedProcedure
@@ -2349,8 +2090,8 @@ pendencias: router({
           const vendedor = await getVendedorFromContext(ctx);
           if (!vendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
           const tenantId = await requireTenant(ctx);
-          const lista = await db.getBoletosByVendedor(tenantId, vendedor.id);
-          const doCliente = lista.items.filter((b) => Number(b.clienteId) === input.clienteId);
+          const lista = await financeService.getBoletosByVendedor(tenantId, vendedor.id);
+          const doCliente = lista.items.filter((b: { clienteId: number }) => Number(b.clienteId) === input.clienteId);
           if (doCliente.length === 0) throw new TRPCError({ code: "FORBIDDEN", message: "Nenhum boleto seu para este cliente." });
           vendedorIdFilter = vendedor.id;
         }
@@ -2365,16 +2106,14 @@ pendencias: router({
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
         if (ctx.user.role !== "admin") {
-          const carga = await db.getCargaById(tenantId, input.cargaId);
+          const carga = await logisticaService.getCargaById(tenantId, input.cargaId);
           if (!carga) throw new TRPCError({ code: "NOT_FOUND", message: "Carga não encontrada." });
           const pedidosIds = ((carga as { pedidos?: PedidoCargaItem[] }).pedidos ?? []).map((p) => p.id);
           if (pedidosIds.length === 0) throw new TRPCError({ code: "FORBIDDEN", message: "Carga sem pedidos." });
           const vendedor = await getVendedorFromContext(ctx);
           if (!vendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
-          const db_conn = await db.getDb();
-          if (!db_conn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível." });
-          const rows = await db_conn.select({ vendedorId: db.pedidos.vendedorId }).from(db.pedidos).where(db.inArray(db.pedidos.id, pedidosIds));
-          const todosDoVendedor = (rows as RowWithVendedorId[]).every((r) => r.vendedorId === vendedor.id);
+          const { validatePedidosVendedor } = await import("./services/boletos.service.js");
+          const todosDoVendedor = await validatePedidosVendedor(tenantId, pedidosIds, vendedor.id);
           if (!todosDoVendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Carga contém pedidos de outro vendedor." });
         }
         return await pdf.gerarBoletosCargaPDF(tenantId, input.cargaId, input.pedidoNumero);
@@ -2388,11 +2127,12 @@ pendencias: router({
         clienteNome: z.string(),
       }))
       .mutation(async ({ input, ctx }) => {
+        const tenantId = await requireTenant(ctx);
         if (ctx.user.role !== "admin") {
           const vendedor = await getVendedorFromContext(ctx);
           if (!vendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
           for (const bid of input.boletoIds) {
-            const b = await db.getBoletoById(bid);
+            const b = await financeService.getBoletoById(tenantId, bid);
             if (!b) throw new TRPCError({ code: "NOT_FOUND", message: `Boleto ${bid} não encontrado.` });
             if (b.vendedorId !== vendedor.id) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado a um ou mais boletos." });
           }
@@ -2418,11 +2158,11 @@ pendencias: router({
         void input;
         const tenantId = await requireTenant(ctx);
         if (ctx.user.role === 'admin') {
-          return await db.getAllContasReceber(tenantId);
+          return await financeService.getAllContasReceber(tenantId);
         } else {
           const vendedor = await getVendedorFromContext(ctx);
           if (!vendedor) return [];
-          return await db.getContasReceberByVendedor(tenantId, vendedor.id);
+          return await financeService.getContasReceberByVendedor(tenantId, vendedor.id);
         }
       }),
     
@@ -2448,7 +2188,7 @@ pendencias: router({
                 vendedorId = vendedor?.id;
               }
               const tenantIdConta = await (await import("./_core/tenant.js")).requireTenant(ctx);
-              await db.createContaReceber(tenantIdConta, {
+              await financeService.createContaReceber(tenantIdConta, {
                 pedidoNumero: input.pedidoNumero,
                 clienteNome: input.clienteNome,
                 descricao: input.descricao,
@@ -2477,7 +2217,7 @@ pendencias: router({
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "conta_receber", input.id);
         const tenantId = await requireTenant(ctx);
-        return await db.marcarContaRecebida(tenantId, input.id, input.dataRecebimento, input.formaPagamento);
+        return await financeService.marcarContaRecebida(tenantId, input.id, input.dataRecebimento, input.formaPagamento);
       }),
     
     delete: protectedProcedure
@@ -2485,7 +2225,7 @@ pendencias: router({
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "conta_receber", input.id);
         const tenantId = await requireTenant(ctx);
-        return await db.deleteContaReceber(tenantId, input.id);
+        return await financeService.deleteContaReceber(tenantId, input.id);
       }),
   }),
 
@@ -2495,12 +2235,12 @@ pendencias: router({
       .input(z.object({ mesAno: z.string().optional() }))
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.getCaixaMensal(tenantId, input.mesAno ?? '');
+        return await financeService.getCaixaMensal(tenantId, input.mesAno ?? '');
       }),
     listAll: adminProcedure
       .query(async ({ ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.getAllCaixaMensal(tenantId);
+        return await financeService.getAllCaixaMensal(tenantId);
       }),
   }),
 
@@ -2510,7 +2250,7 @@ pendencias: router({
       .input(z.object({ tipo: z.enum(["RECEITA", "DESPESA"]).optional() }))
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.getPlanoContas(tenantId, input?.tipo);
+        return await financeService.getPlanoContas(tenantId, input?.tipo);
       }),
     create: adminProcedure
       .input(z.object({ 
@@ -2519,16 +2259,17 @@ pendencias: router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.createPlanoContas(tenantId, input);
+        return await financeService.createPlanoContas(tenantId, input);
       }),
     update: adminProcedure
       .input(z.object({ id: z.number(), nome: z.string().min(1), tipo: z.enum(["RECEITA", "DESPESA"]), idempotencyKey: z.string().max(64).optional() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { idempotencyKey, ...data } = input;
+        const tenantId = await requireTenant(ctx);
         const result = await executeCommand(
           { commandName: "planoContas.update", idempotencyKey: idempotencyKey ?? undefined },
           async (tx) => {
-            await tx.update(db.planoContas).set({ nome: data.nome, tipo: data.tipo }).where(db.eq(db.planoContas.id, data.id));
+            await financeService.updatePlanoContas(tenantId, data.id, { nome: data.nome, tipo: data.tipo });
             return commandResult(true, ["Plano de contas atualizado"]);
           }
         );
@@ -2537,11 +2278,12 @@ pendencias: router({
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number(), idempotencyKey: z.string().max(64).optional() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = await requireTenant(ctx);
         const result = await executeCommand(
           { commandName: "planoContas.delete", idempotencyKey: input.idempotencyKey ?? undefined },
           async (tx) => {
-            await tx.delete(db.planoContas).where(db.eq(db.planoContas.id, input.id));
+            await financeService.deletePlanoContas(tenantId, input.id);
             return commandResult(true, ["Plano de contas excluído"]);
           }
         );
@@ -2559,7 +2301,9 @@ pendencias: router({
       }))
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.listContasPagarFiltro(tenantId, { status: input.status, fornecedor: input.fornecedor });
+        const { ADMIN_ACTOR } = await import("./_core/service-actor.js");
+        const result = await financeService.listContasPagar(tenantId, ADMIN_ACTOR, { status: input.status, fornecedor: input.fornecedor });
+        return result.items;
       }),
     create: adminProcedure
       .input(z.object({
@@ -2575,19 +2319,19 @@ pendencias: router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.createContaPagar(tenantId, input);
+        return await financeService.createContaPagar(tenantId, input);
       }),
     pagar: adminProcedure
       .input(z.object({ id: z.number(), valorPago: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.pagarConta(tenantId, input.id, input.valorPago);
+        return await financeService.pagarConta(tenantId, input.id, input.valorPago);
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.deleteContaPagar(tenantId, input.id);
+        return await financeService.deleteContaPagar(tenantId, input.id);
       }),
   }),
 
@@ -2595,7 +2339,8 @@ pendencias: router({
   contasFixas: router({
     list: adminProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      return await db.listContasFixas(tenantId);
+      const result = await financeService.listContasFixas(tenantId);
+      return result.items;
     }),
     create: adminProcedure
       .input(z.object({
@@ -2606,13 +2351,13 @@ pendencias: router({
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.createContaFixa(tenantId, input);
+        return await financeService.createContaFixa(tenantId, input);
       }),
     gerarMes: adminProcedure
       .input(z.object({ mesAno: z.string() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.gerarContasFixasMes(tenantId, input.mesAno);
+        return await financeService.gerarContasFixasMes(tenantId, input.mesAno);
       }),
   }),
 
@@ -2621,17 +2366,17 @@ pendencias: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
       if (ctx.user.role === "admin") {
-        return await db.getAllComissoes(tenantId);
+        return await financeService.getAllComissoes(tenantId);
       }
       const vendedor = await getVendedorFromContext(ctx);
       if (!vendedor) return [];
-      return await db.getComissoesByVendedor(tenantId, vendedor.id);
+      return await financeService.getComissoesByVendedor(tenantId, vendedor.id);
     }),
     marcarPaga: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await db.marcarComissaoPaga(tenantId, input.id);
+        return await financeService.marcarComissaoPaga(tenantId, input.id);
       }),
   }),
 
@@ -2640,13 +2385,13 @@ pendencias: router({
     get: protectedProcedure
       .input(z.object({ chave: z.string() }))
       .query(async ({ input }) => {
-        return await db.getConfig(input.chave);
+        return await configuracoesService.getConfig(input.chave);
       }),
     
     set: adminProcedure
       .input(z.object({ chave: z.string(), valor: z.string() }))
       .mutation(async ({ input }) => {
-        return await db.setConfig(input.chave, input.valor);
+        return await configuracoesService.setConfig(input.chave, input.valor);
       }),
   }),
 
@@ -2654,7 +2399,7 @@ pendencias: router({
   diagnostico: router({
     run: adminProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      return await db.runDiagnosticoConsistencia(tenantId);
+      return await systemService.runDiagnosticoConsistencia(tenantId);
     }),
   }),
 
@@ -2708,57 +2453,10 @@ pendencias: router({
   pedidoCompra: router({
     listPorFornecedor: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      const dbConn = await db.getDb();
-      if (!dbConn) return [];
       const vendedorId =
         ctx.user.role === "admin" ? undefined : (await getVendedorFromContext(ctx))?.id;
-      const pendRows = await dbConn
-        .select({
-          produtoId: db.pendencias.produtoId,
-          quantidade: db.pendencias.quantidade,
-          status: db.pendencias.status,
-          fornecedor: db.produtos.fornecedor,
-          descricao: db.produtos.descricao,
-          marca: db.produtos.marca,
-        })
-        .from(db.pendencias)
-        .innerJoin(db.produtos, db.eq(db.produtos.id, db.pendencias.produtoId))
-        .where(
-          db.and(
-            db.eq(db.pendencias.tenantId, tenantId),
-            db.eq(db.pendencias.status, "PENDENTE"),
-            db.eq(db.produtos.tenantId, tenantId),
-            ...(vendedorId != null ? [db.eq(db.pendencias.vendedorId, vendedorId)] : [])
-          )
-        );
-      const map = new Map<
-        number,
-        {
-          fornecedor: string | null;
-          produtoId: number;
-          descricao: string;
-          marca: string | null;
-          quantidade: number;
-          qtdPedidos: number;
-        }
-      >();
-      for (const r of pendRows) {
-        const cur = map.get(r.produtoId);
-        if (cur) {
-          cur.quantidade += r.quantidade;
-          cur.qtdPedidos += 1;
-        } else {
-          map.set(r.produtoId, {
-            fornecedor: r.fornecedor,
-            produtoId: r.produtoId,
-            descricao: r.descricao,
-            marca: r.marca,
-            quantidade: r.quantidade,
-            qtdPedidos: 1,
-          });
-        }
-      }
-      return Array.from(map.values());
+      const { getPendenciasResumo } = await import("./services/pendencias.service.js");
+      return await getPendenciasResumo(tenantId, vendedorId);
     }),
 
     gerarPdf: protectedProcedure
@@ -2782,7 +2480,7 @@ pendencias: router({
       const { getDashboardInsights } = await import("./services/dashboard-insights.service.js");
       const data = await getDashboardInsights(tenantId);
       setDashboardCache(tenantId, data as Record<string, unknown>);
-      await db.insertAuditLog({
+      await auditService.insertAuditLog({
         tenantId,
         actorUserId: opts.ctx.user?.id ?? null,
         actorVendedorId: opts.ctx.vendedor?.id ?? null,

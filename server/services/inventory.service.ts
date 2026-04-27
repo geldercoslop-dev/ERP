@@ -39,11 +39,11 @@ export async function listCores(tenantId: number) {
   return ensureArray(result);
 }
 
-export async function createCor(tenantId: number, data: InsertCor): Promise<{ id: number }> {
+export async function createCor(tenantId: number, data: { nome: string }): Promise<{ id: number }> {
   assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  const result = await dbConn.insert(cores).values({ ...data, tenantId });
+  const result = await dbConn.insert(cores).values({ nome: data.nome, tenantId });
   const corId = getInsertId(result);
   return ensureCreatedResult({ id: corId });
 }
@@ -611,6 +611,15 @@ export async function deleteGrupoPrecificacao(tenantId: number, id: number) {
   assertDbConnection(dbConn);
   await dbConn.delete(gruposPrecificacao).where(and(eq(gruposPrecificacao.tenantId, tenantId), eq(gruposPrecificacao.id, id)));
   return { success: true };
+}
+
+export async function createGrupoPrecificacao(tenantId: number, data: { nome: string }, tx?: DbTx): Promise<{ id: number }> {
+  assertTenantId(tenantId);
+  const dbConn = tx || await getDb();
+  assertDbConnection(dbConn);
+  const result = await dbConn.insert(gruposPrecificacao).values({ tenantId, nome: data.nome });
+  const id = getInsertId(result);
+  return ensureCreatedResult({ id });
 }
 
 export async function countProdutosAtivosEstoqueAte(tenantId: number, maxInclusive: number): Promise<number> {

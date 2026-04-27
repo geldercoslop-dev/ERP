@@ -15,10 +15,6 @@ import { validatePaginationParams, createPaginationMetadata } from "../utils/pag
 import { cacheKeys, withCache } from "../cache/simple-memory-cache.js";
 import { invalidateInventoryCachesForTenant } from "../_core/cache-invalidation.js";
 
-// --- DB apenas para operações específicas que ainda não foram migradas ---
-import * as db from "../db/index.js";
-import { getInsertId } from "../db/index.js";
-
 /** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
 async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: Record<string, unknown> | null; tenantId?: number | null }) {
   if (ctx.vendedor) return ctx.vendedor;
@@ -210,7 +206,7 @@ export const coresRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId;
       assertTenantId(tenantId);
-      return await inventoryService.createCor(tenantId, { tenantId, nome: input.nome });
+      return await inventoryService.createCor(tenantId, { nome: input.nome });
     }),
   update: adminProcedure
     .input(z.object({ id: z.number(), nome: z.string().min(1) }))
@@ -249,12 +245,8 @@ export const gruposPrecificacaoRouter = router({
       const result = await executeCommand(
         { commandName: "gruposPrecificacao.create", idempotencyKey: idempotencyKey ?? undefined },
         async (tx) => {
-          const res = await tx.insert(db.gruposPrecificacao).values({
-            tenantId,
-            nome: data.nome,
-          });
-          const id = getInsertId(res);
-          return { ...commandResult(true, ["Grupo criado"]), id };
+          const res = await inventoryService.createGrupoPrecificacao(tenantId, { nome: data.nome }, tx);
+          return { ...commandResult(true, ["Grupo criado"]), id: res.id };
         }
       );
       if (isInProgress(result)) return result;
@@ -409,7 +401,7 @@ export const notasEntradaRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId;
       assertTenantId(tenantId);
-      await db.criarNotaEntrada(tenantId, {
+      await inventoryService.criarNotaEntrada(tenantId, {
         marca: input.marca,
         dataChegada: new Date(input.dataChegada),
         valorTotal: input.valorTotal,

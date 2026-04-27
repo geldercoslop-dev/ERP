@@ -8,13 +8,15 @@
 import { nanoid } from 'nanoid';
 import { loggerInstance as logger } from '../utils/logger.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
-import { getDb } from '../db/index.js';
+import { getDb, type Database } from '../db/index.js';
 import { auditLogs as auditLogs } from '../../drizzle/schema.js';
 import { eq, sql, and, desc, like, gte, lte, type SQL } from 'drizzle-orm';
 import { ContaReceberStatus, PedidoStatus } from '../shared/domain-status.js';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import { isRecord, createResponse } from '../_core/type-guards.js';
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from '../_core/service-entry-guard.js';
+
+type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 // Interfaces alinhadas com schema
 export interface AuditLogData {
@@ -276,10 +278,10 @@ export async function gerarResumoAuditoria(
 /**
  * Insere log de auditoria de forma segura
  */
-export async function insertAuditLog(data: AuditLogData): Promise<{ success: boolean; message: string }> {
+export async function insertAuditLog(data: AuditLogData, tx?: DbTx): Promise<{ success: boolean; message: string }> {
   return await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
     try {
-      const dbConnection = await getDb();
+      const dbConnection = (tx as DbTx | Database) || await getDb();
       if (!dbConnection) {
         return createResponse(false, 'Banco indisponível');
       }

@@ -10,6 +10,7 @@ import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.j
 
 // Types
 export type CreateVendedorInput = InsertVendedor;
+export type { Vendedor, InsertVendedor };
 
 /**
  * Cria ou atualiza um usuário (vinculado ao tenant)
@@ -432,4 +433,108 @@ export async function getUserByDisplayName(displayName: string): Promise<User | 
     .where(sql`LOWER(${users.name}) = ${term}`)
     .limit(1);
   return result[0] ?? null;
+}
+
+/**
+ * Busca vendedor por userId
+ */
+export async function getVendedorByUserId(userId: number): Promise<Vendedor | null> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  const result = await dbConn.select().from(vendedores).where(eq(vendedores.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Lista todos os vendedores (admin)
+ */
+export async function getAllVendedores(): Promise<Vendedor[]> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  return await dbConn.select().from(vendedores).orderBy(asc(vendedores.nome));
+}
+
+/**
+ * Cria usuário (retorna id)
+ */
+export async function insertUser(user: InsertUser): Promise<{ id: number }> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  const result = await dbConn.insert(users).values(user);
+  const insertId = getInsertId(result);
+  return { id: insertId };
+}
+
+/**
+ * Cria vendedor (retorna id)
+ */
+export async function createVendedor(data: InsertVendedor): Promise<{ id: number }> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  const result = await dbConn.insert(vendedores).values(data);
+  const insertId = getInsertId(result);
+  return { id: insertId };
+}
+
+/**
+ * Atualiza vendedor por id
+ */
+export async function updateVendedor(id: number, patch: Partial<InsertVendedor>): Promise<void> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  await dbConn.update(vendedores).set(patch).where(eq(vendedores.id, id));
+}
+
+/**
+ * Deleta vendedor por id
+ */
+export async function deleteVendedor(id: number): Promise<void> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  await dbConn.delete(vendedores).where(eq(vendedores.id, id));
+}
+
+/**
+ * Atualiza senha do vendedor (hash bcrypt)
+ */
+export async function updateVendedorSenha(vendedorId: number, hashedPassword: string): Promise<void> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  await dbConn.update(vendedores).set({ senha: hashedPassword }).where(eq(vendedores.id, vendedorId));
+}
+
+/**
+ * Cria ou retorna usuário por openId e opcionalmente nome
+ */
+export async function findOrCreateUserByOpenId(
+  tenantId: number,
+  openId: string,
+  name?: string | null
+): Promise<User> {
+  const existing = await getUserByOpenId(tenantId, openId);
+  if (existing) return existing;
+  const now = new Date();
+  const created = await insertUser({
+    tenantId,
+    openId,
+    name: name ?? null,
+    email: null,
+    loginMethod: "local",
+    role: "user",
+    createdAt: now,
+    updatedAt: now,
+    lastSignedIn: now,
+  });
+  const user = await getUserById(created.id, tenantId);
+  if (!user) throw new Error("Falha ao criar usuário");
+  return user;
+}
+
+/**
+ * Atualiza último login do usuário (compat: routers chamam só com userId)
+ */
+export async function touchLastSignedInGlobal(userId: number): Promise<void> {
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  await dbConn.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
