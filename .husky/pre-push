@@ -1,2 +1,12 @@
 #!/bin/sh
+
+echo "🔒 DRIZZLE SCHEMA GUARD - Validando integridade do schema e types"
+node scripts/drizzle-schema-guard.mjs
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "🚨 PUSH BLOQUEADO"
+  echo "drizzle-schema-guard falhou - schema ou types inválidos"
+  exit 1
+fi
+
 pnpm run typecheck

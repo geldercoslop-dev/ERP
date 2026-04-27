@@ -54,13 +54,15 @@ Use tipagem correta.
   }
 
   // 🔴 4. DETECTAR IMPORT-TIME EXECUTION
-  if (
-    content.includes("setInterval(") ||
-    content.includes("new ") ||
-    content.includes(".start()")
-  ) {
-    if (!content.includes("function") && !file.includes("services")) {
-      console.error(`
+  // Ignorar arquivos markdown e docs
+  if (!file.endsWith(".md") && !file.startsWith("docs/")) {
+    if (
+      content.includes("setInterval(") ||
+      content.includes("new ") ||
+      content.includes(".start()")
+    ) {
+      if (!content.includes("function") && !file.includes("services")) {
+        console.error(`
 🚫 IMPORT-TIME EXECUTION DETECTADO em ${file}
 
 Código executando no topo do arquivo.
@@ -68,7 +70,8 @@ Isso quebra o bootstrap.
 
 Mover execução para dentro de função.
 `);
-      violation = true;
+        violation = true;
+      }
     }
   }
 

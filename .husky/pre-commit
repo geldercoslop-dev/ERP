@@ -12,6 +12,20 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+echo "🔒 DRIZZLE SCHEMA GUARD - Validando integridade do schema e types"
+node scripts/drizzle-schema-guard.mjs
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "🚨 COMMIT BLOQUEADO"
+  echo "drizzle-schema-guard falhou - schema ou types inválidos"
+  echo ""
+  echo "Corrija as violações antes de commitar:"
+  echo "  - Remova imports de tabelas inexistentes"
+  echo "  - Use $inferSelect/$inferInsert para tipos de tabelas reais"
+  echo "  - Não crie stubs (Record<string, unknown>) para tabelas que existem"
+  exit 1
+fi
+
 echo "🔒 GATE OBRIGATÓRIO: verify:base (Context-Aware)"
 echo "=============================================="
 echo "Context: Local Development (fail-soft)"
