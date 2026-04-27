@@ -9,6 +9,29 @@ on:
   pull_request:
 
 jobs:
+  architecture-contract-guard:
+    name: Architecture Contract Guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install deps
+        run: pnpm install
+
+      - name: Run Architecture Contract Guard
+        run: node scripts/architecture-contract-guard.mjs --all
+
   drizzle-guard:
     name: Drizzle Schema Guard
     runs-on: ubuntu-latest

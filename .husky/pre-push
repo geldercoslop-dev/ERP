@@ -1,5 +1,11 @@
 #!/bin/sh
 
+echo "🔒 ARCHITECTURE CONTRACT GUARD"
+node scripts/architecture-contract-guard.mjs
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
 echo "🔒 DRIZZLE SCHEMA GUARD - Validando integridade do schema e types"
 node scripts/drizzle-schema-guard.mjs
 if [ $? -ne 0 ]; then
