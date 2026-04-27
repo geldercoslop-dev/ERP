@@ -27,6 +27,10 @@ import type {
   clienteVendedores,
   fornecedores,
   idempotencyKeys,
+  promocoes,
+  boletos,
+  caixaMensal,
+  pendencias,
 } from "../../drizzle/schema.js";
 
 // Re-export das tabelas Drizzle (para uso em queries tipadas)
@@ -50,6 +54,10 @@ export type {
   clienteVendedores,
   fornecedores,
   idempotencyKeys,
+  promocoes,
+  boletos,
+  caixaMensal,
+  pendencias,
 };
 
 // Tipos de linha (select) e de inserção (insert) por entidade
@@ -112,24 +120,28 @@ export type NewFornecedor = typeof fornecedores.$inferInsert;
 export type IdempotencyKey = typeof idempotencyKeys.$inferSelect;
 export type NewIdempotencyKey = typeof idempotencyKeys.$inferInsert;
 
+export type Promocao = typeof promocoes.$inferSelect;
+export type NewPromocao = typeof promocoes.$inferInsert;
+
+export type Boleto = typeof boletos.$inferSelect;
+export type NewBoleto = typeof boletos.$inferInsert;
+
+export type CaixaMensal = typeof caixaMensal.$inferSelect;
+export type NewCaixaMensal = typeof caixaMensal.$inferInsert;
+
+export type Pendencia = typeof pendencias.$inferSelect;
+export type NewPendencia = typeof pendencias.$inferInsert;
+
 export type JobExecution = Record<string, unknown> & { id?: number };
 export type NewJobExecution = Partial<JobExecution>;
 
 // Stubs para tabelas removidas do schema atual (compatibilidade legada)
 export type ProdutoVariacao = Record<string, unknown> & { id?: number };
 export type NewProdutoVariacao = Partial<ProdutoVariacao>;
-export type Promocao = Record<string, unknown> & { id?: number };
-export type NewPromocao = Partial<Promocao>;
 export type PromocaoItem = Record<string, unknown> & { id?: number };
 export type NewPromocaoItem = Partial<PromocaoItem>;
-export type Pendencia = Record<string, unknown> & { id?: number };
-export type NewPendencia = Partial<Pendencia>;
-export type Boleto = Record<string, unknown> & { id?: number };
-export type NewBoleto = Partial<Boleto>;
 export type PagamentoBoleto = Record<string, unknown> & { id?: number };
 export type NewPagamentoBoleto = Partial<PagamentoBoleto>;
-export type CaixaMensal = Record<string, unknown> & { id?: number };
-export type NewCaixaMensal = Partial<CaixaMensal>;
 export type Configuracao = Record<string, unknown> & { id?: number };
 export type NewConfiguracao = Partial<Configuracao>;
 export type SchemaVersion = Record<string, unknown> & { id?: number; version?: number };
