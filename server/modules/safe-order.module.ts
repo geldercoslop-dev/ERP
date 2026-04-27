@@ -12,7 +12,6 @@ import { insertAuditLog } from '../services/audit-service.js';
 import { logInfo } from '../_core/logger.js';
 import type { Pedido } from '../db/core.js';
 import { getDb, getPool } from '../db/core.js';
-import { ValidationError } from '../_core/errors/typed-errors.js';
 
 /**
  * Item de pedido
@@ -71,7 +70,7 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
 
     // 1. Validar itens do pedido
     if (!orderData.itens || orderData.itens.length === 0) {
-      throw new ValidationError('PEDIDO_SEM_ITENS: Pedido deve conter pelo menos um item');
+      throw new Error('PEDIDO_SEM_ITENS: Pedido deve conter pelo menos um item');
     }
 
     // 2. Validar disponibilidade de estoque para todos os itens (Otimização N+1)
@@ -98,22 +97,22 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
       const produtoData = produtosMap.get(item.produtoId);
 
       if (!produtoData) {
-        throw new ValidationError(`PRODUTO_NAO_ENCONTRADO: Produto ${item.produtoId} não encontrado ou acesso negado`);
+        throw new Error(`PRODUTO_NAO_ENCONTRADO: Produto ${item.produtoId} não encontrado ou acesso negado`);
       }
 
       const estoqueAtual = Number(produtoData.estoque || 0);
 
       if (!produtoData.ativo) {
-        throw new ValidationError(`PRODUTO_INATIVO: Produto ${produtoData.descricao} está inativo`);
+        throw new Error(`PRODUTO_INATIVO: Produto ${produtoData.descricao} está inativo`);
       }
 
       if (estoqueAtual < item.quantidade) {
-        throw new ValidationError(`ESTOQUE_INSUFICIENTE: Produto ${produtoData.descricao} - Estoque: ${estoqueAtual}, Solicitado: ${item.quantidade}`);
+        throw new Error(`ESTOQUE_INSUFICIENTE: Produto ${produtoData.descricao} - Estoque: ${estoqueAtual}, Solicitado: ${item.quantidade}`);
       }
 
       // Validar preço unitário
       if (item.valorUnitario <= 0) {
-        throw new ValidationError(`PRECO_INVALIDO: Produto ${produtoData.descricao} - Preço unitário deve ser maior que 0`);
+        throw new Error(`PRECO_INVALIDO: Produto ${produtoData.descricao} - Preço unitário deve ser maior que 0`);
       }
     }
 
@@ -124,7 +123,7 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
 
     // 4. Validar consistência financeira
     if (totalEntradas > totalPedido) {
-      throw new ValidationError(`VALOR_ENTRADA_EXCEDIDO: Total de entradas (${totalEntradas}) maior que total do pedido (${totalPedido})`);
+      throw new Error(`VALOR_ENTRADA_EXCEDIDO: Total de entradas (${totalEntradas}) maior que total do pedido (${totalPedido})`);
     }
 
     // 5. Gerar número do pedido se não fornecido
@@ -233,7 +232,7 @@ export async function cancelOrderSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; message: string; movimentacoes?: Record<string, unknown>[] }> {
-  if (!tenantId) throw new ValidationError("tenantId is required");
+  if (!tenantId) throw new Error("tenantId is required");
   return runTransaction(async (tx: TransactionConnection) => {
     logInfo(`[SafeOrder] Iniciando cancelamento seguro do pedido - Tenant: ${tenantId}, ID: ${pedidoId}`);
 
@@ -244,18 +243,18 @@ export async function cancelOrderSafe(
     );
 
     if (!pedido || !(pedido as any[])[0]) {
-      throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
+      throw new Error('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
     }
 
     const pedidoData = (pedido as any[])[0];
 
     // 2. Validar status do pedido
     if (pedidoData.status === 'CANCELADO') {
-      throw new ValidationError('PEDIDO_JA_CANCELADO: Pedido já está cancelado');
+      throw new Error('PEDIDO_JA_CANCELADO: Pedido já está cancelado');
     }
 
     if (pedidoData.status === 'ENTREGUE') {
-      throw new ValidationError('PEDIDO_ENTREGUE: Pedido entregue não pode ser cancelado');
+      throw new Error('PEDIDO_ENTREGUE: Pedido entregue não pode ser cancelado');
     }
 
     // 3. Buscar itens do pedido
@@ -330,7 +329,7 @@ export async function updateOrderStatusSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; message: string }> {
-  if (!tenantId) throw new ValidationError("tenantId is required");
+  if (!tenantId) throw new Error("tenantId is required");
   return runTransaction(async (tx: TransactionConnection) => {
     logInfo(`[SafeOrder] Atualizando status do pedido - Tenant: ${tenantId}, ID: ${pedidoId}, Status: ${novoStatus}`);
 
@@ -341,7 +340,7 @@ export async function updateOrderStatusSafe(
     );
 
     if (!pedido || !(pedido as any[])[0]) {
-      throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
+      throw new Error('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
     }
 
     const pedidoData = (pedido as any[])[0];
@@ -359,7 +358,7 @@ export async function updateOrderStatusSafe(
 
     const transicoesPermitidas = statusValidos[pedidoData.status] || [];
     if (!transicoesPermitidas.includes(novoStatus)) {
-      throw new ValidationError(`TRANSICAO_INVALIDA: Não é possível mudar de ${pedidoData.status} para ${novoStatus}`);
+      throw new Error(`TRANSICAO_INVALIDA: Não é possível mudar de ${pedidoData.status} para ${novoStatus}`);
     }
 
     // 3. Atualizar status com tenantId
@@ -409,7 +408,7 @@ export async function validateOrderIntegrity(tenantId: number, pedidoId: number)
   erros: string[];
   detalhes: Record<string, unknown>;
 }> {
-  if (!tenantId) throw new ValidationError("tenantId is required");
+  if (!tenantId) throw new Error("tenantId is required");
   const dbConnection = await getDb();
   if (!dbConnection) {
     return {

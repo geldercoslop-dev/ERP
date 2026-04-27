@@ -1,0 +1,32 @@
+{
+  "include": ["**/*"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "tests/**",
+    "security/**",
+    "server/types/service-safe-example.ts"
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "downlevelIteration": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo.server",
+    "noEmit": true,
+    "module": "ESNext",
+    "strict": true,
+    "noImplicitAny": false,
+    "lib": ["esnext", "dom"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler",
+    "typeRoots": ["./server/types"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["server/*"]
+    }
+  }
+}

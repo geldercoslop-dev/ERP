@@ -6,34 +6,11 @@
  */
 
 import type { TransactionConnection } from '../types/transaction.types.js';
-import { ValidationError } from '../_core/errors/typed-errors.js';
 import { runTransaction } from '../services/db-transaction.js';
 import { insertAuditLog } from '../services/audit-service.js';
 import { getPool } from '../db/index.js';
 import * as db from '../db/index.js';
 import { eq, sql } from '../db/index.js';
-
-// Type guards para resultados de query
-function isQueryResult(obj: unknown): obj is { insertId?: number } {
-  return Array.isArray(obj) && obj.length > 0 && typeof obj[0] === 'object' && obj[0] !== null && 'insertId' in obj[0] && typeof obj[0].insertId === 'number';
-}
-
-function isShipmentData(obj: unknown): obj is { 
-  id?: number; 
-  clienteId?: number; 
-  endereco?: string; 
-  dataPrevistaChegada?: Date; 
-  dataPrevistaSaida?: Date; 
-  rota?: string; 
-  observacoes?: string; 
-  pesoTotal?: number; 
-  volumeTotal?: number; 
-  valorTotalCarga?: number;
-  itens?: Array<{ pedidoId: number; status?: string; observacoes?: string }>;
-} {
-  return Array.isArray(obj) && obj.length > 0 && typeof obj[0] === 'object' && obj[0] !== null && 
-    ('id' in obj[0] || 'clienteId' in obj[0] || 'endereco' in obj[0] || 'dataPrevistaChegada' in obj[0] || 'dataPrevistaSaida' in obj[0] || 'rota' in obj[0] || 'observacoes' in obj[0] || 'pesoTotal' in obj[0] || 'volumeTotal' in obj[0] || 'valorTotalCarga' in obj[0] || 'itens' in obj[0]);
-}
 
 export interface ShipmentItem {
   pedidoId: number;
@@ -82,15 +59,15 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
 
     // 1. Validar dados obrigatórios
     if (!shipmentData.placa || shipmentData.placa.trim() === '') {
-      throw new ValidationError('CARGA_PLACA_OBRIGATORIA: Placa do veículo é obrigatória');
+      throw new Error('CARGA_PLACA_OBRIGATORIA: Placa do veículo é obrigatória');
     }
 
     if (!shipmentData.motorista || shipmentData.motorista.trim() === '') {
-      throw new ValidationError('CARGA_MOTORISTA_OBRIGATORIO: Nome do motorista é obrigatório');
+      throw new Error('CARGA_MOTORISTA_OBRIGATORIO: Nome do motorista é obrigatório');
     }
 
     if (!shipmentData.itens || shipmentData.itens.length === 0) {
-      throw new ValidationError('CARGA_SEM_ITENS: Carga deve conter pelo menos um pedido');
+      throw new Error('CARGA_SEM_ITENS: Carga deve conter pelo menos um pedido');
     }
 
     // 2. Validar itens da carga
@@ -110,16 +87,16 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
 
       // Validar se pedido foi encontrado
       if (!pedidoData) {
-        throw new ValidationError(`CARGA_PEDIDO_NAO_ENCONTRADO: Pedido #${item.pedidoId} não encontrado`);
+        throw new Error(`CARGA_PEDIDO_NAO_ENCONTRADO: Pedido #${item.pedidoId} não encontrado`);
       }
 
       // Validar status do pedido
       if (pedidoData && typeof pedidoData.status === 'string' && pedidoData.status === 'CANCELADO') {
-        throw new ValidationError(`CARGA_PEDIDO_CANCELADO: Pedido #${pedidoData.numero} está cancelado`);
+        throw new Error(`CARGA_PEDIDO_CANCELADO: Pedido #${pedidoData.numero} está cancelado`);
       }
 
       if (pedidoData && typeof pedidoData.status === 'string' && pedidoData.status === 'ENTREGUE') {
-        throw new ValidationError(`CARGA_PEDIDO_ENTREGUE: Pedido #${pedidoData.numero} já foi entregue`);
+        throw new Error(`CARGA_PEDIDO_ENTREGUE: Pedido #${pedidoData.numero} já foi entregue`);
       }
 
       // Verificar se pedido já está em outra carga
@@ -134,7 +111,7 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
 
       const jaEmCarga = (emCargaRow?.total as number) || 0;
       if (jaEmCarga > 0 && pedidoData) {
-        throw new ValidationError(`CARGA_PEDIDO_JA_EM_CARGA: Pedido #${pedidoData.numero} já está em outra carga`);
+        throw new Error(`CARGA_PEDIDO_JA_EM_CARGA: Pedido #${pedidoData.numero} já está em outra carga`);
       }
 
       pedidosValidados.push({
@@ -155,11 +132,11 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
     const VOLUME_MAXIMO = 50; // 50 m³
 
     if (pesoTotal > PESO_MAXIMO) {
-      throw new ValidationError(`CARGA_PESO_EXCEDIDO: Peso total (${pesoTotal}kg) excede limite máximo (${PESO_MAXIMO}kg)`);
+      throw new Error(`CARGA_PESO_EXCEDIDO: Peso total (${pesoTotal}kg) excede limite máximo (${PESO_MAXIMO}kg)`);
     }
 
     if (volumeTotal > VOLUME_MAXIMO) {
-      throw new ValidationError(`CARGA_VOLUME_EXCEDIDO: Volume total (${volumeTotal}m³) excede limite máximo (${VOLUME_MAXIMO}m³)`);
+      throw new Error(`CARGA_VOLUME_EXCEDIDO: Volume total (${volumeTotal}m³) excede limite máximo (${VOLUME_MAXIMO}m³)`);
     }
 
     // 4. Inserir carga
@@ -183,7 +160,7 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
       ]
     );
 
-    const shipmentId = isQueryResult(shipmentResult) ? shipmentResult.insertId : undefined;
+    const shipmentId = (shipmentResult as any).insertId;
 
     // 5. Associar pedidos à carga
     for (const item of shipmentData.itens) {
@@ -208,7 +185,7 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
 
     // 6. Registrar auditoria
     if (!shipmentData.tenantId || shipmentData.tenantId <= 0) {
-      throw new ValidationError('TENANT_ID_OBRIGATORIO: tenantId é obrigatório para auditoria de carga');
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId é obrigatório para auditoria de carga');
     }
     const auditRecord = await insertAuditLog({
       tenantId: shipmentData.tenantId,
@@ -260,15 +237,15 @@ export async function startShipmentSafe(
       [shipmentId]
     );
 
-    if (!shipment || !(shipment as unknown[])[0]) {
-      throw new ValidationError('CARGA_NAO_ENCONTRADA: Carga não encontrada');
+    if (!shipment || !(shipment as any[])[0]) {
+      throw new Error('CARGA_NAO_ENCONTRADA: Carga não encontrada');
     }
 
-    const shipmentData = (shipment as unknown[])[0] as { id?: number; placa?: string; motorista?: string; status?: string; tenant_id?: number };
+    const shipmentData = (shipment as any[])[0];
 
     // 2. Validar status
     if (shipmentData.status !== 'EM_PREPARACAO') {
-      throw new ValidationError(`CARGA_STATUS_INVALIDO: Carga está com status ${shipmentData.status}, não pode ser iniciada`);
+      throw new Error(`CARGA_STATUS_INVALIDO: Carga está com status ${shipmentData.status}, não pode ser iniciada`);
     }
 
     // 3. Atualizar status da carga
@@ -287,7 +264,7 @@ export async function startShipmentSafe(
     // 5. Registrar auditoria
     const auditTenantId = tenantId ?? Number(shipmentData.tenant_id ?? 0);
     if (!auditTenantId || auditTenantId <= 0) {
-      throw new ValidationError('TENANT_ID_OBRIGATORIO: tenantId indisponível para auditoria de início de carga');
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indisponível para auditoria de início de carga');
     }
     await insertAuditLog({
       tenantId: auditTenantId,
@@ -335,15 +312,15 @@ export async function finishShipmentSafe(
       [shipmentId]
     );
 
-    if (!shipment || !(shipment as unknown[])[0]) {
-      throw new ValidationError('CARGA_NAO_ENCONTRADA: Carga não encontrada');
+    if (!shipment || !(shipment as any[])[0]) {
+      throw new Error('CARGA_NAO_ENCONTRADA: Carga não encontrada');
     }
 
-    const shipmentData = (shipment as unknown[])[0] as { id?: number; placa?: string; motorista?: string; status?: string; tenant_id?: number };
+    const shipmentData = (shipment as any[])[0];
 
     // 2. Validar status
     if (shipmentData.status !== 'EM_TRANSITO') {
-      throw new ValidationError(`CARGA_STATUS_INVALIDO: Carga está com status ${shipmentData.status}, não pode ser finalizada`);
+      throw new Error(`CARGA_STATUS_INVALIDO: Carga está com status ${shipmentData.status}, não pode ser finalizada`);
     }
 
     // 3. Atualizar status da carga
@@ -368,7 +345,7 @@ export async function finishShipmentSafe(
     // 6. Registrar auditoria
     const auditTenantId = tenantId ?? Number(shipmentData.tenant_id ?? 0);
     if (!auditTenantId || auditTenantId <= 0) {
-      throw new ValidationError('TENANT_ID_OBRIGATORIO: tenantId indisponível para auditoria de finalização de carga');
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indisponível para auditoria de finalização de carga');
     }
     await insertAuditLog({
       tenantId: auditTenantId,
@@ -418,15 +395,15 @@ export async function removeOrderFromShipmentSafe(
       [shipmentId]
     );
 
-    if (!shipment || !(shipment as unknown[])[0]) {
-      throw new ValidationError('CARGA_NAO_ENCONTRADA: Carga não encontrada');
+    if (!shipment || !(shipment as any[])[0]) {
+      throw new Error('CARGA_NAO_ENCONTRADA: Carga não encontrada');
     }
 
-    const shipmentData = (shipment as unknown[])[0] as { id?: number; status?: string; tenant_id?: number };
+    const shipmentData = (shipment as any[])[0];
 
     // 2. Validar se carga pode ser alterada
-    if (shipmentData.status && ['EM_TRANSITO', 'ENTREGUE'].includes(shipmentData.status)) {
-      throw new ValidationError(`CARGA_EM_TRANSITO: Carga está com status ${shipmentData.status}, não pode ser alterada`);
+    if (['EM_TRANSITO', 'ENTREGUE'].includes(shipmentData.status)) {
+      throw new Error(`CARGA_EM_TRANSITO: Carga está com status ${shipmentData.status}, não pode ser alterada`);
     }
 
     // 3. Validar pedido na carga
@@ -435,10 +412,9 @@ export async function removeOrderFromShipmentSafe(
       [shipmentId, pedidoId]
     );
 
-    const estaNaCarga = (pedidoNaCarga as unknown[])[0] as { total?: number } | undefined;
-    const total = typeof estaNaCarga?.total === 'number' ? estaNaCarga.total : 0;
-    if (total === 0) {
-      throw new ValidationError('CARGA_PEDIDO_NA_ENCONTRADO: Pedido não está nesta carga');
+    const estaNaCarga = (pedidoNaCarga as any[])[0]?.total || 0;
+    if (estaNaCarga === 0) {
+      throw new Error('CARGA_PEDIDO_NA_ENCONTRADO: Pedido não está nesta carga');
     }
 
     // 4. Remover pedido da carga
@@ -467,7 +443,7 @@ export async function removeOrderFromShipmentSafe(
     // 7. Registrar auditoria
     const auditTenantId = tenantId ?? Number(shipmentData.tenant_id ?? 0);
     if (!auditTenantId || auditTenantId <= 0) {
-      throw new ValidationError('TENANT_ID_OBRIGATORIO: tenantId indisponível para auditoria de remoção de pedido');
+      throw new Error('TENANT_ID_OBRIGATORIO: tenantId indisponível para auditoria de remoção de pedido');
     }
     await insertAuditLog({
       tenantId: auditTenantId,

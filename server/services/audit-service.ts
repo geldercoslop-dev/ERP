@@ -18,7 +18,7 @@ import { buildBootstrapInvocation, runWithServiceInvocationAsync } from '../_cor
 
 // Interfaces alinhadas com schema
 export interface AuditLogData {
-  tenantId?: number;
+  tenantId: number; // Multi-tenant obrigatório
   actorUserId?: number | null;
   actorVendedorId?: number | null;
   action: string;
@@ -32,7 +32,7 @@ export interface AuditLogData {
 }
 
 export interface AuditFilter {
-  tenantId?: number;
+  tenantId: number;
   tipo?: string;
   acao?: string;
   usuarioId?: number;
@@ -63,8 +63,8 @@ export interface AuditRegistro {
 /**
  * Busca registros de auditoria com filtros
  */
-export async function buscarRegistros(
-  filtros: AuditFilter = {}
+async function buscarRegistros(
+  filtros: AuditFilter
 ): Promise<AuditRegistro[]> {
   try {
     return await runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
@@ -77,9 +77,11 @@ export async function buscarRegistros(
     // Aplicar filtros
     const conditions: SQL[] = [];
     
-    if (filtros.tenantId) {
-      conditions.push(eq(auditLog.tenantId, filtros.tenantId));
+    // Fail hard: tenantId obrigatório
+    if (!filtros.tenantId) {
+      throw new Error('[SEGURANÇA] tenantId obrigatório para consulta de auditoria');
     }
+    conditions.push(eq(auditLog.tenantId, filtros.tenantId));
     
     if (filtros.tipo) {
       conditions.push(eq(auditLog.entity, filtros.tipo));

@@ -1,5 +1,4 @@
 import { jsPDF } from "jspdf";
-import { ValidationError } from './_core/errors/typed-errors.js';
 import * as db from "./db/index.js";
 import { eq, and, inArray } from "./db/index.js";
 import archiver from "archiver";
@@ -44,10 +43,10 @@ function drawHeader(doc: jsPDF, title: string, subtitle?: string) {
  */
 export async function gerarBoletoPDF(boletoId: number) {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new ValidationError("Database not available");
+  if (!db_conn) throw new Error("Database not available");
 
   const boleto = await db_conn.select().from(db.contasReceber).where(eq(db.contasReceber.id, boletoId)).limit(1);
-  if (boleto.length === 0) throw new ValidationError("Boleto não encontrado");
+  if (boleto.length === 0) throw new Error("Boleto não encontrado");
   const b = boleto[0];
 
   const dadosBanco = await db.getConfig("DADOS_BANCO") || "DADOS BANCÁRIOS NÃO CONFIGURADOS";
@@ -136,7 +135,7 @@ export async function gerarBoletoPDF(boletoId: number) {
  */
 export async function gerarExtratoClientePDF(clienteId: number, vendedorId?: number): Promise<string> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new ValidationError("Database not available");
+  if (!db_conn) throw new Error("Database not available");
 
   const clienteRows = await db_conn
     .select({ id: db.clientes.id, nome: db.clientes.nome })
@@ -199,10 +198,10 @@ export async function gerarExtratoClientePDF(clienteId: number, vendedorId?: num
  */
 export async function gerarBoletoPDFBytes(boletoId: number): Promise<Uint8Array> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new ValidationError("Database not available");
+  if (!db_conn) throw new Error("Database not available");
 
   const boleto = await db_conn.select().from(db.contasReceber).where(eq(db.contasReceber.id, boletoId)).limit(1);
-  if (boleto.length === 0) throw new ValidationError("Boleto não encontrado");
+  if (boleto.length === 0) throw new Error("Boleto não encontrado");
   const b = boleto[0];
 
   const dadosBanco = await db.getConfig("DADOS_BANCO") || "DADOS BANCÁRIOS NÃO CONFIGURADOS";
@@ -281,7 +280,7 @@ export async function gerarBoletoPDFBytes(boletoId: number): Promise<Uint8Array>
 // ===== ROMANEIO (CARGA) =====
 export async function gerarRomaneioPDF(tenantId: number, cargaId: number): Promise<string> {
   const carga = await db.getCargaById(tenantId, cargaId);
-  if (!carga) throw new ValidationError('Carga não encontrada');
+  if (!carga) throw new Error('Carga não encontrada');
 
   const doc = new jsPDF();
   const numero = String((carga as any).numero || '').padStart(4, '0');
@@ -422,7 +421,7 @@ export async function gerarRelatorioViagemPDF(tenantId: number, cargaId: number)
 
 export async function gerarZipBoletos(params: { boletoIds: number[]; pedidoNumero: number; clienteNome: string; }): Promise<{ fileName: string; base64: string; }> {
   const { boletoIds, pedidoNumero, clienteNome } = params;
-  if (!boletoIds.length) throw new ValidationError('Nenhum boleto para gerar ZIP');
+  if (!boletoIds.length) throw new Error('Nenhum boleto para gerar ZIP');
 
   const safeCliente = String(clienteNome || 'CLIENTE').toUpperCase().replace(/[^A-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_').slice(0, 40);
   const fileName = `BOLETOS_PED-${String(pedidoNumero).padStart(4, '0')}_${safeCliente}.zip`;
@@ -459,10 +458,10 @@ export async function gerarZipBoletos(params: { boletoIds: number[]; pedidoNumer
  */
 export async function gerarPedidoPDF(pedidoId: number): Promise<string> {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new ValidationError('Database not available');
+  if (!db_conn) throw new Error('Database not available');
 
   const pedidoRows = await db_conn.select().from(db.pedidos).where(eq(db.pedidos.id, pedidoId)).limit(1);
-  if (!pedidoRows.length) throw new ValidationError('Pedido não encontrado');
+  if (!pedidoRows.length) throw new Error('Pedido não encontrado');
   const p = pedidoRows[0] as any;
 
   const itens = await db_conn.select().from(db.itensPedido).where(eq(db.itensPedido.pedidoId, pedidoId));
@@ -642,10 +641,10 @@ export async function gerarPedidoPDF(pedidoId: number): Promise<string> {
  */
 export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pedidoNumero?: number) {
   const carga = await db.getCargaById(tenantId, cargaId);
-  if (!carga) throw new ValidationError("Carga não encontrada");
+  if (!carga) throw new Error("Carga não encontrada");
 
   const db_conn = await db.getDb();
-  if (!db_conn) throw new ValidationError("Database not available");
+  if (!db_conn) throw new Error("Database not available");
 
   // Filtra por todos os pedidos da carga ou apenas um específico
   const isCargaComPedidos = (
@@ -663,7 +662,7 @@ export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pe
     : isCargaComPedidos(carga)
       ? carga.pedidos.map((p) => p.numero)
       : (() => {
-          throw new ValidationError("Carga inválida: pedidos não disponíveis");
+          throw new Error("Carga inválida: pedidos não disponíveis");
         })();
 
   const boletos = await db_conn.select().from(db.contasReceber)
@@ -673,7 +672,7 @@ export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pe
       eq(db.contasReceber.status, 'PENDENTE')
     ));
 
-  if (boletos.length === 0) throw new ValidationError("Nenhum boleto encontrado.");
+  if (boletos.length === 0) throw new Error("Nenhum boleto encontrado.");
 
   const doc = new jsPDF();
   const dadosBanco = await db.getConfig("DADOS_BANCO") || "DADOS BANCÁRIOS NÃO CONFIGURADOS";
@@ -723,7 +722,7 @@ export async function gerarBoletosCargaPDF(tenantId: number, cargaId: number, pe
  */
 export async function gerarRelatorioFinanceiroPDF(tipo: 'PAGAR' | 'RECEBER', mesAno: string) {
   const db_conn = await db.getDb();
-  if (!db_conn) throw new ValidationError("Database not available");
+  if (!db_conn) throw new Error("Database not available");
 
   const doc = new jsPDF();
   let y = drawHeader(doc, `RELATÓRIO DE CONTAS A ${tipo}`, `Mês Referência: ${mesAno}`);

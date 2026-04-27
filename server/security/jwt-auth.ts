@@ -113,7 +113,7 @@ class JWTAuth {
       });
 
       if (typeof decoded === "string" || decoded === null) {
-        throw new ValidationError("Invalid access token payload");
+        throw new Error("Invalid access token payload");
       }
 
       const p = decoded as JwtPayload & Partial<JWTPayload>;
@@ -124,7 +124,7 @@ class JWTAuth {
         typeof p.role !== "string" ||
         typeof p.sessionId !== "string"
       ) {
-        throw new ValidationError("Invalid access token payload");
+        throw new Error("Invalid access token payload");
       }
 
       const safePayload: JWTPayload = {
@@ -173,7 +173,7 @@ class JWTAuth {
       });
 
       if (typeof decoded === "string" || decoded === null) {
-        throw new ValidationError("Invalid refresh token payload");
+        throw new Error("Invalid refresh token payload");
       }
 
       const p = decoded as JwtPayload & Partial<RefreshTokenPayload>;
@@ -183,7 +183,7 @@ class JWTAuth {
         typeof p.sessionId !== "string" ||
         typeof p.tokenVersion !== "number"
       ) {
-        throw new ValidationError("Invalid refresh token payload");
+        throw new Error("Invalid refresh token payload");
       }
 
       const safePayload: RefreshTokenPayload = {

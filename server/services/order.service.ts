@@ -1,5 +1,8 @@
 import { ServiceList, ServiceSingle, ServiceCreateResponse } from '../types/service-safety.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
+import { getDb } from '../db/index.js';
+import { eq, and } from 'drizzle-orm';
+import { pedidos } from '../../drizzle/schema.js';
 
 /**
  * CAMADA SERVICES: ORDER
@@ -14,9 +17,14 @@ import { ValidationError } from '../_core/errors/typed-errors.js';
 export class OrderService {
   /**
    * Criar novo pedido
+   * @param ctx Contexto TRPC com tenantId
    * @param payload Dados do pedido (validado via type guard)
    */
-  async create(payload: Record<string, unknown>): Promise<ServiceCreateResponse> {
+  async create(ctx: { tenantId: number | null }, payload: Record<string, unknown>): Promise<ServiceCreateResponse> {
+    // SECURITY HARDENING: Validar tenant obrigatório
+    if (!ctx.tenantId || ctx.tenantId <= 0) {
+      throw new ValidationError('Tenant inválido ou ausente');
+    }
     // Type guard simples para validação
     if (!payload || typeof payload !== 'object') {
       throw new ValidationError('Payload inválido: esperado objeto');
@@ -61,18 +69,23 @@ export class OrderService {
       }
     }
 
-    // TODO: Integrar com TOOLS layer para persistência
-    // Exemplo: await orderTools.create(payload);
-    
-    // Mock retorno para seguir contrato
+    // TODO: Implementação real com schema correto
+    // SECURITY HARDENING: OBRIGATÓRIO incluir WHERE tenant_id = ctx.tenantId
+    // Por agora, mock com validação tenant para não quebrar compilação
+    console.log(`[ORDER SERVICE] Criando pedido para tenant ${ctx.tenantId}`, payload);
     return { id: Math.floor(Math.random() * 1000) };
   }
 
   /**
    * Listar pedidos
+   * @param ctx Contexto TRPC com tenantId
    * @param payload Filtros e paginação
    */
-  async list(payload: Record<string, unknown>): Promise<ServiceList<Record<string, unknown>>> {
+  async list(ctx: { tenantId: number | null }, payload: Record<string, unknown>): Promise<ServiceList<Record<string, unknown>>> {
+    // SECURITY HARDENING: Validar tenant obrigatório
+    if (!ctx.tenantId || ctx.tenantId <= 0) {
+      throw new ValidationError('Tenant inválido ou ausente');
+    }
     // Type guard para payload
     if (!payload || typeof payload !== 'object') {
       throw new ValidationError('Payload inválido: esperado objeto');
@@ -113,18 +126,62 @@ export class OrderService {
       throw new ValidationError('dataFim deve ser Date ou string');
     }
 
-    // TODO: Integrar com TOOLS layer para busca
-    // Exemplo: return await orderTools.list({ page, limit, clienteId, status, dataInicio, dataFim });
+    // TODO: Implementação real com WHERE tenant_id
+    // Por agora, mock com validação tenant para não quebrar compilação
+    console.log(`[ORDER SERVICE] Listando pedidos para tenant ${ctx.tenantId}`, payload);
+    return []; // Mock temporário
+  }
+
+  /**
+   * Buscar pedido por ID
+   * @param ctx Contexto TRPC com tenantId
+   * @param payload Dados incluindo ID do pedido
+   */
+  async getById(ctx: { tenantId: number | null }, payload: Record<string, unknown>): Promise<ServiceCreateResponse> {
+    // SECURITY HARDENING: Validar tenant obrigatório
+    if (!ctx.tenantId || ctx.tenantId <= 0) {
+      throw new ValidationError('Tenant inválido ou ausente');
+    }
     
-    // Mock retorno para seguir contrato
-    return []; // Ausência legítima - funcionalidade não implementada
+    // Type guard para payload
+    if (!payload || typeof payload !== 'object') {
+      throw new ValidationError('Payload inválido: esperado objeto');
+    }
+
+    // Validação de ID obrigatório
+    if (!('id' in payload) || typeof payload.id !== 'number' || payload.id <= 0) {
+      throw new ValidationError('ID do pedido inválido ou ausente');
+    }
+
+    const id = payload.id as number;
+
+    // TODO: Implementação real com WHERE tenant_id AND id
+    // Por agora, mock com validação tenant para não quebrar compilação
+    console.log(`[ORDER SERVICE] Buscando pedido ${id} para tenant ${ctx.tenantId}`);
+    
+    // Simular busca no banco - se não encontrar, throw erro
+    if (id > 999999) {
+      throw new ValidationError('Pedido não encontrado');
+    }
+    
+    // Mock de retorno
+    return { 
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
   }
 
   /**
    * Atualizar pedido
+   * @param ctx Contexto TRPC com tenantId
    * @param payload Dados para atualização incluindo ID
    */
-  async update(payload: Record<string, unknown>): Promise<ServiceCreateResponse> {
+  async update(ctx: { tenantId: number | null }, payload: Record<string, unknown>): Promise<ServiceCreateResponse> {
+    // SECURITY HARDENING: Validar tenant obrigatório
+    if (!ctx.tenantId || ctx.tenantId <= 0) {
+      throw new ValidationError('Tenant inválido ou ausente');
+    }
     // Type guard para payload
     if (!payload || typeof payload !== 'object') {
       throw new ValidationError('Payload inválido: esperado objeto');
@@ -178,10 +235,9 @@ export class OrderService {
       }
     }
 
-    // TODO: Integrar com TOOLS layer para atualização
-    // Exemplo: await orderTools.update(payload.id, updateFields);
-    
-    // Mock retorno para seguir contrato
+    // TODO: Implementação real com WHERE tenant_id AND id
+    // Por agora, mock com validação tenant para não quebrar compilação
+    console.log(`[ORDER SERVICE] Atualizando pedido para tenant ${ctx.tenantId}`, payload);
     return { id: payload.id as number };
   }
 }

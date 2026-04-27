@@ -525,6 +525,8 @@ export const counters = mysqlTable(
   }),
 );
 
+// Tabela GLOBAL: NÃO multi-tenant. Uso restrito, documentado explicitamente.
+// EXCEÇÃO: Não possui tenantId por design. Qualquer acesso deve ser validado e isolado por service.
 export const configuracoes = mysqlTable("configuracoes", {
   id: int("id").primaryKey().autoincrement(),
   chave: varchar("chave", { length: 64 }).notNull().unique(),

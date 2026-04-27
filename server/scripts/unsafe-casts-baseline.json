@@ -1,0 +1,1770 @@
+{
+  "generated": "2026-04-12T03:59:46.940Z",
+  "totalViolations": 317,
+  "files": {
+    "/cache/api-cache.ts": [
+      {
+        "line": 31,
+        "pattern": "<unknown>",
+        "content": "const store = new Map<string, Entry<unknown>>();"
+      }
+    ],
+    "/concurrency/pedido-control.ts": [
+      {
+        "line": 159,
+        "pattern": "as any",
+        "content": "(this as any).pedidoId = pedidoId;"
+      },
+      {
+        "line": 160,
+        "pattern": "as any",
+        "content": "(this as any).numero = numero;"
+      },
+      {
+        "line": 168,
+        "pattern": "as any",
+        "content": "const pedidoId = (error as any).pedidoId as number;"
+      },
+      {
+        "line": 169,
+        "pattern": "as any",
+        "content": "const numero = (error as any).numero as number;"
+      }
+    ],
+    "/config/database.ts": [
+      {
+        "line": 256,
+        "pattern": "as any",
+        "content": "errno: (error as any)?.errno,"
+      },
+      {
+        "line": 257,
+        "pattern": "as any",
+        "content": "sqlState: (error as any)?.sqlState,"
+      },
+      {
+        "line": 258,
+        "pattern": "as any",
+        "content": "fatal: (error as any)?.fatal,"
+      },
+      {
+        "line": 335,
+        "pattern": "as any",
+        "content": "const result = await conn.query(query, params as any[]);"
+      }
+    ],
+    "/db/core.ts": [
+      {
+        "line": 88,
+        "pattern": "as unknown as",
+        "content": "}) as unknown as Database;"
+      },
+      {
+        "line": 226,
+        "pattern": "as unknown as",
+        "content": "return { id: getInsertId(result as unknown as Record<string, unknown>) };"
+      },
+      {
+        "line": 278,
+        "pattern": "as unknown as",
+        "content": "return { id: getInsertId(result as unknown as Record<string, unknown>) };"
+      }
+    ],
+    "/index.ts": [
+      {
+        "line": 40,
+        "pattern": "as any",
+        "content": "(process as any).isTsx === true ||"
+      }
+    ],
+    "/infra/circuit-breaker.ts": [
+      {
+        "line": 21,
+        "pattern": "<unknown>",
+        "content": "fallback?: () => Promise<unknown>; // função fallback quando OPEN"
+      },
+      {
+        "line": 59,
+        "pattern": "<unknown>",
+        "content": "private readonly fallbackFn?: () => Promise<unknown>;"
+      }
+    ],
+    "/infra/metrics-middleware.ts": [
+      {
+        "line": 26,
+        "pattern": "as any",
+        "content": "userId: (req as any).user?.id,"
+      },
+      {
+        "line": 27,
+        "pattern": "as any",
+        "content": "tenantId: (req as any).tenantId,"
+      },
+      {
+        "line": 44,
+        "pattern": "as any",
+        "content": "(req as any).recordDbMetric = (query: string, duration: number, success: boolean, error?: string) => {"
+      },
+      {
+        "line": 51,
+        "pattern": "as any",
+        "content": "tenantId: (req as any).tenantId,"
+      }
+    ],
+    "/infra/request-tracing.ts": [
+      {
+        "line": 55,
+        "pattern": "as any",
+        "content": "const originalJson = res.json as any;"
+      },
+      {
+        "line": 56,
+        "pattern": "as any",
+        "content": "const originalSend = res.send as any;"
+      },
+      {
+        "line": 57,
+        "pattern": "as any",
+        "content": "const originalEnd = res.end as any;"
+      }
+    ],
+    "/infra/response-optimizer.ts": [
+      {
+        "line": 52,
+        "pattern": "as any",
+        "content": "delete (optimized as any)[field];"
+      },
+      {
+        "line": 67,
+        "pattern": "as any",
+        "content": "(truncated as any)[key] = value.substring(0, 1000) + '... (truncated)';"
+      },
+      {
+        "line": 69,
+        "pattern": "as any",
+        "content": "(truncated as any)[key] = value.slice(0, 100);"
+      },
+      {
+        "line": 72,
+        "pattern": "as any",
+        "content": "(truncated as any)[key] = optimizeResponse(value, options);"
+      },
+      {
+        "line": 74,
+        "pattern": "as any",
+        "content": "(truncated as any)[key] = value;"
+      }
+    ],
+    "/infra/storage/storage.ts": [
+      {
+        "line": 61,
+        "pattern": "as any",
+        "content": ": new Blob([data as any], { type: contentType });"
+      }
+    ],
+    "/infra/tracing-integration.ts": [
+      {
+        "line": 11,
+        "pattern": "as any",
+        "content": "const parentSpan = (req as any).traceSpan;"
+      },
+      {
+        "line": 21,
+        "pattern": "as any",
+        "content": "'route.method': (req as any).method,"
+      },
+      {
+        "line": 22,
+        "pattern": "as any",
+        "content": "'route.path': (req as any).path,"
+      },
+      {
+        "line": 23,
+        "pattern": "as any",
+        "content": "'route.params': JSON.stringify((req as any).params),"
+      },
+      {
+        "line": 24,
+        "pattern": "as any",
+        "content": "'route.query': JSON.stringify((req as any).query),"
+      },
+      {
+        "line": 31,
+        "pattern": "as any",
+        "content": "traceId: (req as any).traceId,"
+      },
+      {
+        "line": 33,
+        "pattern": "as any",
+        "content": "method: (req as any).method,"
+      },
+      {
+        "line": 34,
+        "pattern": "as any",
+        "content": "path: (req as any).path,"
+      },
+      {
+        "line": 82,
+        "pattern": "as any",
+        "content": "const parentSpan = (req as any).traceSpan;"
+      },
+      {
+        "line": 105,
+        "pattern": "as any",
+        "content": "const parentSpan = (req as any).traceSpan;"
+      },
+      {
+        "line": 163,
+        "pattern": "as any",
+        "content": "const parentSpan = (req as any).traceSpan;"
+      },
+      {
+        "line": 222,
+        "pattern": "as any",
+        "content": "const parentSpan = (req as any).traceSpan;"
+      }
+    ],
+    "/infra/tracing.ts": [
+      {
+        "line": 181,
+        "pattern": "as any",
+        "content": "(span as any).otelSpan = otelSpan;"
+      },
+      {
+        "line": 222,
+        "pattern": "as any",
+        "content": "const otelSpan = (span as any).otelSpan;"
+      }
+    ],
+    "/integrations/freight.service.ts": [
+      {
+        "line": 73,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      },
+      {
+        "line": 104,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      }
+    ],
+    "/integrations/ocr.service.ts": [
+      {
+        "line": 40,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      }
+    ],
+    "/integrations/superfrete.service.ts": [
+      {
+        "line": 79,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      },
+      {
+        "line": 113,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      },
+      {
+        "line": 144,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      }
+    ],
+    "/integrations/telegram.service.ts": [
+      {
+        "line": 33,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      }
+    ],
+    "/integrations/tracking.service.ts": [
+      {
+        "line": 25,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      }
+    ],
+    "/integrations/whatsapp.service.ts": [
+      {
+        "line": 38,
+        "pattern": "as any",
+        "content": "const data = (await res.json()) as any;"
+      }
+    ],
+    "/leo/actions/leo-actions.ts": [
+      {
+        "line": 265,
+        "pattern": "as unknown as",
+        "content": "const tenantId = Number((context as unknown as Payload).tenantId);"
+      },
+      {
+        "line": 330,
+        "pattern": "as unknown as",
+        "content": "const resultado = await leoErpService.ajustarEstoque((parametros ?? {}) as unknown as import('../../services/leo-service.js').EstoqueInput, userId);"
+      },
+      {
+        "line": 146,
+        "pattern": "as any",
+        "content": "const entity = (action.context as any)?.entity || 'cliente';"
+      },
+      {
+        "line": 165,
+        "pattern": "as any",
+        "content": "const params = parametros as any;"
+      },
+      {
+        "line": 180,
+        "pattern": "as any",
+        "content": "const params = parametros as any;"
+      },
+      {
+        "line": 195,
+        "pattern": "as any",
+        "content": "const params = parametros as any;"
+      },
+      {
+        "line": 220,
+        "pattern": "as any",
+        "content": "const params = parametros as any;"
+      },
+      {
+        "line": 448,
+        "pattern": "as any",
+        "content": "const automation = (action.context as any)?.automation || 'iniciar_loop';"
+      }
+    ],
+    "/leo/agent/tool-registry.ts": [
+      {
+        "line": 42,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.openApp(i.appName, i.parameters)) as unknown as Payload;"
+      },
+      {
+        "line": 55,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.closeApp(i.appName, i.force)) as unknown as Payload;"
+      },
+      {
+        "line": 68,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.openBrowser(i.url, i.incognito)) as unknown as Payload;"
+      },
+      {
+        "line": 81,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.navigateUrl(i.url, i.tabId)) as unknown as Payload;"
+      },
+      {
+        "line": 94,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.readFile(i.filePath, i.encoding)) as unknown as Payload;"
+      },
+      {
+        "line": 108,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.writeFile(i.filePath, i.content, i.append)) as unknown as Payload;"
+      },
+      {
+        "line": 122,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.runTerminalCommand(i.command, i.workingDirectory, i.timeout)) as unknown as Payload;"
+      },
+      {
+        "line": 136,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.takeScreenshot(i.region, i.windowTitle, i.savePath)) as unknown as Payload;"
+      },
+      {
+        "line": 150,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.getSystemStatus(i.category ?? 'all')) as unknown as Payload;"
+      },
+      {
+        "line": 159,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.getCpuUsage()) as unknown as Payload;"
+      },
+      {
+        "line": 168,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.getMemoryUsage()) as unknown as Payload;"
+      },
+      {
+        "line": 180,
+        "pattern": "as unknown as",
+        "content": "return (await desktopController.getRunningApps(i.filter)) as unknown as Payload;"
+      }
+    ],
+    "/leo/core/task-queue.ts": [
+      {
+        "line": 213,
+        "pattern": "<unknown>",
+        "content": "private async executeTaskLogic(task: LeoTask): Promise<unknown> {"
+      },
+      {
+        "line": 235,
+        "pattern": "<unknown>",
+        "content": "private async executeAnalysisTask(task: LeoTask): Promise<unknown> {"
+      },
+      {
+        "line": 243,
+        "pattern": "<unknown>",
+        "content": "private async executeMonitoringTask(task: LeoTask): Promise<unknown> {"
+      },
+      {
+        "line": 251,
+        "pattern": "<unknown>",
+        "content": "private async executeAutomationTask(task: LeoTask): Promise<unknown> {"
+      },
+      {
+        "line": 259,
+        "pattern": "<unknown>",
+        "content": "private async executeLearningTask(task: LeoTask): Promise<unknown> {"
+      },
+      {
+        "line": 267,
+        "pattern": "<unknown>",
+        "content": "private async executeCleanupTask(task: LeoTask): Promise<unknown> {"
+      },
+      {
+        "line": 275,
+        "pattern": "<unknown>",
+        "content": "private async executeEmergencyTask(task: LeoTask): Promise<unknown> {"
+      }
+    ],
+    "/leo/leo-watchdog.ts": [
+      {
+        "line": 486,
+        "pattern": "<unknown>",
+        "content": "process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {"
+      }
+    ],
+    "/leo/memory/leo-events.ts": [
+      {
+        "line": 113,
+        "pattern": "as unknown as",
+        "content": "(event as unknown as Record<string, unknown>).usuarioCriador = input.usuarioCriador;"
+      },
+      {
+        "line": 114,
+        "pattern": "as unknown as",
+        "content": "(event as unknown as Record<string, unknown>).createdAt = now;"
+      },
+      {
+        "line": 115,
+        "pattern": "as unknown as",
+        "content": "(event as unknown as Record<string, unknown>).updatedAt = now;"
+      },
+      {
+        "line": 149,
+        "pattern": "as unknown as",
+        "content": "(event as unknown as Record<string, unknown>).resolvidoEm = new Date();"
+      }
+    ],
+    "/leo/runtime/leo-session-gate.ts": [
+      {
+        "line": 39,
+        "pattern": "<unknown>",
+        "content": "private readonly tails = new Map<string, Promise<unknown>>();"
+      }
+    ],
+    "/leo/security/leo-hardening.ts": [
+      {
+        "line": 157,
+        "pattern": "<unknown>",
+        "content": "process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {"
+      }
+    ],
+    "/leo/security/leo-sandbox.ts": [
+      {
+        "line": 507,
+        "pattern": "<unknown>",
+        "content": "private async executeAllowedAction(action: LeoSandboxAction): Promise<unknown> {"
+      },
+      {
+        "line": 523,
+        "pattern": "<unknown>",
+        "content": "private async executeShellAction(action: LeoSandboxAction): Promise<unknown> {"
+      },
+      {
+        "line": 538,
+        "pattern": "<unknown>",
+        "content": "private async executeFileAccessAction(action: LeoSandboxAction): Promise<unknown> {"
+      },
+      {
+        "line": 557,
+        "pattern": "<unknown>",
+        "content": "private async executeAutomationAction(action: LeoSandboxAction): Promise<unknown> {"
+      }
+    ],
+    "/leo/tools/analytics/index.ts": [
+      {
+        "line": 7,
+        "pattern": "<unknown>",
+        "content": "const analyticsTools: LeoToolDefinition<unknown>[] = [];"
+      }
+    ],
+    "/leo/types/index.ts": [
+      {
+        "line": 48,
+        "pattern": "<unknown>",
+        "content": "retrieve(key: string): Promise<unknown>;"
+      }
+    ],
+    "/middleware/auth.middleware.ts": [
+      {
+        "line": 55,
+        "pattern": "as unknown as",
+        "content": "authReq.user = decoded as unknown as Request['user'];"
+      },
+      {
+        "line": 93,
+        "pattern": "as unknown as",
+        "content": "authReq.user = decoded as unknown as Request['user'];"
+      }
+    ],
+    "/middleware/safe-defaults.middleware.ts": [
+      {
+        "line": 68,
+        "pattern": "<unknown>",
+        "content": "export function safeHandler(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {"
+      }
+    ],
+    "/middleware/slow-query-logger.ts": [
+      {
+        "line": 103,
+        "pattern": "<unknown>",
+        "content": "execute: (query: unknown, ...args: unknown[]) => Promise<unknown>;"
+      },
+      {
+        "line": 104,
+        "pattern": "<unknown>",
+        "content": "query?: (query: unknown, ...args: unknown[]) => Promise<unknown>;"
+      },
+      {
+        "line": 123,
+        "pattern": "<unknown>",
+        "content": "connection.execute = function (this: T, query: unknown, ...rest: unknown[]): Promise<unknown> {"
+      },
+      {
+        "line": 130,
+        "pattern": "<unknown>",
+        "content": "connection.query = function (this: T, query: unknown, ...rest: unknown[]): Promise<unknown> {"
+      }
+    ],
+    "/middlewares/rate-limit.ts": [
+      {
+        "line": 180,
+        "pattern": "as any",
+        "content": "if (res.req.protocol === 'https' || (res.req as any).secure) {"
+      }
+    ],
+    "/middlewares/rbac-middleware.ts": [
+      {
+        "line": 273,
+        "pattern": "as any",
+        "content": "(req as any).userPermissions = userPermissions;"
+      }
+    ],
+    "/middlewares/request-id.ts": [
+      {
+        "line": 243,
+        "pattern": "as any",
+        "content": "(global as any).correlationId = correlationId;"
+      }
+    ],
+    "/middlewares/security.ts": [
+      {
+        "line": 203,
+        "pattern": "as any",
+        "content": "if (req.protocol === 'https' || (req as any).secure) {"
+      }
+    ],
+    "/modules/logistica/carga.service.ts": [
+      {
+        "line": 9,
+        "pattern": "<unknown>",
+        "content": "export async function listarCargas(tenantId: number): Promise<unknown> {"
+      },
+      {
+        "line": 13,
+        "pattern": "<unknown>",
+        "content": "export async function obterCargaPorId(tenantId: number, id: number): Promise<unknown> {"
+      },
+      {
+        "line": 17,
+        "pattern": "<unknown>",
+        "content": "export async function criarCarga(tenantId: number, data: { cidadeRota: string; dataEntrega: Date }): Promise<unknown> {"
+      },
+      {
+        "line": 25,
+        "pattern": "<unknown>",
+        "content": "export async function atualizarPedidosDaCarga(tenantId: number, cargaId: number, changes: { addIds?: number[]; removeIds?: number[] }): Promise<unknown> {"
+      },
+      {
+        "line": 36,
+        "pattern": "<unknown>",
+        "content": "export async function fecharCarga(tenantId: number, cargaId: number): Promise<unknown> {"
+      },
+      {
+        "line": 40,
+        "pattern": "<unknown>",
+        "content": "export async function finalizarCarga(tenantId: number, cargaId: number): Promise<unknown> {"
+      },
+      {
+        "line": 44,
+        "pattern": "<unknown>",
+        "content": "export async function gerarRelatorioViagemPDF(tenantId: number, cargaId: number): Promise<unknown> {"
+      },
+      {
+        "line": 49,
+        "pattern": "<unknown>",
+        "content": "export async function atualizarOrdemEntrega(tenantId: number, cargaId: number, itens: { pedidoCargaId: number; ordemEntrega: number }[]): Promise<unknown> {"
+      },
+      {
+        "line": 57,
+        "pattern": "<unknown>",
+        "content": "export async function atualizarHorarioPrevisto(tenantId: number, pedidoCargaId: number, horarioPrevisto: string | null): Promise<unknown> {"
+      }
+    ],
+    "/modules/safe-order.module.ts": [
+      {
+        "line": 136,
+        "pattern": "as any",
+        "content": "pedidoNumero = (numeroResult as any[])[0]?.proximoNumero || 1;"
+      },
+      {
+        "line": 162,
+        "pattern": "as any",
+        "content": "const pedidoId = (pedidoResult as any).insertId;"
+      },
+      {
+        "line": 176,
+        "pattern": "as any",
+        "content": "id: (itemResult as any).insertId"
+      },
+      {
+        "line": 245,
+        "pattern": "as any",
+        "content": "if (!pedido || !(pedido as any[])[0]) {"
+      },
+      {
+        "line": 249,
+        "pattern": "as any",
+        "content": "const pedidoData = (pedido as any[])[0];"
+      },
+      {
+        "line": 266,
+        "pattern": "as any",
+        "content": "const itensPedido = (itens as any[]);"
+      },
+      {
+        "line": 342,
+        "pattern": "as any",
+        "content": "if (!pedido || !(pedido as any[])[0]) {"
+      },
+      {
+        "line": 346,
+        "pattern": "as any",
+        "content": "const pedidoData = (pedido as any[])[0];"
+      }
+    ],
+    "/modules/safe-payment.module.ts": [
+      {
+        "line": 66,
+        "pattern": "as any",
+        "content": "if (!pedido || !(pedido as any[])[0]) {"
+      },
+      {
+        "line": 70,
+        "pattern": "as any",
+        "content": "const pedidoData = (pedido as any[])[0];"
+      },
+      {
+        "line": 82,
+        "pattern": "as any",
+        "content": "const totalPago = Number((pagamentosExistentes as any[])[0]?.totalPago || 0);"
+      },
+      {
+        "line": 116,
+        "pattern": "as any",
+        "content": "const paymentId = (paymentResult as any).insertId;"
+      },
+      {
+        "line": 125,
+        "pattern": "as any",
+        "content": "const pedidoData = (pedido as any[])[0];"
+      },
+      {
+        "line": 134,
+        "pattern": "as any",
+        "content": "const totalPago = Number((totalPagoResult as any[])[0]?.totalPago || 0);"
+      },
+      {
+        "line": 199,
+        "pattern": "as any",
+        "content": "if (!payment || !(payment as any[])[0]) {"
+      },
+      {
+        "line": 203,
+        "pattern": "as any",
+        "content": "const paymentData = (payment as any[])[0];"
+      },
+      {
+        "line": 217,
+        "pattern": "as any",
+        "content": "const pedidoData = (pedido as any[])[0];"
+      },
+      {
+        "line": 295,
+        "pattern": "as any",
+        "content": "if (!paymentRecord || !(paymentRecord as any[])[0]) {"
+      },
+      {
+        "line": 300,
+        "pattern": "as any",
+        "content": "const paymentData = (paymentRecord as any[])[0];"
+      }
+    ],
+    "/modules/safe-shipment.module.ts": [
+      {
+        "line": 163,
+        "pattern": "as any",
+        "content": "const shipmentId = (shipmentResult as any).insertId;"
+      },
+      {
+        "line": 240,
+        "pattern": "as any",
+        "content": "if (!shipment || !(shipment as any[])[0]) {"
+      },
+      {
+        "line": 244,
+        "pattern": "as any",
+        "content": "const shipmentData = (shipment as any[])[0];"
+      },
+      {
+        "line": 315,
+        "pattern": "as any",
+        "content": "if (!shipment || !(shipment as any[])[0]) {"
+      },
+      {
+        "line": 319,
+        "pattern": "as any",
+        "content": "const shipmentData = (shipment as any[])[0];"
+      },
+      {
+        "line": 398,
+        "pattern": "as any",
+        "content": "if (!shipment || !(shipment as any[])[0]) {"
+      },
+      {
+        "line": 402,
+        "pattern": "as any",
+        "content": "const shipmentData = (shipment as any[])[0];"
+      },
+      {
+        "line": 415,
+        "pattern": "as any",
+        "content": "const estaNaCarga = (pedidoNaCarga as any[])[0]?.total || 0;"
+      }
+    ],
+    "/monitoring/error-alerter.ts": [
+      {
+        "line": 88,
+        "pattern": "as any",
+        "content": "const lastAlertTime = (entry as any).lastAlertTime;"
+      },
+      {
+        "line": 94,
+        "pattern": "as any",
+        "content": "(entry as any).lastAlertTime = now;"
+      }
+    ],
+    "/monitoring/health-watchdog.ts": [
+      {
+        "line": 25,
+        "pattern": "<unknown>",
+        "content": "query(sql: string): Promise<unknown>;"
+      }
+    ],
+    "/pdf.ts": [
+      {
+        "line": 286,
+        "pattern": "as any",
+        "content": "const numero = String((carga as any).numero || '').padStart(4, '0');"
+      },
+      {
+        "line": 287,
+        "pattern": "as any",
+        "content": "const cidade = String((carga as any).cidadeRota || '').toUpperCase();"
+      },
+      {
+        "line": 288,
+        "pattern": "as any",
+        "content": "const dataEntrega = (carga as any).dataEntrega ? new Date((carga as any).dataEntrega) : new Date();"
+      },
+      {
+        "line": 288,
+        "pattern": "as any",
+        "content": "const dataEntrega = (carga as any).dataEntrega ? new Date((carga as any).dataEntrega) : new Date();"
+      },
+      {
+        "line": 362,
+        "pattern": "as any",
+        "content": "const itens = Array.isArray((carga as any).pedidos) ? (carga as any).pedidos : [];"
+      },
+      {
+        "line": 362,
+        "pattern": "as any",
+        "content": "const itens = Array.isArray((carga as any).pedidos) ? (carga as any).pedidos : [];"
+      },
+      {
+        "line": 465,
+        "pattern": "as any",
+        "content": "const p = pedidoRows[0] as any;"
+      },
+      {
+        "line": 598,
+        "pattern": "as any",
+        "content": "for (const it of itens as any[]) {"
+      },
+      {
+        "line": 755,
+        "pattern": "as any",
+        "content": "const desc = (tipo === 'RECEBER' ? (item as any).clienteNome : (item as any).fornecedor) || 'S/D';"
+      },
+      {
+        "line": 755,
+        "pattern": "as any",
+        "content": "const desc = (tipo === 'RECEBER' ? (item as any).clienteNome : (item as any).fornecedor) || 'S/D';"
+      },
+      {
+        "line": 757,
+        "pattern": "as any",
+        "content": "const status = (item as any).status;"
+      }
+    ],
+    "/queue/jobs.ts": [
+      {
+        "line": 100,
+        "pattern": "as unknown as",
+        "content": "const { imagePath, options } = data.payload as unknown as OcrJobPayload;"
+      },
+      {
+        "line": 145,
+        "pattern": "as unknown as",
+        "content": "const { options, area } = data.payload as unknown as ScreenshotJobPayload;"
+      },
+      {
+        "line": 204,
+        "pattern": "as unknown as",
+        "content": "const { analysisType, context, parameters } = data.payload as unknown as LeoAnalysisJobPayload;"
+      },
+      {
+        "line": 249,
+        "pattern": "as unknown as",
+        "content": "const { reportType, filters, format } = data.payload as unknown as ReportJobPayload;"
+      },
+      {
+        "line": 294,
+        "pattern": "as unknown as",
+        "content": "const { automationType, parameters, permissions } = data.payload as unknown as AutomationJobPayload;"
+      },
+      {
+        "line": 339,
+        "pattern": "as unknown as",
+        "content": "const { notificationType, recipients, message, channels } = data.payload as unknown as NotificationJobPayload;"
+      },
+      {
+        "line": 384,
+        "pattern": "as unknown as",
+        "content": "const { backupType, target, compression } = data.payload as unknown as BackupJobPayload;"
+      },
+      {
+        "line": 429,
+        "pattern": "as unknown as",
+        "content": "const { cleanupType, target, retention } = data.payload as unknown as CleanupJobPayload;"
+      }
+    ],
+    "/queue/worker-simple.ts": [
+      {
+        "line": 86,
+        "pattern": "as any",
+        "content": "connection: getRedisClient() as any,"
+      }
+    ],
+    "/queue/worker.ts": [
+      {
+        "line": 152,
+        "pattern": "as any",
+        "content": "// NOTA: connection usa 'as any' devido a conflito de versão ioredis"
+      },
+      {
+        "line": 155,
+        "pattern": "as any",
+        "content": "connection: connection as any,"
+      }
+    ],
+    "/resilience/db-fallback-middleware.ts": [
+      {
+        "line": 272,
+        "pattern": "<unknown>",
+        "content": "await (pool as { query: (sql: string) => Promise<unknown> }).query('SELECT 1');"
+      }
+    ],
+    "/resilience/failure-simulator.ts": [
+      {
+        "line": 78,
+        "pattern": "as any",
+        "content": "const error = new Error(`Internal Server Error: ${operationName}`) as any;"
+      },
+      {
+        "line": 83,
+        "pattern": "as any",
+        "content": "const rateError = new Error(`Rate limit exceeded: ${operationName}`) as any;"
+      }
+    ],
+    "/routers/leo-admin-dashboard.ts": [
+      {
+        "line": 302,
+        "pattern": "as any",
+        "content": "type: input.type as any,"
+      },
+      {
+        "line": 303,
+        "pattern": "as any",
+        "content": "priority: input.priority as any,"
+      },
+      {
+        "line": 305,
+        "pattern": "as any",
+        "content": "status: 'pending' as any,"
+      },
+      {
+        "line": 368,
+        "pattern": "as any",
+        "content": "tipo: 'comando' as any,"
+      },
+      {
+        "line": 371,
+        "pattern": "as any",
+        "content": "prioridade: 'media' as any,"
+      }
+    ],
+    "/routers/leo-admin.ts": [
+      {
+        "line": 220,
+        "pattern": "as any",
+        "content": "type: input.type as any,"
+      },
+      {
+        "line": 221,
+        "pattern": "as any",
+        "content": "priority: input.priority as any,"
+      },
+      {
+        "line": 225,
+        "pattern": "as any",
+        "content": "status: 'pending' as any,"
+      }
+    ],
+    "/routers/leo.router.ts": [
+      {
+        "line": 130,
+        "pattern": "as any",
+        "content": "mensagem: (fallbackResponse as any).response,"
+      }
+    ],
+    "/routers/logistica.ts": [
+      {
+        "line": 249,
+        "pattern": "as any",
+        "content": "numero: (carga as any).numero,"
+      },
+      {
+        "line": 250,
+        "pattern": "as any",
+        "content": "cidadeRota: (carga as any).cidadeRota,"
+      },
+      {
+        "line": 251,
+        "pattern": "as any",
+        "content": "dataEntrega: (carga as any).dataEntrega,"
+      },
+      {
+        "line": 252,
+        "pattern": "as any",
+        "content": "status: (carga as any).status,"
+      }
+    ],
+    "/routers/produtos.ts": [
+      {
+        "line": 205,
+        "pattern": "as any",
+        "content": "usuario: (ctx as any).user?.name || \"Sistema\","
+      }
+    ],
+    "/routers/smart-auth.ts": [
+      {
+        "line": 100,
+        "pattern": "as any",
+        "content": "requestId: (ctx as any).requestId,"
+      }
+    ],
+    "/routers.ts": [
+      {
+        "line": 74,
+        "pattern": "as any",
+        "content": "const bcryptModule: any = (bcryptImported as any).default ?? bcryptImported;"
+      },
+      {
+        "line": 573,
+        "pattern": "as any",
+        "content": "let data: Partial<db.InsertVendedor> = rest as any;"
+      },
+      {
+        "line": 578,
+        "pattern": "as any",
+        "content": "data = { ...(rest as any), senha: await bcrypt.hash(senha, 10) };"
+      },
+      {
+        "line": 681,
+        "pattern": "as any",
+        "content": "return await produtosRoutes.createProduto({ body: input, tenantId } as any);"
+      },
+      {
+        "line": 730,
+        "pattern": "as any",
+        "content": "return await produtosRoutes.deleteProduto({ params: { id: input.id.toString() }, tenantId } as any);"
+      },
+      {
+        "line": 788,
+        "pattern": "as any",
+        "content": "return await produtosRoutes.verificarEstoqueBaixo({ tenantId } as any);"
+      },
+      {
+        "line": 795,
+        "pattern": "as any",
+        "content": "return await promocoesRoutes.listar({} as any);"
+      },
+      {
+        "line": 800,
+        "pattern": "as any",
+        "content": "return await promocoesRoutes.detalhes({ params: { id: String(input.id) } } as any);"
+      },
+      {
+        "line": 805,
+        "pattern": "as any",
+        "content": "return await promocoesRoutes.criar({ body: input } as any);"
+      },
+      {
+        "line": 810,
+        "pattern": "as any",
+        "content": "return await promocoesRoutes.atualizar({ params: { id: String(input.id) }, body: input.data } as any);"
+      },
+      {
+        "line": 815,
+        "pattern": "as any",
+        "content": "return await promocoesRoutes.remover({ params: { id: String(input.id) } } as any);"
+      },
+      {
+        "line": 850,
+        "pattern": "as any",
+        "content": "createdBy: (ctx.user as any)?.id,"
+      },
+      {
+        "line": 898,
+        "pattern": "as any",
+        "content": "const res = await (tx as any).insert(db.gruposPrecificacao).values(data);"
+      },
+      {
+        "line": 899,
+        "pattern": "as any",
+        "content": "const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;"
+      },
+      {
+        "line": 899,
+        "pattern": "as any",
+        "content": "const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;"
+      },
+      {
+        "line": 1492,
+        "pattern": "as any",
+        "content": "const atual = pedido.status as any;"
+      },
+      {
+        "line": 1493,
+        "pattern": "as any",
+        "content": "const proximo = input.status as any;"
+      },
+      {
+        "line": 1509,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.pedidos).set({ status: proximo }).where(db.eq(db.pedidos.id, input.id));"
+      },
+      {
+        "line": 1557,
+        "pattern": "as any",
+        "content": "boletoVencimentos: (input as any).boletoVencimentos,"
+      },
+      {
+        "line": 1761,
+        "pattern": "as any",
+        "content": "const existing = await (tx as any).select({ id: db.clientes.id }).from(db.clientes)"
+      },
+      {
+        "line": 1773,
+        "pattern": "as any",
+        "content": "const created = await (tx as any).insert(db.clientes).values({"
+      },
+      {
+        "line": 1790,
+        "pattern": "as any",
+        "content": "} as any);"
+      },
+      {
+        "line": 1791,
+        "pattern": "as any",
+        "content": "clienteId = (created as any)[0]?.insertId;"
+      },
+      {
+        "line": 1807,
+        "pattern": "as any",
+        "content": "const [rows]: any = await (tx as any).execute(db.sql`"
+      },
+      {
+        "line": 1822,
+        "pattern": "as any",
+        "content": "await (tx as any).insert(db.counters).values({ tenantId: tenantIdForCounter, name: 'pedidos', seq: 1, free: null } as any);"
+      },
+      {
+        "line": 1822,
+        "pattern": "as any",
+        "content": "await (tx as any).insert(db.counters).values({ tenantId: tenantIdForCounter, name: 'pedidos', seq: 1, free: null } as any);"
+      },
+      {
+        "line": 1829,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));"
+      },
+      {
+        "line": 1829,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));"
+      },
+      {
+        "line": 1833,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));"
+      },
+      {
+        "line": 1833,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.counters).set({ seq: numero } as any).where(db.and(db.eq(db.counters.tenantId, tenantIdForCounter), db.eq(db.counters.name, 'pedidos')));"
+      },
+      {
+        "line": 1924,
+        "pattern": "as any",
+        "content": "const pedidoInsert = await (tx as any).insert(db.pedidos).values({"
+      },
+      {
+        "line": 1941,
+        "pattern": "as any",
+        "content": "subtotal: roundToTwo(input.subtotal) as any,"
+      },
+      {
+        "line": 1942,
+        "pattern": "as any",
+        "content": "desconto: roundToTwo(input.desconto) as any,"
+      },
+      {
+        "line": 1943,
+        "pattern": "as any",
+        "content": "frete: roundToTwo(input.frete) as any,"
+      },
+      {
+        "line": 1944,
+        "pattern": "as any",
+        "content": "total: roundToTwo(input.total) as any,"
+      },
+      {
+        "line": 1948,
+        "pattern": "as any",
+        "content": "} as any);"
+      },
+      {
+        "line": 1950,
+        "pattern": "as any",
+        "content": "const pedidoId = (pedidoInsert as any)[0]?.insertId;"
+      },
+      {
+        "line": 1963,
+        "pattern": "as any",
+        "content": "await (tx as any).insert(db.pendencias).values({"
+      },
+      {
+        "line": 1971,
+        "pattern": "as any",
+        "content": "} as any);"
+      },
+      {
+        "line": 1975,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.produtos)"
+      },
+      {
+        "line": 1976,
+        "pattern": "as any",
+        "content": ".set({ estoque: novoEstoque } as any)"
+      },
+      {
+        "line": 2018,
+        "pattern": "as any",
+        "content": "await (tx as any).insert(db.itensPedido).values(itensPedidoRows as any);"
+      },
+      {
+        "line": 2018,
+        "pattern": "as any",
+        "content": "await (tx as any).insert(db.itensPedido).values(itensPedidoRows as any);"
+      },
+      {
+        "line": 2024,
+        "pattern": "as any",
+        "content": "await (tx as any).insert(db.contasReceber).values({"
+      },
+      {
+        "line": 2030,
+        "pattern": "as any",
+        "content": "valor: roundToTwo(input.total) as any,"
+      },
+      {
+        "line": 2035,
+        "pattern": "as any",
+        "content": "} as any);"
+      },
+      {
+        "line": 2183,
+        "pattern": "as any",
+        "content": "boletoVencimentos: (input as any).boletoVencimentos,"
+      },
+      {
+        "line": 2328,
+        "pattern": "as any",
+        "content": "const pedidosIds = (carga as any).pedidos?.map((p: any) => p.id) ?? [];"
+      },
+      {
+        "line": 2489,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.planoContas).set({ nome: data.nome, tipo: data.tipo } as any).where(db.eq(db.planoContas.id, data.id));"
+      },
+      {
+        "line": 2489,
+        "pattern": "as any",
+        "content": "await (tx as any).update(db.planoContas).set({ nome: data.nome, tipo: data.tipo } as any).where(db.eq(db.planoContas.id, data.id));"
+      },
+      {
+        "line": 2502,
+        "pattern": "as any",
+        "content": "await (tx as any).delete(db.planoContas).where(db.eq(db.planoContas.id, input.id));"
+      }
+    ],
+    "/routes/pedidos.ts": [
+      {
+        "line": 311,
+        "pattern": "as any",
+        "content": "status: status as any,"
+      }
+    ],
+    "/routes/test-monitoring.ts": [
+      {
+        "line": 109,
+        "pattern": "as any",
+        "content": "(global as any).memoryLeakTest = leak;"
+      },
+      {
+        "line": 138,
+        "pattern": "as any",
+        "content": "(global as any).memoryLeakTest = null;"
+      }
+    ],
+    "/scripts/backupDb.ts": [
+      {
+        "line": 31,
+        "pattern": "as any",
+        "content": "for (const table of tables as any[]) {"
+      }
+    ],
+    "/scripts/reset-admin-password.ts": [
+      {
+        "line": 39,
+        "pattern": "as any",
+        "content": "const admins = adminRows as any[];"
+      },
+      {
+        "line": 49,
+        "pattern": "as any",
+        "content": "const users = userRows as any[];"
+      },
+      {
+        "line": 60,
+        "pattern": "as any",
+        "content": "const userId = (userResult as any).insertId;"
+      },
+      {
+        "line": 73,
+        "pattern": "as any",
+        "content": "console.log(`[reset-admin] Vendedor admin criado com ID: ${(vendedorResult as any).insertId}`);"
+      },
+      {
+        "line": 89,
+        "pattern": "as any",
+        "content": "console.log(`[reset-admin] Vendedor admin criado com ID: ${(vendedorResult as any).insertId}`);"
+      }
+    ],
+    "/scripts/seed-admin.ts": [
+      {
+        "line": 26,
+        "pattern": "as any",
+        "content": "} as any);"
+      }
+    ],
+    "/scripts/seed-massa-teste.ts": [
+      {
+        "line": 50,
+        "pattern": "as any",
+        "content": "if (e instanceof Error && e.message?.includes(\"Já existe\") || (e as any)?.code === \"ER_DUP_ENTRY\") {"
+      },
+      {
+        "line": 73,
+        "pattern": "as any",
+        "content": "fornecedor: (p as any).fornecedor,"
+      }
+    ],
+    "/scripts/seed-multi-tenant-isolation.ts": [
+      {
+        "line": 18,
+        "pattern": "as any",
+        "content": "const bcrypt: any = (bcryptImported as any).default ?? bcryptImported;"
+      },
+      {
+        "line": 64,
+        "pattern": "as any",
+        "content": "const maxTenantId = Array.isArray(maxRows) ? (maxRows as any)[0]?.maxTenantId : 0;"
+      }
+    ],
+    "/scripts/seed-tenant.ts": [
+      {
+        "line": 39,
+        "pattern": "as any",
+        "content": "const tenantId = (tenantResult as any).insertId;"
+      },
+      {
+        "line": 48,
+        "pattern": "as any",
+        "content": "const userId = (userResult as any).insertId;"
+      },
+      {
+        "line": 57,
+        "pattern": "as any",
+        "content": "console.log(`[seed-tenant] Vendedor admin criado com ID: ${(vendedorResult as any).insertId}`);"
+      }
+    ],
+    "/scripts/validate-idempotency-table.ts": [
+      {
+        "line": 16,
+        "pattern": "as any",
+        "content": "const [rows]: any = await (conn as any).execute(sql`"
+      },
+      {
+        "line": 22,
+        "pattern": "as any",
+        "content": "const [idx]: any = await (conn as any).execute(sql`"
+      }
+    ],
+    "/security/input-sanitization.ts": [
+      {
+        "line": 124,
+        "pattern": "as any",
+        "content": "req.query = sanitized as any;"
+      },
+      {
+        "line": 14,
+        "pattern": "<unknown>",
+        "content": "run: (req: Request) => Promise<unknown>;"
+      }
+    ],
+    "/security/jwt-hardening.ts": [
+      {
+        "line": 429,
+        "pattern": "as any",
+        "content": "(req as any).user = {"
+      },
+      {
+        "line": 434,
+        "pattern": "as any",
+        "content": "(req as any).tenantId = validation.payload!.tenantId;"
+      },
+      {
+        "line": 435,
+        "pattern": "as any",
+        "content": "(req as any).vendedorId = validation.payload!.vendedorId;"
+      },
+      {
+        "line": 438,
+        "pattern": "as any",
+        "content": "(req as any).tokenInfo = {"
+      }
+    ],
+    "/services/inventory.service.ts": [
+      {
+        "line": 24,
+        "pattern": "<unknown>",
+        "content": "execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;"
+      },
+      {
+        "line": 525,
+        "pattern": "<unknown>",
+        "content": "tx as { execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]> };"
+      }
+    ],
+    "/services/safe-stock.ts": [
+      {
+        "line": 217,
+        "pattern": "<unknown>",
+        "content": "execute: (q: string, p?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;"
+      }
+    ],
+    "/services/users.service.ts": [
+      {
+        "line": 329,
+        "pattern": "<unknown>",
+        "content": "let orderBy: SQL<unknown>;"
+      }
+    ],
+    "/storage.ts": [
+      {
+        "line": 61,
+        "pattern": "as any",
+        "content": ": new Blob([data as any], { type: contentType });"
+      }
+    ],
+    "/tests/setup-test-data.ts": [
+      {
+        "line": 60,
+        "pattern": "as any",
+        "content": "produtoId = (result as any).insertId || 1;"
+      },
+      {
+        "line": 92,
+        "pattern": "as any",
+        "content": "clienteId = (result as any).insertId || 1;"
+      },
+      {
+        "line": 116,
+        "pattern": "as any",
+        "content": "vendedorId = (result as any).insertId || 1;"
+      }
+    ],
+    "/tools/client.tool.ts": [
+      {
+        "line": 52,
+        "pattern": "as any",
+        "content": "id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',"
+      },
+      {
+        "line": 97,
+        "pattern": "as any",
+        "content": "count: typeof data === 'object' && data !== null && 'length' in data ? (data as any).length : 0,"
+      },
+      {
+        "line": 142,
+        "pattern": "as any",
+        "content": "id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',"
+      }
+    ],
+    "/tools/order.tool.ts": [
+      {
+        "line": 118,
+        "pattern": "as any",
+        "content": "id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',"
+      }
+    ],
+    "/tools/product.tool.ts": [
+      {
+        "line": 104,
+        "pattern": "as any",
+        "content": "id: typeof data === 'object' && data !== null && 'id' in data ? (data as any).id : 'unknown',"
+      }
+    ],
+    "/types/database.types.ts": [
+      {
+        "line": 106,
+        "pattern": "as any",
+        "content": "* Safe query result extractor - eliminates need for `as any` casts"
+      }
+    ],
+    "/types/service-audit.ts": [
+      {
+        "line": 17,
+        "pattern": "as any",
+        "content": "issue: 'Usava (db as any).execute() sem validação de resultado',"
+      }
+    ],
+    "/types/service-guard.ts": [
+      {
+        "line": 107,
+        "pattern": "as any",
+        "content": "return sanitizeGet(result) as any;"
+      },
+      {
+        "line": 128,
+        "pattern": "as any",
+        "content": "return sanitizeCreate(result, -1) as any;"
+      }
+    ],
+    "/types/service-safe-example.ts": [
+      {
+        "line": 29,
+        "pattern": "as any",
+        "content": "* 1. (db as any).execute() retorna [[data], metadata]"
+      },
+      {
+        "line": 37,
+        "pattern": "as any",
+        "content": "if (!db) return [] as any[]; // ❌ Tipo incoerente"
+      },
+      {
+        "line": 47,
+        "pattern": "as any",
+        "content": "const variacoesResult: any = await (db as any).execute(sql`...`);"
+      },
+      {
+        "line": 81,
+        "pattern": "as any",
+        "content": "const variacoesResult: any = await (db as any).execute(sql`...`);"
+      },
+      {
+        "line": 93,
+        "pattern": "as any",
+        "content": "const promosResult: any = await (db as any).execute(sql`...`);"
+      },
+      {
+        "line": 136,
+        "pattern": "as any",
+        "content": "const variacoesResult: any = await (db as any).execute(sql`...`);"
+      },
+      {
+        "line": 147,
+        "pattern": "as any",
+        "content": "const promosResult: any = await (db as any).execute(sql`...`);"
+      },
+      {
+        "line": 196,
+        "pattern": "as any",
+        "content": "const variacoesResult: any = await (db as any).execute(sql`...`);"
+      },
+      {
+        "line": 207,
+        "pattern": "as any",
+        "content": "const promosResult: any = await (db as any).execute(sql`...`);"
+      },
+      {
+        "line": 264,
+        "pattern": "as any",
+        "content": "const variacoesResult: any = await (db as any).execute(sql`"
+      },
+      {
+        "line": 284,
+        "pattern": "as any",
+        "content": "const promosResult: any = await (db as any).execute(sql`"
+      },
+      {
+        "line": 352,
+        "pattern": "as any",
+        "content": "} as any;"
+      }
+    ],
+    "/types/service-safety.ts": [
+      {
+        "line": 74,
+        "pattern": "as any",
+        "content": "typeof (value as any).id === 'number';"
+      },
+      {
+        "line": 94,
+        "pattern": "as any",
+        "content": "Array.isArray((value as any).items) &&"
+      },
+      {
+        "line": 95,
+        "pattern": "as any",
+        "content": "typeof (value as any).total === 'number' &&"
+      },
+      {
+        "line": 96,
+        "pattern": "as any",
+        "content": "typeof (value as any).page === 'number';"
+      },
+      {
+        "line": 124,
+        "pattern": "as any",
+        "content": "return { id: (value as any).id };"
+      },
+      {
+        "line": 204,
+        "pattern": "<unknown>",
+        "content": "fn: () => Promise<unknown>,"
+      }
+    ],
+    "/types/shutdown-globals.d.ts": [
+      {
+        "line": 13,
+        "pattern": "<unknown>",
+        "content": "quit: () => Promise<unknown>;"
+      }
+    ],
+    "/_core/api-response.ts": [
+      {
+        "line": 416,
+        "pattern": "<unknown>",
+        "content": "next: () => Promise<unknown>;"
+      },
+      {
+        "line": 417,
+        "pattern": "<unknown>",
+        "content": "}) => Promise<unknown>"
+      }
+    ],
+    "/_core/cache-manager.ts": [
+      {
+        "line": 80,
+        "pattern": "as any",
+        "content": "payload: { user: (req as any).user?.name || \"admin\" }"
+      },
+      {
+        "line": 89,
+        "pattern": "as any",
+        "content": "payload: { user: (req as any).user?.name || \"admin\" }"
+      },
+      {
+        "line": 108,
+        "pattern": "as any",
+        "content": "payload: { user: (req as any).user?.name || \"admin\", count }"
+      },
+      {
+        "line": 114,
+        "pattern": "as any",
+        "content": "payload: { user: (req as any).user?.name || \"admin\", count }"
+      }
+    ],
+    "/_core/dataApi.ts": [
+      {
+        "line": 20,
+        "pattern": "<unknown>",
+        "content": "): Promise<unknown> {"
+      }
+    ],
+    "/_core/index.ts": [
+      {
+        "line": 909,
+        "pattern": "as any",
+        "content": "(global as any).SERVER_PORT = port;"
+      }
+    ],
+    "/_core/request-middleware.ts": [
+      {
+        "line": 53,
+        "pattern": "<unknown>",
+        "content": "return async ({ ctx, next }: { ctx: MiddlewareContext; next: () => Promise<unknown> }) => {"
+      },
+      {
+        "line": 136,
+        "pattern": "<unknown>",
+        "content": "return async ({ ctx, next }: { ctx: MiddlewareContext; next: () => Promise<unknown> }) => {"
+      },
+      {
+        "line": 177,
+        "pattern": "<unknown>",
+        "content": "return async ({ path, type, input, ctx, next }: { path: string; type: string; input: unknown; ctx: ProcedureContext; next: () => Promise<unknown> }) => {"
+      },
+      {
+        "line": 230,
+        "pattern": "<unknown>",
+        "content": "return async ({ ctx, next }: { ctx: PerformanceContext; next: () => Promise<unknown> }) => {"
+      },
+      {
+        "line": 292,
+        "pattern": "<unknown>",
+        "content": "return async ({ path, type, input, ctx, next }: { path: string; type: string; input: unknown; ctx: AuditContext; next: () => Promise<unknown> }) => {"
+      },
+      {
+        "line": 369,
+        "pattern": "<unknown>",
+        "content": "export function createMiddlewareChain(...middlewareFactories: Array<() => (ctx: ChainContext) => Promise<unknown>>) {"
+      }
+    ],
+    "/_core/sdk.ts": [
+      {
+        "line": 144,
+        "pattern": "as any",
+        "content": "(data as any)?.platforms,"
+      },
+      {
+        "line": 145,
+        "pattern": "as any",
+        "content": "(data as any)?.platform ?? data.platform ?? null"
+      },
+      {
+        "line": 148,
+        "pattern": "as any",
+        "content": "...(data as any),"
+      },
+      {
+        "line": 255,
+        "pattern": "as any",
+        "content": "(data as any)?.platforms,"
+      },
+      {
+        "line": 256,
+        "pattern": "as any",
+        "content": "(data as any)?.platform ?? data.platform ?? null"
+      },
+      {
+        "line": 259,
+        "pattern": "as any",
+        "content": "...(data as any),"
+      }
+    ],
+    "/_core/service-safety.ts": [
+      {
+        "line": 388,
+        "pattern": "as unknown as",
+        "content": "} as unknown as T[keyof T];"
+      },
+      {
+        "line": 418,
+        "pattern": "as unknown as",
+        "content": "} as unknown as T[keyof T];"
+      },
+      {
+        "line": 436,
+        "pattern": "as unknown as",
+        "content": "} as unknown as T[keyof T];"
+      },
+      {
+        "line": 454,
+        "pattern": "as unknown as",
+        "content": "} as unknown as T[keyof T];"
+      }
+    ]
+  },
+  "summary": {
+    "byPattern": {
+      "<unknown>": 51,
+      "as any": 231,
+      "as unknown as": 35
+    }
+  }
+}

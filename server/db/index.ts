@@ -4,7 +4,6 @@
  */
 
 import { ADMIN_ACTOR, type ServiceActor } from "../_core/service-actor.js";
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 export * from "./core.js";
 
@@ -186,7 +185,7 @@ export async function createCliente(tenantId: number, input: unknown, vendedorId
       : input;
   const result = await cli.createCliente(tenantId, data as never);
   if (!result.success || !result.data) {
-    throw new InfrastructureError(result.error ?? "Falha ao criar cliente");
+    throw new Error(result.error ?? "Falha ao criar cliente");
   }
   return result.data;
 }
@@ -325,13 +324,13 @@ function parseContaReceberPayload(input: unknown): import("../services/finance.s
       ? dataVencRaw
       : new Date(typeof dataVencRaw === "string" || typeof dataVencRaw === "number" ? String(dataVencRaw) : "");
   if (Number.isNaN(dataVencimento.getTime())) {
-    throw new InfrastructureError("dataVencimento inválida");
+    throw new Error("dataVencimento inválida");
   }
   const vid = raw.vendedorId;
   const vendedorId =
     vid != null && Number.isFinite(Number(vid)) && Number(vid) > 0 ? Number(vid) : null;
   const valor = Number(raw.valor);
-  if (!Number.isFinite(valor)) throw new InfrastructureError("valor inválido");
+  if (!Number.isFinite(valor)) throw new Error("valor inválido");
   return {
     clienteNome: String(raw.clienteNome ?? ""),
     vendedorId,
@@ -390,9 +389,9 @@ export async function createContaPagar(tenantId: number, input: unknown) {
   const raw = input as Record<string, unknown>;
   const dataVenc = raw.dataVencimento;
   const dataVencimento = dataVenc instanceof Date ? dataVenc : new Date(typeof dataVenc === "string" ? dataVenc : String(dataVenc ?? ""));
-  if (Number.isNaN(dataVencimento.getTime())) throw new InfrastructureError("dataVencimento inválida");
+  if (Number.isNaN(dataVencimento.getTime())) throw new Error("dataVencimento inválida");
   const valor = Number(raw.valor);
-  if (!Number.isFinite(valor)) throw new InfrastructureError("valor inválido");
+  if (!Number.isFinite(valor)) throw new Error("valor inválido");
   return fin.createContaPagar(tenantId, {
     fornecedor: String(raw.fornecedor ?? ""),
     descricao: String(raw.descricao ?? raw.fornecedor ?? "Conta a pagar"),
@@ -428,7 +427,7 @@ export async function createContaFixa(tenantId: number, input: unknown) {
   const valor = Number(valorStr);
   const diaVencimento = Number(raw.diaVencimento);
   if (!Number.isFinite(valor) || !Number.isInteger(diaVencimento)) {
-    throw new InfrastructureError("Dados de conta fixa inválidos");
+    throw new Error("Dados de conta fixa inválidos");
   }
   return fin.createContaFixa(tenantId, {
     descricao,

@@ -8,7 +8,6 @@
  */
 
 import { CircuitBreakerManager } from '../infra/circuit-breaker.js';
-import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('query-wrapper');
@@ -137,7 +136,7 @@ export async function executeWithResilience<T>(
   }
 
   // Falha depois de todos os retries
-  throw new InfrastructureError(
+  throw new Error(
     `Query failed after ${maxRetries} attempts: ${lastError?.message ?? 'Unknown error'}`
   );
 }

@@ -82,8 +82,7 @@ export class OrderTool {
 
 
       // Delegar para service
-
-      const result = await this.service.create(enrichedInput);
+      const result = await this.service.create({ tenantId: input.tenantId as number | null }, enrichedInput);
 
       
 
@@ -184,8 +183,7 @@ export class OrderTool {
 
 
       // Delegar para service
-
-      const result = await this.service.list(normalizedInput);
+      const result = await this.service.list({ tenantId: input.tenantId as number | null }, normalizedInput);
 
       
 
@@ -256,8 +254,7 @@ export class OrderTool {
 
 
       // Delegar para service
-
-      const result = await this.service.update(enrichedInput);
+      const result = await this.service.update({ tenantId: input.tenantId as number | null }, enrichedInput);
 
       
 

@@ -45,12 +45,21 @@ export async function resolveSessionPrincipal(
   if (typeof token === "string" && token.startsWith("u:")) {
     tokenKind = "user";
     const userId = parseInt(token.slice(2), 10);
-    if (Number.isFinite(userId)) {
+    if (Number.isFinite(userId) && userId > 0) {
       const loadedUser = await db.getUserById(userId);
       if (loadedUser) {
+        // SECURITY HARDENING: validar usuário
+        if (!loadedUser.tenantId || loadedUser.tenantId <= 0) {
+          throw new Error(`User token blocked: invalid tenantId for user ${userId}`);
+        }
+        
         user = loadedUser;
-        tenantId = loadedUser.tenantId ?? null;
+        tenantId = loadedUser.tenantId;
+      } else {
+        throw new Error(`User token blocked: user ${userId} not found`);
       }
+    } else {
+      throw new Error("User token blocked: invalid userId format");
     }
   } else if (typeof token === "string" && token.startsWith("v:")) {
     tokenKind = "vendedor";
@@ -60,20 +69,41 @@ export async function resolveSessionPrincipal(
     if (Number.isInteger(tokenTenantId) && tokenTenantId > 0 && Number.isInteger(vendedorId) && vendedorId > 0) {
       const loadedVendedor = await db.getVendedorById(vendedorId);
       if (loadedVendedor?.ativo) {
+        // SECURITY HARDENING: usar tenant do banco, não do token
+        const realTenantId = loadedVendedor.tenantId;
+        
+        // Validar consistência: token tenant vs banco tenant
+        if (tokenTenantId !== realTenantId) {
+          throw new Error(`Vendedor token blocked: tenant mismatch (token:${tokenTenantId} != db:${realTenantId}) for vendedor ${vendedorId}`);
+        }
+        
         vendedor = loadedVendedor;
-        tenantId = tokenTenantId;
-        user = buildUserFromVendedor(loadedVendedor, tokenTenantId);
+        tenantId = realTenantId; // Usar tenant real do banco
+        user = buildUserFromVendedor(loadedVendedor, realTenantId);
         isImpersonating = Boolean(typeof adminSessionToken === "string" && adminSessionToken.length > 0);
       } else {
-        shouldClearSession = true;
+        throw new Error(`Vendedor token blocked: vendedor ${vendedorId} not found or inactive`);
       }
+    } else {
+      throw new Error("Vendedor token blocked: invalid token format");
     }
   } else if (token === "admin-session") {
     tokenKind = "admin-session";
+    
+    // SECURITY HARDENING: admin-session apenas em localhost/dev
+    const clientIP = typeof process !== 'undefined' && process.env && process.env.CLIENT_IP;
+    const isLocalhost = clientIP === '127.0.0.1' || clientIP === '::1' || process.env.NODE_ENV === 'development';
+    
+    if (!isLocalhost) {
+      throw new Error("Admin session blocked: not from trusted source");
+    }
+    
     const loadedUser = await db.getUserByOpenId("admin");
     if (loadedUser) {
       user = loadedUser;
       tenantId = loadedUser.tenantId ?? null;
+    } else {
+      throw new Error("Admin session blocked: admin user not found");
     }
   } else if (token === "vendedor-session") {
     tokenKind = "vendedor-session";
