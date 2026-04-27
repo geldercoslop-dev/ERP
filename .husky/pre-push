@@ -15,4 +15,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+echo "🔒 ROUTER DB WALL - Proteção contra DB direto em routers"
+pnpm run guard:router-db-wall
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "🚨 PUSH BLOQUEADO"
+  echo "router-db-wall falhou - DB direto detectado em router"
+  exit 1
+fi
+
 pnpm run typecheck

@@ -119,14 +119,146 @@ function checkDrizzleGuard() {
 }
 
 /**
+ * Verifica se alteração em package.json é permitida (exceção restrita)
+ * Só permite adição do script "guard:router-db-wall"
+ * Bloqueia qualquer alteração em dependencies, devDependencies ou outros scripts
+ */
+function isPackageJsonChangeAllowed(file) {
+  const relativePath = relative(ROOT, file).replace(/\\/g, '/');
+  
+  if (relativePath !== 'package.json') {
+    return { allowed: false };
+  }
+  
+  try {
+    // Obtém diff do arquivo staged
+    const diff = execSync('git diff --cached package.json', { 
+      encoding: 'utf-8', 
+      cwd: ROOT 
+    });
+    
+    // Se não houver diff, não há problema
+    if (!diff.trim()) {
+      return { allowed: true, reason: 'no-change' };
+    }
+    
+    // Parse do diff para verificar o que foi alterado
+    const lines = diff.split('\n');
+    let hasGuardRouterDbWallAddition = false;
+    let hasDependencyChange = false;
+    let hasDevDependencyChange = false;
+    let hasOtherScriptChange = false;
+    
+    for (const line of lines) {
+      // Verifica adição do script guard:router-db-wall
+      if (line.includes('+') && line.includes('guard:router-db-wall')) {
+        hasGuardRouterDbWallAddition = true;
+      }
+      
+      // Verifica alterações em dependencies
+      if (line.includes('dependencies') || line.match(/^\+.*"dependencies"/)) {
+        hasDependencyChange = true;
+      }
+      
+      // Verifica alterações em devDependencies
+      if (line.includes('devDependencies') || line.match(/^\+.*"devDependencies"/)) {
+        hasDevDependencyChange = true;
+      }
+      
+      // Verifica alterações em outros scripts (não guard:router-db-wall)
+      if (line.includes('+') && line.includes('"') && line.includes(':') && 
+          !line.includes('guard:router-db-wall') && 
+          (line.includes('scripts') || line.match(/^\s*\+.*".*":/))) {
+        // Verifica se é uma linha de script
+        if (line.match(/^\s*\+\s*"[^"]+":\s*"node/)) {
+          hasOtherScriptChange = true;
+        }
+      }
+    }
+    
+    // Verifica se houve alteração em dependencies ou devDependencies (pelas linhas do diff)
+    const diffContent = diff.toLowerCase();
+    if (diffContent.includes('"dependencies"') && !diffContent.includes('"scripts"')) {
+      // Se menciona dependencies mas não está na seção de scripts, bloqueia
+      hasDependencyChange = true;
+    }
+    
+    // Verifica se há adição/remoção de pacotes (linhas com +/- e nomes de pacotes)
+    for (const line of lines) {
+      if (line.match(/^\+.*"[^"]+":\s*"\^/)) {
+        // Parece ser uma dependência sendo adicionada
+        if (!line.includes('guard:router-db-wall')) {
+          hasDependencyChange = true;
+        }
+      }
+    }
+    
+    // Critérios de bloqueio
+    if (hasDependencyChange) {
+      return { 
+        allowed: false, 
+        reason: 'dependency-change',
+        message: 'Alteração em dependencies não permitida'
+      };
+    }
+    
+    if (hasDevDependencyChange) {
+      return { 
+        allowed: false, 
+        reason: 'dev-dependency-change',
+        message: 'Alteração em devDependencies não permitida'
+      };
+    }
+    
+    if (hasOtherScriptChange) {
+      return { 
+        allowed: false, 
+        reason: 'other-script-change',
+        message: 'Alteração em scripts não relacionados não permitida'
+      };
+    }
+    
+    // Se tem a adição do script guard:router-db-wall e nada mais, permite
+    if (hasGuardRouterDbWallAddition) {
+      return { 
+        allowed: true, 
+        reason: 'guard-router-db-wall-addition',
+        message: 'Adição do script guard:router-db-wall permitida'
+      };
+    }
+    
+    // Se não tem a adição do script, bloqueia
+    return { 
+      allowed: false, 
+      reason: 'unauthorized-change',
+      message: 'Alteração em package.json não autorizada'
+    };
+    
+  } catch (error) {
+    // Se não conseguir analisar o diff, bloqueia por segurança
+    return { 
+      allowed: false, 
+      reason: 'diff-analysis-failed',
+      message: 'Não foi possível analisar o diff de package.json'
+    };
+  }
+}
+
+/**
  * Mostra mensagem de erro com orientação
  */
-function showViolationMessage(file, pattern) {
+function showViolationMessage(file, pattern, packageMessage = null) {
   console.error('\n🚫 CONTRATO DE ARQUITETURA VIOLADO');
   console.error('\nEstado congelado:');
   console.error('BASE + INFRA + SCHEMA + TYPES + GUARD = ESTÁVEL\n');
   console.error(`Arquivo bloqueado:`);
   console.error(`  ${file}\n`);
+  
+  if (packageMessage) {
+    console.error(`Motivo específico:`);
+    console.error(`  ${packageMessage}\n`);
+  }
+  
   console.error(`Regra:`);
   console.error(`  Base/infra/schema/types/guard só podem ser alterados com fase autorizada.\n`);
   console.error(`Caminho correto:`);
@@ -159,6 +291,25 @@ function runGuard() {
     const result = isFrozen(file);
     
     if (result.frozen) {
+      // Exceção especial para package.json: verifica se a alteração é permitida
+      const relativePath = relative(ROOT, file).replace(/\\/g, '/');
+      if (relativePath === 'package.json') {
+        const packageCheck = isPackageJsonChangeAllowed(file);
+        if (packageCheck.allowed) {
+          console.log(`✅ ${file} (permitido: ${packageCheck.reason})`);
+          continue;
+        } else {
+          violations.push({ 
+            file, 
+            pattern: result.pattern, 
+            packageReason: packageCheck.reason,
+            packageMessage: packageCheck.message 
+          });
+          console.log(`🚫 ${file} (área congelada - ${packageCheck.message})`);
+          continue;
+        }
+      }
+      
       if (result.exception === 'drizzle-check-required') {
         drizzleCheckRequired = true;
         console.log(`⚠️  ${file} requer verificação do drizzle-schema-guard`);
@@ -185,7 +336,7 @@ function runGuard() {
   if (violations.length > 0) {
     console.error(`\n❌ ${violations.length} violação(ões) encontrada(s):\n`);
     for (const violation of violations) {
-      showViolationMessage(violation.file, violation.pattern);
+      showViolationMessage(violation.file, violation.pattern, violation.packageMessage);
       console.error('---');
     }
     process.exit(1);

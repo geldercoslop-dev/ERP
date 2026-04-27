@@ -18,6 +18,7 @@
     "guard:arch": "node scripts/guard-arch.mjs",
     "validate:schema": "node scripts/validate-schema.mjs",
     "guard:esm": "node scripts/guard-esm-imports.mjs",
+    "guard:router-db-wall": "node scripts/router-db-wall.mjs",
     "verify:arch": "node scripts/verify-architecture.ts",
     "verify:runtime": "node scripts/verify-runtime.mjs",
     "verify:leo": "tsx scripts/verify-leo-boundary.ts",

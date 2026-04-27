@@ -94,6 +94,24 @@ if (failed) {
 }
 
 // ============================================================================
+// ETAPA 1.5: ROUTER DB WALL - Parede contra DB direto em routers
+// ============================================================================
+info('\n' + '='.repeat(60));
+info('ETAPA 1.5: ROUTER DB WALL - Proteção de Arquitetura');
+info('='.repeat(60));
+
+runStep(
+  'ROUTER_DB_WALL',
+  'pnpm guard:router-db-wall',
+  true
+);
+
+if (failed) {
+  error('\n🚨 ROUTER DB WALL FAILED - Abortando verify:base');
+  process.exit(1);
+}
+
+// ============================================================================
 // ETAPA 2: TYPESCRIPT
 // ============================================================================
 info('\n' + '='.repeat(60));
