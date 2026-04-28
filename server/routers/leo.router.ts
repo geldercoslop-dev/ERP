@@ -219,14 +219,20 @@ const leoRouterWithMiddleware = router({
       };
     }),
 
-  insights: publicProcedure.query(async () => {
+  insights: protectedProcedure.query(async ({ ctx }) => {
     const now = Date.now();
+    
+    if (!ctx.tenantId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "ID do tenant é obrigatório para insights." });
+    }
+
+    const actor = await resolveServiceActor(ctx);
     const { getProdutosCache, getClientesCache, getFinanceiroResumoCache } = await import("../cache/intelligent-cache.js");
 
     const [produtos, clientes, financeiro] = await Promise.all([
-      getProdutosCache(),
-      getClientesCache(),
-      getFinanceiroResumoCache(),
+      getProdutosCache(ctx.tenantId),
+      getClientesCache(ctx.tenantId, actor),
+      getFinanceiroResumoCache(ctx.tenantId, actor),
     ]);
 
     return [

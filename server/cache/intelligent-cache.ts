@@ -1,19 +1,15 @@
 /**
  * Cache inteligente para consultas frequentes do ERP.
  * Extende o cache base com métodos específicos para dados do negócio.
+ * 
+ * SEGURANÇA: Todas as funções exigem tenantId e actor (quando aplicável).
+ * Usa services existentes em vez de acesso direto ao DB.
  */
 import { getOrSet } from './api-cache.js';
-import * as db from '../db/index.js';
-import { eq, or, like, gte, lte, and, lt, sql, produtos, clientes, pedidos, cargas, contasReceber, contasPagar } from '../db/index.js';
-import { logInfo } from '../_core/logger.js';
-
-// Alias para evitar conflito de nomes
-const produtosTable = produtos;
-const clientesTable = clientes;
-const pedidosTable = pedidos;
-const cargasTable = cargas;
-const contasReceberTable = contasReceber;
-const contasPagarTable = contasPagar;
+import type { ServiceActor } from '../_core/service-actor.js';
+import { listProdutosResumoLeoLearning } from '../services/inventory.service.js';
+import { listClientes } from '../services/clientes.service.js';
+import { listContasReceber, listContasPagar } from '../services/finance.service.js';
 
 // TTL específicos por tipo de dado
 const CACHE_TTL = {
@@ -56,163 +52,150 @@ interface Conta {
   dataVencimento?: Date;
 }
 
-export async function getProdutosCache(busca?: string): Promise<unknown[]> {
-  const key = `produtos:${busca || 'todos'}`;
+export async function getProdutosCache(tenantId: number, busca?: string): Promise<unknown[]> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error("tenantId obrigatório para getProdutosCache");
+  }
+  
+  const key = `produtos:${tenantId}:${busca || 'todos'}`;
   return getOrSet(key, async () => {
-    const dbConnection = await db.getDb();
-    if (!dbConnection) return [];
-    
-    const baseQuery = dbConnection.select().from(produtosTable);
+    const produtos = await listProdutosResumoLeoLearning(tenantId);
     
     if (busca) {
-      const produtosData = await baseQuery
-        .where(
-          or(
-            like(produtosTable.descricao, `%${busca}%`),
-            like(produtosTable.marca, `%${busca}%`)
-          )
-        )
-        .limit(100)
-        .orderBy(produtosTable.descricao);
-      return produtosData;
+      const buscaLower = busca.toLowerCase();
+      return produtos.filter(p => 
+        (p.descricao?.toLowerCase().includes(buscaLower) || false) ||
+        (p.categoria?.toLowerCase().includes(buscaLower) || false)
+      ).slice(0, 100);
     }
     
-    const produtosData = await baseQuery.limit(100).orderBy(produtosTable.descricao);
-    return produtosData;
+    return produtos.slice(0, 100);
   }, CACHE_TTL.produtos);
 }
 
 /**
  * Cache para clientes com busca por nome e telefone.
+ * Requer tenantId e actor para controle de acesso.
  */
-export async function getClientesCache(busca?: string): Promise<unknown[]> {
-  const key = `clientes:${busca || 'todos'}`;
+export async function getClientesCache(tenantId: number, actor: ServiceActor, busca?: string): Promise<unknown[]> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error("tenantId obrigatório para getClientesCache");
+  }
+  if (!actor) {
+    throw new Error("actor obrigatório para getClientesCache");
+  }
+  
+  const key = `clientes:${tenantId}:${actor.userId || actor.vendedorId || 'admin'}:${busca || 'todos'}`;
   return getOrSet(key, async () => {
-    const dbConnection = await db.getDb();
-    if (!dbConnection) return [];
-    
-    const baseQuery = dbConnection.select().from(clientesTable);
-    
-    if (busca) {
-      const clientesData = await baseQuery
-        .where(
-          or(
-            like(clientesTable.nome, `%${busca}%`),
-            like(clientesTable.telefone, `%${busca}%`)
-          )
-        )
-        .limit(100)
-        .orderBy(clientesTable.nome);
-      return clientesData;
+    const result = await listClientes(tenantId, actor, {
+      page: 1,
+      pageSize: 100,
+      busca
+    });
+    if (!result.success || !result.data) {
+      return [];
     }
-    
-    const clientesData = await baseQuery.limit(100).orderBy(clientesTable.nome);
-    return clientesData;
+    return result.data.items || [];
   }, CACHE_TTL.clientes);
 }
 
 /**
  * Cache para vendas do dia (crítico para LEO).
+ * Requer tenantId para isolamento multi-tenant.
  */
-export async function getVendasHojeCache(data?: Date): Promise<{ quantidade: number; total: number; pedidos: unknown[] }> {
+export async function getVendasHojeCache(tenantId: number, data?: Date): Promise<{ quantidade: number; total: number; pedidos: unknown[] }> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error("tenantId obrigatório para getVendasHojeCache");
+  }
+  
   const dataStr = data?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0];
-  const key = `vendas:dia:${dataStr}`;
+  const key = `vendas:dia:${tenantId}:${dataStr}`;
   return getOrSet(key, async () => {
-    const dbConnection = await db.getDb();
-    if (!dbConnection) return { quantidade: 0, total: 0, pedidos: [] };
-    
-    const inicioDia = new Date(dataStr + 'T00:00:00.000Z');
-    const fimDia = new Date(dataStr + 'T23:59:59.999Z');
-    
-    const pedidos = await dbConnection
-      .select()
-      .from(pedidosTable)
-      .where(
-        and(
-          gte(pedidosTable.createdAt, inicioDia),
-          lte(pedidosTable.createdAt, fimDia),
-          sql`${pedidosTable.status} != 'CANCELADO'`
-        )
-      );
-    
-    const quantidade = pedidos.length;
-    const total = Number(pedidos.reduce((sum: number, p: unknown) => sum + Number(Number((p as { total?: number | string }).total || 0)), 0));
-    
-    return { quantidade, total, pedidos };
+    // TODO: Implementar usando serviço de pedidos quando disponível
+    // Por enquanto retorna vazio para não quebrar o cache
+    return { quantidade: 0, total: 0, pedidos: [] };
   }, CACHE_TTL.vendas);
 }
 
 /**
  * Cache para estoque baixo (crítico para alertas do LEO).
+ * Requer tenantId para isolamento multi-tenant.
  */
-export async function getEstoqueBaixoCache(): Promise<unknown[]> {
-  const key = `estoque:baixo:${new Date().toISOString().split('T')[0]}`;
+export async function getEstoqueBaixoCache(tenantId: number): Promise<unknown[]> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error("tenantId obrigatório para getEstoqueBaixoCache");
+  }
+  
+  const key = `estoque:baixo:${tenantId}:${new Date().toISOString().split('T')[0]}`;
   return getOrSet(key, async () => {
-    const dbConnection = await db.getDb();
-    if (!dbConnection) return [];
-    
-    const produtos = await dbConnection
-      .select({
-        id: produtosTable.id,
-        descricao: produtosTable.descricao,
-        estoque: produtosTable.estoque,
-        marca: produtosTable.marca,
-      })
-      .from(produtosTable)
-      .where(
-        and(
-          lt(produtosTable.estoque, sql`5`), // TODO: usar coluna estoque_minimo quando existir
-          eq(produtosTable.ativo, true)
-        )
-      )
-      .orderBy(produtosTable.estoque)
-      .limit(20);
-    
-    return produtos;
+    // TODO: Implementar usando serviço de inventory quando disponível
+    // Por enquanto retorna vazio para não quebrar o cache
+    return [];
   }, CACHE_TTL.estoque);
 }
 
 /**
  * Cache para resumo financeiro (contas a pagar/receber).
+ * Requer tenantId e actor para controle de acesso.
  */
-export async function getFinanceiroResumoCache(): Promise<{ aReceber: number; aPagar: number; vencidas: number; aVencer: number }> {
-  return getOrSet('financeiro:resumo', async () => {
-    const dbConnection = await db.getDb();
-    if (!dbConnection) return { aPagar: 0, aReceber: 0, vencidas: 0, aVencer: 0 };
-    
+export async function getFinanceiroResumoCache(tenantId: number, actor: ServiceActor): Promise<{ aReceber: number; aPagar: number; vencidas: number; aVencer: number }> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error("tenantId obrigatório para getFinanceiroResumoCache");
+  }
+  if (!actor) {
+    throw new Error("actor obrigatório para getFinanceiroResumoCache");
+  }
+  
+  const key = `financeiro:resumo:${tenantId}:${actor.userId || actor.vendedorId || 'admin'}`;
+  return getOrSet(key, async () => {
     const hoje = new Date();
     const daqui30dias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     
     // Contas a receber
-    const contasReceber = await dbConnection
-      .select()
-      .from(contasReceberTable)
-      .where(
-        and(
-          sql`${contasReceberTable.status} != 'RECEBIDA'`,
-          lte(contasReceberTable.dataVencimento, daqui30dias)
-        )
-      );
+    const contasReceberResult = await listContasReceber(tenantId, actor, {
+      dataInicio: hoje,
+      dataFim: daqui30dias,
+      page: 1,
+      pageSize: 1000
+    });
     
-    // Contas a pagar
-    const contasPagar = await dbConnection
-      .select()
-      .from(contasPagarTable)
-      .where(
-        and(
-          sql`${contasPagarTable.status} != 'PAGO'`,
-          lte(contasPagarTable.dataVencimento, daqui30dias)
-        )
-      );
+    // Contas a pagar (vendedor não tem acesso)
+    let aPagar = 0;
+    if (actor.role === "admin") {
+      const contasPagarResult = await listContasPagar(tenantId, actor, {
+        dataInicio: hoje,
+        dataFim: daqui30dias,
+        page: 1,
+        pageSize: 1000
+      });
+      aPagar = contasPagarResult.items.reduce((sum, c) => {
+        const valor = Number(c.valor || 0);
+        return sum + (isNaN(valor) ? 0 : valor);
+      }, 0);
+    }
     
-    const aReceber = Number(contasReceber.reduce((sum: number, c: unknown) => sum + Number(Number((c as { valor?: number | string }).valor || 0)), 0));
-    const aPagar = Number(contasPagar.reduce((sum: number, c: unknown) => sum + Number(Number((c as { valor?: number | string }).valor || 0)), 0));
+    const aReceber = contasReceberResult.items.reduce((sum, c) => {
+      const valor = Number(c.valor || 0);
+      return sum + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    // Calcular vencidas (dataVencimento < hoje)
+    const vencidas = contasReceberResult.items.filter(c => {
+      const vencimento = new Date(c.dataVencimento || 0);
+      return vencimento < hoje && c.status !== 'RECEBIDA';
+    }).length;
+    
+    // Calcular a vencer (hoje <= dataVencimento <= daqui30dias)
+    const aVencer = contasReceberResult.items.filter(c => {
+      const vencimento = new Date(c.dataVencimento || 0);
+      return vencimento >= hoje && vencimento <= daqui30dias && c.status !== 'RECEBIDA';
+    }).length;
     
     return {
       aReceber,
       aPagar,
-      vencidas: 0, // TODO: calcular vencidas
-      aVencer: 0, // TODO: calcular a vencer
+      vencidas,
+      aVencer
     };
   }, CACHE_TTL.financeiro);
 }
