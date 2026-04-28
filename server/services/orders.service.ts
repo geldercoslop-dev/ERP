@@ -971,6 +971,85 @@ export async function updatePedidoStatus(tenantId: number, id: number, status: s
   });
 }
 
+/**
+ * Atualiza status do pedido com validação de transição e bloqueio pessimista
+ * Wrapper equivalente a updateOrderStatusSafe do módulo safe-order
+ */
+export async function updateOrderStatusSafe(
+  tenantId: number,
+  pedidoId: number,
+  novoStatus: string,
+  motivo?: string,
+  usuarioId?: number,
+  vendedorId?: number
+): Promise<{ success: boolean; message: string }> {
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(pedidoId, "pedidoId");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  return dbConn.transaction(async (tx: DbTx) => {
+    // 1. Buscar pedido atual com bloqueio pessimista (FOR UPDATE)
+    const pedidoRows = await tx
+      .select({ id: pedidos.id, numero: pedidos.numero, status: pedidos.status })
+      .from(pedidos)
+      .where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId)))
+      .for("update")
+      .limit(1);
+
+    if (pedidoRows.length === 0) {
+      throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
+    }
+
+    const pedidoData = pedidoRows[0];
+
+    // 2. Validar transição de status
+    const statusValidos: Record<string, string[]> = {
+      'PENDENTE': ['PROCESSANDO', 'CANCELADO'],
+      'PROCESSANDO': ['APROVADO', 'CANCELADO'],
+      'APROVADO': ['SEPARACAO', 'CANCELADO'],
+      'SEPARACAO': ['ENTREGA', 'CANCELADO'],
+      'ENTREGA': ['ENTREGUE'],
+      'ENTREGUE': [],
+      'CANCELADO': []
+    };
+
+    const transicoesPermitidas = statusValidos[pedidoData.status] || [];
+    if (!transicoesPermitidas.includes(novoStatus)) {
+      throw new ValidationError(`TRANSICAO_INVALIDA: Não é possível mudar de ${pedidoData.status} para ${novoStatus}`);
+    }
+
+    // 3. Atualizar status
+    await tx
+      .update(pedidos)
+      .set({ status: novoStatus, updatedAt: new Date() })
+      .where(and(eq(pedidos.id, pedidoId), eq(pedidos.tenantId, tenantId)));
+
+    // 4. Registrar auditoria
+    await insertAuditLog({
+      tenantId,
+      actorUserId: usuarioId ?? null,
+      actorVendedorId: vendedorId ?? null,
+      action: 'update_status',
+      entity: 'pedido',
+      entityId: String(pedidoId),
+      payloadJson: JSON.stringify({
+        pedidoId,
+        numero: pedidoData.numero,
+        statusAnterior: pedidoData.status,
+        novoStatus,
+        motivo
+      }),
+      traceId: `STATUS_${pedidoId}_${Date.now()}`,
+    }, tx);
+
+    return {
+      success: true,
+      message: `Status do pedido #${pedidoData.numero} atualizado para ${novoStatus}`
+    };
+  });
+}
+
 export async function buscarPedidos(
   tenantId: number,
   actor: ServiceActor,

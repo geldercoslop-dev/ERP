@@ -10,9 +10,8 @@ import { runTransaction } from '../services/db-transaction.js';
 import { updateStockSafe, reserveStockForOrder } from '../services/stock-safety.service.js';
 import { insertAuditLog } from '../services/audit-service.js';
 import { logInfo } from '../_core/logger.js';
-import type { Pedido } from '../db/core.js';
-import { getDb, getPool } from '../db/core.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
+import { updateOrderStatusSafe as updateOrderStatusSafeService } from '../services/orders.service.js';
 
 /**
  * Item de pedido
@@ -321,178 +320,27 @@ export async function cancelOrderSafe(
 
 /**
  * Atualiza status do pedido com validações
+ * Delegado para orders.service.ts
  */
 export async function updateOrderStatusSafe(
-  tenantId: number, // Adicionado para multi-tenant
+  tenantId: number,
   pedidoId: number,
   novoStatus: string,
   motivo?: string,
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; message: string }> {
-  if (!tenantId) throw new ValidationError("tenantId is required");
-  return runTransaction(async (tx: any) => {
-    logInfo(`[SafeOrder] Atualizando status do pedido - Tenant: ${tenantId}, ID: ${pedidoId}, Status: ${novoStatus}`);
-
-    // 1. Buscar pedido atual com bloqueio e tenantId
-    const [pedido] = await tx.execute(
-      `SELECT id, numero, status FROM pedidos WHERE tenantId = ? AND id = ? FOR UPDATE`,
-      [tenantId, pedidoId]
-    );
-
-    if (!pedido || !(pedido as Array<Record<string, unknown>>)[0]) {
-      throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
-    }
-
-    const pedidoData = (pedido as Array<Record<string, unknown>>)[0];
-
-    // 2. Validar transição de status
-    const statusValidos: Record<string, string[]> = {
-      'PENDENTE': ['PROCESSANDO', 'CANCELADO'],
-      'PROCESSANDO': ['APROVADO', 'CANCELADO'],
-      'APROVADO': ['SEPARACAO', 'CANCELADO'],
-      'SEPARACAO': ['ENTREGA', 'CANCELADO'],
-      'ENTREGA': ['ENTREGUE'],
-      'ENTREGUE': [],
-      'CANCELADO': []
-    };
-
-    const transicoesPermitidas = statusValidos[(pedidoData.status as string)] || [];
-    if (!transicoesPermitidas.includes(novoStatus)) {
-      throw new ValidationError(`TRANSICAO_INVALIDA: Não é possível mudar de ${(pedidoData.status as string)} para ${novoStatus}`);
-    }
-
-    // 3. Atualizar status com tenantId
-    await tx.execute(
-      `UPDATE pedidos SET status = ?, updatedAt = NOW() WHERE tenantId = ? AND id = ?`,
-      [novoStatus, tenantId, pedidoId]
-    );
-
-    // 4. Registrar auditoria com tenantId
-    await tx.execute(
-      `INSERT INTO audit_log (
-        tenantId, actorUserId, actorVendedorId, action, entity, entityId,
-        payloadJson, traceId, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        tenantId,
-        usuarioId,
-        vendedorId,
-        'PEDIDO_STATUS_UPDATE',
-        'pedido',
-        pedidoId,
-        JSON.stringify({
-          pedidoId,
-          numero: pedidoData.numero,
-          statusAnterior: pedidoData.status,
-          novoStatus,
-          motivo
-        }),
-        `STATUS_${pedidoId}_${Date.now()}`
-      ]
-    );
-
-    logInfo(`[SafeOrder] Status atualizado com sucesso - Pedido: ${pedidoData.numero}, ${pedidoData.status} → ${novoStatus}`);
-
-    return {
-      success: true,
-      message: `Status do pedido #${pedidoData.numero} atualizado para ${novoStatus}`
-    };
-  });
+  return updateOrderStatusSafeService(tenantId, pedidoId, novoStatus, motivo, usuarioId, vendedorId);
 }
 
 /**
  * Valida integridade de um pedido
+ * @deprecated Função legacy desativada: recriar via orders.service.ts com tenantId obrigatório.
  */
 export async function validateOrderIntegrity(tenantId: number, pedidoId: number): Promise<{
   valido: boolean;
   erros: string[];
   detalhes: Record<string, unknown>;
 }> {
-  if (!tenantId) throw new ValidationError("tenantId is required");
-  const dbConnection = await getDb();
-  if (!dbConnection) {
-    return {
-      valido: false,
-      erros: ['Database connection not available'],
-      detalhes: {}
-    };
-  }
-
-  try {
-    const erros: string[] = [];
-    let detalhes: Record<string, unknown> | null = null;
-
-    const pool = await getPool();
-
-    // 1. Buscar pedido e itens com tenantId
-    const [pedidoRows] = await pool.execute(
-      `SELECT * FROM pedidos WHERE tenantId = ? AND id = ?`,
-      [tenantId, pedidoId]
-    ) as [Record<string, unknown>[], unknown];
-
-    const pedidoArr = Array.isArray(pedidoRows) ? pedidoRows : [];
-    if (!pedidoArr[0]) {
-      return {
-        valido: false,
-        erros: ['Pedido não encontrado'],
-        detalhes: {}
-      };
-    }
-
-    const pedidoData = pedidoArr[0];
-
-    // 2. Buscar itens
-    const [itensRows] = await pool.execute(
-      `SELECT * FROM itens_pedido WHERE pedidoId = ?`,
-      [pedidoId]
-    ) as [Record<string, unknown>[], unknown];
-
-    const itensPedido = Array.isArray(itensRows) ? itensRows : [];
-
-    // 3. Validar soma dos itens
-    const somaItens = itensPedido.reduce((sum: number, item: Record<string, unknown>) => sum + Number(item.total ?? 0), 0);
-    const totalPedido = Number(pedidoData.total ?? 0);
-
-    if (Math.abs(somaItens - totalPedido) > 0.01) {
-      erros.push(`Inconsistência nos valores: soma itens (${somaItens}) ≠ total pedido (${totalPedido})`);
-    }
-
-    // 4. Validar estoque se pedido não estiver cancelado
-    if (pedidoData.status !== 'CANCELADO') {
-      for (const item of itensPedido) {
-        const [produtoRows] = await pool.execute(
-          `SELECT estoque FROM produtos WHERE id = ?`,
-          [Number((item as Record<string, unknown>).produtoId)]
-        ) as [Record<string, unknown>[], unknown];
-
-        const produtoArr = Array.isArray(produtoRows) ? produtoRows : [];
-        const estoqueAtual = Number(produtoArr[0]?.estoque ?? 0);
-        if (estoqueAtual < 0) {
-          erros.push(`Produto ${item.produtoId} com estoque negativo: ${estoqueAtual}`);
-        }
-      }
-    }
-
-    detalhes = {
-      pedido: pedidoData,
-      itens: itensPedido,
-      somaItens,
-      totalPedido,
-      quantidadeItens: itensPedido.length
-    };
-
-    return {
-      valido: erros.length === 0,
-      erros,
-      detalhes
-    };
-  } catch (error: unknown) {
-    console.error('[SafeOrder] Erro na validação:', error);
-    return {
-      valido: false,
-      erros: ['Erro na validação: ' + (error instanceof Error ? error.message : String(error))],
-      detalhes: {}
-    };
-  }
+  throw new Error("Função legacy desativada: recriar via orders.service.ts com tenantId obrigatório.");
 }
