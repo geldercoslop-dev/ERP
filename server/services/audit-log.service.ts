@@ -465,3 +465,94 @@ export async function logAuditAction(
   
   return result;
 }
+
+/**
+ * Wrapper compatível com server/core/audit.service.ts
+ * Preserva contrato: Promise<void) e comportamento non-blocking
+ */
+export async function logAudit(
+  tenantId: number,
+  action: string,
+  entity: string,
+  metadata: {
+    userId?: number;
+    traceId?: string;
+    payload?: unknown;
+    [key: string]: unknown;
+  } = {}
+): Promise<void> {
+  const traceId = typeof metadata.traceId === "string" ? metadata.traceId : null;
+  const userId = typeof metadata.userId === "number" ? metadata.userId : null;
+
+  try {
+    if (!tenantId || tenantId <= 0) {
+      logger.warn({ traceId, tenantId: tenantId ?? null, action, entity }, "audit_log_skipped_invalid_tenant");
+      return;
+    }
+
+    // Limitar payload a 2000 caracteres (preservando comportamento original)
+    const payload = limitPayloadLegacy(metadata.payload, 2000);
+    
+    const result = await AuditLogService.logAction({
+      tenantId,
+      action,
+      entity,
+      payload: {
+        ...metadata,
+        payload,
+        timestamp: new Date().toISOString(),
+      },
+      actorUserId: userId ?? undefined,
+      traceId: traceId ?? undefined,
+    });
+
+    if (result.success) {
+      logger.info(
+        {
+          traceId,
+          tenantId,
+          action,
+          entity,
+          userId,
+        },
+        "audit_log_recorded"
+      );
+    } else {
+      logger.warn(
+        {
+          traceId,
+          tenantId,
+          action,
+          entity,
+          error: result.error,
+        },
+        "audit_log_failed_service"
+      );
+    }
+  } catch (error) {
+    logger.warn(
+      {
+        traceId,
+        tenantId: tenantId ?? null,
+        action,
+        entity,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "audit_log_failed_non_blocking"
+    );
+  }
+}
+
+/**
+ * Limita payload (compatível com implementação original de server/core/audit.service.ts)
+ */
+function limitPayloadLegacy(payload: unknown, maxChars = 2000): unknown {
+  if (payload == null) return payload;
+  const raw = JSON.stringify(payload);
+  if (raw.length <= maxChars) return payload;
+  return {
+    truncated: true,
+    size: raw.length,
+    preview: raw.slice(0, maxChars),
+  };
+}
