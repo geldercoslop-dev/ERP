@@ -7,7 +7,6 @@ import { publicProcedure, protectedProcedure, adminProcedure, requireRole, route
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
-import * as pdf from "./pdf.js";
 import * as pdfService from "./services/reports/pdf.service.js";
 import { roundToTwo, sumWithPrecision, subtractWithPrecision, multiplyWithPrecision } from "./utils/financialUtils.js";
 import { nanoid } from "nanoid";
@@ -1444,7 +1443,8 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
-        return await pdf.gerarPedidoPDF(input.id);
+        const tenantId = await requireTenant(ctx);
+        return await pdfService.gerarPedidoPDF(tenantId, input.id);
       }),
 
     // Marcar como entregue (sem CARGA): baixa financeiro + comissão + caixa
@@ -1499,7 +1499,7 @@ export const appRouter = router({
           });
 
           if (result.boletoIds?.length) {
-            const zip = await pdf.gerarZipBoletos({
+            const zip = await pdfService.gerarZipBoletos(tenantId, {
               boletoIds: result.boletoIds,
               pedidoNumero: result.pedidoNumero,
               clienteNome: result.clienteNome,
@@ -1981,7 +1981,7 @@ export const appRouter = router({
         });
 
         if (result.boletoIds?.length && result.pedidoNumero && result.clienteNome) {
-          const zip = await pdf.gerarZipBoletos({
+          const zip = await pdfService.gerarZipBoletos(tenantId, {
             boletoIds: result.boletoIds,
             pedidoNumero: result.pedidoNumero,
             clienteNome: result.clienteNome,
@@ -2080,7 +2080,10 @@ pendencias: router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "boleto", input.id);
-        return await pdf.gerarBoletoPDF(input.id);
+        const tenantId = await requireTenant(ctx);
+        const result = await pdfService.gerarBoletoPDF(tenantId, input.id);
+        if (!result.success || !result.data) throw new TRPCError({ code: "NOT_FOUND", message: result.error ?? "Boleto não encontrado" });
+        return result.data;
       }),
 
     gerarExtrato: protectedProcedure
@@ -2096,7 +2099,8 @@ pendencias: router({
           if (doCliente.length === 0) throw new TRPCError({ code: "FORBIDDEN", message: "Nenhum boleto seu para este cliente." });
           vendedorIdFilter = vendedor.id;
         }
-        return await pdf.gerarExtratoClientePDF(input.clienteId, vendedorIdFilter);
+        const tenantId = await requireTenant(ctx);
+        return await pdfService.gerarExtratoClientePDF(tenantId, input.clienteId, vendedorIdFilter);
       }),
 
     gerarBoletosCarga: protectedProcedure
@@ -2146,8 +2150,9 @@ pendencias: router({
         tipo: z.enum(['PAGAR', 'RECEBER']),
         mesAno: z.string()
       }))
-      .mutation(async ({ input }) => {
-        return await pdf.gerarRelatorioFinanceiroPDF(input.tipo, input.mesAno);
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = await requireTenant(ctx);
+        return await pdfService.gerarRelatorioFinanceiroPDF(tenantId, input.tipo, input.mesAno);
       }),
   }),
 
