@@ -8,7 +8,6 @@ import { runTransaction } from '../services/db-transaction.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
 import type { TransactionConnection } from '../types/transaction.types.js';
 import { insertAuditLog } from '../services/audit-service.js';
-import { getPool } from '../db/index.js';
 import * as db from '../db/index.js';
 import { eq, sql } from '../db/index.js';
 
@@ -404,85 +403,9 @@ export async function getPaymentsReport(
     offset?: number;
   }
 ): Promise<Record<string, unknown>[]> {
-  const pool = await getPool();
-  try {
-    let query = `
-      SELECT 
-        cr.id,
-        cr.pedido_id,
-        cr.descricao,
-        cr.valor,
-        cr.forma,
-        cr.data_pagamento,
-        cr.data_vencimento,
-        cr.status,
-        cr.cliente,
-        cr.fornecedor,
-        cr.created_at,
-        cr.updated_at,
-        p.numero as pedidoNumero,
-        p.cliente_nome as pedidoCliente
-      FROM contas_receber cr
-      LEFT JOIN pedidos p ON cr.pedido_id = p.id
-      WHERE 1=1
-    `;
-
-    const params: (string | number | Date)[] = [];
-
-    // Aplicar filtros
-    if (filtros.tipo) {
-      query += ` AND cr.tipo = ?`;
-      params.push(filtros.tipo);
-    }
-
-    if (filtros.status) {
-      query += ` AND cr.status = ?`;
-      params.push(filtros.status);
-    }
-
-    if (filtros.dataInicio) {
-      query += ` AND cr.data_pagamento >= ?`;
-      params.push(filtros.dataInicio);
-    }
-
-    if (filtros.dataFim) {
-      query += ` AND cr.data_pagamento <= ?`;
-      params.push(filtros.dataFim);
-    }
-
-    if (filtros.forma) {
-      query += ` AND cr.forma = ?`;
-      params.push(filtros.forma);
-    }
-
-    if (filtros.cliente) {
-      query += ` AND cr.cliente LIKE ?`;
-      params.push(`%${filtros.cliente}%`);
-    }
-
-    if (filtros.fornecedor) {
-      query += ` AND cr.fornecedor LIKE ?`;
-      params.push(`%${filtros.fornecedor}%`);
-    }
-
-    query += ` ORDER BY cr.data_pagamento DESC`;
-
-    if (filtros.limit) {
-      query += ` LIMIT ?`;
-      params.push(filtros.limit);
-    }
-
-    if (filtros.offset) {
-      query += ` OFFSET ?`;
-      params.push(filtros.offset);
-    }
-
-    const [rows] = await pool.execute(query, params) as [Record<string, unknown>[], unknown];
-    return Array.isArray(rows) ? rows : [];
-  } catch (error: unknown) {
-    console.error('[SafePayment] Erro ao gerar relatório:', error);
-    return [];
-  }
+  throw new Error(
+    "Função legacy desativada: não é tenant-aware. Recriar via service com tenantId obrigatório."
+  );
 }
 
 /**
@@ -493,65 +416,7 @@ export async function validatePaymentsIntegrity(): Promise<{
   erros: string[];
   detalhes: Record<string, unknown> | null;
 }> {
-  const pool = await getPool();
-
-  try {
-    const erros: string[] = [];
-    let detalhes: Record<string, unknown> | null = null;
-
-    // 1. Verificar pagamentos com valores negativos
-    const [valoresNegativos] = await pool.execute(
-      `SELECT COUNT(*) as total FROM contas_receber WHERE valor < 0`
-    ) as [Record<string, unknown>[], unknown];
-
-    const negArr = Array.isArray(valoresNegativos) ? valoresNegativos : [];
-    const totalNegativos = Number(negArr[0]?.total ?? 0);
-    if (totalNegativos > 0) {
-      erros.push(`${totalNegativos} pagamentos com valores negativos`);
-    }
-
-    // 2. Verificar pagamentos sem data
-    const [semData] = await pool.execute(
-      `SELECT COUNT(*) as total FROM contas_receber WHERE data_pagamento IS NULL`
-    ) as [Record<string, unknown>[], unknown];
-
-    const semDataArr = Array.isArray(semData) ? semData : [];
-    const totalSemData = Number(semDataArr[0]?.total ?? 0);
-    if (totalSemData > 0) {
-      erros.push(`${totalSemData} pagamentos sem data de pagamento`);
-    }
-
-    // 3. Verificar pagamentos de pedidos cancelados
-    const [pagamentosPedidosCancelados] = await pool.execute(
-      `SELECT COUNT(*) as total 
-       FROM contas_receber cr
-       INNER JOIN pedidos p ON cr.pedido_id = p.id
-       WHERE p.status = 'CANCELADO' AND cr.status != 'CANCELADO'`
-    ) as [Record<string, unknown>[], unknown];
-
-    const canceladosArr = Array.isArray(pagamentosPedidosCancelados) ? pagamentosPedidosCancelados : [];
-    const totalPedidosCancelados = Number(canceladosArr[0]?.total ?? 0);
-    if (totalPedidosCancelados > 0) {
-      erros.push(`${totalPedidosCancelados} pagamentos de pedidos cancelados`);
-    }
-
-    detalhes = {
-      valoresNegativos: totalNegativos,
-      semData: totalSemData,
-      pedidosCancelados: totalPedidosCancelados
-    };
-
-    return {
-      valido: erros.length === 0,
-      erros,
-      detalhes
-    };
-  } catch (error: unknown) {
-    console.error('[SafePayment] Erro na validação:', error);
-    return {
-      valido: false,
-      erros: ['Erro na validação: ' + (error instanceof Error ? error.message : String(error))],
-      detalhes: null
-    };
-  }
+  throw new Error(
+    "Função legacy desativada: não é tenant-aware. Recriar via service com tenantId obrigatório."
+  );
 }

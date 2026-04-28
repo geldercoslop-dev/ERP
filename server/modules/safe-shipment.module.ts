@@ -9,7 +9,6 @@ import type { TransactionConnection } from '../types/transaction.types.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
 import { runTransaction } from '../services/db-transaction.js';
 import { insertAuditLog } from '../services/audit-service.js';
-import { getPool } from '../db/index.js';
 import * as db from '../db/index.js';
 import { eq, sql } from '../db/index.js';
 
@@ -509,80 +508,9 @@ export async function getShipmentsReport(
     offset?: number;
   }
 ): Promise<Record<string, unknown>[]> {
-  const pool = await getPool();
-  try {
-    let query = `
-      SELECT 
-        c.id,
-        c.placa,
-        c.motorista,
-        c.veiculo,
-        c.dataSaida,
-        c.dataSaidaReal,
-        c.dataPrevistaChegada,
-        c.data_chegadaReal,
-        c.rota,
-        c.status,
-        c.pesoTotal,
-        c.volumeTotal,
-        c.valor_total,
-        c.observacoes,
-        c.observacoesFinais,
-        c.created_at,
-        c.updated_at,
-        (SELECT COUNT(*) FROM pedidos_carga pc WHERE pc.carga_id = c.id) as totalPedidos,
-        (SELECT COALESCE(SUM(p.total), 0) FROM pedidos p INNER JOIN pedidos_carga pc ON p.id = pc.pedido_id WHERE pc.carga_id = c.id) as valorPedidos
-      FROM cargas c
-      WHERE 1=1
-    `;
-
-    const params: (string | number | Date)[] = [];
-
-    // Aplicar filtros
-    if (filtros.status) {
-      query += ` AND c.status = ?`;
-      params.push(filtros.status);
-    }
-
-    if (filtros.placa) {
-      query += ` AND c.placa LIKE ?`;
-      params.push(`%${filtros.placa}%`);
-    }
-
-    if (filtros.motorista) {
-      query += ` AND c.motorista LIKE ?`;
-      params.push(`%${filtros.motorista}%`);
-    }
-
-    if (filtros.dataInicio) {
-      query += ` AND c.created_at >= ?`;
-      params.push(filtros.dataInicio);
-    }
-
-    if (filtros.dataFim) {
-      query += ` AND c.created_at <= ?`;
-      params.push(filtros.dataFim);
-    }
-
-    query += ` ORDER BY c.created_at DESC`;
-
-    if (filtros.limit) {
-      query += ` LIMIT ?`;
-      params.push(filtros.limit);
-    }
-
-    if (filtros.offset) {
-      query += ` OFFSET ?`;
-      params.push(filtros.offset);
-    }
-
-    const pool = await getPool();
-    const [rows] = await pool.execute(query, params) as [Record<string, unknown>[], unknown];
-    return Array.isArray(rows) ? rows : [];
-  } catch (error: unknown) {
-    console.error('[SafeShipment] Erro ao gerar relatório:', error);
-    return [];
-  }
+  throw new Error(
+    "Função legacy desativada: não é tenant-aware. Recriar via service com tenantId obrigatório."
+  );
 }
 
 /**
@@ -593,71 +521,7 @@ export async function validateShipmentsIntegrity(): Promise<{
   erros: string[];
   detalhes: Record<string, unknown> | null;
 }> {
-  const pool = await getPool();
-
-  try {
-    const erros: string[] = [];
-    let detalhes: Record<string, unknown> | null = null;
-
-    // 1. Verificar cargas sem pedidos
-    const [cargasSemPedidos] = await pool.execute(
-      `SELECT COUNT(*) as total 
-       FROM cargas c 
-       LEFT JOIN pedidos_carga pc ON c.id = pc.carga_id 
-       WHERE pc.carga_id IS NULL`
-    ) as [Record<string, unknown>[], unknown];
-
-    const semPedidosArr = Array.isArray(cargasSemPedidos) ? cargasSemPedidos : [];
-    const totalSemPedidos = Number(semPedidosArr[0]?.total ?? 0);
-    if (totalSemPedidos > 0) {
-      erros.push(`${totalSemPedidos} cargas sem pedidos associados`);
-    }
-
-    // 2. Verificar pedidos em múltiplas cargas
-    const [pedidosMultiplasCargas] = await pool.execute(
-      `SELECT COUNT(*) as total 
-       FROM pedidos_carga 
-       GROUP BY pedido_id 
-       HAVING COUNT(*) > 1`
-    ) as [Record<string, unknown>[], unknown];
-
-    const multiplasArr = Array.isArray(pedidosMultiplasCargas) ? pedidosMultiplasCargas : [];
-    const totalMultiplasCargas = Number(multiplasArr[0]?.total ?? 0);
-    if (totalMultiplasCargas > 0) {
-      erros.push(`${totalMultiplasCargas} pedidos em múltiplas cargas`);
-    }
-
-    // 3. Verificar cargas em trânsito há muito tempo
-    const [cargasTransitoAntigas] = await pool.execute(
-      `SELECT COUNT(*) as total 
-       FROM cargas 
-       WHERE status = 'EM_TRANSITO' 
-       AND dataSaidaReal < DATE_SUB(NOW(), INTERVAL 7 DAY)`
-    ) as [Record<string, unknown>[], unknown];
-
-    const transitoArr = Array.isArray(cargasTransitoAntigas) ? cargasTransitoAntigas : [];
-    const totalTransitoAntigas = Number(transitoArr[0]?.total ?? 0);
-    if (totalTransitoAntigas > 0) {
-      erros.push(`${totalTransitoAntigas} cargas em trânsito há mais de 7 dias`);
-    }
-
-    detalhes = {
-      cargasSemPedidos: totalSemPedidos,
-      pedidosMultiplasCargas: totalMultiplasCargas,
-      cargasTransitoAntigas: totalTransitoAntigas
-    };
-
-    return {
-      valido: erros.length === 0,
-      erros,
-      detalhes
-    };
-  } catch (error: unknown) {
-    console.error('[SafeShipment] Erro na validação:', error);
-    return {
-      valido: false,
-      erros: ['Erro na validação: ' + (error instanceof Error ? error.message : String(error))],
-      detalhes: null
-    };
-  }
+  throw new Error(
+    "Função legacy desativada: não é tenant-aware. Recriar via service com tenantId obrigatório."
+  );
 }
