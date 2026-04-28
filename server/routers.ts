@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import * as pdf from "./pdf.js";
+import * as pdfService from "./services/reports/pdf.service.js";
 import { roundToTwo, sumWithPrecision, subtractWithPrecision, multiplyWithPrecision } from "./utils/financialUtils.js";
 import { nanoid } from "nanoid";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "./_core/service-entry-guard.js";
@@ -1901,7 +1902,7 @@ export const appRouter = router({
       .input(z.object({ cargaId: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await pdf.gerarRelatorioViagemPDF(tenantId, input.cargaId);
+        return await pdfService.gerarRomaneioPDF(tenantId, input.cargaId);
       }),
     
     create: adminProcedure
@@ -1953,7 +1954,7 @@ export const appRouter = router({
       .input(z.object({ cargaId: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await pdf.gerarRomaneioPDF(tenantId, input.cargaId);
+        return await pdfService.gerarRomaneioPDF(tenantId, input.cargaId);
       }),
 
     baixarPedido: adminProcedure
@@ -2116,7 +2117,7 @@ pendencias: router({
           const todosDoVendedor = await validatePedidosVendedor(tenantId, pedidosIds, vendedor.id);
           if (!todosDoVendedor) throw new TRPCError({ code: "FORBIDDEN", message: "Carga contém pedidos de outro vendedor." });
         }
-        return await pdf.gerarBoletosCargaPDF(tenantId, input.cargaId, input.pedidoNumero);
+        return await pdfService.gerarBoletosCargaPDF(tenantId, input.cargaId, input.pedidoNumero);
       }),
 
     // Gera um ZIP com 1 PDF por boleto (lista de IDs).
@@ -2137,7 +2138,7 @@ pendencias: router({
             if (b.vendedorId !== vendedor.id) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado a um ou mais boletos." });
           }
         }
-        return await pdf.gerarZipBoletos(input);
+        return await pdfService.gerarZipBoletos(tenantId, input);
       }),
 
     gerarRelatorio: protectedProcedure
