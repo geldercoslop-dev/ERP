@@ -14,6 +14,8 @@ import type {
   GetUserInfoWithJwtRequest,
   GetUserInfoWithJwtResponse,
 } from "./types/manusTypes.js";
+import { upsertUser, getUserByOpenIdGlobal } from "../services/users.service.js";
+import type { User } from "../services/users.service.js";
 // Utility function
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -24,7 +26,7 @@ export type SessionPayload = {
   name: string;
 };
 
-type DbUser = typeof import("../db/index.js").users.$inferSelect;
+type DbUser = User;
 
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
@@ -263,7 +265,6 @@ class SDKServer {
 
   async authenticateRequest(req: Request): Promise<DbUser> {
     // Regular authentication flow
-    const db = await import("../db/index.js");
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
     const session = await this.verifySession(sessionCookie);
@@ -274,7 +275,7 @@ class SDKServer {
 
     const sessionUserId = session.openId;
     const signedInAt = new Date();
-    let user = await db.getUserByOpenId(sessionUserId);
+    let user = await getUserByOpenIdGlobal(sessionUserId);
 
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
@@ -284,7 +285,7 @@ class SDKServer {
     if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
       throw new ValidationError("tenantId obrigatório");
     }
-        await db.upsertUser(tenantId, {
+        await upsertUser(tenantId, {
           tenantId,
           openId: userInfo.openId,
           name: userInfo.name || null,
@@ -292,7 +293,7 @@ class SDKServer {
           loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
           lastSignedIn: signedInAt,
         });
-        user = await db.getUserByOpenId(userInfo.openId);
+        user = await getUserByOpenIdGlobal(userInfo.openId);
       } catch (error) {
         console.error("[Auth] Failed to sync user from OAuth:", error);
         throw ForbiddenError("Failed to sync user info");
@@ -307,7 +308,7 @@ class SDKServer {
     if (!tenantId || !Number.isFinite(tenantId) || tenantId <= 0) {
       throw new ValidationError("User sem tenantId válido.");
     }
-    await db.upsertUser(tenantId, {
+    await upsertUser(tenantId, {
       tenantId,
       openId: user.openId,
       lastSignedIn: signedInAt,

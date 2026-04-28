@@ -48,11 +48,16 @@ Use tipagem correta.
   }
 
   // 🔴 3. BLOQUEAR IMPORT DIRETO DE SHARED
-  // Exceção: idempotency.js contém apenas type guards simples
+  // Exceções permitidas:
+  // - idempotency.js contém apenas type guards simples
+  // - const.js contém constantes compartilhadas
+  // - _core/errors.js contém tipos de erro compartilhados
   if (
     content.includes("../../shared/") &&
     !content.includes("../../shared/types") &&
-    !content.includes("../../shared/idempotency.js")
+    !content.includes("../../shared/idempotency.js") &&
+    !content.includes("../../shared/const.js") &&
+    !content.includes("../../shared/_core/errors.js")
   ) {
     console.error(`🚫 IMPORT DIRETO PROIBIDO EM ${file}`);
     violation = true;

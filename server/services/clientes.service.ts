@@ -1153,3 +1153,36 @@ export async function updateClienteRouter(tenantId: number, actor: ServiceActor,
 export async function deleteClienteById(tenantId: number, actor: ServiceActor, id: number): Promise<{ success: boolean; error?: string }> {
   return await deleteCliente(tenantId, actor, id);
 }
+
+/**
+ * Ownership row para validação de acesso: busca vínculo principal em cliente_vendedores
+ * e retorna dados suficientes para ownership (vendedorId + userId do vendedor).
+ * Fonte real: cliente_vendedores (clientes.userId não existe no schema).
+ */
+export async function getClienteOwnershipRowById(
+  tenantId: number,
+  clienteId: number
+): Promise<{ clienteId: number; vendedorId: number; tenantId: number; userId: number | null } | null> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) return null;
+  if (!Number.isInteger(clienteId) || clienteId <= 0) return null;
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+  const rows = await dbConn
+    .select({
+      clienteId: clienteVendedores.clienteId,
+      vendedorId: clienteVendedores.vendedorId,
+      tenantId: clienteVendedores.tenantId,
+      userId: vendedores.userId,
+    })
+    .from(clienteVendedores)
+    .innerJoin(vendedores, eq(vendedores.id, clienteVendedores.vendedorId))
+    .where(
+      and(
+        eq(clienteVendedores.tenantId, tenantId),
+        eq(clienteVendedores.clienteId, clienteId),
+        eq(clienteVendedores.tipo, "PRINCIPAL"),
+      )
+    )
+    .limit(1);
+  return rows.length > 0 ? rows[0] : null;
+}

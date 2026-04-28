@@ -1,10 +1,14 @@
 /**
  * Validação centralizada de ownership (RBAC).
- * Cliente: fonte de verdade é `clientes.userId` (users.id).
- * Pedido: valida via `pedidos.clienteId` → cliente → `userId` (não usa `pedidos.vendedorId` como dono).
+ * Cliente: fonte de verdade é `cliente_vendedores` (vínculo principal).
+ * Pedido: valida via `pedidos.clienteId` → cliente_vendedores → vendedor.userId.
  */
 import { TRPCError } from "@trpc/server";
 import type { TrpcContext } from "./context.js";
+import { getVendedorById, getUserById } from "../services/users.service.js";
+import { getPedidoById } from "../services/orders.service.js";
+import { getContaReceberByIdForTenant, getBoletoById } from "../services/finance.service.js";
+import { getClienteOwnershipRowById } from "../services/clientes.service.js";
 
 export type OwnershipContext = {
   user: { id: number; role: string } | null;
@@ -22,11 +26,10 @@ function getOptionalNumberField(source: unknown, field: string): number | null {
 }
 
 /**
- * Resolve o `users.id` dono da carteira para comparar com `clientes.userId`.
+ * Resolve o `users.id` dono da carteira para comparar com vendedor.userId.
  * Não usar para admin (admin não passa por ownership de cliente).
  */
 export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vendedor">): Promise<number> {
-  const db = await import("../db/index.js");
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão necessária." });
   }
@@ -40,11 +43,11 @@ export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vended
   if (!tenantId || tenantId <= 0) {
     throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
   }
-  const vByPk = await db.getVendedorById(ctx.user.id);
+  const vByPk = await getVendedorById(ctx.user.id);
   if (vByPk?.userId != null && vByPk.userId > 0) {
     return vByPk.userId;
   }
-  const u = await db.getUserById(ctx.user.id);
+  const u = await getUserById(ctx.user.id);
   if (u) {
     return ctx.user.id;
   }
@@ -63,7 +66,6 @@ export async function assertOwnership(
   entity: OwnableEntity,
   entityId: number
 ): Promise<void> {
-  const db = await import("../db/index.js");
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão necessária." });
   }
@@ -76,13 +78,9 @@ export async function assertOwnership(
       if (!ctx.tenantId || ctx.tenantId <= 0) {
         throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
       }
-      const pedido = await db.getPedidoById(entityId);
+      const pedido = await getPedidoById(ctx.tenantId, entityId);
       if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-      const pedidoTenantId = getOptionalNumberField(pedido, "tenantId");
-      if (ctx.tenantId != null && pedidoTenantId != null && pedidoTenantId !== ctx.tenantId) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
-      }
-      const clienteRow = await db.getClienteOwnerRowById(pedido.clienteId);
+      const clienteRow = await getClienteOwnershipRowById(ctx.tenantId, pedido.clienteId);
       if (!clienteRow) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
       if (ctx.tenantId != null && clienteRow.tenantId !== ctx.tenantId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });
@@ -97,7 +95,7 @@ export async function assertOwnership(
       if (!ctx.tenantId || ctx.tenantId <= 0) {
         throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
       }
-      const conta = await db.getContaReceberById(entityId);
+      const conta = await getContaReceberByIdForTenant(ctx.tenantId, entityId);
       if (!conta) throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada." });
       const vendedorId = getOptionalNumberField(conta, "vendedorId");
       if (vendedorId == null || vendedorId !== ctx.user.id) {
@@ -106,7 +104,10 @@ export async function assertOwnership(
       return;
     }
     case "boleto": {
-      const boleto = await db.getBoletoById(entityId);
+      if (!ctx.tenantId || ctx.tenantId <= 0) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
+      }
+      const boleto = await getBoletoById(ctx.tenantId, entityId);
       if (!boleto) throw new TRPCError({ code: "NOT_FOUND", message: "Boleto não encontrado." });
       const vendedorId = getOptionalNumberField(boleto, "vendedorId");
       if (vendedorId == null || vendedorId !== ctx.user.id) {
@@ -115,7 +116,10 @@ export async function assertOwnership(
       return;
     }
     case "cliente": {
-      const row = await db.getClienteOwnerRowById(entityId);
+      if (!ctx.tenantId || ctx.tenantId <= 0) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
+      }
+      const row = await getClienteOwnershipRowById(ctx.tenantId, entityId);
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
       if (ctx.tenantId != null && row.tenantId !== ctx.tenantId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado." });

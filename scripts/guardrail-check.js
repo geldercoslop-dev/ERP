@@ -16,6 +16,35 @@ const ALLOWED_SCHEMA_FILES = [
   "shared/types/entities.ts",
 ];
 
+// Arquivos permitidos da C3.1 (remoção de DB direto do _core)
+const C3_1_ALLOWED_FILES = [
+  "server/_core/domain-audit.ts",
+  "server/_core/oauth.ts",
+  "server/_core/ownership.ts",
+  "server/_core/sdk.ts",
+  "server/_core/service-actor.ts",
+];
+
+// Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
+const DB_PATTERNS = [
+  "db.",
+  "getDb(",
+  "db_conn",
+  'import "../db',
+  "import './db",
+  'from "../db',
+  'from "./db',
+  "tx.insert",
+  "tx.select",
+  "tx.update",
+  "tx.delete",
+  "tx.execute",
+  "connection.query",
+  "conn.query",
+  "pool.query",
+  "db.query",
+];
+
 function getChangedFiles() {
   try {
     const output = execSync("git diff --cached --name-only").toString();
@@ -48,6 +77,45 @@ function isOnlyAllowedSchemaFiles(violations) {
   return violations.every(file => ALLOWED_SCHEMA_FILES.includes(file));
 }
 
+function isOnlyC3_1AllowedFiles(violations) {
+  // Se não há violações, retorna true
+  if (violations.length === 0) return true;
+
+  // Verifica se todas as violações são arquivos C3.1 permitidos
+  return violations.every(file => C3_1_ALLOWED_FILES.includes(file));
+}
+
+function checkC3_1DiffForDBPatterns(files) {
+  // Verifica apenas os arquivos C3.1
+  const c3_1Files = files.filter(f => C3_1_ALLOWED_FILES.includes(f));
+  
+  if (c3_1Files.length === 0) return { hasDBPattern: false, file: null };
+
+  for (const file of c3_1Files) {
+    try {
+      const diff = execSync(`git diff --cached "${file}"`).toString();
+      
+      // Verifica apenas linhas ADICIONADAS (começam com +), não removidas
+      const addedLines = diff.split('\n')
+        .filter(line => line.startsWith('+') && !line.startsWith('+++'))
+        .map(line => line.substring(1)); // Remove o prefixo +
+      
+      const addedContent = addedLines.join('\n');
+      
+      for (const pattern of DB_PATTERNS) {
+        if (addedContent.includes(pattern)) {
+          return { hasDBPattern: true, file, pattern };
+        }
+      }
+    } catch (e) {
+      console.error(`Erro ao verificar diff de ${file}`);
+      return { hasDBPattern: true, file, pattern: "ERROR" };
+    }
+  }
+
+  return { hasDBPattern: false, file: null };
+}
+
 function runDrizzleSchemaGuard() {
   try {
     console.log("\n🔍 Executando drizzle-schema-guard.mjs...");
@@ -66,7 +134,7 @@ function main() {
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
-    // Verifica se são apenas os arquivos permitidos
+    // Verifica se são apenas os arquivos permitidos de schema
     if (isOnlyAllowedSchemaFiles(violations)) {
       console.log("\n📋 Arquivos de schema/types detectados:");
       violations.forEach(f => console.log(" - " + f));
@@ -80,6 +148,27 @@ function main() {
         console.error("\nDOC BLOQUEADO — drizzle-schema-guard falhou\n");
         process.exit(1);
       }
+    }
+
+    // Verifica se são apenas os arquivos permitidos da C3.1
+    if (isOnlyC3_1AllowedFiles(violations)) {
+      console.log("\n📋 Arquivos C3.1 detectados:");
+      violations.forEach(f => console.log(" - " + f));
+      console.log();
+
+      // Verifica se o diff contém padrões de DB
+      const dbCheck = checkC3_1DiffForDBPatterns(files);
+      
+      if (dbCheck.hasDBPattern) {
+        console.error("\n🚫 C3.1 BLOQUEADO — padrão de DB detectado no diff\n");
+        console.error(`Arquivo: ${dbCheck.file}`);
+        console.error(`Padrão: ${dbCheck.pattern}`);
+        console.error("\nC3.1 deve REMOVER DB direto, não adicionar.\n");
+        process.exit(1);
+      }
+
+      console.log("✔ Guardrail OK — arquivos C3.1 validados (sem DB no diff)");
+      return;
     }
 
     // Bloqueia outros arquivos

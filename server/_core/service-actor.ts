@@ -4,6 +4,7 @@
  */
 import type { TrpcContext } from "./context.js";
 import { ValidationError, InfrastructureError } from "./errors/typed-errors.js";
+import { getVendedorByUserId, getVendedorById } from "../services/users.service.js";
 
 export type ServiceActorRole = "admin" | "vendedor";
 
@@ -38,12 +39,11 @@ export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vende
   if (!ctx.tenantId || ctx.tenantId <= 0) {
     throw new ValidationError("tenantId obrigatório para resolver actor de serviço");
   }
-  const tenantId = String(ctx.tenantId);
-  const db = await import("../db/index.js");
+  const tenantId = ctx.tenantId;
   const v =
     ctx.vendedor ??
-    (await db.getVendedorByUserId(ctx.user.id)) ??
-    (await db.getVendedorById(ctx.user.id));
+    (await getVendedorByUserId(ctx.user.id)) ??
+    (await getVendedorById(ctx.user.id));
   if (!v) {
     throw new InfrastructureError("Não foi possível resolver o vendedor para este usuário");
   }
