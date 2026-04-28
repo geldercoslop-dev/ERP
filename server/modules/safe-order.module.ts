@@ -65,7 +65,7 @@ export interface OrderResult {
  * Cria pedido de forma segura com transação completa
  */
 export async function createOrderSafe(orderData: CreateOrderData): Promise<OrderResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     logInfo(`[SafeOrder] Iniciando criação segura do pedido - Cliente: ${orderData.clienteNome}`);
 
     // 1. Validar itens do pedido
@@ -226,15 +226,16 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
  * Cancela pedido de forma segura devolvendo estoque
  */
 export async function cancelOrderSafe(
-  tenantId: number, // Adicionado para multi-tenant
+  tenantId: number,
   pedidoId: number,
   motivo: string = 'Cancelamento',
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; message: string; movimentacoes?: Record<string, unknown>[] }> {
   if (!tenantId) throw new ValidationError("tenantId is required");
-  return runTransaction(async (tx: any) => {
-    logInfo(`[SafeOrder] Iniciando cancelamento seguro do pedido - Tenant: ${tenantId}, ID: ${pedidoId}`);
+
+  return runTransaction(async (tx: TransactionConnection) => {
+     logInfo(`[SafeOrder] Iniciando cancelamento seguro do pedido - Tenant: ${tenantId}, ID: ${pedidoId}`);
 
     // 1. Buscar dados do pedido com bloqueio e tenantId
     const [pedido] = await tx.execute(
@@ -284,6 +285,9 @@ export async function cancelOrderSafe(
     );
 
     // 6. Registrar auditoria com tenantId
+    const actorUserIdForAudit: number | null = usuarioId === undefined ? null : usuarioId;
+    const actorVendedorIdForAudit: number | null = vendedorId === undefined ? null : vendedorId;
+
     await tx.execute(
       `INSERT INTO audit_log (
         tenantId, actorUserId, actorVendedorId, action, entity, entityId,
@@ -291,8 +295,8 @@ export async function cancelOrderSafe(
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         tenantId,
-        usuarioId,
-        vendedorId,
+        actorUserIdForAudit,
+        actorVendedorIdForAudit,
         'PEDIDO_CANCELAMENTO',
         'pedido',
         pedidoId,

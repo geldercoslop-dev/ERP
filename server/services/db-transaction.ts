@@ -9,8 +9,7 @@ import * as mysql from "mysql2/promise";
 import { getDb } from '../db/index.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { getConnectionPool } from "../config/database.js";
-
-export type TransactionCallback<T> = (tx: mysql.PoolConnection) => Promise<T>;
+import type { TransactionCallback } from "../types/transaction.types.js";
 
 /**
  * Executa uma função dentro de uma transação de banco de dados

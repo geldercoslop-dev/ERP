@@ -11,12 +11,7 @@ import type * as mysql from 'mysql2/promise';
  * Tipo seguro para conexão em transação
  * Use este tipo em vez de 'any' para callbacks de transação
  */
-export type TransactionConnection = mysql.PoolConnection & {
-  execute: (sql: string, values?: unknown[]) => Promise<[mysql.RowDataPacket[][], mysql.FieldPacket[]]>;
-  query: (sql: string, values?: unknown[]) => Promise<[mysql.RowDataPacket[][], mysql.FieldPacket[]]>;
-  commit: () => Promise<void>;
-  rollback: () => Promise<void>;
-};
+export type TransactionConnection = mysql.PoolConnection;
 
 /**
  * Resultado típico de execute/query

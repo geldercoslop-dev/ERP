@@ -76,7 +76,7 @@ export type PaymentResult = {
  * @returns Resultado da operação
  */
 export async function registerPaymentSafe(paymentData: PaymentData): Promise<PaymentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafePayment] Registrando pagamento - Tipo: ${paymentData.tipo}, Valor: ${paymentData.valor}`);
 
     // 1. Validar dados obrigatórios
@@ -121,6 +121,9 @@ export async function registerPaymentSafe(paymentData: PaymentData): Promise<Pay
     }
 
     // 3. Inserir pagamento
+    const fornecedorOuClienteRaw = paymentData.tipo === 'despesa' ? paymentData.fornecedor : paymentData.cliente;
+    const fornecedorOuClienteForAudit: string | null = fornecedorOuClienteRaw === undefined ? null : fornecedorOuClienteRaw;
+
     const [paymentResult] = await tx.execute(
       `INSERT INTO contas_${
         paymentData.tipo === 'receita' ? 'receber' : 'pagar'
@@ -142,7 +145,7 @@ export async function registerPaymentSafe(paymentData: PaymentData): Promise<Pay
         paymentData.dataPagamento || new Date(),
         paymentData.dataVencimento || null,
         paymentData.status || 'pago',
-        paymentData.tipo === 'despesa' ? paymentData.fornecedor : paymentData.cliente
+        fornecedorOuClienteForAudit
       ]
     );
 
@@ -221,7 +224,7 @@ export async function cancelPaymentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<PaymentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafePayment] Cancelando pagamento - ID: ${paymentId}`);
 
     // 1. Buscar pagamento com bloqueio
@@ -313,12 +316,12 @@ export async function reconcilePaymentsSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<{ success: boolean; message: string; reconciliados: number[] }> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafePayment] Conciliando ${payments.length} pagamentos`);
 
     const reconciliados: number[] = [];
 
-    let resolvedTenantId: number | null = tenantId ?? null;
+    let resolvedTenantId: number | undefined = tenantId;
     for (const payment of payments) {
       // 1. Buscar pagamento
       const [paymentRecord] = await tx.execute(

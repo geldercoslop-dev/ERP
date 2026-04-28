@@ -76,7 +76,7 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
     };
   }
 
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Criando carga - Placa: ${shipmentData.placa}, Motorista: ${shipmentData.motorista}`);
 
     // 1. Validar dados obrigatórios
@@ -185,6 +185,10 @@ export async function createShipmentSafe(shipmentData: CreateShipmentData): Prom
     const shipmentId = isQueryResult(shipmentResult) ? shipmentResult.insertId : undefined;
 
     // 5. Associar pedidos à carga
+    if (shipmentId === undefined) {
+      throw new ValidationError("CARGA_ID_OBRIGATORIO: Falha ao obter ID da carga após inserção.");
+    }
+
     for (const item of shipmentData.itens) {
       await tx.execute(
         `INSERT INTO pedidos_carga (
@@ -250,7 +254,7 @@ export async function startShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Iniciando carga - ID: ${shipmentId}`);
 
     // 1. Buscar carga com bloqueio
@@ -325,7 +329,7 @@ export async function finishShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Finalizando carga - ID: ${shipmentId}`);
 
     // 1. Buscar carga com bloqueio
@@ -408,7 +412,7 @@ export async function removeOrderFromShipmentSafe(
   usuarioId?: number,
   vendedorId?: number
 ): Promise<ShipmentResult> {
-  return runTransaction(async (tx: any) => {
+  return runTransaction(async (tx: TransactionConnection) => {
     console.log(`[SafeShipment] Removendo pedido da carga - Carga: ${shipmentId}, Pedido: ${pedidoId}`);
 
     // 1. Validar carga
