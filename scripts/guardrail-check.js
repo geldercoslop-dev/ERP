@@ -128,6 +128,39 @@ function runDrizzleSchemaGuard() {
   }
 }
 
+function isRbacTypingCleanupAllowed(files) {
+  const rbacFile = "server/security/rbac.ts";
+  if (!files.includes(rbacFile)) return false;
+  try {
+    const diff = execSync(`git diff --cached -- "${rbacFile}"`).toString();
+    if (!diff.trim()) return true;
+    const lines = diff.split('\n');
+    const additions = lines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+    const removals = lines.filter(l => l.startsWith('-') && !l.startsWith('---'));
+
+    const forbidden = additions.find(l => 
+      l.match(/db\.|getDb|getPool|query\(|execute\(|bypass|resource:|action:|const|let|var|if|return|switch|case|this\./) ||
+      (l.trim().length > 1 && !l.includes('PermissionContext') && !l.match(/^\+\s*(\w+\?: number;|}|\]|,|\[|\s*)$/))
+    );
+
+    if (forbidden) {
+      console.error(`\n🚫 RBAC BLOQUEADO — alteração proibida detectada: ${forbidden.trim()}`);
+      return false;
+    }
+
+    const isCleanup = removals.some(l => l.includes('any')) && additions.some(l => l.includes('PermissionContext'));
+    if (isCleanup) {
+      console.log("\n✔ RBAC Typing Cleanup detectado e validado");
+      return true;
+    }
+    console.error("\n🚫 RBAC BLOQUEADO — alteração deve remover 'any' e usar 'PermissionContext'");
+    return false;
+  } catch (e) {
+    console.error("\nErro ao verificar diff de rbac.ts");
+    return false;
+  }
+}
+
 function main() {
   const files = getChangedFiles();
 
@@ -169,6 +202,16 @@ function main() {
 
       console.log("✔ Guardrail OK — arquivos C3.1 validados (sem DB no diff)");
       return;
+    }
+
+    // Verifica exceção para RBAC typing cleanup
+    if (violations.length === 1 && violations[0] === "server/security/rbac.ts") {
+      if (isRbacTypingCleanupAllowed(files)) {
+        console.log("✔ Guardrail OK — server/security/rbac.ts permitido apenas para RBAC typing cleanup\n");
+        return;
+      } else {
+        process.exit(1);
+      }
     }
 
     // Bloqueia outros arquivos

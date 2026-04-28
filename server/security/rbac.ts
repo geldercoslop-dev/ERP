@@ -8,6 +8,14 @@ export interface Permission {
   conditions?: string[];
 }
 
+export interface PermissionContext {
+  userId?: number;
+  targetUserId?: number;
+  userTenantId?: number;
+  resourceTenantId?: number;
+  resourceOwnerId?: number;
+}
+
 export interface RolePermissions {
   [key: string]: Permission[];
 }
@@ -140,7 +148,7 @@ export class RBAC {
     role: Role,
     resource: string,
     action: string,
-    conditions?: Record<string, any>
+    conditions?: PermissionContext
   ): boolean {
     const permissions = ROLE_PERMISSIONS[role] || [];
     
@@ -173,7 +181,7 @@ export class RBAC {
     role: Role,
     resource: string,
     action: string,
-    conditions?: Record<string, any>
+    conditions?: PermissionContext
   ): boolean {
     const currentLevel = ROLE_HIERARCHY[role];
     
@@ -194,7 +202,7 @@ export class RBAC {
    */
   private static checkConditions(
     requiredConditions: string[] | undefined,
-    context: Record<string, any> | undefined
+    context: PermissionContext | undefined
   ): boolean {
     if (!requiredConditions || requiredConditions.length === 0) {
       return true;

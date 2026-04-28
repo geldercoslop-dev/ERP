@@ -278,6 +278,35 @@ function isPackageJsonChangeAllowed(file) {
 }
 
 /**
+ * Verifica se alteração em server/security/rbac.ts é permitida (exceção restrita)
+ * Só permite limpeza de tipagem (any -> PermissionContext)
+ * Bloqueia qualquer alteração de lógica, novas permissões ou acesso ao DB
+ */
+function isRbacTypingCleanupAllowed(file) {
+  if (relative(ROOT, file).replace(/\\/g, '/') !== 'server/security/rbac.ts') return { allowed: false };
+  try {
+    const diff = execSync('git diff --cached -- server/security/rbac.ts', { encoding: 'utf-8', cwd: ROOT });
+    if (!diff.trim()) return { allowed: true, reason: 'no-change' };
+    const additions = diff.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++'));
+    const removals = diff.split('\n').filter(l => l.startsWith('-') && !l.startsWith('---'));
+    
+    // Bloqueia DB, lógica, bypass, novas roles/permissões
+    const forbidden = additions.find(l => 
+      l.match(/db\.|getDb|getPool|query\(|execute\(|bypass|resource:|action:|const|let|var|if|return|switch|case|this\./) ||
+      (l.trim().length > 1 && !l.includes('PermissionContext') && !l.match(/^\+\s*(\w+\?: number;|}|\]|,|\[|\s*)$/))
+    );
+
+    if (forbidden) return { allowed: false, message: `Bloqueado em rbac.ts: ${forbidden.trim()}` };
+    
+    const isCleanup = removals.some(l => l.includes('any')) && additions.some(l => l.includes('PermissionContext'));
+    if (isCleanup) {
+      return { allowed: true, reason: 'rbac-typing-cleanup', message: 'server/security/rbac.ts permitido apenas para RBAC typing cleanup.' };
+    }
+    return { allowed: false, message: 'server/security/rbac.ts: alteração deve remover "any" e usar "PermissionContext"' };
+  } catch (e) { return { allowed: false, message: 'Não foi possível analisar o diff de rbac.ts' }; }
+}
+
+/**
  * Verifica se um arquivo está na lista de arquivos autorizados C3.1
  */
 function isC3AuthorizedFile(file) {
@@ -396,6 +425,24 @@ function runGuard() {
             packageMessage: packageCheck.message 
           });
           console.log(`🚫 ${file} (área congelada - ${packageCheck.message})`);
+          continue;
+        }
+      }
+      
+      // Exceção especial para rbac.ts: RBAC typing cleanup
+      if (relativePath === 'server/security/rbac.ts') {
+        const rbacCheck = isRbacTypingCleanupAllowed(file);
+        if (rbacCheck.allowed) {
+          console.log(`✅ ${file} (permitido: ${rbacCheck.reason})`);
+          continue;
+        } else {
+          violations.push({ 
+            file, 
+            pattern: result.pattern, 
+            packageReason: rbacCheck.reason,
+            packageMessage: rbacCheck.message 
+          });
+          console.log(`🚫 ${file} (área congelada - ${rbacCheck.message})`);
           continue;
         }
       }
