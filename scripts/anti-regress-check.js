@@ -33,7 +33,38 @@ Use tipagem correta.
   }
 
   // 🔴 2. BLOQUEAR DB FORA DE SERVICES
-  if (
+  // Exceção restrita: server/pdf.ts é legado com DB direto preexistente.
+  // Permitido SOMENTE se o diff staged adiciona apenas comentários de depreciação.
+  // Qualquer nova linha de código, import ou DB em server/pdf.ts é bloqueada.
+  if (file === "server/pdf.ts" || file === "server/pdf.js") {
+    try {
+      const diff = execSync(`git diff --cached -- "${file}"`, { encoding: "utf-8" });
+      const addedLines = diff.split("\n").filter(l => l.startsWith("+") && !l.startsWith("+++"));
+      const nonCommentAdditions = addedLines.filter(l => {
+        const stripped = l.substring(1).trim();
+        if (!stripped) return false; // blank line
+        // Permitir linhas de comentário (//, /*, *, */, blocos JSDoc com LEGACY/DEPRECATED)
+        if (/^\s*(\/\/|\/\*|\*|\/\*)/.test(stripped)) return false;
+        return true; // não-comentário = proibido
+      });
+      if (nonCommentAdditions.length > 0) {
+        console.error(`
+🚫 CÓDIGO NOVO EM LEGACY PDF BLOQUEADO
+
+Arquivo: ${file}
+Linhas adicionadas que NÃO são comentário:
+${nonCommentAdditions.map(l => "  " + l.trim()).join("\n")}
+
+server/pdf.ts é LEGADO. Apenas comentários de depreciação são permitidos.
+Novo código, imports ou DB direto devem ir para server/services/reports/pdf.service.ts
+`);
+        violation = true;
+      }
+    } catch {
+      console.error(`🚫 Falha ao analisar diff de ${file} — bloqueado por segurança`);
+      violation = true;
+    }
+  } else if (
     !file.startsWith("server/services") &&
     (
       /(^|[^a-zA-Z0-9_])db\./.test(content) ||
@@ -82,6 +113,27 @@ Mover execução para dentro de função.
 `);
         violation = true;
       }
+    }
+  }
+
+  // 🔴 6. BLOQUEAR IMPORT DIRETO DE server/pdf.ts (LEGACY)
+  // server/pdf.ts é legado com DB direto e sem tenant-aware.
+  // Novo uso DEVE usar server/services/reports/pdf.service.ts.
+  // Exceção: o próprio server/pdf.ts pode existir.
+  if (!file.endsWith("server/pdf.ts") && !file.endsWith("server/pdf.js")) {
+    const pdfImportMatches = content.match(/from\s+["'][^"']*pdf\.js["']/g) || [];
+    const legacyPdfImports = pdfImportMatches.filter(m => !m.includes("pdf.service.js"));
+    if (legacyPdfImports.length > 0) {
+      console.error(`
+🚫 IMPORT DE LEGACY PDF BLOQUEADO
+
+Uso de server/pdf.ts legado detectado em ${file}
+Imports bloqueados: ${legacyPdfImports.join(", ")}
+
+server/pdf.ts é LEGADO com DB direto e sem tenant-aware.
+Use: server/services/reports/pdf.service.ts (tenant-aware)
+`);
+      violation = true;
     }
   }
 

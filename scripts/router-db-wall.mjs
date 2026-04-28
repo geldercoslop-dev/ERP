@@ -57,6 +57,11 @@ const DB_PATTERNS = [
   { pattern: /from\s+["']\.\.\/db/, message: "Import direto de ../db" },
   { pattern: /from\s+["']\.\.\/\.\.\/db/, message: "Import direto de ../../db" },
   
+  // Import direto de server/pdf.ts legado (não tenant-aware)
+  { pattern: /from\s+["']\.\/pdf\.js["']/, message: "Import legado de ./pdf.js — use pdfService from ./services/reports/pdf.service.js" },
+  { pattern: /from\s+["']\.\.\/pdf\.js["']/, message: "Import legado de ../pdf.js — use pdfService from services/reports/pdf.service.js" },
+  { pattern: /from\s+["']\.\.\/\.\.\/pdf\.js["']/, message: "Import legado de ../../pdf.js — use pdfService from services/reports/pdf.service.js" },
+  
   // Acesso direto a DB
   { pattern: /(^|[^a-zA-Z0-9_])db\./, message: "Acesso direto a db." },
   { pattern: /getDb\s*\(/, message: "Chamada direta a getDb(" },
