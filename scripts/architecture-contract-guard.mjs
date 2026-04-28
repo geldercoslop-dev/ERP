@@ -47,6 +47,39 @@ const EXCEPTIONS = [
   'docs/',
 ];
 
+// Janela controlada C3.1 - arquivos _core autorizados para remoção de DB direto
+const AUTHORIZED_C3_CORE_FILES = [
+  'server/_core/domain-audit.ts',
+  'server/_core/oauth.ts',
+  'server/_core/ownership.ts',
+  'server/_core/sdk.ts',
+  'server/_core/service-actor.ts',
+];
+
+// Padrões proibidos em adições na janela C3.1
+const C3_FORBIDDEN_ADDITION_PATTERNS = [
+  'db.',
+  'getDb(',
+  'db_conn',
+  'import "../db',
+  'import \'../db',
+  'import "./db',
+  'import \'./db',
+  'from "../db',
+  'from \'../db',
+  'from "./db',
+  'from \'./db',
+  'tx.insert',
+  'tx.select',
+  'tx.update',
+  'tx.delete',
+  'tx.execute',
+  'connection.query',
+  'conn.query',
+  'pool.query',
+  'db.query',
+];
+
 // Áreas permitidas para evolução (domínio)
 const ALLOWED_PATTERNS = [
   'server/services/',
@@ -245,6 +278,63 @@ function isPackageJsonChangeAllowed(file) {
 }
 
 /**
+ * Verifica se um arquivo está na lista de arquivos autorizados C3.1
+ */
+function isC3AuthorizedFile(file) {
+  const relativePath = relative(ROOT, file).replace(/\\/g, '/');
+  return AUTHORIZED_C3_CORE_FILES.includes(relativePath);
+}
+
+/**
+ * Analisa linhas adicionadas no diff staged de um arquivo
+ * Retorna lista de padrões proibidos encontrados nas adições
+ */
+function findForbiddenC3Additions(file) {
+  const relativePath = relative(ROOT, file).replace(/\\/g, '/');
+  try {
+    const diff = execSync(`git diff --cached -- "${relativePath}"`, {
+      encoding: 'utf-8',
+      cwd: ROOT,
+    });
+
+    if (!diff.trim()) return [];
+
+    const forbiddenFound = [];
+    const lines = diff.split('\n');
+
+    for (const line of lines) {
+      // Analisa apenas linhas adicionadas (começam com +, mas não +++ do header)
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        for (const pattern of C3_FORBIDDEN_ADDITION_PATTERNS) {
+          if (line.includes(pattern)) {
+            forbiddenFound.push({ pattern, line: line.substring(1).trim() });
+          }
+        }
+      }
+    }
+
+    return forbiddenFound;
+  } catch (error) {
+    // Se não conseguir analisar o diff, bloqueia por segurança
+    return [{ pattern: 'diff-analysis-failed', line: 'não foi possível analisar o diff' }];
+  }
+}
+
+/**
+ * Mostra mensagem de violação da janela C3.1
+ */
+function showC3ViolationMessage(file, forbiddenItems) {
+  console.error('\n🚫 CONTRATO DE ARQUITETURA VIOLADO - JANELA C3.1');
+  console.error('\nArquivo permitido pela janela C3.1 somente para remover DB direto. Nova violação detectada.\n');
+  console.error(`Arquivo: ${file}`);
+  console.error('Padrões proibidos encontrados nas adições:');
+  for (const item of forbiddenItems) {
+    console.error(`  ❌ ${item.pattern} → ${item.line}`);
+  }
+  console.error('');
+}
+
+/**
  * Mostra mensagem de erro com orientação
  */
 function showViolationMessage(file, pattern, packageMessage = null) {
@@ -310,7 +400,17 @@ function runGuard() {
         }
       }
       
-      if (result.exception === 'drizzle-check-required') {
+      // Verifica janela controlada C3.1
+      if (isC3AuthorizedFile(file)) {
+        const forbiddenItems = findForbiddenC3Additions(file);
+        if (forbiddenItems.length > 0) {
+          violations.push({ file, pattern: 'c3-forbidden-addition', c3ForbiddenItems: forbiddenItems });
+          showC3ViolationMessage(file, forbiddenItems);
+          console.log(`🚫 ${file} (C3.1: nova violação DB detectada)`);
+        } else {
+          console.log(`✅ ${file} (C3.1: autorizado, sem novas violações DB)`);
+        }
+      } else if (result.exception === 'drizzle-check-required') {
         drizzleCheckRequired = true;
         console.log(`⚠️  ${file} requer verificação do drizzle-schema-guard`);
       } else {
