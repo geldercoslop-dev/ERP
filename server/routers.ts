@@ -27,7 +27,7 @@ import * as cachedClientes from "./services/cached-clientes.service.js";
 import * as inventoryService from "./services/inventory.service.js";
 import * as configuracoesService from "./services/configuracoes.service.js";
 import * as systemService from "./services/system.service.js";
-import * as auditService from "./services/audit-service.js";
+import { logAuditAction } from "./services/audit-log.service.js";
 import * as pendenciasService from "./services/pendencias.service.js";
 import * as clientesService from "./services/clientes.service.js";
 import { resolveClienteVendaInTransaction } from "./services/clientes.service.js";
@@ -59,7 +59,7 @@ import {
   insertItensPedidoAndContasReceberInTransaction,
 } from "./services/orders.service.js";
 import * as logisticaService from "./services/logistica.service.js";
-import { buscarRegistros } from "./services/audit-service.js";
+import { buscarRegistros } from "./services/audit-service.js"; 
 
 type ExpressRequest = import("express").Request;
 type BcryptModuleLike = {
@@ -413,15 +413,18 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
         ctx.res.cookie("session", sessionValue, cookieOptions);
         const traceId = nanoid(10);
-        await auditService.insertAuditLog({
-          actorUserId: ctx.user.id,
-          actorVendedorId: null,
-          action: "IMPERSONATE_START",
-          entity: "vendedor",
-          entityId: String(vendedor.id),
-          payloadJson: JSON.stringify({ vendedorNome: vendedor.nome }),
-          traceId,
-        });
+        await logAuditAction(
+          "IMPERSONATE_START",
+          "vendedor",
+          { vendedorNome: vendedor.nome },
+          {
+            tenantId,
+            actorUserId: ctx.user.id,
+            actorVendedorId: undefined,
+            entityId: String(vendedor.id),
+            traceId,
+          }
+        );
         return { ok: true, vendedorId: vendedor.id, vendedorNome: vendedor.nome ?? undefined };
       }),
 
@@ -438,15 +441,19 @@ export const appRouter = router({
       ctx.res.clearCookie(ADMIN_SESSION_COOKIE, { path: "/", maxAge: 0, expires: new Date(0) });
       const adminUserId = adminToken.startsWith("u:") ? parseInt(adminToken.slice(2), 10) : null;
       const traceId = nanoid(10);
-      await auditService.insertAuditLog({
-        actorUserId: Number.isFinite(adminUserId) ? adminUserId : null,
-        actorVendedorId: ctx.vendedor?.id ?? null,
-        action: "IMPERSONATE_STOP",
-        entity: "admin",
-        entityId: adminUserId != null ? String(adminUserId) : null,
-        payloadJson: JSON.stringify({ restoredFrom: "admin_session" }),
-        traceId,
-      });
+      const tenantId = await requireTenant(ctx);
+      await logAuditAction(
+        "IMPERSONATE_STOP",
+        "admin",
+        { restoredFrom: "admin_session" },
+        {
+          tenantId,
+          actorUserId: (Number.isFinite(adminUserId) && adminUserId !== null) ? adminUserId : undefined, 
+          actorVendedorId: ctx.vendedor?.id ?? undefined,
+          entityId: adminUserId != null ? String(adminUserId) : undefined,     
+          traceId,
+        }
+      );
       return { ok: true };
     }),
 
@@ -580,16 +587,19 @@ export const appRouter = router({
           }
           
           if (result?.id) {
-            await auditService.insertAuditLog({
-              actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
-              actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
-              action: "create",
-              entity: "vendedor",
+          await logAuditAction(
+            "create",
+            "vendedor",
+            { nome: input.nome },
+            {
+              tenantId,
+              actorUserId: ctx.user?.role === "admin" ? ctx.user.id : undefined,
+              actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : undefined,
               entityId: String(result.id),
-              payloadJson: JSON.stringify({ nome: input.nome }),
-            });
-          }
-          return result;
+            }
+          );
+        }
+        return result;
         } catch (e) {
           const err = e as Error & { code?: string; errno?: number; sqlMessage?: string };
           const msg = err?.message ?? "Erro ao criar vendedor";
@@ -640,27 +650,36 @@ export const appRouter = router({
           }
         }
         const out = await usersService.updateVendedor(id, data);
-        await auditService.insertAuditLog({
-          actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
-          actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
-          action: "update",
-          entity: "vendedor",
-          entityId: String(id),
-          payloadJson: JSON.stringify({ nome: input.nome ?? undefined }),
-        });
+        const tenantId = await requireTenant(ctx);
+        await logAuditAction(
+          "update",
+          "vendedor",
+          { nome: input.nome ?? undefined },
+          {
+            tenantId,
+            actorUserId: ctx.user?.role === "admin" ? ctx.user.id : undefined,
+            actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : undefined,
+            entityId: String(id),
+          }
+        );
         return out;
       }),
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const out = await usersService.deleteVendedor(input.id);
-        await auditService.insertAuditLog({
-          actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
-          actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
-          action: "delete",
-          entity: "vendedor",
-          entityId: String(input.id),
-        });
+        const tenantId = await requireTenant(ctx);
+        await logAuditAction(
+          "delete",
+          "vendedor",
+          {},
+          {
+            tenantId,
+            actorUserId: ctx.user?.role === "admin" ? ctx.user.id : undefined,
+            actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : undefined,
+            entityId: String(input.id),
+          }
+        );
         return out;
       }),
     /** Vincula vendedor a um user (por openId). Cria user se não existir. Opcional: define senha do vendedor. */
@@ -683,14 +702,17 @@ export const appRouter = router({
           const hashed = await bcrypt.hash(input.password, 10);
           await usersService.updateVendedorSenha(input.vendedorId, hashed);
         }
-        await auditService.insertAuditLog({
-          actorUserId: ctx.user?.id ?? null,
-          actorVendedorId: null,
-          action: "update",
-          entity: "vendedor",
-          entityId: String(input.vendedorId),
-          payloadJson: JSON.stringify({ linkUser: user.id, openId: input.openId }),
-        });
+        await logAuditAction(
+          "update",
+          "vendedor",
+          { linkUser: user.id, openId: input.openId },
+          {
+            tenantId,
+            actorUserId: ctx.user?.id ?? undefined,
+            actorVendedorId: undefined,
+            entityId: String(input.vendedorId),
+          }
+        );
         return { ok: true, userId: user.id, vendedorId: input.vendedorId };
       }),
   }),
@@ -1489,14 +1511,17 @@ export const appRouter = router({
           );
           if (isInProgress(result)) return result;
 
-          await auditService.insertAuditLog({
-            actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
-            actorVendedorId: ctx.user?.role !== "admin" ? (await getVendedorFromContext(ctx))?.id : null,
-            action: "BAIXA",
-            entity: "pedido",
-            entityId: String(input.id),
-            payloadJson: JSON.stringify({ pedidoNumero: result.pedidoNumero }),
-          });
+          await logAuditAction(
+            "BAIXA",
+            "pedido",
+            { pedidoNumero: result.pedidoNumero },
+            {
+              tenantId,
+              actorUserId: ctx.user?.role === "admin" ? ctx.user.id : undefined,
+              actorVendedorId: ctx.user?.role !== "admin" ? (await getVendedorFromContext(ctx))?.id : undefined,
+              entityId: String(input.id),
+            }
+          );
 
           if (result.boletoIds?.length) {
             const zip = await pdfService.gerarZipBoletos(tenantId, {
@@ -1837,15 +1862,19 @@ export const appRouter = router({
           "[CONCURRENCY] Sucesso registrado em memória"
         );
 
-        await auditService.insertAuditLog({
-          actorUserId: ctx.user?.role === "admin" ? ctx.user.id : null,
-          actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : null,
-          action: "create",
-          entity: "pedido",
-          entityId: String(result.pedidoId),
-          payloadJson: JSON.stringify({ numero: result.numero }),
-          traceId: result.traceId ?? undefined,
-        });
+        const tenantId = await requireTenant(ctx);
+        await logAuditAction(
+          "create",
+          "pedido",
+          { numero: result.numero },
+          {
+            tenantId,
+            actorUserId: ctx.user?.role === "admin" ? ctx.user.id : undefined,
+            actorVendedorId: ctx.user?.role !== "admin" ? ctx.user?.id : undefined,
+            entityId: String(result.pedidoId),
+            traceId: result.traceId ?? undefined,
+          }
+        );
         return { pedidoId: result.pedidoId, numero: result.numero, clienteId: result.clienteId, gerouPendencia: result.gerouPendencia, pendenteEstoque: result.pendenteEstoque };
         } catch (e) {
           throw e;
@@ -2486,17 +2515,19 @@ pendencias: router({
       const { getDashboardInsights } = await import("./services/dashboard-insights.service.js");
       const data = await getDashboardInsights(tenantId);
       setDashboardCache(tenantId, data as Record<string, unknown>);
-      await auditService.insertAuditLog({
-        tenantId,
-        actorUserId: opts.ctx.user?.id ?? null,
-        actorVendedorId: opts.ctx.vendedor?.id ?? null,
-        action: "dashboard_view",
-        entity: "dashboard",
-        payloadJson: JSON.stringify({ view: "insights" }),
-        traceId: nanoid(10),
-      });
-      return data;
-    }),
+      await logAuditAction(
+        "dashboard_view",
+        "dashboard",
+        { view: "insights" },
+        {
+          tenantId,
+          actorUserId: opts.ctx.user?.id ?? undefined,
+          actorVendedorId: opts.ctx.vendedor?.id ?? undefined,
+           traceId: nanoid(10),
+         }
+       );
+       return data;
+     }),
   }),
 });
 
