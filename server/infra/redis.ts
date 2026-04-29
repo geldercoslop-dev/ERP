@@ -178,10 +178,10 @@ class RedisManager {
         logInfo('Redis pronto para uso');
       });
 
-      this.client.on('error', (error: any) => {
+      this.client.on('error', (error: unknown) => {
         logError('Redis connection error', error as Error, {
           connectionAttempts: this.connectionAttempts,
-          errorMessage: error?.message
+          errorMessage: error instanceof Error ? error.message : String(error)
         });
         this.connectionAttempts++;
       });
@@ -192,7 +192,7 @@ class RedisManager {
         logWarn('Conexão Redis fechada');
       });
 
-      this.client.on('reconnecting', (delay: any) => {
+      this.client.on('reconnecting', (delay: unknown) => {
         logInfo('Redis reconectando', { delay });
       });
 
@@ -320,11 +320,11 @@ class RedisManager {
       
       // Parse do INFO do Redis
       const infoLines = info.split('\r\n');
-      const memory: any = {};
-      const stats: any = {};
-      const server: any = {};
+      const memory: Record<string, number> = {};
+      const stats: Record<string, number> = {};
+      const server: Record<string, number> = {};
 
-      infoLines.forEach((line: any) => {
+      infoLines.forEach((line: string) => {
         if (line.startsWith('memory_used:')) memory.used = parseInt(line.split(':')[1]);
         if (line.startsWith('memory_peak:')) memory.peak = parseInt(line.split(':')[1]);
         if (line.startsWith('used_memory_rss:')) memory.rss = parseInt(line.split(':')[1]);

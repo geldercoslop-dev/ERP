@@ -14,6 +14,7 @@
 
 import { getEnv, config, isProduction, getDatabaseUrl, getRedisOptions } from '../config/env.js';
 import { createLogger } from '../infra/structured-logger.js';
+import type { Request, Response, NextFunction } from 'express';
 
 const logger = createLogger('env-example');
 
@@ -260,7 +261,7 @@ export function validateSecurityOnBoot(): void {
 export function corsMiddleware() {
   const allowedOrigins = config.server.corsOrigin;
 
-  return (req: any, res: any, next: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
 
     if (isProduction()) {
@@ -284,7 +285,7 @@ export function rateLimitMiddleware() {
   const windowMs = env.RATE_LIMIT_WINDOW_MS;
   const maxRequests = env.RATE_LIMIT_MAX_REQUESTS;
 
-  return (req: any, res: any, next: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     // Real implementation would track requests per IP
     // For demo purposes:
     console.log(`Rate limit: ${maxRequests} requests per ${windowMs}ms`);

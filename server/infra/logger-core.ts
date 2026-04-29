@@ -60,7 +60,7 @@ export interface ErrorContext {
   route?: string;
   method?: string;
   path?: string;
-  payload?: any;
+  payload?: unknown;
   userId?: number;
   tenantId?: number;
   requestId?: string;

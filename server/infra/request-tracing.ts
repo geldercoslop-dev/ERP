@@ -155,7 +155,7 @@ export function databaseTracingMiddleware() {
     // Interceptar queries de database (simulado)
     const originalQuery = req.app?.locals?.database?.query;
     if (originalQuery) {
-      req.app.locals.database.query = async function(sql: string, params?: any[]) {
+      req.app.locals.database.query = async function(sql: string, params?: unknown[]) {
         return withTracing(
           `database.query`,
           async () => {
@@ -218,7 +218,7 @@ export function leoTracingMiddleware() {
     // Interceptar chamadas LEO (simulado)
     const originalLeoCall = req.app?.locals?.leo?.execute;
     if (originalLeoCall) {
-      req.app.locals.leo.execute = async function(prompt: string, options?: any) {
+      req.app.locals.leo.execute = async function(prompt: string, options?: Record<string, unknown>) {
         return withTracing(
           'leo.ai.execution',
           async () => {
@@ -281,7 +281,7 @@ export function serviceTracingMiddleware() {
     // Interceptar chamadas de services (simulado)
     const originalServiceCall = req.app?.locals?.services?.call;
     if (originalServiceCall) {
-      req.app.locals.services.call = async function(serviceName: string, method: string, ...args: any[]) {
+      req.app.locals.services.call = async function(serviceName: string, method: string, ...args: unknown[]) {
         return withTracing(
           `service.${serviceName}.${method}`,
           async () => {
@@ -361,7 +361,7 @@ declare global {
 export function createCustomSpan(
   req: Request,
   operationName: string,
-  tags?: Record<string, any>
+  tags?: Record<string, unknown>
 ): TraceSpan | null {
   const parentSpan = req.traceSpan;
   if (!parentSpan) return null;
@@ -385,7 +385,7 @@ export function logWithTrace(
   req: Request,
   level: string,
   message: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   const traceMetadata = {
     traceId: req.traceId,
