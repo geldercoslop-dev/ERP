@@ -70,31 +70,84 @@ Use tipagem correta.
 
   // 🔴 4. DETECTAR IMPORT-TIME EXECUTION
   // Ignorar arquivos markdown e docs
-  if (!file.endsWith(".md") && !file.startsWith("docs/")) {
-    if (
-      content.includes("setInterval(") ||
-      content.includes("new ") ||
-      content.includes(".start()")
-    ) {
-      const hasSafeBoundary =
-        content.includes("function") ||
-        content.includes("=>") ||
-        content.includes(".query(") ||
-        content.includes(".mutation(") ||
-        content.includes(".use(") ||
-        content.includes("router({") ||
-        content.includes("createTRPCRouter(") ||
-        content.includes("Router()");
-      if (!hasSafeBoundary && !file.includes("services")) {
-        console.error(`
-🚫 IMPORT-TIME EXECUTION DETECTADO em ${file}
+  if (!file.endsWith(".md") && !file.startsWith("docs/") && !file.includes("services")) {
+    const suspiciousPatterns = /setInterval\s*\(|setTimeout\s*\(|\.start\s*\(|new\s+/;
+    const safeBoundaries = [
+      /\bfunction\b/,
+      /=>/,
+      /\.query\s*\(/,
+      /\.mutation\s*\(/,
+      /\.use\s*\(/,
+      /router\s*\(\{/,
+      /createTRPCRouter\s*\(/,
+      /Router\s*\(\)/
+    ];
+
+    const lines = content.split("\n");
+    let braceDepth = 0;
+    let lastSafeBoundaryDepth = -1;
+    let inBlockComment = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+
+      // Track block comments
+      if (line.includes("/*")) inBlockComment = true;
+      if (line.includes("*/")) {
+        inBlockComment = false;
+        continue;
+      }
+      if (inBlockComment) continue;
+
+      // Ignore line comments for analysis
+      const codePart = line.split("//")[0];
+      if (!codePart.trim()) continue;
+
+      // Remove string literals to avoid false positives
+      const codeWithoutStrings = codePart
+        .replace(/(['"`])(?:(?!\1|\\).|\\.)*\1/g, "");
+
+      // Check for safe boundaries before counting braces on this line
+      for (const boundary of safeBoundaries) {
+        if (boundary.test(codeWithoutStrings)) {
+          lastSafeBoundaryDepth = braceDepth;
+        }
+      }
+
+      // Count braces (rough, acceptable for this guard)
+      const openBraces = (codeWithoutStrings.match(/\{/g) || []).length;
+      const closeBraces = (codeWithoutStrings.match(/\}/g) || []).length;
+      braceDepth += openBraces - closeBraces;
+      if (braceDepth < 0) braceDepth = 0;
+
+      // If closed back to or below the boundary depth, invalidate
+      if (lastSafeBoundaryDepth >= 0 && braceDepth <= lastSafeBoundaryDepth) {
+        lastSafeBoundaryDepth = -1;
+      }
+
+      // Check suspicious patterns
+      const suspiciousMatch = codeWithoutStrings.match(suspiciousPatterns);
+      if (suspiciousMatch) {
+        const suspiciousIndex = suspiciousMatch.index;
+        let hasPriorBoundary = false;
+        for (const boundary of safeBoundaries) {
+          const boundaryMatch = codeWithoutStrings.match(boundary);
+          if (boundaryMatch && boundaryMatch.index < suspiciousIndex) {
+            hasPriorBoundary = true;
+            break;
+          }
+        }
+        if (!hasPriorBoundary && lastSafeBoundaryDepth < 0) {
+          console.error(`
+🚫 IMPORT-TIME EXECUTION DETECTADO em ${file} (linha ${i + 1})
 
 Código executando no topo do arquivo.
 Isso quebra o bootstrap.
 
 Mover execução para dentro de função.
 `);
-        violation = true;
+          violation = true;
+        }
       }
     }
   }
