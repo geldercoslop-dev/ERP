@@ -105,11 +105,11 @@ export class StructuredErrorLogger {
 /**
  * Wrapper para funções async com tracking de erro
  */
-export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
+export function withErrorTracking<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   context: Partial<ErrorContext> = {}
 ): T {
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     const startTime = Date.now();
     
     try {
