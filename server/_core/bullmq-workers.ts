@@ -6,9 +6,26 @@
 
 import { bullMQManager, QueueJobData, BullMQJob, QUEUES } from './bullmq-queue.js';
 import { enqueueAuditLog } from './queue-handlers.js';
-import { AuditAction } from '../db/core.js';
 import { ValidationError } from './errors/typed-errors.js';
 import { logInfo, logError } from './service-logger.js';
+import { AuditLogService } from "../services/audit-log.service.js";
+
+function parseAuditPayload(payloadJson: unknown): Record<string, unknown> {
+  if (payloadJson == null || payloadJson === "") return {};
+  if (typeof payloadJson !== "string") {
+    return { rawPayload: payloadJson };
+  }
+
+  try {
+    const parsed = JSON.parse(payloadJson) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return { rawPayload: parsed };
+  } catch {
+    return { rawPayload: payloadJson };
+  }
+}
 
 // Interface para dados do job de audit log
 interface AuditLogJobData extends QueueJobData {
@@ -48,7 +65,6 @@ export class AuditLogWorker {
   }
 
   private async handleAuditLog(job: BullMQJob<AuditLogJobData>): Promise<void> {
-    const db = await import('../db/core.js');
     const { tenantId, traceId, data: rawData } = job.data;
     const data = rawData as Record<string, unknown>;
     
@@ -56,15 +72,15 @@ export class AuditLogWorker {
       // Validar tenant
       await this.validateTenant(tenantId);
       
-      // Inserir audit log no banco
-      await db.insertAuditLog({
+      // Inserir audit log no banco via service
+      await AuditLogService.logAction({
         tenantId,
         actorUserId: typeof data.actorUserId === 'number' ? data.actorUserId : Number(data.actorUserId) || undefined,
         actorVendedorId: typeof data.actorVendedorId === 'number' ? data.actorVendedorId : Number(data.actorVendedorId) || undefined,
-        action: String(data.action) as AuditAction,
+        action: String(data.action),
         entity: String(data.entity),
-        entityId: String(data.entityId),
-        payloadJson: String(data.payloadJson),
+        entityId: data.entityId != null ? String(data.entityId) : undefined,
+        payload: parseAuditPayload(data.payloadJson),
         traceId,
       });
 

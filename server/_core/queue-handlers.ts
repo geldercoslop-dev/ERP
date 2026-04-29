@@ -1,21 +1,37 @@
 import { queueManager } from './queue-manager.js';
-import type { AuditAction } from '../db/core.js';
+import { AuditLogService } from "../services/audit-log.service.js";
+
+function parseAuditPayload(payloadJson: unknown): Record<string, unknown> {
+  if (payloadJson == null || payloadJson === "") return {};
+  if (typeof payloadJson !== "string") {
+    return { rawPayload: payloadJson };
+  }
+
+  try {
+    const parsed = JSON.parse(payloadJson) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return { rawPayload: parsed };
+  } catch {
+    return { rawPayload: payloadJson };
+  }
+}
 
 /**
  * Handler para jobs de audit log
  */
 async function auditLogHandler(job: unknown): Promise<void> {
-  const db = await import('../db/index.js');
   const jobData = ((job as Record<string, unknown>).data as Record<string, unknown>);
   
-  await db.insertAuditLog({
-    tenantId: jobData.tenantId as number | null | undefined,
-    actorUserId: jobData.actorUserId as number | null | undefined,
-    actorVendedorId: jobData.actorVendedorId as number | null | undefined,
-    action: jobData.action as AuditAction,
+  await AuditLogService.logAction({
+    tenantId: jobData.tenantId as number,
+    actorUserId: jobData.actorUserId as number | undefined,
+    actorVendedorId: jobData.actorVendedorId as number | undefined,
+    action: jobData.action as string,
     entity: jobData.entity as string,
-    entityId: (jobData.entityId as string | number | null | undefined) ?? null,
-    payloadJson: jobData.payloadJson as string | null | undefined,
+    entityId: jobData.entityId != null ? String(jobData.entityId) : undefined,
+    payload: parseAuditPayload(jobData.payloadJson),
   });
 }
 
