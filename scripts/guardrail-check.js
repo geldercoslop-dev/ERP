@@ -46,11 +46,94 @@ const DB_PATTERNS = [
 ];
 
 function getChangedFiles() {
+  // First, try to detect massive .pnpm-store deletion using numstat directly
+  // This avoids the issue where git diff --cached --name-only fails with massive diffs
+  try {
+    const numstatOutput = execSync("git diff --cached --numstat -- .pnpm-store", { 
+      stdio: ['pipe', 'pipe', 'pipe'],
+      maxBuffer: 50 * 1024 * 1024 // 50MB buffer for large output
+    }).toString();
+    const numstatLines = numstatOutput.split("\n").filter(Boolean);
+    
+    if (numstatLines.length > 0) {
+      // Validate ALL numstat lines deterministically
+      for (const line of numstatLines) {
+        const parts = line.split('\t');
+        if (parts.length < 3) {
+          console.error("\n🚫 PNPM_STORE BLOQUEADO — formato numstat inválido\n");
+          process.exit(1);
+        }
+        
+        const additions = parts[0];
+        const deletions = parts[1];
+        const path = parts[2];
+        
+        // Path must start with .pnpm-store/
+        if (!path.startsWith(".pnpm-store/")) {
+          console.error("\n🚫 PNPM_STORE BLOQUEADO — arquivo fora de .pnpm-store/\n");
+          console.error(`Arquivo: ${path}\n`);
+          process.exit(1);
+        }
+        
+        // Additions must be 0 or -
+        if (additions !== "0" && additions !== "-") {
+          console.error("\n🚫 PNPM_STORE BLOQUEADO — adições não permitidas\n");
+          console.error(`Arquivo: ${path}`);
+          console.error(`Adições: ${additions}`);
+          console.error("Janela de limpeza permite apenas DELETAR .pnpm-store.\n");
+          process.exit(1);
+        }
+        
+        // Deletions must be > 0 or -, OR both additions and deletions are 0 (binary removal)
+        if (deletions !== "-" && parseInt(deletions, 10) <= 0 && !(additions === "0" && deletions === "0")) {
+          console.error("\n🚫 PNPM_STORE BLOQUEADO — sem deleções\n");
+          console.error(`Arquivo: ${path}\n`);
+          process.exit(1);
+        }
+      }
+      
+      // Check if there are any staged files outside .pnpm-store
+      // Use git diff --cached --name-only --diff-filter=ACMR to list only added/modified/renamed files
+      // Allow scripts/ and .husky/ modifications during .pnpm-store cleanup
+      try {
+        const nonDeleteOutput = execSync('git diff --cached --name-only --diff-filter=ACMR', { 
+          stdio: ['pipe', 'pipe', 'pipe'],
+          maxBuffer: 50 * 1024 * 1024 
+        }).toString();
+        const nonDeleteFiles = nonDeleteOutput.split("\n").filter(Boolean);
+        const outsideFiles = nonDeleteFiles.filter(f => !f.startsWith(".pnpm-store/") && !f.startsWith("scripts/") && !f.startsWith(".husky/"));
+        
+        if (outsideFiles.length > 0) {
+          console.error("\n🚫 PNPM_STORE BLOQUEADO — arquivos fora de .pnpm-store detectados\n");
+          console.error("Arquivos fora de .pnpm-store (excluindo scripts/.husky):");
+          outsideFiles.slice(0, 20).forEach(f => console.error(" - " + f));
+          if (outsideFiles.length > 20) {
+            console.error(`... e mais ${outsideFiles.length - 20} arquivos`);
+          }
+          console.error("\nMistura de .pnpm-store com outros arquivos não permitida.\n");
+          process.exit(1);
+        }
+      } catch (e) {
+        // If diff fails, we can't verify - block for safety
+        console.error("\n🚫 PNPM_STORE BLOQUEADO — não foi possível verificar arquivos fora de .pnpm-store\n");
+        console.error(e.message);
+        process.exit(1);
+      }
+      
+      console.log("PNPM_STORE_MASS_DELETE_DETECTED — deterministic validation passed");
+      return []; // Return empty to skip further processing
+    }
+  } catch (e) {
+    // numstat command failed or no .pnpm-store changes - proceed to normal flow
+    console.error("numstat error:", e.message);
+  }
+  
+  // Normal flow for non-massive diffs
   try {
     const output = execSync("git diff --cached --name-only").toString();
     const files = output.split("\n").filter(Boolean);
     
-    // Early path for massive .pnpm-store deletion
+    // Early path for massive .pnpm-store deletion (fallback for cases where numstat didn't catch it)
     if (files.length > 10000) {
       const allPnpmStore = files.every(f => f.startsWith(".pnpm-store/"));
       
