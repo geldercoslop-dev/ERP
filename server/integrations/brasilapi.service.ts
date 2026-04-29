@@ -43,8 +43,8 @@ export async function consultarCnpj(cnpj: string): Promise<{
       if (!res.ok) return { ok: false, erro: "CNPJ não encontrado ou serviço indisponível." };
       const data = (await res.json()) as CnpjResponse;
       return { ok: true, dados: data };
-    } catch (e: any) {
-      const msg = e?.name === "AbortError" ? "Timeout ao consultar CNPJ." : e?.message ?? "Erro ao consultar BrasilAPI.";
+    } catch (e: unknown) {
+      const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao consultar CNPJ." : e instanceof Error ? e.message : "Erro ao consultar BrasilAPI.";
       return { ok: false, erro: msg };
     }
   });
@@ -65,8 +65,8 @@ export async function consultarDdd(ddd: string): Promise<{
       if (!res.ok) return { ok: false, erro: "DDD não encontrado." };
       const data = (await res.json()) as DddResponse;
       return { ok: true, estado: data.state, cidades: data.cities };
-    } catch (e: any) {
-      return { ok: false, erro: e?.message ?? "Erro ao consultar DDD." };
+    } catch (e: unknown) {
+      return { ok: false, erro: e instanceof Error ? e.message : "Erro ao consultar DDD." };
     }
   });
 }

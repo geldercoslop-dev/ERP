@@ -54,8 +54,8 @@ export async function enviarMensagemWhatsApp(
       });
       if (!res.ok) return { ok: false, erro: "Evolution API: falha ao enviar." };
       return { ok: true };
-    } catch (e: any) {
-      return { ok: false, erro: e?.message ?? "Erro Evolution API." };
+    } catch (e: unknown) {
+      return { ok: false, erro: e instanceof Error ? e.message : "Erro Evolution API." };
     }
   }
   return { ok: false, erro: "WhatsApp não configurado (Z-API ou Evolution API)." };
