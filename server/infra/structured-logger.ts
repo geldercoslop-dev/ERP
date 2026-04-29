@@ -285,19 +285,29 @@ export function createLogger(module: string): StructuredLogger {
 }
 
 /**
+ * Helper para converter unknown para payload de log seguro
+ */
+function toLogPayload(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+/**
  * Decorator para adicionar logging a funções
  */
 export function logExecution(logger?: StructuredLogger) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+  return function (target: object, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
     const moduleLogger = logger || createLogger(target.constructor.name);
     
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const startTime = Date.now();
       
       moduleLogger.debug(`Starting ${propertyName}`, {
         function: propertyName,
-        payload: args.length > 0 ? args[0] : undefined,
+        payload: args.length > 0 ? toLogPayload(args[0]) : undefined,
       });
       
       try {

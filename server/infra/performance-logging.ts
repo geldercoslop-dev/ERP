@@ -285,11 +285,11 @@ export function measurePerformance<T>(
  * Decorator para measuring automático
  */
 export function measure(operationName?: string) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const opName = operationName || `${target.constructor.name}.${propertyKey}`;
     
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const traceId = tracer.generateTraceId();
       const spanId = tracer.generateSpanId();
       

@@ -446,11 +446,11 @@ export async function runInContext<T>(span: TraceSpan, operation: () => Promise<
  * Decorator para tracing automático
  */
 export function trace(operationName?: string) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const opName = operationName || `${target.constructor.name}.${propertyKey}`;
     
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const parentSpan = getCurrentSpan();
       const span = tracer.startSpan(opName, parentSpan ? tracer.getCurrentContext(parentSpan.spanId) || undefined : undefined);
       
