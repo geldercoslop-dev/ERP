@@ -114,7 +114,7 @@ Use tipagem correta.
         }
       }
 
-      // Count braces (rough, acceptable for this guard)
+      // Count braces to track execution context for import-time guard
       const openBraces = (codeWithoutStrings.match(/\{/g) || []).length;
       const closeBraces = (codeWithoutStrings.match(/\}/g) || []).length;
       braceDepth += openBraces - closeBraces;
