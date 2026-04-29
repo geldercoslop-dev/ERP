@@ -25,6 +25,13 @@ const C3_1_ALLOWED_FILES = [
   "server/_core/service-actor.ts",
 ];
 
+// Arquivos de backup Drizzle permitidos para limpeza C3.5 (JANELA CIRÚRGICA TEMPORÁRIA)
+const DRIZZLE_BACKUP_RESIDUE_ALLOWED_FILES = [
+  "drizzle/schema.ts.backup",
+  "drizzle/meta/_journal.json.backup",
+  "drizzle/migrations.backup/.gitkeep",
+];
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -191,7 +198,7 @@ function main() {
 
       // Verifica se o diff contém padrões de DB
       const dbCheck = checkC3_1DiffForDBPatterns(files);
-      
+
       if (dbCheck.hasDBPattern) {
         console.error("\n🚫 C3.1 BLOQUEADO — padrão de DB detectado no diff\n");
         console.error(`Arquivo: ${dbCheck.file}`);
@@ -201,6 +208,35 @@ function main() {
       }
 
       console.log("✔ Guardrail OK — arquivos C3.1 validados (sem DB no diff)");
+      return;
+    }
+
+    // Verifica se são apenas os arquivos de backup Drizzle permitidos (JANELA CIRÚRGICA C3.5)
+    if (violations.every(file => DRIZZLE_BACKUP_RESIDUE_ALLOWED_FILES.includes(file))) {
+      console.log("\n📋 Arquivos de backup Drizzle detectados (limpeza C3.5):");
+      violations.forEach(f => console.log(" - " + f));
+      console.log();
+
+      // Verifica se são apenas remoções (deletions)
+      for (const file of violations) {
+        try {
+          const diff = execSync(`git diff --cached -- "${file}"`).toString();
+          const lines = diff.split('\n');
+          const additions = lines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+          
+          if (additions.length > 0) {
+            console.error("\n🚫 DRIZZLE BACKUP RESIDUE BLOQUEADO — apenas remoções permitidas\n");
+            console.error(`Arquivo: ${file}`);
+            console.error("Janela cirúrgica C3.5 permite apenas DELETAR arquivos de backup.\n");
+            process.exit(1);
+          }
+        } catch (e) {
+          console.error(`Erro ao verificar diff de ${file}`);
+          process.exit(1);
+        }
+      }
+
+      console.log("✔ Guardrail OK — arquivos de backup Drizzle validados (apenas remoções)");
       return;
     }
 
