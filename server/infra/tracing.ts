@@ -83,12 +83,12 @@ export interface TraceSpan {
   startTime: number;
   endTime?: number;
   duration?: number;
-  tags?: Record<string, any>;
+  tags?: Record<string, unknown>;
   logs?: Array<{
     timestamp: number;
     level: string;
     message: string;
-    fields?: Record<string, any>;
+    fields?: Record<string, unknown>;
   }>;
   status?: 'ok' | 'error';
   error?: Error;
@@ -134,7 +134,7 @@ export class Tracer {
   startSpan(
     operationName: string,
     parentContext?: TraceContext,
-    tags?: Record<string, any>
+    tags?: Record<string, unknown>
   ): TraceSpan {
     const traceId = parentContext?.traceId || this.generateTraceId();
     const spanId = this.generateSpanId();
@@ -265,7 +265,7 @@ export class Tracer {
   /**
    * Adiciona log ao span
    */
-  logToSpan(spanId: string, level: string, message: string, fields?: Record<string, any>): void {
+  logToSpan(spanId: string, level: string, message: string, fields?: Record<string, unknown>): void {
     const span = this.activeSpans.get(spanId);
     if (!span) return;
     
@@ -282,7 +282,7 @@ export class Tracer {
   /**
    * Adiciona tags ao span
    */
-  setTags(spanId: string, tags: Record<string, any>): void {
+  setTags(spanId: string, tags: Record<string, unknown>): void {
     const span = this.activeSpans.get(spanId);
     if (!span) return;
     
@@ -497,7 +497,7 @@ export function trace(operationName?: string) {
 export async function withTracing<T>(
   operationName: string,
   operation: () => Promise<T>,
-  tags?: Record<string, any>
+  tags?: Record<string, unknown>
 ): Promise<T> {
   const parentSpan = getCurrentSpan();
   const span = tracer.startSpan(operationName, parentSpan ? tracer.getCurrentContext(parentSpan.spanId) || undefined : undefined, tags);
