@@ -54,6 +54,8 @@ const AUTHORIZED_C3_CORE_FILES = [
   'server/_core/ownership.ts',
   'server/_core/sdk.ts',
   'server/_core/service-actor.ts',
+  'server/_core/bullmq-workers.ts', // C3.5-B8-C — migração audit log workers para service layer
+  'server/_core/queue-handlers.ts', // C3.5-B8-C — migração audit log workers para service layer
 ];
 
 // Padrões proibidos em adições na janela C3.1
