@@ -8,6 +8,20 @@
       "when": 1777281350982,
       "tag": "0000_keen_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1777478967512,
+      "tag": "0001_migration_1777478963799",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1777478991625,
+      "tag": "0002_lucky_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

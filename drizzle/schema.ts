@@ -597,3 +597,49 @@ export const financialIdempotency = mysqlTable(
     tenantIdIdx: index("financial_idempotency_tenant_id_idx").on(table.tenantId),
   }),
 );
+
+export const jobExecutionLog = mysqlTable(
+  "job_execution_log",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
+    jobId: varchar("job_id", { length: 64 }).notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 64 }).notNull(),
+    queueName: varchar("queue_name", { length: 100 }).notNull(),
+    jobType: varchar("job_type", { length: 100 }).notNull(),
+    status: mysqlEnum("status", ["started", "completed", "failed", "skipped", "expired"]).notNull(),
+    payloadHash: varchar("payload_hash", { length: 64 }),
+    resultJson: text("result_json"),
+    errorJson: text("error_json"),
+    traceId: varchar("trace_id", { length: 32 }),
+    startedAt: timestamp("started_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+    failedAt: timestamp("failed_at"),
+    executionTimeMs: int("execution_time_ms"),
+    attempts: int("attempts").default(1).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index("job_execution_log_tenant_id_idx").on(table.tenantId),
+    tenantIdempotencyIdx: unique("job_execution_log_tenant_idempotency_idx").on(
+      table.tenantId,
+      table.idempotencyKey
+    ),
+    jobIdIdx: index("job_execution_log_job_id_idx").on(table.jobId),
+    tenantStatusIdx: index("job_execution_log_tenant_status_idx").on(
+      table.tenantId,
+      table.status
+    ),
+    queueStatusIdx: index("job_execution_log_queue_status_idx").on(
+      table.queueName,
+      table.status
+    ),
+    jobTypeStatusIdx: index("job_execution_log_job_type_status_idx").on(
+      table.jobType,
+      table.status
+    ),
+    createdAtIdx: index("job_execution_log_created_at_idx").on(table.createdAt),
+    traceIdIdx: index("job_execution_log_trace_id_idx").on(table.traceId),
+  }),
+);
