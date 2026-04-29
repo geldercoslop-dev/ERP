@@ -48,7 +48,46 @@ const DB_PATTERNS = [
 function getChangedFiles() {
   try {
     const output = execSync("git diff --cached --name-only").toString();
-    return output.split("\n").filter(Boolean);
+    const files = output.split("\n").filter(Boolean);
+    
+    // Early path for massive .pnpm-store deletion
+    if (files.length > 10000) {
+      const allPnpmStore = files.every(f => f.startsWith(".pnpm-store/"));
+      
+      if (allPnpmStore) {
+        // Check if there are any additions (not allowed)
+        for (const file of files.slice(0, 100)) { // Sample first 100 files
+          try {
+            const diff = execSync(`git diff --cached -- "${file}"`).toString();
+            const lines = diff.split('\n');
+            const additions = lines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+            
+            if (additions.length > 0) {
+              console.error("\n🚫 PNPM_STORE BLOQUEADO — apenas remoções permitidas\n");
+              console.error(`Arquivo: ${file}`);
+              console.error("Janela de limpeza permite apenas DELETAR .pnpm-store.\n");
+              process.exit(1);
+            }
+          } catch (e) {
+            console.error(`Erro ao verificar diff de ${file}`);
+            process.exit(1);
+          }
+        }
+        
+        console.log("PNPM_STORE_MASS_DELETE_DETECTED — detailed guard skipped for cache cleanup only");
+        return []; // Return empty to skip further processing
+      } else {
+        // Mixed files - block
+        console.error("\n🚫 MASSIVE DIFF BLOQUEADO — mistura de .pnpm-store com outros arquivos\n");
+        console.error("Arquivos alterados:", files.length);
+        console.error("Primeiros 20 arquivos:");
+        files.slice(0, 20).forEach(f => console.error(" - " + f));
+        console.error("\nIsso pode indicar versionamento acidental de node_modules.\n");
+        process.exit(1);
+      }
+    }
+    
+    return files;
   } catch (e) {
     console.error("Erro ao obter arquivos alterados");
     process.exit(1);

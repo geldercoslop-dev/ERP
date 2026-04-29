@@ -1,5 +1,30 @@
 #!/bin/sh
 
+echo "🔒 MASSIVE DIFF PROTECTION"
+CHANGED_FILES=$(git diff --cached --name-only | wc -l)
+if [ $CHANGED_FILES -gt 10000 ]; then
+  echo ""
+  echo "⚠️  MASSIVE DIFF DETECTED: $CHANGED_FILES files staged"
+  echo ""
+  
+  # Check if all files are .pnpm-store
+  ALL_PNPM_STORE=$(git diff --cached --name-only | grep -v "^\.pnpm-store/" | wc -l)
+  if [ $ALL_PNPM_STORE -eq 0 ]; then
+    echo "✅ All files are .pnpm-store/ - cache cleanup detected"
+    echo "Proceeding with architecture guards..."
+  else
+    echo "🚫 BLOCKED: Massive diff contains non-.pnpm-store files"
+    echo ""
+    echo "First 20 files:"
+    git diff --cached --name-only | head -20
+    echo ""
+    echo "This may indicate accidental versioning of node_modules or other cache"
+    echo "Please review and reset if this was unintentional:"
+    echo "  git reset HEAD"
+    exit 1
+  fi
+fi
+
 echo "🔒 ARCHITECTURE CONTRACT GUARD"
 node scripts/architecture-contract-guard.mjs
 if [ $? -ne 0 ]; then
