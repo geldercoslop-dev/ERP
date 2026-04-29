@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { globalErrorHandler, notFoundHandler } from './middleware/error-handler.middleware.js';
-import leoApprovalRoutes from './routers/leo-approvals.router.js';
 
 /**
  * API ROUTES CONFIGURATION
@@ -15,7 +14,6 @@ const apiRouter = Router();
  * API Routes
  * Mount all entity routes under /api prefix
  */
-apiRouter.use('/leo/approvals', leoApprovalRoutes);
 
 /**
  * API info endpoint
