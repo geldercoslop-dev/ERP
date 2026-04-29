@@ -109,7 +109,7 @@ export const cacheKeys = {
 };
 
 // Função para criar wrapper de cache para funções assíncronas
-export function withCache<TArgs extends readonly any[], TReturn>(
+export function withCache<TArgs extends readonly unknown[], TReturn>(
   keyFn: (...args: TArgs) => string,
   fn: (...args: TArgs) => Promise<TReturn>,
   ttl?: number
