@@ -1,48 +1,14 @@
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
 
-// First, check if this is a massive .pnpm-store deletion
-// If so, skip anti-regress check since it's just cache cleanup
-try {
-  const numstatOutput = execSync("git diff --cached --numstat -- .pnpm-store", {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    maxBuffer: 50 * 1024 * 1024
-  }).toString();
-  const numstatLines = numstatOutput.split("\n").filter(Boolean);
-  
-  if (numstatLines.length > 0) {
-    // Check if there are any non-deleted files outside .pnpm-store (excluding scripts/.husky)
-    const nonDeleteOutput = execSync('git diff --cached --name-only --diff-filter=ACMR', {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      maxBuffer: 50 * 1024 * 1024
-    }).toString();
-    const nonDeleteFiles = nonDeleteOutput.split("\n").filter(Boolean);
-    const outsideFiles = nonDeleteFiles.filter(f => !f.startsWith(".pnpm-store/") && !f.startsWith("scripts/") && !f.startsWith(".husky/"));
-    
-    if (outsideFiles.length === 0) {
-      // Only .pnpm-store deletions (with allowed script changes) - skip anti-regress check
-      console.log("✔ Anti-regress OK (skipped for .pnpm-store cleanup)");
-      process.exit(0);
-    }
-  }
-} catch (e) {
-  // Proceed to normal flow if check fails
-}
-
-const files = execSync("git diff --cached --name-only", {
-  stdio: ['pipe', 'pipe', 'pipe'],
-  maxBuffer: 50 * 1024 * 1024
-})
+const files = execSync("git diff --cached --name-only")
   .toString()
   .split("\n")
   .filter(Boolean);
 
-// Filter out .pnpm-store files from normal check
-const filteredFiles = files.filter(f => !f.startsWith(".pnpm-store/"));
-
 let violation = false;
 
-for (const file of filteredFiles) {
+for (const file of files) {
   if (!existsSync(file)) continue;
 
   // Excluir scripts e guards das checagens (auto-bloqueio)

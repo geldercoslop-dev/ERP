@@ -1,55 +1,20 @@
 #!/bin/sh
 
 echo "🔒 MASSIVE DIFF PROTECTION"
-# First, check if this is a massive .pnpm-store deletion using numstat
-PNPM_NUMSTAT=$(git diff --cached --numstat -- .pnpm-store 2>/dev/null | wc -l)
-if [ $PNPM_NUMSTAT -gt 10000 ]; then
+CHANGED_FILES=$(git diff --cached --name-only | wc -l)
+if [ $CHANGED_FILES -gt 10000 ]; then
   echo ""
-  echo "⚠️  MASSIVE .PNPM-STORE DELETION DETECTED: $PNPM_NUMSTAT files"
+  echo "⚠️  MASSIVE DIFF DETECTED: $CHANGED_FILES files staged"
   echo ""
-  
-  # Check if there are any non-deleted files outside .pnpm-store
-  # Allow scripts/ and .husky/ modifications during .pnpm-store cleanup
-  NON_DELETE=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null | grep -v "^\.pnpm-store/" | grep -v "^scripts/" | grep -v "^\.husky/" | wc -l)
-  if [ $NON_DELETE -eq 0 ]; then
-    echo "✅ All files are .pnpm-store/ deletions (with allowed script changes) - cache cleanup detected"
-    echo "Proceeding with architecture guards..."
-  else
-    echo "🚫 BLOCKED: Massive diff contains non-.pnpm-store files"
-    echo ""
-    echo "Non-deleted files outside .pnpm-store (excluding scripts/.husky):"
-    git diff --cached --name-only --diff-filter=ACMR | grep -v "^\.pnpm-store/" | grep -v "^scripts/" | grep -v "^\.husky/" | head -20
-    echo ""
-    echo "This may indicate accidental versioning of node_modules or other cache"
-    echo "Please review and reset if this was unintentional:"
-    echo "  git reset HEAD"
-    exit 1
-  fi
-else
-  # Fallback to normal check for non-massive diffs
-  CHANGED_FILES=$(git diff --cached --name-only | wc -l)
-  if [ $CHANGED_FILES -gt 10000 ]; then
-    echo ""
-    echo "⚠️  MASSIVE DIFF DETECTED: $CHANGED_FILES files staged"
-    echo ""
-    
-    # Check if all files are .pnpm-store
-    ALL_PNPM_STORE=$(git diff --cached --name-only | grep -v "^\.pnpm-store/" | wc -l)
-    if [ $ALL_PNPM_STORE -eq 0 ]; then
-      echo "✅ All files are .pnpm-store/ - cache cleanup detected"
-      echo "Proceeding with architecture guards..."
-    else
-      echo "🚫 BLOCKED: Massive diff contains non-.pnpm-store files"
-      echo ""
-      echo "First 20 files:"
-      git diff --cached --name-only | head -20
-      echo ""
-      echo "This may indicate accidental versioning of node_modules or other cache"
-      echo "Please review and reset if this was unintentional:"
-      echo "  git reset HEAD"
-      exit 1
-    fi
-  fi
+  echo "🚫 BLOCKED: Massive diff detected"
+  echo ""
+  echo "First 20 files:"
+  git diff --cached --name-only | head -20
+  echo ""
+  echo "This may indicate accidental versioning of node_modules or other cache"
+  echo "Please review and reset if this was unintentional:"
+  echo "  git reset HEAD"
+  exit 1
 fi
 
 echo "🔒 ARCHITECTURE CONTRACT GUARD"
