@@ -14,11 +14,6 @@ const BLOCKED_PATHS = [
 const ALLOWED_SCHEMA_FILES = [
   "drizzle/relations.ts",
   "shared/types/entities.ts",
-  // C3.5-B11-B — autorização temporária schema job_execution_log
-  "drizzle/schema.ts",
-  "drizzle/0002_lucky_bloodstorm.sql",
-  "drizzle/meta/0002_snapshot.json",
-  "drizzle/meta/_journal.json",
 ];
 
 // Arquivos permitidos da C3.1 (remoção de DB direto do _core)
