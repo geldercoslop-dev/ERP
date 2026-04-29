@@ -4,11 +4,19 @@ import { createLogger } from '../infra/structured-logger.js';
 
 const logger = createLogger('tracing-validation');
 
+interface TestResult {
+  test: string;
+  status: 'passed' | 'failed';
+  message: string;
+  details?: Record<string, unknown>;
+  error?: string;
+}
+
 /**
  * Teste de tracing completo
  */
 export class TracingValidator {
-  private testResults: any[] = [];
+  private testResults: TestResult[] = [];
   
   /**
    * Testa geração de trace IDs
@@ -448,7 +456,7 @@ export class TracingValidator {
   /**
    * Obtém resultados dos testes
    */
-  getResults(): any[] {
+  getResults(): TestResult[] {
     return this.testResults;
   }
   
@@ -460,7 +468,7 @@ export class TracingValidator {
     passed: number;
     failed: number;
     passRate: number;
-    results: any[];
+    results: TestResult[];
   } {
     const total = this.testResults.length;
     const passed = this.testResults.filter(r => r.status === 'passed').length;
@@ -479,7 +487,13 @@ export class TracingValidator {
 /**
  * Executa validação completa do tracing
  */
-export async function runTracingValidation(): Promise<any> {
+export async function runTracingValidation(): Promise<{
+  total: number;
+  passed: number;
+  failed: number;
+  passRate: number;
+  results: TestResult[];
+}> {
   const validator = new TracingValidator();
   await validator.runAllTests();
   return validator.getSummary();
