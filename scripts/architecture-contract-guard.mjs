@@ -45,6 +45,11 @@ const EXCEPTIONS = [
   '.husky/pre-commit',
   '.husky/pre-push',
   'docs/',
+  // C3.5-B11-B — autorização temporária schema job_execution_log
+  'drizzle/schema.ts',
+  'drizzle/0002_lucky_bloodstorm.sql',
+  'drizzle/meta/0002_snapshot.json',
+  'drizzle/meta/_journal.json',
 ];
 
 // Janela controlada C3.1 - arquivos _core autorizados para remoção de DB direto
