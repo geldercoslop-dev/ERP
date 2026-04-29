@@ -10,7 +10,7 @@ import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.j
 
 // Types
 export type CreateVendedorInput = InsertVendedor;
-export type { User, Vendedor, InsertVendedor };
+export type { User, Vendedor, InsertUser, InsertVendedor };
 
 /**
  * Cria ou atualiza um usuário (vinculado ao tenant)

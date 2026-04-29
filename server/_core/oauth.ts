@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./cookies.js";
 import { sdk } from "./sdk.js";
 import type { RequestWithTenant } from "../types/request-with-tenant.js";
 import { ValidationError } from './errors/typed-errors.js';
+import * as usersService from "../services/users.service.js";
 
 // Type guard real para RequestWithTenant
 function isRequestWithTenant(req: Request): req is RequestWithTenant {
@@ -36,7 +37,6 @@ function getQueryParam(req: Request, key: string): string | undefined {
 
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
-    const db = await import("../db/index.js");
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
 
@@ -61,14 +61,17 @@ export function registerOAuthRoutes(app: Express) {
       }
       
       const tenantId = getTenantFromRequest(req);
-      await db.upsertUser(tenantId, {
+      
+      const userPayload: usersService.InsertUser = {
         tenantId,
         openId: userInfo.openId,
         name: userInfo.name || null,
         email: userInfo.email ?? null,
         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date(),
-      });
+      };
+
+      await usersService.upsertUser(tenantId, userPayload);
 
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: userInfo.name || "",
