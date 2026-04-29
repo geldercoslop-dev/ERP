@@ -1,5 +1,17 @@
 import { recordRequest } from './metrics.js';
 import { ErrorContext } from './logger-core.js';
+import type { Request, Response, NextFunction } from 'express';
+
+type ErrorTrackingRequest = Request & {
+  startTime?: number;
+  tenantId?: number;
+  requestId?: string;
+  user?: {
+    id?: number;
+    userId?: number;
+    tenantId?: number;
+  };
+};
 
 /**
  * Logger de erro estruturado PURO - sem dependência de logger
@@ -129,7 +141,7 @@ export function withErrorTracking<T extends (...args: unknown[]) => Promise<unkn
  * Middleware Express para tracking de erros
  */
 export function errorTrackingMiddleware() {
-  return (error: Error, req: any, res: any, next: any) => {
+  return (error: Error, req: ErrorTrackingRequest, res: Response, next: NextFunction) => {
     const startTime = req.startTime || Date.now();
     const duration = Date.now() - startTime;
     
