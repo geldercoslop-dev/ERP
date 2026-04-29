@@ -33,19 +33,14 @@ Use tipagem correta.
   }
 
   // 🔴 2. BLOQUEAR DB FORA DE SERVICES
-  // Remove string literals before checking to avoid false positives on metadata like 'db.operation'
-  const contentWithoutStrings = content
-    .replace(/(['"`])(?:(?!\1|\\).|\\.)*\1/g, '') // Remove single, double, and backtick strings
-    .replace(/`[^`]*`/g, ''); // Remove template literals (extra safety)
-
   if (
     !file.startsWith("server/services") &&
     (
-      /(^|[^a-zA-Z0-9_])db\./.test(contentWithoutStrings) ||
-      /(^|[^a-zA-Z0-9_])db\.query\s*\(/.test(contentWithoutStrings) ||
-      /(^|[^a-zA-Z0-9_])conn\.query\s*\(/.test(contentWithoutStrings) ||
-      /(^|[^a-zA-Z0-9_])connection\.query\s*\(/.test(contentWithoutStrings) ||
-      /(^|[^a-zA-Z0-9_])pool\.query\s*\(/.test(contentWithoutStrings)
+      /(^|[^a-zA-Z0-9_])db\./.test(content) ||
+      /(^|[^a-zA-Z0-9_])db\.query\s*\(/.test(content) ||
+      /(^|[^a-zA-Z0-9_])conn\.query\s*\(/.test(content) ||
+      /(^|[^a-zA-Z0-9_])connection\.query\s*\(/.test(content) ||
+      /(^|[^a-zA-Z0-9_])pool\.query\s*\(/.test(content)
     )
   ) {
     console.error(`🚫 ACESSO DIRETO AO DB FORA DE SERVICE: ${file}`);

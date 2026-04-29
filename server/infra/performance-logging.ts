@@ -15,8 +15,8 @@ export interface PerformanceMetrics {
   duration: number;
   success: boolean;
   error?: string;
-  tags?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
+  tags?: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -195,15 +195,15 @@ export class PerformanceMeasurer {
   private operationName: string;
   private traceId: string;
   private spanId: string;
-  private tags?: Record<string, unknown>;
-  private metadata?: Record<string, unknown>;
+  private tags?: Record<string, any>;
+  private metadata?: Record<string, any>;
   
   constructor(
     operationName: string,
     traceId: string,
     spanId: string,
-    tags?: Record<string, unknown>,
-    metadata?: Record<string, unknown>
+    tags?: Record<string, any>,
+    metadata?: Record<string, any>
   ) {
     this.operationName = operationName;
     this.traceId = traceId;
@@ -239,7 +239,7 @@ export class PerformanceMeasurer {
   /**
    * Adiciona metadata
    */
-  addMetadata(key: string, value: unknown): void {
+  addMetadata(key: string, value: any): void {
     if (!this.metadata) this.metadata = {};
     this.metadata[key] = value;
   }
@@ -247,7 +247,7 @@ export class PerformanceMeasurer {
   /**
    * Adiciona tag
    */
-  addTag(key: string, value: unknown): void {
+  addTag(key: string, value: any): void {
     if (!this.tags) this.tags = {};
     this.tags[key] = value;
   }
@@ -259,8 +259,8 @@ export class PerformanceMeasurer {
 export function measurePerformance<T>(
   operationName: string,
   operation: () => Promise<T>,
-  tags?: Record<string, unknown>,
-  metadata?: Record<string, unknown>
+  tags?: Record<string, any>,
+  metadata?: Record<string, any>
 ): Promise<T> {
   return new Promise(async (resolve, reject) => {
     const { getCurrentSpan } = await import('./tracing.js');

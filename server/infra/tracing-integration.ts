@@ -77,7 +77,7 @@ export function createControllerSpan(
   req: Request,
   controllerName: string,
   actionName: string,
-  tags?: Record<string, unknown>
+  tags?: Record<string, any>
 ) {
   const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
   if (!parentSpan || !parentSpan.spanId) return null;
@@ -101,7 +101,7 @@ export async function withDatabaseTracing<T>(
   req: Request,
   operation: string,
   query: () => Promise<T>,
-  params?: unknown[]
+  params?: any[]
 ): Promise<T> {
   const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
   if (!parentSpan || !parentSpan.spanId) {
@@ -160,7 +160,7 @@ export async function withLeoTracing<T>(
   operation: string,
   leoCall: () => Promise<T>,
   prompt?: string,
-  options?: Record<string, unknown>
+  options?: any
 ): Promise<T> {
   const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
   if (!parentSpan || !parentSpan.spanId) {
@@ -220,7 +220,7 @@ export async function withServiceTracing<T>(
   serviceName: string,
   methodName: string,
   serviceCall: () => Promise<T>,
-  ...args: unknown[]
+  ...args: any[]
 ): Promise<T> {
   const parentSpan = (req as { traceSpan?: { spanId?: string } }).traceSpan;
   if (!parentSpan || !parentSpan.spanId) {

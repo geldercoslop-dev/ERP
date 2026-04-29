@@ -223,7 +223,7 @@ export class LeoTracePropagator {
   static async executeWithTracing<T>(
     leoCall: (context: Record<string, string>) => Promise<T>,
     prompt: string,
-    options?: Record<string, unknown>
+    options?: any
   ): Promise<T> {
     // Note: getCurrentSpan() not available, using undefined context
     const currentContext: TraceContext | undefined = undefined;
@@ -300,7 +300,7 @@ export class DatabaseTracePropagator {
   static async executeQueryWithTracing<T>(
     queryCall: (context: Record<string, string>) => Promise<T>,
     sql: string,
-    params?: unknown[]
+    params?: any[]
   ): Promise<T> {
     // Note: getCurrentSpan() not available, using undefined context
     const currentContext: TraceContext | undefined = undefined;
@@ -389,7 +389,7 @@ export class ServiceTracePropagator {
     serviceCall: (context: Record<string, string>) => Promise<T>,
     serviceName: string,
     method: string,
-    ...args: unknown[]
+    ...args: any[]
   ): Promise<T> {
     // Note: getCurrentSpan() not available, using undefined context
     const currentContext: TraceContext | undefined = undefined;
