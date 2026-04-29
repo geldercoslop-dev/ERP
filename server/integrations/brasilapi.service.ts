@@ -83,8 +83,8 @@ export async function listarFeriadosNacionais(ano: number): Promise<{
       if (!res.ok) return { ok: false, erro: "Erro ao listar feriados." };
       const data = (await res.json()) as FeriadoResponse[];
       return { ok: true, feriados: data };
-    } catch (e: any) {
-      const msg = e?.name === "AbortError" ? "Timeout ao listar feriados." : e?.message ?? "Erro ao consultar feriados.";
+    } catch (e: unknown) {
+      const msg = e instanceof Error && e.name === "AbortError" ? "Timeout ao listar feriados." : e instanceof Error ? e.message : "Erro ao consultar feriados.";
       return { ok: false, erro: msg };
     }
   });

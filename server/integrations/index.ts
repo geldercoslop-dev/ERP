@@ -170,15 +170,15 @@ export function listIntegrations() {
  * Get integrations by category
  */
 export function getIntegrationsByCategory(category: 'brazilian' | 'communication' | 'logistics' | 'utilities') {
-  const categories = {
+  const categories: Record<string, IntegrationName[]> = {
     brazilian: ['brasilapi', 'viacep'],
     communication: ['telegram', 'whatsapp'],
     logistics: ['freight', 'superfrete', 'tracking'],
     utilities: ['currency', 'weather', 'maps', 'qr', 'ocr', 'chart']
   };
 
-  return categories[category].map((name: any) => {
-    const integration = INTEGRATION_REGISTRY[name as IntegrationName];
+  return categories[category].map((name) => {
+    const integration = INTEGRATION_REGISTRY[name];
     return integration;
   });
 }
