@@ -1,17 +1,36 @@
 import { tracer } from '../infra/tracing.js';
-import { trace as otelTrace, SpanKind, SpanStatusCode, context, trace } from '@opentelemetry/api';
+import { trace as otelTrace, SpanKind, SpanStatusCode, context, trace, Span } from '@opentelemetry/api';
 import { createLogger } from '../infra/structured-logger.js';
+import type { TrpcContext } from '../_core/context.js';
 
 const logger = createLogger('tracing-middleware');
+
+interface CustomSpan {
+  spanId: string;
+}
+
+type TracingContext = TrpcContext & {
+  traceId?: string;
+  existingSpan?: CustomSpan;
+  otelSpan?: Span;
+};
+
+interface TracingMiddlewareParams {
+  ctx: TracingContext;
+  next: (opts?: { ctx?: TracingContext }) => Promise<unknown>;
+  path: string;
+  type: string;
+  rawInput: unknown;
+}
 
 /**
  * Middleware de tracing para tRPC - versão híbrida
  * Mantém tracing existente + adiciona OpenTelemetry
  */
 export function createTracingMiddleware(operationName: string) {
-  return async ({ next, path, type, rawInput, ctx }: any) => {
+  return async ({ next, path, type, rawInput, ctx }: TracingMiddlewareParams) => {
     // Gerar trace ID se não existir no contexto
-    const traceId = ctx?.traceId || tracer.generateTraceId();
+    const traceId = ctx.traceId ?? tracer.generateTraceId();
     
     // Iniciar span do tracer existente
     const existingSpan = tracer.startSpan(
