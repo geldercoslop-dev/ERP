@@ -55,27 +55,67 @@ function getChangedFiles() {
       const allPnpmStore = files.every(f => f.startsWith(".pnpm-store/"));
       
       if (allPnpmStore) {
-        // Check if there are any additions (not allowed)
-        for (const file of files.slice(0, 100)) { // Sample first 100 files
-          try {
-            const diff = execSync(`git diff --cached -- "${file}"`).toString();
-            const lines = diff.split('\n');
-            const additions = lines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+        // Deterministic validation using numstat - check ALL files
+        try {
+          const numstatOutput = execSync("git diff --cached --numstat -- .pnpm-store").toString();
+          const numstatLines = numstatOutput.split("\n").filter(Boolean);
+          
+          if (numstatLines.length === 0) {
+            console.error("\n🚫 PNPM_STORE BLOQUEADO — numstat vazio\n");
+            process.exit(1);
+          }
+          
+          for (const line of numstatLines) {
+            const parts = line.split('\t');
+            if (parts.length < 3) {
+              console.error("\n🚫 PNPM_STORE BLOQUEADO — formato numstat inválido\n");
+              process.exit(1);
+            }
             
-            if (additions.length > 0) {
-              console.error("\n🚫 PNPM_STORE BLOQUEADO — apenas remoções permitidas\n");
-              console.error(`Arquivo: ${file}`);
+            const additions = parts[0];
+            const deletions = parts[1];
+            const path = parts[2];
+            
+            // Path must start with .pnpm-store/
+            if (!path.startsWith(".pnpm-store/")) {
+              console.error("\n🚫 PNPM_STORE BLOQUEADO — arquivo fora de .pnpm-store/\n");
+              console.error(`Arquivo: ${path}\n`);
+              process.exit(1);
+            }
+            
+            // Additions must be 0 or -
+            if (additions !== "0" && additions !== "-") {
+              console.error("\n🚫 PNPM_STORE BLOQUEADO — adições não permitidas\n");
+              console.error(`Arquivo: ${path}`);
+              console.error(`Adições: ${additions}`);
               console.error("Janela de limpeza permite apenas DELETAR .pnpm-store.\n");
               process.exit(1);
             }
-          } catch (e) {
-            console.error(`Erro ao verificar diff de ${file}`);
-            process.exit(1);
+            
+            // Deletions must be > 0 or -
+            if (deletions !== "-" && parseInt(deletions, 10) <= 0) {
+              console.error("\n🚫 PNPM_STORE BLOQUEADO — sem deleções\n");
+              console.error(`Arquivo: ${path}\n`);
+              process.exit(1);
+            }
           }
+          
+          // Additional validation: ensure ALL staged files are .pnpm-store/
+          for (const file of files) {
+            if (!file.startsWith(".pnpm-store/")) {
+              console.error("\n🚫 PNPM_STORE BLOQUEADO — arquivo fora de .pnpm-store/ detectado\n");
+              console.error(`Arquivo: ${file}\n`);
+              process.exit(1);
+            }
+          }
+          
+          console.log("PNPM_STORE_MASS_DELETE_DETECTED — deterministic validation passed");
+          return []; // Return empty to skip further processing
+        } catch (e) {
+          console.error("\n🚫 PNPM_STORE BLOQUEADO — erro na validação determinística\n");
+          console.error(e.message);
+          process.exit(1);
         }
-        
-        console.log("PNPM_STORE_MASS_DELETE_DETECTED — detailed guard skipped for cache cleanup only");
-        return []; // Return empty to skip further processing
       } else {
         // Mixed files - block
         console.error("\n🚫 MASSIVE DIFF BLOQUEADO — mistura de .pnpm-store com outros arquivos\n");
