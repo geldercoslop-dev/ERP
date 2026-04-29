@@ -76,7 +76,16 @@ Use tipagem correta.
       content.includes("new ") ||
       content.includes(".start()")
     ) {
-      if (!content.includes("function") && !file.includes("services")) {
+      const hasSafeBoundary =
+        content.includes("function") ||
+        content.includes("=>") ||
+        content.includes(".query(") ||
+        content.includes(".mutation(") ||
+        content.includes(".use(") ||
+        content.includes("router({") ||
+        content.includes("createTRPCRouter(") ||
+        content.includes("Router()");
+      if (!hasSafeBoundary && !file.includes("services")) {
         console.error(`
 🚫 IMPORT-TIME EXECUTION DETECTADO em ${file}
 

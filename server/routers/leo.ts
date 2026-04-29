@@ -177,52 +177,18 @@ export const leoRouter = router({
     }),
 
   // Insights do LEO
-  insights: publicProcedure.query(async () => {
-    try {
-      // Dados mock simplificados por enquanto
-      return [
-        {
-          id: '1',
-          action: 'Sistema inicializado',
-          entity: 'LEO',
-          result: 'SUCESSO',
-          timestamp: new Date()
-        },
-        {
-          id: '2',
-          action: 'Monitoramento ativo',
-          entity: 'ERP',
-          result: 'SUCESSO',
-          timestamp: new Date()
-        }
-      ];
-    } catch (error) {
-      console.error('Erro ao buscar insights do LEO:', error);
-      return [];
-    }
+  insights: protectedProcedure.query(async () => {
+    throw new TRPCError({
+      code: 'NOT_IMPLEMENTED',
+      message: 'LEO_INSIGHTS_NOT_IMPLEMENTED_REAL_SERVICE_REQUIRED'
+    });
   }),
 
   // Memória do LEO
-  memories: publicProcedure.query(async () => {
-    try {
-      // Dados mock simplificados por enquanto
-      return [
-        {
-          id: '1',
-          type: 'event',
-          content: 'LEO inicializado e monitorando sistema',
-          timestamp: new Date()
-        },
-        {
-          id: '2',
-          type: 'decision',
-          content: 'Análise de padrões de vendas iniciada',
-          timestamp: new Date()
-        }
-      ];
-    } catch (error) {
-      console.error('Erro ao buscar memória do LEO:', error);
-      return [];
-    }
+  memories: protectedProcedure.query(async () => {
+    throw new TRPCError({
+      code: 'NOT_IMPLEMENTED',
+      message: 'LEO_MEMORIES_NOT_IMPLEMENTED_REAL_SERVICE_REQUIRED'
+    });
   }),
 });
