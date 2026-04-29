@@ -1,12 +1,12 @@
 import archiver from 'archiver';
 import { InfrastructureError } from '../../_core/errors/typed-errors.js';
 import { Response } from 'express';
-import * as db from '../../db/index.js';
+import { gerarBackupCompleto } from '../../services/backup.service.js';
 
 export async function gerarBackupZip(res: Response, tenantId: string): Promise<boolean> {
   try {
     // Buscar todos os dados
-    const result = await db.gerarBackupCompleto(tenantId);
+    const result = await gerarBackupCompleto(tenantId);
     if (!result.success || !result.data) {
       throw new InfrastructureError(result.error ?? 'Falha ao gerar backup');
     }
