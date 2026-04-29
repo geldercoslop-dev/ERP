@@ -23,6 +23,8 @@ const C3_1_ALLOWED_FILES = [
   "server/_core/ownership.ts",
   "server/_core/sdk.ts",
   "server/_core/service-actor.ts",
+  // C3.5-B6-C — migração de admin-init para service layer
+  "server/_core/admin-init.ts",
 ];
 
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
