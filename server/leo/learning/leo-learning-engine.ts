@@ -33,6 +33,31 @@ export interface LearningInsight {
   dataPoints: Record<string, unknown>[];
 }
 
+type LearningSalesMetricRow = {
+  day: string | Date;
+  count: number;
+  total: number;
+  avgTicket: number;
+  vendedorId: number;
+};
+
+type LearningClientMetricRow = {
+  id: number;
+  nome: string | null;
+  createdAt: Date | string;
+  totalPedidos: number;
+  totalGasto: number;
+  avgTicket: number;
+};
+
+type LearningInventoryProductRow = {
+  id: number;
+  descricao: string | null;
+  estoque: number | string;
+  categoria: string | null;
+  valorVenda: number | string;
+};
+
 /**
  * Classe principal do motor de aprendizado
  */
@@ -124,7 +149,7 @@ export class LeoLearningEngine {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const rows = await learningSalesTool.getMetrics({ tenantId, since: thirtyDaysAgo });
-      const salesData: Record<string, unknown>[] = rows.map((r: any) => ({
+      const salesData: Record<string, unknown>[] = rows.map((r: LearningSalesMetricRow) => ({
         date: r.day,
         count: r.count,
         total: r.total,
@@ -147,7 +172,7 @@ export class LeoLearningEngine {
       if (!rows.success || !rows.data) {
         throw new InfrastructureError(rows.error ?? 'Falha ao carregar métricas de clientes');
       }
-      const customerData: Record<string, unknown>[] = rows.data.map((c: any) => ({
+      const customerData: Record<string, unknown>[] = rows.data.map((c: LearningClientMetricRow) => ({
         id: c.id,
         nome: c.nome,
         dataCriacao: c.createdAt,
@@ -168,7 +193,7 @@ export class LeoLearningEngine {
   private async learnFromInventory(tenantId: number): Promise<void> {
     try {
       const rows = await learningInventoryTool.getProductSummary({ tenantId });
-      const inventoryData: Record<string, unknown>[] = rows.map((p: any) => ({
+      const inventoryData: Record<string, unknown>[] = rows.map((p: LearningInventoryProductRow) => ({
         id: p.id,
         descricao: p.descricao,
         estoqueAtual: p.estoque,

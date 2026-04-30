@@ -204,7 +204,6 @@ function mapPedidoAccessError(e: unknown): never {
 }
 import { notificarAdmin, notificarVendedor } from "./notifications.js";
 import * as produtosRoutes from "./routes/produtos.js";
-import * as clientesRoutes from "./routes/clientes.js";
 import * as promocoesRoutes from "./routes/promocoes.js";
 
 export const appRouter = router({

@@ -9,6 +9,12 @@ const LEO_STOCK_RUNNING_LOW_THRESHOLD = 5;
 // Este valor é uma política operacional única para alerta de "item acabando". 
 // Não representa bloqueio de estoque negativo nem estoque mínimo real do cadastro. 
 
+type LeoStockMonitorProductRow = {
+  id: number | string;
+  descricao?: string | null;
+  estoque?: number | string | null;
+};
+
 export interface StockAlert {
   productId: number;
   productName: string;
@@ -45,7 +51,7 @@ export class LeoStockMonitor {
     try {
       const rows = await inventoryMonitorTool.listProdutosBaixoEstoqueLeo({ tenantId, limite: 20 });
 
-      const alerts: StockAlert[] = rows.map((product: any) => {
+      const alerts: StockAlert[] = rows.map((product: LeoStockMonitorProductRow) => {
         const currentStock = Number(product.estoque || 0);
         const runningLowThreshold = LEO_STOCK_RUNNING_LOW_THRESHOLD;
 
