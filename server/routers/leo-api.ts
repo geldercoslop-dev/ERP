@@ -6,7 +6,7 @@
  * - /leo/status - Status do agente
  */
 
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc.js';
+import { router, protectedProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
 import { leoLongMemory } from '../leo/memory/leo-long-memory.js';
 import { requireTenant } from '../_core/tenant.js';
@@ -96,7 +96,7 @@ export const leoApiRouter = router({
     }),
 
   // Endpoint para obter memórias recentes
-  memories: publicProcedure
+  memories: protectedProcedure
     .input(z.object({
       type: z.enum(['event', 'decision', 'insight', 'pattern', 'alert', 'strategy']).optional(),
       limit: z.number().default(10)
@@ -126,12 +126,13 @@ export const leoApiRouter = router({
     }),
 
   // Endpoint para buscar insights críticos
-  insights: publicProcedure
+  insights: protectedProcedure
     .input(z.object({
       limit: z.number().default(5)
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
+        const tenantId = await requireTenant(ctx);
         const insights = await leoLongMemory.getCriticalInsights(input.limit);
 
         return {

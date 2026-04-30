@@ -5,7 +5,7 @@
  * Fornece informações detalhadas sobre status, tarefas, eventos e performance
  */
 
-import { router, publicProcedure } from '../_core/trpc.js';
+import { router, adminProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
 import { leoEngine } from '../leo/engine/leo-engine.js';
 import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
@@ -24,7 +24,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Dashboard principal - visão geral completa
    */
-  dashboard: publicProcedure.query(async () => {
+  dashboard: adminProcedure.query(async () => {
     try {
       const now = Date.now();
       
@@ -104,7 +104,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Status detalhado do agente
    */
-  agentStatus: publicProcedure.query(async () => {
+  agentStatus: adminProcedure.query(async () => {
     const engineStatus = await leoEngine.getStatus();
     const loopStatus = await leoLoop.getLoopStatus();
     const supervisorStatus = leoSupervisor.getStatus();
@@ -120,7 +120,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Estatísticas detalhadas de tarefas
    */
-  taskStats: publicProcedure
+  taskStats: adminProcedure
     .input(z.object({
       status: z.enum(['pending', 'running', 'done', 'error']).optional(),
       type: z.string().optional(),
@@ -151,7 +151,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Lista eventos com filtros
    */
-  events: publicProcedure
+  events: adminProcedure
     .input(z.object({
       status: z.enum(['aberto', 'em_andamento', 'resolvido', 'ignorado']).optional(),
       type: z.string().optional(),
@@ -165,7 +165,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Alertas de proteção contra loops
    */
-  loopAlerts: publicProcedure
+  loopAlerts: adminProcedure
     .input(z.object({
       severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
       limit: z.number().optional(),
@@ -193,7 +193,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Tarefas agendadas
    */
-  scheduledTasks: publicProcedure.query(async () => {
+  scheduledTasks: adminProcedure.query(async () => {
     const tasks = leoScheduler.getScheduledTasks();
     const stats = leoScheduler.getStats();
     
@@ -206,7 +206,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Planos ativos do planner
    */
-  activePlans: publicProcedure.query(async () => {
+  activePlans: adminProcedure.query(async () => {
     const plans = leoPlanner.getActivePlans();
     const stats = leoPlanner.getStatistics();
     
@@ -219,7 +219,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Ações de controle do agente
    */
-  control: publicProcedure
+  control: adminProcedure
     .input(z.object({
       action: z.enum(['start_loop', 'stop_loop', 'pause_supervisor', 'resume_supervisor', 'clear_tasks']),
       parameters: z.record(z.string(), z.any()).optional(),
@@ -283,7 +283,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Criar tarefa manualmente
    */
-  createTask: publicProcedure
+  createTask: adminProcedure
     .input(z.object({
       type: z.string(),
       priority: z.enum(['critica', 'alta', 'media', 'baixa']),
@@ -317,7 +317,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Criar tarefa agendada
    */
-  createScheduledTask: publicProcedure
+  createScheduledTask: adminProcedure
     .input(z.object({
       name: z.string(),
       type: z.string(),
@@ -354,7 +354,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Resolver evento
    */
-  resolveEvent: publicProcedure
+  resolveEvent: adminProcedure
     .input(z.object({
       eventId: z.number(),
       resolution: z.string(),
@@ -382,7 +382,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Bloquear/desbloquear tarefa
    */
-  toggleTaskBlock: publicProcedure
+  toggleTaskBlock: adminProcedure
     .input(z.object({
       taskId: z.string(),
       block: z.boolean(),
@@ -417,7 +417,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Relatório de performance
    */
-  performanceReport: publicProcedure
+  performanceReport: adminProcedure
     .input(z.object({
       period: z.enum(['1h', '6h', '24h', '7d', '30d']).default('24h'),
     }))
@@ -491,7 +491,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Configurações do sistema
    */
-  settings: publicProcedure.query(async () => {
+  settings: adminProcedure.query(async () => {
     try {
       const supervisorLimits = leoSupervisor.getStatus().limits;
       const schedulerTasks = leoScheduler.getScheduledTasks();
@@ -520,7 +520,7 @@ export const leoAdminDashboardRouter = router({
   /**
    * Atualizar configurações
    */
-  updateSettings: publicProcedure
+  updateSettings: adminProcedure
   .input(z.object({
     supervisor: z.object({
       maxActionsPerMinute: z.number().min(1).max(100).optional(),
