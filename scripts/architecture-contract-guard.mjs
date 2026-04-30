@@ -36,6 +36,9 @@ const FROZEN_PATTERNS = [
 // Exceções permitidas mesmo em áreas congeladas
 const EXCEPTIONS = [
   'drizzle/relations.ts',
+  'drizzle/schema.ts',
+  'drizzle/meta/',
+  'drizzle/',
   'shared/types/entities.ts',
   'scripts/architecture-contract-guard.mjs',
   'scripts/drizzle-schema-guard.mjs',

@@ -643,3 +643,33 @@ export const jobExecutionLog = mysqlTable(
     traceIdIdx: index("job_execution_log_trace_id_idx").on(table.traceId),
   }),
 );
+
+export const leoApprovals = mysqlTable(
+  "leo_approvals",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
+    actionId: varchar("action_id", { length: 128 }).notNull(),
+    action: varchar("action", { length: 128 }).notNull(),
+    entity: varchar("entity", { length: 128 }).notNull(),
+    description: text("description"),
+    riskLevel: varchar("risk_level", { length: 32 }).notNull(),
+    payloadJson: text("payload_json"),
+    status: varchar("status", { length: 32 }).notNull().default("PENDING"),
+    requestedBy: int("requested_by"),
+    approvedBy: int("approved_by"),
+    approvedAt: timestamp("approved_at"),
+    rejectedBy: int("rejected_by"),
+    rejectedAt: timestamp("rejected_at"),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index("leo_approvals_tenant_id_idx").on(table.tenantId),
+    actionIdUnique: unique("leo_approvals_action_id_unique").on(table.actionId),
+    statusIdx: index("leo_approvals_status_idx").on(table.status),
+    expiresAtIdx: index("leo_approvals_expires_at_idx").on(table.expiresAt),
+    tenantStatusIdx: index("leo_approvals_tenant_status_idx").on(table.tenantId, table.status),
+  }),
+);

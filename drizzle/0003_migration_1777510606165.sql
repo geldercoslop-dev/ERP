@@ -1,0 +1,25 @@
+-- Create leo_approvals table for LEO approval workflow
+CREATE TABLE IF NOT EXISTS leo_approvals (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tenant_id INT NOT NULL,
+  action_id VARCHAR(128) NOT NULL,
+  action VARCHAR(128) NOT NULL,
+  entity VARCHAR(128) NOT NULL,
+  description TEXT,
+  risk_level VARCHAR(32) NOT NULL,
+  payload_json TEXT,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  requested_by INT,
+  approved_by INT,
+  approved_at TIMESTAMP NULL,
+  rejected_by INT,
+  rejected_at TIMESTAMP NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+  INDEX leo_approvals_tenant_id_idx (tenant_id),
+  UNIQUE KEY leo_approvals_action_id_unique (action_id),
+  INDEX leo_approvals_status_idx (status),
+  INDEX leo_approvals_expires_at_idx (expires_at),
+  INDEX leo_approvals_tenant_status_idx (tenant_id, status)
+);
