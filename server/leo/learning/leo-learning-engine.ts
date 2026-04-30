@@ -16,8 +16,6 @@ import { learningClientsTool } from '../../tools/learning-clients.tool.js';
 import { learningInventoryTool } from '../../tools/learning-inventory.tool.js';
 import { leoLongMemory } from '../memory/leo-long-memory.js';
 
-const DEFAULT_LEO_TENANT_ID = 1;
-
 export interface LearningPattern {
   type: 'sales' | 'customer' | 'inventory' | 'pricing';
   pattern: string;
@@ -56,6 +54,10 @@ export class LeoLearningEngine {
    * Inicia o processo de aprendizado contínuo
    */
   public startLearning(tenantId: number, intervalMs: number = 3600000): void { // 1 hora
+    if (!Number.isFinite(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId válido é obrigatório para iniciar o motor de aprendizado");
+    }
+
     if (this.isLearning) {
       console.log('🧠 Leo Learning Engine já está rodando');
       return;
@@ -129,7 +131,7 @@ export class LeoLearningEngine {
         avgTicket: r.avgTicket,
         vendedorId: r.vendedorId,
       }));
-      await this.detectSalesPatterns(salesData);
+      await this.detectSalesPatterns(salesData, tenantId);
       await this.analyzeSalesPerformance(salesData);
     } catch (error) {
       console.error('Erro ao aprender com vendas:', error);
@@ -153,7 +155,7 @@ export class LeoLearningEngine {
         totalGasto: c.totalGasto,
         avgTicket: c.avgTicket,
       }));
-      await this.detectCustomerPatterns(customerData);
+      await this.detectCustomerPatterns(customerData, tenantId);
       await this.identifyAtRiskCustomers(customerData);
     } catch (error) {
       console.error('Erro ao aprender com clientes:', error);
@@ -174,7 +176,7 @@ export class LeoLearningEngine {
         categoria: p.categoria,
         preco: p.valorVenda,
       }));
-      await this.detectInventoryPatterns(inventoryData);
+      await this.detectInventoryPatterns(inventoryData, tenantId);
       await this.identifySlowMovingProducts(inventoryData);
     } catch (error) {
       console.error('Erro ao aprender com estoque:', error);
@@ -205,7 +207,7 @@ export class LeoLearningEngine {
           receita: p.receita
         });
       }
-      await this.detectPricingPatterns(pricingData);
+      await this.detectPricingPatterns(pricingData, tenantId);
     } catch (error) {
       console.error('Erro ao aprender com preços:', error);
     }
@@ -214,7 +216,7 @@ export class LeoLearningEngine {
   /**
    * Detecta padrões de vendas
    */
-  private async detectSalesPatterns(salesData: Record<string, unknown>[]): Promise<void> {
+  private async detectSalesPatterns(salesData: Record<string, unknown>[], tenantId: number): Promise<void> {
     try {
       // Padrão 1: Dias de pico de vendas
       const dailyAverages = this.calculateDailyAverages(salesData);
@@ -222,7 +224,7 @@ export class LeoLearningEngine {
       
       if (peakDays.length > 0) {
         await leoLongMemory.savePattern(
-          DEFAULT_LEO_TENANT_ID,
+          tenantId,
           `Dias de pico de vendas identificados: ${peakDays.map((d: { day?: string }) => d.day).join(', ')}`,
           `Análise de ${salesData.length} registros de vendas`,
           'high'
@@ -232,7 +234,7 @@ export class LeoLearningEngine {
         const trend = this.calculateSalesTrend(salesData);
         if (trend.trend !== 'stable') {
           await leoLongMemory.savePattern(
-            DEFAULT_LEO_TENANT_ID,
+            tenantId,
             `Tendência de vendas: ${trend.trend} (${trend.percentage.toFixed(1)}%)`,
             `Análise de tendência dos últimos 30 dias`,
             trend.trend === 'increasing' ? 'high' : 'critical'
@@ -242,7 +244,7 @@ export class LeoLearningEngine {
       const avgTicketPattern = this.analyzeAverageTicket(salesData);
       if (avgTicketPattern.insight) {
         await leoLongMemory.saveInsight(
-          DEFAULT_LEO_TENANT_ID,
+          tenantId,
           avgTicketPattern.insight,
           'Análise de ticket médio',
           'medium'
@@ -257,7 +259,7 @@ export class LeoLearningEngine {
   /**
    * Detecta padrões de comportamento de clientes
    */
-  private async detectCustomerPatterns(customerData: Record<string, unknown>[]): Promise<void> {
+  private async detectCustomerPatterns(customerData: Record<string, unknown>[], tenantId: number): Promise<void> {
     try {
       // Padrão 1: Sazonalidade de compras
       const inactiveThreshold = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
@@ -267,7 +269,7 @@ export class LeoLearningEngine {
 
       if (inactiveCustomers.length > 0) {
         await leoLongMemory.saveAlert(
-          DEFAULT_LEO_TENANT_ID,
+          tenantId,
           `${inactiveCustomers.length} clientes estão inativos há mais de 60 dias`,
           `Análise de ${customerData.length} clientes`,
           'high'
@@ -277,7 +279,7 @@ export class LeoLearningEngine {
       const highValueCustomers = customerData.filter((c: { totalGasto?: number }) => (c.totalGasto ?? 0) > 10000);
       if (highValueCustomers.length > 0) {
         await leoLongMemory.saveStrategy(
-          DEFAULT_LEO_TENANT_ID,
+          tenantId,
           `Identificados ${highValueCustomers.length} clientes de alto valor (acima de R$ 10.000)`,
           'Estratégia de retenção de clientes',
           'high'
@@ -292,15 +294,14 @@ export class LeoLearningEngine {
   /**
    * Detecta padrões de estoque
    */
-  private async detectInventoryPatterns(inventoryData: Record<string, unknown>[]): Promise<void> {
+  private async detectInventoryPatterns(inventoryData: Record<string, unknown>[], tenantId: number): Promise<void> {
     try {
       // Padrão 1: Estoque crítico
       const criticalStock = inventoryData.filter((p: { estoqueAtual?: unknown; estoqueMinimo?: unknown }) => Number(p.estoqueAtual ?? 0) < Number(p.estoqueMinimo ?? 0));
       
-      const defaultTenantId = 1;
       if (criticalStock.length > 0) {
         await leoLongMemory.saveAlert(
-          defaultTenantId,
+          tenantId,
           `${criticalStock.length} produtos com estoque crítico`,
           `Análise de ${inventoryData.length} produtos`,
           'critical'
@@ -312,7 +313,7 @@ export class LeoLearningEngine {
       
       for (const issue of categoryIssues) {
         await leoLongMemory.saveInsight(
-          defaultTenantId,
+          tenantId,
           `Categoria ${issue.category}: ${issue.issue}`,
           'Análise por categoria de produtos',
           'medium'
@@ -327,14 +328,14 @@ export class LeoLearningEngine {
   /**
    * Detecta padrões de precificação
    */
-  private async detectPricingPatterns(pricingData: Record<string, unknown>[]): Promise<void> {
+  private async detectPricingPatterns(pricingData: Record<string, unknown>[], tenantId: number): Promise<void> {
     try {
       // Padrão 1: Produtos sem vendas
       const noSalesProducts = pricingData.filter((p: { vendas?: unknown }) => Number(p.vendas ?? 0) === 0);
       
       if (noSalesProducts.length > 0) {
         await leoLongMemory.saveAlert(
-          DEFAULT_LEO_TENANT_ID,
+          tenantId,
           `${noSalesProducts.length} produtos não tiveram vendas registradas`,
           'Análise de performance de produtos',
           'medium'
@@ -344,7 +345,7 @@ export class LeoLearningEngine {
       const priceDemandInsights = this.analyzePriceDemandCorrelation(pricingData);
       for (const insight of priceDemandInsights) {
         await leoLongMemory.saveInsight(
-          DEFAULT_LEO_TENANT_ID,
+          tenantId,
           insight.insight,
           'Análise de precificação',
           'high'
