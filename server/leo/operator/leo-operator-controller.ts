@@ -1,6 +1,7 @@
 import { logInfo, logError } from '../../_core/logger.js';
 import { LeoMode, LeoContext } from '../../_core/types.js';
 import { LeoPermissionError } from '../../_core/errors.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { executeLeoActionGate, type ExecutionGateRequest } from '../runtime/execution-gate.js';
 
 export type LeoModeType = 'SAFE' | 'ASSIST' | 'OPERATOR' | 'AUTONOMOUS';
@@ -290,13 +291,19 @@ export class LeoOperatorMode {
       
       // EXECUTION GATE: Passar execução pelo gate
       if (this.context) {
+        if (!this.context.tenantId || !Number.isInteger(this.context.tenantId) || this.context.tenantId <= 0) {
+          throw new ValidationError('LEO_OPERATOR_TENANT_ID_REQUIRED');
+        }
+        if (!this.context.userId || !Number.isInteger(this.context.userId) || this.context.userId <= 0) {
+          throw new ValidationError('LEO_OPERATOR_USER_ID_REQUIRED');
+        }
         const gateRequest: ExecutionGateRequest = {
           action: String(action),
           toolName: 'operator',
           parameters: {},
           context: {
-            tenantId: this.context.tenantId || 1,
-            userId: this.context.userId || 1,
+            tenantId: this.context.tenantId,
+            userId: this.context.userId,
           },
           requiresConfirmation: true,
           source: 'operator',
@@ -396,5 +403,28 @@ export class LeoOperatorMode {
   }
 }
 
-// Singleton instance
-export const leoOperatorMode = new LeoOperatorMode();
+// Singleton lazy - sem import-time execution
+let leoOperatorModeInstance: LeoOperatorMode | null = null;
+
+function getLeoOperatorModeInstance(): LeoOperatorMode {
+  if (!leoOperatorModeInstance) {
+    leoOperatorModeInstance = new LeoOperatorMode();
+  }
+  return leoOperatorModeInstance;
+}
+
+// Handler para delegação lazy sem new no topo
+const handler: ProxyHandler<LeoOperatorMode> = {
+  get(_target, prop) {
+    const instance = getLeoOperatorModeInstance();
+    const value = instance[prop as keyof LeoOperatorMode];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  }
+};
+
+// Criar proxy dentro de função para evitar import-time execution
+function createLeoOperatorModeProxy(): LeoOperatorMode {
+  return new Proxy({} as LeoOperatorMode, handler);
+}
+
+export const leoOperatorMode = createLeoOperatorModeProxy();

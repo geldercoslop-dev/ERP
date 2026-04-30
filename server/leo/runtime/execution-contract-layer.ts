@@ -63,10 +63,7 @@ if (typeof globalThis.__EXECUTION_CONTEXT__ === 'undefined') {
  * Esta função deve ser chamada em TODOS os pontos críticos do sistema
  * Se origem não for válida → BLOQUEIO IMEDIATO
  */
-export function assertExecutionOrigin(
-  allowedOrigins: ExecutionOrigin[],
-  caller: string
-): void {
+export function assertExecutionOrigin(allowedOrigins: ExecutionOrigin[], caller: string): void {
   const currentOrigin = globalThis.__EXECUTION_ORIGIN_STACK__.at(-1);
   
   if (!currentOrigin) {
@@ -110,10 +107,13 @@ export function assertExecutionOrigin(
  * Deve ser chamado no início de qualquer fluxo de execução
  */
 export function markExecutionOrigin(origin: ExecutionOrigin, context: Partial<ExecutionContext>): void {
+  if (!context.tenantId || !Number.isInteger(context.tenantId) || context.tenantId <= 0) {
+    throw new ValidationError('LEO_EXECUTION_CONTRACT_TENANT_ID_REQUIRED');
+  }
   const executionContext: ExecutionContext = {
     origin,
     actor: context.actor || 'unknown',
-    tenantId: context.tenantId || 0,
+    tenantId: context.tenantId,
     entrypoint: context.entrypoint || 'unknown',
     timestamp: new Date(),
     traceId: context.traceId,

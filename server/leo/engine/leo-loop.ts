@@ -13,6 +13,7 @@ import { leoEvents } from '../memory/leo-events.js';
 import { leoErpObserver } from '../perception/leo-erp-observer.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 import { LeoEventType, LeoEventPriority } from '../../../shared/types/index.js';
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 /** Tipo mínimo do contexto do loop para decisões (events/health/erp com estrutura conhecida) */
 interface LoopContextShaped {
@@ -184,31 +185,9 @@ export class LeoLoop {
 
     try {
       // Coletar contexto do sistema
-      // TODO: Definir tenantId correto para contexto do loop (exemplo: 1)
-      const systemContext = await buildLeoContext('leo', 1);
-
-      // Verificar saúde do sistema
-      const systemHealth = await leoSystemMonitor.verificarSistema();
-
-      // Observar ERP
-      const erpData = await leoErpObserver.observe();
-
-      // Listar eventos abertos
-      const eventsResult = await leoEvents.listarEventos({ status: 'aberto' });
-      const eventsList = eventsResult.eventos || [];
-
-      // Obter memória recente
-      const recentMemory = await leoMemory.getRecentDecisions(10);
-
-      return {
-        timestamp,
-        system: systemContext,
-        erp: erpData,
-        tasks: { pending: 0, total: 0 }, // Simplificado
-        events: { open: eventsList.length, total: eventsList.length },
-        health: systemHealth as { status?: string },
-        memory: recentMemory
-      };
+      // tenantId deve vir obrigatoriamente do contexto validado; sem fallback.
+      // LeoLoop autônomo não possui contexto de tenant — fail-hard explícito.
+      throw new ValidationError('LEO_LOOP_TENANT_CONTEXT_NOT_AVAILABLE');
 
     } catch (error) {
       console.error('Erro ao coletar contexto:', error);
