@@ -5,16 +5,21 @@
  * Users can approve or reject pending critical actions.
  */
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import {
   listPendingApprovals,
   approveAction,
   rejectAction,
   getPendingApproval,
 } from '../services/leo-approval.service.js';
+import type { ApprovalStatus } from '../services/leo-approval.service.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { tenantMiddleware } from '../middleware/tenant.middleware.js';
+import { tenantMiddleware, RequestWithTenant } from '../middleware/tenant.middleware.js';
+
+type AuthenticatedRequest = RequestWithTenant & {
+  userId?: number;
+};
 
 const router = Router();
 
@@ -26,9 +31,10 @@ router.use(tenantMiddleware);
  * GET /api/leo/approvals
  * List pending approvals for a tenant
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
+    const authReq = req as AuthenticatedRequest;
+    const tenantId = authReq.tenantId;
     const status = req.query.status as string | undefined;
 
     if (!tenantId) {
@@ -38,10 +44,10 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const approvals = await listPendingApprovals(
-      tenantId,
-      status as any
-    );
+    const validStatus: ApprovalStatus | undefined = status && ['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'].includes(status)
+      ? status as ApprovalStatus
+      : undefined;
+    const approvals = await listPendingApprovals(tenantId, validStatus);
 
     res.json({
       success: true,
@@ -60,9 +66,10 @@ router.get('/', async (req, res) => {
  * GET /api/leo/approvals/:actionId
  * Get a specific pending approval
  */
-router.get('/:actionId', async (req, res) => {
+router.get('/:actionId', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
+    const authReq = req as AuthenticatedRequest;
+    const tenantId = authReq.tenantId;
     const { actionId } = req.params;
 
     if (!tenantId) {
@@ -98,10 +105,11 @@ router.get('/:actionId', async (req, res) => {
  * POST /api/leo/approvals/:actionId/approve
  * Approve a pending action
  */
-router.post('/:actionId/approve', async (req, res) => {
+router.post('/:actionId/approve', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
-    const userId = (req as any).userId;
+    const authReq = req as AuthenticatedRequest;
+    const tenantId = authReq.tenantId;
+    const userId = authReq.userId;
     const { actionId } = req.params;
 
     if (!tenantId) {
@@ -118,7 +126,7 @@ router.post('/:actionId/approve', async (req, res) => {
       });
     }
 
-    const result = await approveAction(actionId, tenantId, `user_${userId}`);
+    const result = await approveAction(actionId, tenantId, String(userId));
 
     if (!result.success) {
       return res.status(400).json({
@@ -145,10 +153,11 @@ router.post('/:actionId/approve', async (req, res) => {
  * POST /api/leo/approvals/:actionId/reject
  * Reject a pending action
  */
-router.post('/:actionId/reject', async (req, res) => {
+router.post('/:actionId/reject', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
-    const userId = (req as any).userId;
+    const authReq = req as AuthenticatedRequest;
+    const tenantId = authReq.tenantId;
+    const userId = authReq.userId;
     const { actionId } = req.params;
 
     if (!tenantId) {
@@ -165,7 +174,7 @@ router.post('/:actionId/reject', async (req, res) => {
       });
     }
 
-    const result = await rejectAction(actionId, tenantId, `user_${userId}`);
+    const result = await rejectAction(actionId, tenantId, String(userId));
 
     if (!result.success) {
       return res.status(400).json({
