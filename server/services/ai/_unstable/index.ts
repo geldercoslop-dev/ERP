@@ -15,12 +15,10 @@ export async function toSafeAIResponse<T>(fn: () => Promise<T>): Promise<SafeAIR
 }
 
 export * from './alerts.service.js';
-export * from './app-discovery.service.js';
 export * from './business-insights.js';
 export * from './finance-engine.js';
 export * from './financial-insights.service.js';
 export * from './insight-engine.js';
-export * from './pendencias-engine.js';
 export * from './prediction-engine.js';
 export * from './sales-analytics.service.js';
 export * from './stock-analytics.service.js';
