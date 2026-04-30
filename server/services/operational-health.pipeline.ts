@@ -58,7 +58,18 @@ export async function runOperationalHealthPipeline(data: HealthEvaluationInput):
     });
 
     const externalMsg = `[ERP Health] ${message}`;
-    await Promise.all([sendWhatsApp(externalMsg), sendEmail(externalMsg)]);
+    const notificationResults = await Promise.all([sendWhatsApp(externalMsg), sendEmail(externalMsg)]);
+    
+    for (const result of notificationResults) {
+      if (result.status === "disabled") {
+        logger.info("External notification disabled", {
+          metadata: {
+            channel: result.channel,
+            reason: result.reason,
+          },
+        });
+      }
+    }
 
     await executeAction(issue);
   }
