@@ -1,6 +1,6 @@
 import { salesAnalyticsTool } from '../../tools/sales-analytics.tool.js';
 import { logInfo, logError } from '../../_core/logger.js';
-import { ValidationError } from '../../_core/errors/typed-errors.js';
+import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 /**
  * Obtém tenantId do ambiente ou lança erro se não disponível
@@ -136,15 +136,12 @@ export class LeoSalesAnalysis {
   > {
     try {
       logInfo(`Getting top ${limit} products`, {
-        extra: { entity: this.name, acao: 'getTopProducts', limit },
+        extra: { entity: this.name, acao: 'getTopProducts', limit, tenantId: this.tenantId },
       });
 
-      const topProducts = [
-        { productId: 1, productName: 'Produto A', quantity: 150, revenue: 15000 },
-        { productId: 2, productName: 'Produto B', quantity: 120, revenue: 12000 },
-      ];
+      // LEO_SALES_TOP_PRODUCTS_REAL_IMPLEMENTATION_REQUIRED
+      throw new InfrastructureError("LEO_SALES_TOP_PRODUCTS_REAL_IMPLEMENTATION_REQUIRED");
 
-      return topProducts;
     } catch (error) {
       logError('Failed to get top products', {
         extra: { error, entity: this.name, acao: 'getTopProducts' },
@@ -163,15 +160,12 @@ export class LeoSalesAnalysis {
   > {
     try {
       logInfo('Analyzing sales by category', {
-        extra: { entity: this.name, acao: 'analyzeSalesByCategory' },
+        extra: { entity: this.name, acao: 'analyzeSalesByCategory', tenantId: this.tenantId },
       });
 
-      const categoryAnalysis = [
-        { category: 'Eletrônicos', total: 50000, percentage: 35.5, growth: 15.2 },
-        { category: 'Roupas', total: 35000, percentage: 24.8, growth: 8.7 },
-      ];
+      // LEO_SALES_CATEGORY_ANALYSIS_REAL_IMPLEMENTATION_REQUIRED
+      throw new InfrastructureError("LEO_SALES_CATEGORY_ANALYSIS_REAL_IMPLEMENTATION_REQUIRED");
 
-      return categoryAnalysis;
     } catch (error) {
       logError('Failed to analyze sales by category', {
         extra: { error, entity: this.name, acao: 'analyzeSalesByCategory' },
