@@ -221,7 +221,7 @@ class SystemDiagnostic {
    * Verifica saúde dos serviços
    */
   private async checkServiceHealth(): Promise<DiagnosticResult['serviceHealth']> {
-    const services = ['auth-service', 'payment-service', 'stock-service', 'notification-service'];
+    const services = ['auth-service', 'finance-service', 'stock-service', 'notification-service'];
     const serviceHealth: DiagnosticResult['serviceHealth'] = {};
 
     for (const service of services) {
