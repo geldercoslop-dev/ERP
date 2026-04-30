@@ -11,7 +11,3 @@
 // HARDENING: Exportação segura - apenas serviços validados e blindados
 export { getLeoInsights } from "./leo-insights.service.js";
 
-// HARDENING: Módulos instáveis removidos:
-// - sales-analytics.service.js (DELETADO)
-// - stock-analytics.service.js (DELETADO) 
-// - financial-insights.service.js (DELETADO)

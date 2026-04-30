@@ -123,7 +123,6 @@ export async function processarComandoNavegacao(comando: string): Promise<Naviga
     // Buscar comando direto no mapeamento
     const rotaMapeada = COMANDOS_NAVEGACAO[comandoNormalizado];
     if (rotaMapeada) {
-      // Função getScreenByRoute removida - implementação segura
       return {
         comando: comandoNormalizado,
         rota: rotaMapeada,
@@ -133,7 +132,6 @@ export async function processarComandoNavegacao(comando: string): Promise<Naviga
     }
     
     // Busca aproximada por palavras-chave
-    // Função getAllScreens removida - implementação segura
     const todasTelas: Array<{ nome: string; rota: string; modulo: string }> = [];
     for (const tela of todasTelas) {
       const nomeNormalizado = normalizarComando(tela.nome);
@@ -155,7 +153,6 @@ export async function processarComandoNavegacao(comando: string): Promise<Naviga
     for (const [chave, rota] of Object.entries(COMANDOS_NAVEGACAO)) {
       const chaveNormalizada = normalizarComando(chave);
       if (comandoNormalizado.includes(chaveNormalizada) || chaveNormalizada.includes(comandoNormalizado)) {
-        // Função getScreenByRoute removida - implementação segura
         return {
           comando: comandoNormalizado,
           rota: rota,
@@ -224,7 +221,6 @@ export function sugerirComandos(parcial: string): string[] {
  */
 export async function validarRota(rota: string): Promise<boolean> {
   try {
-    // Função getScreenByRoute removida - implementação segura
     const screen = null;
     return screen !== null;
   } catch {
