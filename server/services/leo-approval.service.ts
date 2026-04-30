@@ -1,14 +1,17 @@
 /**
- * LEO Approval Service - SAFE MOCK
+ * LEO Approval Service
  *
- * MOCK IMPLEMENTATION: No database table required.
- * All actions are auto-approved for system stability.
- * Preserves interface for future real implementation.
+ * Real implementation using leo_approvals table.
+ * All actions require explicit approval - no auto-approve.
  */
 
-import { ValidationError } from "../_core/errors/typed-errors.js";
+import { eq, and, desc } from "drizzle-orm";
+import { getDb, insertAuditLog } from "../db/index.js";
+import { leoApprovals } from "../../drizzle/schema.js";
+import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
+import { getInsertId } from "../db/core.js";
 
-export type ApprovalStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
 export interface CreatePendingApprovalInput {
@@ -37,6 +40,8 @@ export interface PendingApproval {
   requestedBy?: string;
   approvedBy?: string;
   approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
   expiresAt: string;
   createdAt: string;
   updatedAt: string;
@@ -48,9 +53,54 @@ export interface ApprovalResult {
   message: string;
 }
 
+function assertDbConnection(db: unknown): asserts db is Exclude<typeof db, null> {
+  if (!db) {
+    throw new InfrastructureError("Database connection not available");
+  }
+}
+
+function serializePayload(payload: Record<string, unknown>): string {
+  try {
+    return JSON.stringify(payload);
+  } catch {
+    return "{}";
+  }
+}
+
+function parsePayload(payloadJson: string | null): Record<string, unknown> {
+  if (!payloadJson) return {};
+  try {
+    return JSON.parse(payloadJson) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+function mapApprovalFromDb(row: typeof leoApprovals.$inferSelect): PendingApproval {
+  return {
+    id: row.id,
+    actionId: row.actionId,
+    tenantId: row.tenantId,
+    action: row.action,
+    entity: row.entity,
+    description: row.description || "",
+    riskLevel: row.riskLevel as RiskLevel,
+    payload: parsePayload(row.payloadJson),
+    status: row.status as ApprovalStatus,
+    requestedBy: row.requestedBy ? String(row.requestedBy) : undefined,
+    approvedBy: row.approvedBy ? String(row.approvedBy) : undefined,
+    approvedAt: row.approvedAt ? new Date(row.approvedAt).toISOString() : undefined,
+    rejectedBy: row.rejectedBy ? String(row.rejectedBy) : undefined,
+    rejectedAt: row.rejectedAt ? new Date(row.rejectedAt).toISOString() : undefined,
+    expiresAt: new Date(row.expiresAt).toISOString(),
+    createdAt: new Date(row.createdAt).toISOString(),
+    updatedAt: new Date(row.updatedAt).toISOString(),
+  };
+}
+
 /**
  * Create a pending approval request for a critical action
- * MOCK: Auto-approves for system stability (no DB table)
+ * Creates record with status PENDING - no auto-approve
  */
 export async function createPendingApproval(input: CreatePendingApprovalInput): Promise<ApprovalResult> {
   if (!input.tenantId || !Number.isInteger(input.tenantId) || input.tenantId <= 0) {
@@ -61,37 +111,55 @@ export async function createPendingApproval(input: CreatePendingApprovalInput): 
     throw new ValidationError('action and entity are required');
   }
 
-  const actionId = `mock_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  const now = new Date().toISOString();
+  const actionId = `${input.entity}_${input.action}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const expiresInMinutes = input.expiresInMinutes || 60;
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-  // MOCK: Return auto-approved result
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const result = await dbConn.insert(leoApprovals).values({
+    tenantId: input.tenantId,
+    actionId,
+    action: input.action,
+    entity: input.entity,
+    description: input.description,
+    riskLevel: input.riskLevel,
+    payloadJson: serializePayload(input.payload),
+    status: "PENDING",
+    requestedBy: input.requestedBy ? parseInt(input.requestedBy, 10) || null : null,
+    expiresAt,
+  });
+
+  const approvalId = getInsertId(result);
+
+  await insertAuditLog({
+    tenantId: input.tenantId,
+    action: "create",
+    entity: "leo_approval",
+    entityId: approvalId,
+    payloadJson: JSON.stringify({ actionId, action: input.action, entity: input.entity, riskLevel: input.riskLevel }),
+  });
+
+  const created = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(eq(leoApprovals.id, approvalId))
+    .limit(1);
+
+  if (!created || created.length === 0) {
+    throw new InfrastructureError("Failed to retrieve created approval");
+  }
+
   return {
     success: true,
-    approval: {
-      id: 1,
-      actionId,
-      tenantId: input.tenantId,
-      action: input.action,
-      entity: input.entity,
-      description: input.description,
-      riskLevel: input.riskLevel,
-      payload: input.payload,
-      impact: input.impact,
-      status: 'APPROVED',
-      requestedBy: input.requestedBy || 'LEO',
-      approvedBy: 'MOCK_AUTO',
-      approvedAt: now,
-      expiresAt: now,
-      createdAt: now,
-      updatedAt: now,
-    },
-    message: 'MOCK: Action auto-approved (no DB table)',
+    approval: mapApprovalFromDb(created[0]),
+    message: 'Approval request created and pending review',
   };
 }
 
 /**
  * Approve a pending action
- * MOCK: Always succeeds (no DB table)
  */
 export async function approveAction(
   actionId: string,
@@ -106,38 +174,62 @@ export async function approveAction(
     throw new ValidationError('tenantId is required and must be a positive integer');
   }
 
-  if (!approvedBy) {
-    throw new ValidationError('approvedBy is required');
+  if (!approvedBy || typeof approvedBy !== 'string' || approvedBy.trim() === '') {
+    throw new ValidationError('approvedBy is required and must be a non-empty string');
   }
 
-  const now = new Date().toISOString();
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const existing = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(and(eq(leoApprovals.actionId, actionId), eq(leoApprovals.tenantId, tenantId)))
+    .limit(1);
+
+  if (!existing || existing.length === 0) {
+    throw new ValidationError('Approval request not found');
+  }
+
+  const approval = existing[0];
+
+  if (approval.status !== "PENDING") {
+    throw new ValidationError(`Cannot approve: status is ${approval.status}`);
+  }
+
+  await dbConn
+    .update(leoApprovals)
+    .set({
+      status: "APPROVED",
+      approvedBy: parseInt(approvedBy, 10) || null,
+      approvedAt: new Date(),
+    })
+    .where(eq(leoApprovals.id, approval.id));
+
+  await insertAuditLog({
+    tenantId,
+    action: "update",
+    entity: "leo_approval",
+    entityId: approval.id,
+    actorUserId: parseInt(approvedBy, 10) || null,
+    payloadJson: JSON.stringify({ actionId, operation: "approve", previousStatus: approval.status }),
+  });
+
+  const updated = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(eq(leoApprovals.id, approval.id))
+    .limit(1);
 
   return {
     success: true,
-    approval: {
-      id: 1,
-      actionId,
-      tenantId,
-      action: 'mock_action',
-      entity: 'mock_entity',
-      description: 'MOCK approval',
-      riskLevel: 'low',
-      payload: {},
-      status: 'APPROVED',
-      requestedBy: 'MOCK',
-      approvedBy,
-      approvedAt: now,
-      expiresAt: now,
-      createdAt: now,
-      updatedAt: now,
-    },
-    message: 'MOCK: Action approved (no DB table)',
+    approval: mapApprovalFromDb(updated[0]),
+    message: 'Action approved successfully',
   };
 }
 
 /**
  * Reject a pending action
- * MOCK: Always succeeds (no DB table)
  */
 export async function rejectAction(
   actionId: string,
@@ -152,19 +244,55 @@ export async function rejectAction(
     throw new ValidationError('tenantId is required and must be a positive integer');
   }
 
-  if (!rejectedBy) {
-    throw new ValidationError('rejectedBy is required');
+  if (!rejectedBy || typeof rejectedBy !== 'string' || rejectedBy.trim() === '') {
+    throw new ValidationError('rejectedBy is required and must be a non-empty string');
   }
+
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const existing = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(and(eq(leoApprovals.actionId, actionId), eq(leoApprovals.tenantId, tenantId)))
+    .limit(1);
+
+  if (!existing || existing.length === 0) {
+    throw new ValidationError('Approval request not found');
+  }
+
+  const approval = existing[0];
+
+  if (approval.status !== "PENDING") {
+    throw new ValidationError(`Cannot reject: status is ${approval.status}`);
+  }
+
+  await dbConn
+    .update(leoApprovals)
+    .set({
+      status: "REJECTED",
+      rejectedBy: parseInt(rejectedBy, 10) || null,
+      rejectedAt: new Date(),
+    })
+    .where(eq(leoApprovals.id, approval.id));
+
+  await insertAuditLog({
+    tenantId,
+    action: "update",
+    entity: "leo_approval",
+    entityId: approval.id,
+    actorUserId: parseInt(rejectedBy, 10) || null,
+    payloadJson: JSON.stringify({ actionId, operation: "reject", previousStatus: approval.status }),
+  });
 
   return {
     success: true,
-    message: 'MOCK: Action rejected (no DB table)',
+    message: 'Action rejected successfully',
   };
 }
 
 /**
  * Get a pending approval by actionId
- * MOCK: Returns null (no DB table)
  */
 export async function getPendingApproval(actionId: string, tenantId: number): Promise<PendingApproval | null> {
   if (!actionId) {
@@ -175,35 +303,85 @@ export async function getPendingApproval(actionId: string, tenantId: number): Pr
     throw new ValidationError('tenantId is required and must be a positive integer');
   }
 
-  // MOCK: No DB table, return null
-  return null;
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const result = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(and(eq(leoApprovals.actionId, actionId), eq(leoApprovals.tenantId, tenantId)))
+    .limit(1);
+
+  if (!result || result.length === 0) {
+    return null;
+  }
+
+  return mapApprovalFromDb(result[0]);
 }
 
 /**
  * List pending approvals for a tenant
- * MOCK: Returns empty array (no DB table)
  */
 export async function listPendingApprovals(tenantId: number, status?: ApprovalStatus): Promise<PendingApproval[]> {
   if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
     throw new ValidationError('tenantId is required and must be a positive integer');
   }
 
-  // MOCK: No DB table, return empty array
-  return [];
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const targetStatus = status || "PENDING";
+
+  const results = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(and(eq(leoApprovals.tenantId, tenantId), eq(leoApprovals.status, targetStatus)))
+    .orderBy(desc(leoApprovals.createdAt));
+
+  return results.map(mapApprovalFromDb);
 }
 
 /**
  * Expire old pending approvals
- * MOCK: Returns 0 (no DB table)
  */
 export async function expireOldApprovals(): Promise<number> {
-  // MOCK: No DB table, return 0
-  return 0;
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const now = new Date();
+
+  const pendingApprovals = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(eq(leoApprovals.status, "PENDING"));
+
+  let expiredCount = 0;
+
+  for (const approval of pendingApprovals) {
+    if (new Date(approval.expiresAt) < now) {
+      await dbConn
+        .update(leoApprovals)
+        .set({ status: "EXPIRED" })
+        .where(eq(leoApprovals.id, approval.id));
+
+      expiredCount++;
+
+      await insertAuditLog({
+        tenantId: approval.tenantId,
+        action: "update",
+        entity: "leo_approval",
+        entityId: approval.id,
+        payloadJson: JSON.stringify({ actionId: approval.actionId, operation: "expire", expiredAt: now.toISOString() }),
+      });
+    }
+  }
+
+  return expiredCount;
 }
 
 /**
  * Execute an approved action
- * MOCK: Always succeeds (no DB table)
+ * Verifies the action is approved before execution
  */
 export async function executeApprovedAction(actionId: string, tenantId: number): Promise<ApprovalResult> {
   if (!actionId) {
@@ -214,27 +392,36 @@ export async function executeApprovedAction(actionId: string, tenantId: number):
     throw new ValidationError('tenantId is required and must be a positive integer');
   }
 
-  const now = new Date().toISOString();
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const existing = await dbConn
+    .select()
+    .from(leoApprovals)
+    .where(and(eq(leoApprovals.actionId, actionId), eq(leoApprovals.tenantId, tenantId)))
+    .limit(1);
+
+  if (!existing || existing.length === 0) {
+    throw new ValidationError('Approval request not found');
+  }
+
+  const approval = existing[0];
+
+  if (approval.status !== "APPROVED") {
+    throw new ValidationError(`Cannot execute: action is not approved (status: ${approval.status})`);
+  }
+
+  await insertAuditLog({
+    tenantId,
+    action: "create",
+    entity: "leo_approval_execution",
+    entityId: approval.id,
+    payloadJson: JSON.stringify({ actionId, executedAt: new Date().toISOString() }),
+  });
 
   return {
     success: true,
-    approval: {
-      id: 1,
-      actionId,
-      tenantId,
-      action: 'mock_action',
-      entity: 'mock_entity',
-      description: 'MOCK execution',
-      riskLevel: 'low',
-      payload: {},
-      status: 'APPROVED',
-      requestedBy: 'MOCK',
-      approvedBy: 'MOCK',
-      approvedAt: now,
-      expiresAt: now,
-      createdAt: now,
-      updatedAt: now,
-    },
-    message: 'MOCK: Action executed (no DB table)',
+    approval: mapApprovalFromDb(approval),
+    message: 'Action executed successfully',
   };
 }
