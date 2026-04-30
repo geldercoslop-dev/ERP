@@ -14,7 +14,6 @@ export async function toSafeAIResponse<T>(fn: () => Promise<T>): Promise<SafeAIR
   }
 }
 
-export * from './alerts.service.js';
 export * from './business-insights.js';
 export * from './finance-engine.js';
 export * from './insight-engine.js';
