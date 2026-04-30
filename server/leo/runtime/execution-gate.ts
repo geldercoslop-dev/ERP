@@ -99,31 +99,49 @@ export async function executeLeoActionGate(request: ExecutionGateRequest): Promi
         // STEP 1: VALIDATE TENANT (OBRIGATÓRIO)
         await validateTenantContext(request.context);
         
-        // STEP 2: CHECK PERMISSIONS
-        const permission = await checkActionPermission(request);
-        
-        if (!permission.allowed) {
-          const blockedResult: ExecutionGateResult = {
-            success: false,
-            message: permission.reason || 'Permissão negada',
-            executionTime: Date.now() - startTime,
-            blocked: true,
-            blockedReason: 'permission_denied',
-          };
+        // STEP 2: CHECK APPROVAL BY actionId (SE FOR EXECUÇÃO DE AÇÃO JÁ APROVADA)
+        // Se a request já vem com um approvalId, verificamos se ele é válido e APPROVED
+        if (request.parameters?.approvalId) {
+          const { executeApprovedAction } = await import('../../services/leo-approval.service.js');
+          const approvalId = String(request.parameters.approvalId);
           
-          await logExecutionAttempt(request, blockedResult, 'permission_denied');
-          return blockedResult;
+          const approvalResult = await executeApprovedAction(approvalId, request.context.tenantId);
+          
+          if (!approvalResult.success || !approvalResult.approval || approvalResult.approval.status !== 'APPROVED') {
+            throw new ValidationError(`Ação não autorizada ou não aprovada: ${approvalId}`);
+          }
+          
+          // Se chegou aqui, está aprovado. Podemos seguir para a execução via tool.
+          logInfo(`[ExecutionGate] Approval validated for actionId: ${approvalId}`, {
+            extra: { action: request.action, tenantId: request.context.tenantId }
+          });
+        } else {
+          // STEP 3: CHECK PERMISSIONS (SE NÃO FOR UMA EXECUÇÃO DE AÇÃO JÁ APROVADA)
+          const permission = await checkActionPermission(request);
+          
+          if (!permission.allowed) {
+            const blockedResult: ExecutionGateResult = {
+              success: false,
+              message: permission.reason || 'Permissão negada',
+              executionTime: Date.now() - startTime,
+              blocked: true,
+              blockedReason: 'permission_denied',
+            };
+            
+            await logExecutionAttempt(request, blockedResult, 'permission_denied');
+            return blockedResult;
+          }
+          
+          // STEP 4: CHECK IF APPROVAL IS REQUIRED
+          if (permission.requiresConfirmation || request.requiresConfirmation) {
+            const approvalResult = await handleApprovalRequired(request);
+            
+            await logExecutionAttempt(request, approvalResult, 'approval_required');
+            return approvalResult;
+          }
         }
         
-        // STEP 3: CHECK APPROVAL (BLOQUEIO REAL)
-        if (permission.requiresConfirmation || request.requiresConfirmation) {
-          const approvalResult = await handleApprovalRequired(request);
-          
-          await logExecutionAttempt(request, approvalResult, 'approval_required');
-          return approvalResult;
-        }
-        
-        // STEP 4: EXECUTE VIA TOOL (ÚNICA INTERFACE)
+        // STEP 5: EXECUTE VIA TOOL (ÚNICA INTERFACE)
         const toolResult = await executeViaTool(request);
         
         const finalResult: ExecutionGateResult = {
@@ -215,7 +233,7 @@ async function handleApprovalRequired(request: ExecutionGateRequest): Promise<Ex
     description: `LEO action ${request.action} via ${request.toolName} requires user approval`,
     riskLevel: 'high',
     payload: request.parameters || {},
-    requestedBy: request.source || 'leo',
+    requestedBy: String(request.context.userId), // Usar userId real do contexto
   });
   
   return {
@@ -257,8 +275,9 @@ async function logExecutionAttempt(
   result: ExecutionGateResult,
   status: string
 ): Promise<void> {
+  const timestamp = new Date();
   await LeoActionsLog.logAction({
-    timestamp: new Date(),
+    timestamp,
     toolName: request.toolName,
     executionTime: result.executionTime,
     result: result.success ? 'success' : 'error',
@@ -301,23 +320,24 @@ async function logExecutionAttempt(
  * Verifica se a execução está acontecendo fora do gate
  */
 export class ExecutionBypassDetector {
-  private static executionGateStack = new Error('Execution Gate Stack Trace');
+  private static executionGateStack: Error | null = null;
   
   /**
    * Verifica se a execução está acontecendo fora do gate
    * Deve ser chamado em pontos críticos do sistema
    */
   static detectBypass(caller: string): void {
-    const stack = new Error().stack || '';
+    const stack = new Error().stack;
+    const stackStr = stack || '';
     
     // Se a stack não contém executeLeoActionGate, é um bypass
-    if (!stack.includes('executeLeoActionGate') && !stack.includes('execution-gate.ts')) {
+    if (!stackStr.includes('executeLeoActionGate') && !stackStr.includes('execution-gate.ts')) {
       logError(`[ExecutionBypassDetector] BYPASS DETECTED: ${caller}`, {
         extra: {
           entity: 'ExecutionBypassDetector',
           acao: 'detectBypass',
           caller,
-          stack,
+          stack: stackStr,
         },
       });
       
