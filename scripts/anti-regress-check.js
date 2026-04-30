@@ -71,16 +71,28 @@ Use tipagem correta.
   // 🔴 4. DETECTAR IMPORT-TIME EXECUTION
   // Ignorar arquivos markdown e docs
   if (!file.endsWith(".md") && !file.startsWith("docs/") && !file.includes("services")) {
-    const suspiciousPatterns = /setInterval\s*\(|setTimeout\s*\(|\.start\s*\(|new\s+/;
+    // Suspicious: setInterval, setTimeout, .start(), new X() at import time
+    // Safe new X() inside: class methods, functions, async functions, arrow functions, object methods
+    const suspiciousPatterns = /setInterval\s*\(|setTimeout\s*\(|\.start\s*\(|new\s+[A-Z][a-zA-Z0-9_]*\s*\(/;
     const safeBoundaries = [
       /\bfunction\b/,
+      /\basync\s+function\b/,
+      /\bclass\b/,
+      /\bconstructor\s*\(/,
+      /\bmethod\s*\(/, // decorator pattern
+      /\bget\s+\w+\s*\(/, // getter
+      /\bset\s+\w+\s*\(/, // setter
       /=>/,
+      /:\s*async\s*\(/, // object method: execute: async (
+      /:\s*\(/, // object method shorthand: execute: (
       /\.query\s*\(/,
       /\.mutation\s*\(/,
       /\.use\s*\(/,
       /router\s*\(\{/,
       /createTRPCRouter\s*\(/,
-      /Router\s*\(\)/
+      /Router\s*\(\)/,
+      /{\s*execute\s*:/, // object literal with execute method
+      /{\s*\w+\s*:\s*(async\s*)?\(/ // object literal with any method
     ];
 
     const lines = content.split("\n");
