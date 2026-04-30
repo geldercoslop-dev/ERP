@@ -6,6 +6,8 @@
 
 import { router, adminProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
+import { requireTenant } from '../_core/tenant.js';
 import { leoLoop } from '../leo/engine/leo-loop.js';
 import { leoTaskQueue } from '../leo/tasks/leo-task-queue.js';
 import { leoMemory } from '../leo/memory/leo-memory.js';
@@ -14,6 +16,7 @@ import { leoErpObserver } from '../leo/perception/leo-erp-observer.js';
 import { leoSystemMonitor } from '../leo/perception/leo-system-monitor.js';
 import { leoEvents } from '../leo/memory/leo-events.js';
 import { leoAutomation } from '../leo/actions/leo-automation.js';
+import { listPendingApprovals, getPendingApproval, approveAction, rejectAction, type ApprovalStatus } from '../services/leo-approval.service.js';
 import type { LeoTask, LeoEvent, User } from "../../shared/types/index.js";
 import { LeoTaskStatus, LeoTaskType, LeoTaskPriority } from "../../shared/types/index.js";
 
@@ -659,5 +662,127 @@ export const leoAdminRouter = router({
         };
       }
     }),
+  },
+
+  // Gerenciar Approvals
+  approvals: {
+    // Listar approvals
+    list: adminProcedure
+      .input(z.object({
+        status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED']).optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const status = input?.status;
+          const approvals = await listPendingApprovals(tenantId, status);
+          return {
+            success: true,
+            data: approvals,
+          };
+        } catch (error) {
+          console.error('[LeoAdmin] Erro ao listar approvals:', error);
+          return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Erro ao listar approvals',
+          };
+        }
+      }),
+
+    // Obter approval por actionId
+    get: adminProcedure
+      .input(z.object({
+        actionId: z.string().min(1),
+      }))
+      .query(async ({ ctx, input }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const approval = await getPendingApproval(input.actionId, tenantId);
+          if (!approval) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'LEO_APPROVAL_NOT_FOUND',
+            });
+          }
+          return {
+            success: true,
+            data: approval,
+          };
+        } catch (error) {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+          console.error('[LeoAdmin] Erro ao obter approval:', error);
+          return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Erro ao obter approval',
+          };
+        }
+      }),
+
+    // Aprovar action
+    approve: adminProcedure
+      .input(z.object({
+        actionId: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const userId = ctx.user.id;
+          if (!Number.isInteger(userId) || userId <= 0) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Invalid user ID',
+            });
+          }
+          const result = await approveAction(input.actionId, tenantId, String(userId));
+          return {
+            success: result.success,
+            message: result.message,
+            data: result.approval,
+          };
+        } catch (error) {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+          console.error('[LeoAdmin] Erro ao aprovar action:', error);
+          return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Erro ao aprovar action',
+          };
+        }
+      }),
+
+    // Rejeitar action
+    reject: adminProcedure
+      .input(z.object({
+        actionId: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const userId = ctx.user.id;
+          if (!Number.isInteger(userId) || userId <= 0) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Invalid user ID',
+            });
+          }
+          const result = await rejectAction(input.actionId, tenantId, String(userId));
+          return {
+            success: result.success,
+            message: result.message,
+          };
+        } catch (error) {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+          console.error('[LeoAdmin] Erro ao rejeitar action:', error);
+          return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Erro ao rejeitar action',
+          };
+        }
+      }),
   },
 });
