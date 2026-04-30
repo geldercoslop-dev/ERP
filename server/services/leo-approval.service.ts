@@ -59,6 +59,29 @@ function assertDbConnection(db: unknown): asserts db is Exclude<typeof db, null>
   }
 }
 
+/**
+ * Parse user ID safely - only accepts pure numeric strings or positive integers
+ * Rejects strings with non-digit characters (e.g., "user_123")
+ */
+function parseUserId(value: string | number | undefined | null): number | null {
+  if (value === undefined || value === null) return null;
+  
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }
+  
+  if (typeof value === 'string') {
+    // Only accept strings with pure digits (no "user_123", no spaces, no dashes)
+    if (!/^\d+$/.test(value.trim())) {
+      return null;
+    }
+    const parsed = parseInt(value.trim(), 10);
+    return parsed > 0 ? parsed : null;
+  }
+  
+  return null;
+}
+
 function serializePayload(payload: Record<string, unknown>): string {
   try {
     return JSON.stringify(payload);
@@ -127,7 +150,7 @@ export async function createPendingApproval(input: CreatePendingApprovalInput): 
     riskLevel: input.riskLevel,
     payloadJson: serializePayload(input.payload),
     status: "PENDING",
-    requestedBy: input.requestedBy ? parseInt(input.requestedBy, 10) || null : null,
+    requestedBy: parseUserId(input.requestedBy),
     expiresAt,
   });
 
@@ -174,8 +197,9 @@ export async function approveAction(
     throw new ValidationError('tenantId is required and must be a positive integer');
   }
 
-  if (!approvedBy || typeof approvedBy !== 'string' || approvedBy.trim() === '') {
-    throw new ValidationError('approvedBy is required and must be a non-empty string');
+  const approverId = parseUserId(approvedBy);
+  if (!approverId) {
+    throw new ValidationError('approvedBy must be a positive integer or numeric string');
   }
 
   const dbConn = await getDb();
@@ -201,7 +225,7 @@ export async function approveAction(
     .update(leoApprovals)
     .set({
       status: "APPROVED",
-      approvedBy: parseInt(approvedBy, 10) || null,
+      approvedBy: approverId,
       approvedAt: new Date(),
     })
     .where(eq(leoApprovals.id, approval.id));
@@ -211,7 +235,7 @@ export async function approveAction(
     action: "update",
     entity: "leo_approval",
     entityId: approval.id,
-    actorUserId: parseInt(approvedBy, 10) || null,
+    actorUserId: approverId,
     payloadJson: JSON.stringify({ actionId, operation: "approve", previousStatus: approval.status }),
   });
 
@@ -244,8 +268,9 @@ export async function rejectAction(
     throw new ValidationError('tenantId is required and must be a positive integer');
   }
 
-  if (!rejectedBy || typeof rejectedBy !== 'string' || rejectedBy.trim() === '') {
-    throw new ValidationError('rejectedBy is required and must be a non-empty string');
+  const rejectorId = parseUserId(rejectedBy);
+  if (!rejectorId) {
+    throw new ValidationError('rejectedBy must be a positive integer or numeric string');
   }
 
   const dbConn = await getDb();
@@ -271,7 +296,7 @@ export async function rejectAction(
     .update(leoApprovals)
     .set({
       status: "REJECTED",
-      rejectedBy: parseInt(rejectedBy, 10) || null,
+      rejectedBy: rejectorId,
       rejectedAt: new Date(),
     })
     .where(eq(leoApprovals.id, approval.id));
@@ -281,7 +306,7 @@ export async function rejectAction(
     action: "update",
     entity: "leo_approval",
     entityId: approval.id,
-    actorUserId: parseInt(rejectedBy, 10) || null,
+    actorUserId: rejectorId,
     payloadJson: JSON.stringify({ actionId, operation: "reject", previousStatus: approval.status }),
   });
 
@@ -342,9 +367,13 @@ export async function listPendingApprovals(tenantId: number, status?: ApprovalSt
 }
 
 /**
- * Expire old pending approvals
+ * Expire old pending approvals for a specific tenant
  */
-export async function expireOldApprovals(): Promise<number> {
+export async function expireOldApprovals(tenantId: number): Promise<number> {
+  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new ValidationError('tenantId is required and must be a positive integer');
+  }
+
   const dbConn = await getDb();
   assertDbConnection(dbConn);
 
@@ -353,7 +382,10 @@ export async function expireOldApprovals(): Promise<number> {
   const pendingApprovals = await dbConn
     .select()
     .from(leoApprovals)
-    .where(eq(leoApprovals.status, "PENDING"));
+    .where(and(
+      eq(leoApprovals.tenantId, tenantId),
+      eq(leoApprovals.status, "PENDING")
+    ));
 
   let expiredCount = 0;
 
@@ -362,12 +394,15 @@ export async function expireOldApprovals(): Promise<number> {
       await dbConn
         .update(leoApprovals)
         .set({ status: "EXPIRED" })
-        .where(eq(leoApprovals.id, approval.id));
+        .where(and(
+          eq(leoApprovals.id, approval.id),
+          eq(leoApprovals.tenantId, tenantId)
+        ));
 
       expiredCount++;
 
       await insertAuditLog({
-        tenantId: approval.tenantId,
+        tenantId,
         action: "update",
         entity: "leo_approval",
         entityId: approval.id,
