@@ -4,7 +4,7 @@
  * Endpoints administrativos para controle do operador autônomo
  */
 
-import { router, publicProcedure } from '../_core/trpc.js';
+import { router, adminProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
 import { leoLoop } from '../leo/engine/leo-loop.js';
 import { leoTaskQueue } from '../leo/tasks/leo-task-queue.js';
@@ -22,7 +22,7 @@ import { LeoTaskStatus, LeoTaskType, LeoTaskPriority } from "../../shared/types/
  */
 export const leoAdminRouter = router({
   // Status geral do Leo
-  getStatus: publicProcedure.query(async () => {
+  getStatus: adminProcedure.query(async () => {
     try {
       const loopStatus = await leoLoop.getLoopStatus();
       const operatorMode = leoOperatorMode.isModoOperadorAtivo();
@@ -57,7 +57,7 @@ export const leoAdminRouter = router({
   }),
 
   // Iniciar Loop Cognitivo
-  startLoop: publicProcedure
+  startLoop: adminProcedure
     .input(z.object({ intervalMs: z.number().optional().default(5000) }))
     .mutation(async ({ input }) => {
       try {
@@ -76,7 +76,7 @@ export const leoAdminRouter = router({
     }),
 
   // Parar Loop Cognitivo
-  stopLoop: publicProcedure.mutation(async () => {
+  stopLoop: adminProcedure.mutation(async () => {
     try {
       await leoLoop.stopLeoLoop();
       return {
@@ -95,7 +95,7 @@ export const leoAdminRouter = router({
   // Gerenciar Modo Operador
   operatorMode: {
     // Ativar modo operador
-    activate: publicProcedure
+    activate: adminProcedure
       .input(z.object({
         nivelAutonomia: z.enum(['baixa', 'media', 'alta', 'total']).default('media'),
         permissoes: z.object({
@@ -131,7 +131,7 @@ export const leoAdminRouter = router({
       }),
 
     // Desativar modo operador
-    deactivate: publicProcedure.mutation(async () => {
+    deactivate: adminProcedure.mutation(async () => {
       try {
         await leoOperatorMode.desativarModoOperador();
         return {
@@ -148,7 +148,7 @@ export const leoAdminRouter = router({
     }),
 
     // Obter configuração
-    getConfig: publicProcedure.query(async () => {
+    getConfig: adminProcedure.query(async () => {
       try {
         const config = leoOperatorMode.getConfig();
         return {
@@ -168,7 +168,7 @@ export const leoAdminRouter = router({
   // Gerenciar Tarefas
   tasks: {
     // Listar tarefas
-    list: publicProcedure
+    list: adminProcedure
       .input(z.object({
         status: z.enum(['pending', 'running', 'done', 'error']).optional(),
         type: z.string().optional(),
@@ -205,7 +205,7 @@ export const leoAdminRouter = router({
       }),
 
     // Criar tarefa
-    create: publicProcedure
+    create: adminProcedure
       .input(z.object({
         type: z.string(),
         priority: z.enum(['alta', 'media', 'baixa']),
@@ -239,7 +239,7 @@ export const leoAdminRouter = router({
       }),
 
     // Cancelar tarefa
-    cancel: publicProcedure
+    cancel: adminProcedure
       .input(z.object({ taskId: z.string() }))
       .mutation(async ({ input }) => {
         try {
@@ -258,7 +258,7 @@ export const leoAdminRouter = router({
       }),
 
     // Limpar tarefas antigas
-    clean: publicProcedure
+    clean: adminProcedure
       .input(z.object({ maxAge: z.number().optional().default(24 * 60 * 60 * 1000) }))
       .mutation(async ({ input }) => {
         try {
@@ -278,7 +278,7 @@ export const leoAdminRouter = router({
       }),
 
     // Estatísticas
-    stats: publicProcedure.query(async () => {
+    stats: adminProcedure.query(async () => {
       try {
         const stats = await leoTaskQueue.getStats();
         return {
@@ -298,7 +298,7 @@ export const leoAdminRouter = router({
   // Gerenciar Memória
   memory: {
     // Histórico recente
-    history: publicProcedure
+    history: adminProcedure
       .input(z.object({ limit: z.number().optional().default(50) }))
       .query(async ({ input }) => {
         try {
@@ -317,7 +317,7 @@ export const leoAdminRouter = router({
       }),
 
     // Estatísticas da memória
-    stats: publicProcedure.query(async () => {
+    stats: adminProcedure.query(async () => {
       try {
         const stats = await leoMemory.getStats();
         return {
@@ -334,7 +334,7 @@ export const leoAdminRouter = router({
     }),
 
     // Insights aprendidos
-    insights: publicProcedure.query(async () => {
+    insights: adminProcedure.query(async () => {
       try {
         const insights = await leoMemory.getInsights();
         return {
@@ -351,7 +351,7 @@ export const leoAdminRouter = router({
     }),
 
     // Limpar memória antiga
-    clean: publicProcedure
+    clean: adminProcedure
       .input(z.object({ maxAge: z.number().optional().default(7 * 24 * 60 * 60 * 1000) }))
       .mutation(async ({ input }) => {
         try {
@@ -371,7 +371,7 @@ export const leoAdminRouter = router({
       }),
 
     // Exportar memória
-    export: publicProcedure.query(async () => {
+    export: adminProcedure.query(async () => {
       try {
         const exportData = await leoMemory.exportMemory();
         return {
@@ -391,7 +391,7 @@ export const leoAdminRouter = router({
   // Gerenciar Sistema
   system: {
     // Verificar saúde do sistema
-    health: publicProcedure.query(async () => {
+    health: adminProcedure.query(async () => {
       try {
         const health = await leoSystemMonitor.verificarSistema();
         return {
@@ -408,7 +408,7 @@ export const leoAdminRouter = router({
     }),
 
     // Gerar relatório de saúde
-    report: publicProcedure.query(async () => {
+    report: adminProcedure.query(async () => {
       try {
         const report = await leoSystemMonitor.gerarRelatorioSaude();
         return {
@@ -425,7 +425,7 @@ export const leoAdminRouter = router({
     }),
 
     // Logs recentes
-    logs: publicProcedure
+    logs: adminProcedure
       .input(z.object({ limit: z.number().optional().default(100) }))
       .query(async ({ input }) => {
         try {
@@ -447,7 +447,7 @@ export const leoAdminRouter = router({
   // Gerenciar ERP Observer
   erpObserver: {
     // Forçar coleta de contexto
-    collect: publicProcedure.mutation(async () => {
+    collect: adminProcedure.mutation(async () => {
       try {
         const context = await leoErpObserver.collectErpContext();
         return {
@@ -465,7 +465,7 @@ export const leoAdminRouter = router({
     }),
 
     // Obter último contexto
-    lastContext: publicProcedure.query(async () => {
+    lastContext: adminProcedure.query(async () => {
       try {
         const context = await leoErpObserver.getLastContext();
         return {
@@ -485,7 +485,7 @@ export const leoAdminRouter = router({
   // Gerenciar Eventos
   events: {
     // Gerar eventos automáticos
-    generateAuto: publicProcedure.mutation(async () => {
+    generateAuto: adminProcedure.mutation(async () => {
       try {
         const result = await leoEvents.gerarEventosAutomaticos();
         return {
@@ -503,7 +503,7 @@ export const leoAdminRouter = router({
     }),
 
     // Estatísticas de eventos
-    stats: publicProcedure.query(async () => {
+    stats: adminProcedure.query(async () => {
       try {
         const stats = await leoEvents.getEstatisticas();
         return {
@@ -523,7 +523,7 @@ export const leoAdminRouter = router({
   // Gerenciar Automação
   automation: {
     // Iniciar automação
-    start: publicProcedure.mutation(async () => {
+    start: adminProcedure.mutation(async () => {
       try {
         const result = await leoAutomation.iniciarAutomacao();
         return {
@@ -540,7 +540,7 @@ export const leoAdminRouter = router({
     }),
 
     // Parar automação
-    stop: publicProcedure.mutation(async () => {
+    stop: adminProcedure.mutation(async () => {
       try {
         const result = await leoAutomation.pararAutomacao();
         return {
@@ -557,7 +557,7 @@ export const leoAdminRouter = router({
     }),
 
     // Estatísticas de automação
-    stats: publicProcedure.query(async () => {
+    stats: adminProcedure.query(async () => {
       try {
         const stats = await leoAutomation.getEstatisticas();
         return {
@@ -577,7 +577,7 @@ export const leoAdminRouter = router({
   // Ações de Emergência
   emergency: {
     // Parar tudo (modo de emergência)
-    stopAll: publicProcedure.mutation(async () => {
+    stopAll: adminProcedure.mutation(async () => {
       try {
         console.log('🚨 MODO DE EMERGÊNCIA - Parando todos os sistemas do Leo...');
         
@@ -634,7 +634,7 @@ export const leoAdminRouter = router({
     }),
 
     // Reiniciar tudo
-    restartAll: publicProcedure.mutation(async () => {
+    restartAll: adminProcedure.mutation(async () => {
       try {
         console.log('🔄 Reiniciando todos os sistemas do Leo...');
         

@@ -85,7 +85,7 @@ Use tipagem correta.
 
     const lines = content.split("\n");
     let braceDepth = 0;
-    let lastSafeBoundaryDepth = -1;
+    const boundaryStack = [];
     let inBlockComment = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -110,7 +110,7 @@ Use tipagem correta.
       // Check for safe boundaries before counting braces on this line
       for (const boundary of safeBoundaries) {
         if (boundary.test(codeWithoutStrings)) {
-          lastSafeBoundaryDepth = braceDepth;
+          boundaryStack.push(braceDepth);
         }
       }
 
@@ -121,8 +121,8 @@ Use tipagem correta.
       if (braceDepth < 0) braceDepth = 0;
 
       // If closed back to or below the boundary depth, invalidate
-      if (lastSafeBoundaryDepth >= 0 && braceDepth <= lastSafeBoundaryDepth) {
-        lastSafeBoundaryDepth = -1;
+      while (boundaryStack.length > 0 && braceDepth <= boundaryStack[boundaryStack.length - 1]) {
+        boundaryStack.pop();
       }
 
       // Check suspicious patterns
@@ -137,7 +137,7 @@ Use tipagem correta.
             break;
           }
         }
-        if (!hasPriorBoundary && lastSafeBoundaryDepth < 0) {
+        if (!hasPriorBoundary && boundaryStack.length === 0) {
           console.error(`
 🚫 IMPORT-TIME EXECUTION DETECTADO em ${file} (linha ${i + 1})
 
