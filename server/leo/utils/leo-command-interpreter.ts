@@ -2,10 +2,7 @@ import { LeoSalesAnalysis } from '../intelligence/leo-sales-analysis.js';
 import { LeoStockMonitor } from '../intelligence/leo-stock-monitor.js';
 import { LeoPatternDetection } from '../intelligence/leo-pattern-detection.js';
 import { logInfo } from '../../_core/logger.js';
-
-const salesAnalysis = new LeoSalesAnalysis(1); // TODO: Obter tenantId do contexto seguro
-const stockMonitor = LeoStockMonitor.getInstance();
-const patternDetection = new LeoPatternDetection();
+import { ValidationError } from '../../_core/errors/typed-errors.js';
 
 type RestockItem = {
   priority?: string;
@@ -15,6 +12,14 @@ type RestockItem = {
  * Interpreta comandos em linguagem natural e executa ações correspondentes
  */
 export async function interpretLeoCommand(message: string, tenantId: number, context?: string): Promise<string> {
+  if (!tenantId || !Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new ValidationError('LEO_COMMAND_INTERPRETER_TENANT_ID_REQUIRED');
+  }
+
+  const salesAnalysis = new LeoSalesAnalysis(tenantId);
+  const stockMonitor = LeoStockMonitor.getInstance();
+  const patternDetection = new LeoPatternDetection();
+
   try {
     const lowerMessage = message.toLowerCase();
     
