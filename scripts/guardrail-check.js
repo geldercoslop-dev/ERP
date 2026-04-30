@@ -13,10 +13,6 @@ const BLOCKED_PATHS = [
 // Arquivos específicos permitidos SE drizzle-schema-guard passar
 const ALLOWED_SCHEMA_FILES = [
   "drizzle/relations.ts",
-  "drizzle/schema.ts",
-  "drizzle/meta/_journal.json",
-  "drizzle/meta/",
-  "drizzle/*.sql",
   "shared/types/entities.ts",
 ];
 
@@ -79,16 +75,7 @@ function isOnlyAllowedSchemaFiles(violations) {
   if (violations.length === 0) return true;
 
   // Verifica se todas as violações são arquivos permitidos
-  return violations.every(file => {
-    // Check exact match first
-    if (ALLOWED_SCHEMA_FILES.includes(file)) return true;
-    
-    // Check pattern matches
-    if (file.startsWith("drizzle/meta/")) return true;
-    if (file.startsWith("drizzle/") && file.endsWith(".sql")) return true;
-    
-    return false;
-  });
+  return violations.every(file => ALLOWED_SCHEMA_FILES.includes(file));
 }
 
 function isOnlyC3_1AllowedFiles(violations) {
