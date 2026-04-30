@@ -59,23 +59,14 @@ export const leoAdminRouter = router({
     }
   }),
 
-  // Iniciar Loop Cognitivo
+  // Iniciar Loop Cognitivo — BLOQUEADO: requer arquitetura tenant-aware
   startLoop: adminProcedure
     .input(z.object({ intervalMs: z.number().optional().default(5000) }))
-    .mutation(async ({ input }) => {
-      try {
-        await leoLoop.startLeoLoop(input.intervalMs);
-        return {
-          success: true,
-          message: 'Loop iniciado com sucesso',
-        };
-      } catch (error) {
-        console.error('[LeoAdmin] Erro ao iniciar loop:', error);
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : 'Erro ao iniciar loop',
-        };
-      }
+    .mutation(async () => {
+      throw new TRPCError({
+        code: 'PRECONDITION_FAILED',
+        message: 'LEO_LOOP_TENANT_AWARE_ARCHITECTURE_REQUIRED',
+      });
     }),
 
   // Parar Loop Cognitivo
@@ -636,31 +627,12 @@ export const leoAdminRouter = router({
       }
     }),
 
-    // Reiniciar tudo
+    // Reiniciar tudo — BLOQUEADO: requer arquitetura tenant-aware
     restartAll: adminProcedure.mutation(async () => {
-      try {
-        console.log('🔄 Reiniciando todos os sistemas do Leo...');
-        
-        // Primeiro parar tudo
-        await leoLoop.stopLeoLoop();
-        
-        // Esperar um pouco
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Reiniciar loop
-        await leoLoop.startLeoLoop(5000);
-        
-        return {
-          success: true,
-          message: 'Sistema reiniciado com sucesso',
-        };
-      } catch (error) {
-        console.error('[LeoAdmin] Erro ao reiniciar sistemas:', error);
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : 'Erro ao reiniciar sistemas',
-        };
-      }
+      throw new TRPCError({
+        code: 'PRECONDITION_FAILED',
+        message: 'LEO_LOOP_TENANT_AWARE_ARCHITECTURE_REQUIRED',
+      });
     }),
   },
 

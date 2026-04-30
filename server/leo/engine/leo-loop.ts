@@ -187,7 +187,7 @@ export class LeoLoop {
       // Coletar contexto do sistema
       // tenantId deve vir obrigatoriamente do contexto validado; sem fallback.
       // LeoLoop autônomo não possui contexto de tenant — fail-hard explícito.
-      throw new ValidationError('LEO_LOOP_TENANT_CONTEXT_NOT_AVAILABLE');
+      throw new ValidationError('LEO_LOOP_TENANT_AWARE_ARCHITECTURE_REQUIRED');
 
     } catch (error) {
       console.error('Erro ao coletar contexto:', error);
