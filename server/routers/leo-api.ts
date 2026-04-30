@@ -7,6 +7,7 @@
  */
 
 import { router, protectedProcedure } from '../_core/trpc.js';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { leoLongMemory } from '../leo/memory/leo-long-memory.js';
 import { requireTenant } from '../_core/tenant.js';
@@ -131,24 +132,10 @@ export const leoApiRouter = router({
       limit: z.number().default(5)
     }))
     .query(async ({ input, ctx }) => {
-      try {
-        const tenantId = await requireTenant(ctx);
-        const insights = await leoLongMemory.getCriticalInsights(input.limit);
-
-        return {
-          success: true,
-          insights,
-          count: insights.length
-        };
-
-      } catch (error) {
-        logger.error("leo_insights_failed", error instanceof Error ? error : String(error));
-        
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Erro ao obter insights',
-          insights: []
-        };
-      }
+      await requireTenant(ctx);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'LEO_API_INSIGHTS_TENANT_AWARE_SERVICE_REQUIRED'
+      });
     })
 });
