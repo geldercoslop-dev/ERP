@@ -4,11 +4,10 @@
  * Protege os routers principais contra acesso direto ao banco de dados.
  * Arquitetura obrigatória: ROUTER → SERVICE → DB
  * 
- * Routers protegidos (19 arquivos):
+ * Routers protegidos (18 arquivos):
  * - server/routers.ts
  * - server/routers/clientes.router.ts
  * - server/routers/financeiro.router.ts
- * - server/routers/leo-approvals.router.ts
  * - server/routers/leo.router.ts
  * - server/routers/produtos.router.ts
  * - server/routers/admin/index.ts
@@ -32,7 +31,6 @@ const PROTECTED_ROUTERS = [
   "server/routers.ts",
   "server/routers/clientes.router.ts",
   "server/routers/financeiro.router.ts",
-  "server/routers/leo-approvals.router.ts",
   "server/routers/leo.router.ts",
   "server/routers/produtos.router.ts",
   "server/routers/admin/index.ts",
