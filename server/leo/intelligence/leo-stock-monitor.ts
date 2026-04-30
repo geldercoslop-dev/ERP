@@ -3,6 +3,12 @@ import { inventoryMonitorTool } from '../../tools/inventory-monitor.tool.js';
 import { LeoTaskPriority } from '../../../shared/types/index.js';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 
+const LEO_STOCK_RUNNING_LOW_THRESHOLD = 5;
+
+// O schema atual não possui estoque_minimo por produto. 
+// Este valor é uma política operacional única para alerta de "item acabando". 
+// Não representa bloqueio de estoque negativo nem estoque mínimo real do cadastro. 
+
 export interface StockAlert {
   productId: number;
   productName: string;
@@ -41,27 +47,26 @@ export class LeoStockMonitor {
 
       const alerts: StockAlert[] = rows.map((product: any) => {
         const currentStock = Number(product.estoque || 0);
-        const minStock =
-          currentStock <= 5 ? 20 : currentStock <= 10 ? 15 : currentStock <= 20 ? 25 : 30;
+        const runningLowThreshold = LEO_STOCK_RUNNING_LOW_THRESHOLD;
 
         let status: 'low' | 'critical' | 'out' = 'low';
         let recommendation = '';
         let priority: LeoTaskPriority = LeoTaskPriority.LOW;
 
-        if (currentStock === 0) {
+        if (currentStock <= 0) {
           status = 'out';
-          recommendation = 'Produto sem estoque - reposição urgente';
+          recommendation = 'Item esgotado - reposição urgente necessária';
           priority = LeoTaskPriority.CRITICAL;
-        } else if (currentStock <= 5) {
+        } else if (currentStock <= Math.floor(runningLowThreshold / 2)) {
           status = 'critical';
-          recommendation = 'Estoque crítico - repor imediatamente';
+          recommendation = 'Item acabando (nível crítico) - verificar reposição imediata';
           priority = LeoTaskPriority.HIGH;
-        } else if (currentStock <= 10) {
+        } else if (currentStock <= runningLowThreshold) {
           status = 'low';
-          recommendation = 'Estoque baixo - recomenda-se reposição';
+          recommendation = 'Item acabando - política operacional sugere verificar reposição';
           priority = LeoTaskPriority.MEDIUM;
         } else {
-          recommendation = 'Estoque em nível mínimo - monitorar';
+          recommendation = 'Estoque acima do threshold de alerta operacional';
           priority = LeoTaskPriority.LOW;
         }
 
@@ -69,7 +74,7 @@ export class LeoStockMonitor {
           productId: Number(product.id),
           productName: product.descricao || 'Produto sem nome',
           currentStock,
-          minStock,
+          minStock: runningLowThreshold,
           status,
           recommendation,
           priority,
