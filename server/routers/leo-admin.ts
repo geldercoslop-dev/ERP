@@ -16,7 +16,7 @@ import { leoErpObserver } from '../leo/perception/leo-erp-observer.js';
 import { leoSystemMonitor } from '../leo/perception/leo-system-monitor.js';
 import { leoEvents } from '../leo/memory/leo-events.js';
 import { leoAutomation } from '../leo/actions/leo-automation.js';
-import { listPendingApprovals, getPendingApproval, approveAction, rejectAction, type ApprovalStatus } from '../services/leo-approval.service.js';
+import { listPendingApprovals, getPendingApproval, approveAction, rejectAction } from '../services/leo-approval.service.js';
 import type { LeoTask, LeoEvent, User } from "../../shared/types/index.js";
 import { LeoTaskStatus, LeoTaskType, LeoTaskPriority } from "../../shared/types/index.js";
 
