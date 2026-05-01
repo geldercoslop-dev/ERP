@@ -8,6 +8,12 @@ const files = execSync("git diff --cached --name-only")
 
 let violation = false;
 
+// 🔵 ARQUIVOS DE INFRA DB LEGÍTIMOS
+// Exceção explícita para arquivos de configuração de banco que gerenciam pools
+const ALLOWED_DB_INFRA_FILES = new Set([
+  "server/config/database.ts"
+]);
+
 for (const file of files) {
   if (!existsSync(file)) continue;
 
@@ -45,6 +51,7 @@ Use tipagem correta.
 
   if (
     !file.startsWith("server/services") &&
+    !ALLOWED_DB_INFRA_FILES.has(file) &&
     (
       /(^|[^a-zA-Z0-9_])db\./.test(contentWithoutStrings) ||
       /(^|[^a-zA-Z0-9_])db\.query\s*\(/.test(contentWithoutStrings) ||
