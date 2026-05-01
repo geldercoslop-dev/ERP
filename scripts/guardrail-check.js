@@ -13,11 +13,6 @@ const BLOCKED_PATHS = [
 // Arquivos específicos permitidos SE drizzle-schema-guard passar
 const ALLOWED_SCHEMA_FILES = [
   "drizzle/relations.ts",
-  "drizzle/schema.ts",
-  "drizzle/meta/_journal.json",
-  "drizzle/meta/0004_snapshot.json",
-  "drizzle/0004_migration_1777592998701.sql",
-  ".gitignore",
   "shared/types/entities.ts",
 ];
 

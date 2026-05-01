@@ -41,6 +41,7 @@ Thumbs.db
 # Database dumps (nunca versionar)
 *.sql
 *.dump
+!drizzle/*.sql
 
 # IDE (manter só settings.json se quiser compartilhar)
 .vscode/*
