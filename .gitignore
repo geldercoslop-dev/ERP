@@ -28,6 +28,13 @@ coverage/
 .tmp/
 tmp/
 temp/
+.tmp*
+*.out
+*.err
+pnpm-lock.yaml.*
+login-test.html
+login_preview.html
+test-login-fixed.html
 
 # OS
 .DS_Store
