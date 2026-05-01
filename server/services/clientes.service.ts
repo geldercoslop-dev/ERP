@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, like, ne } from "drizzle-orm";
+import { eq, and, desc, asc, sql, like, ne, lt } from "drizzle-orm";
 import { PedidoStatus } from "../shared/domain-status.js";
 import {
   getDb,
@@ -121,6 +121,51 @@ async function userCanAccessCliente(
   }
   
   return false;
+}
+
+export async function getClientesInativos(
+  tenantId: number,
+  daysThreshold: number = 60
+): Promise<Array<{ clienteId: number; nome: string; ultimaCompra: string | null; valorTotalHistorico: number }>> {
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new Error("tenantId obrigatório");
+  }
+
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const limite = new Date();
+  limite.setDate(limite.getDate() - daysThreshold);
+
+  const sub = dbConn
+    .select({
+      clienteId: pedidos.clienteId,
+      ultimaCompra: sql<Date>`MAX(${pedidos.createdAt})`.as("ultimaCompra"),
+      valorTotalHistorico: sql<number>`COALESCE(SUM(${pedidos.total}), 0)`.as("valorTotalHistorico"),
+    })
+    .from(pedidos)
+    .where(and(eq(pedidos.tenantId, tenantId), ne(pedidos.status, PedidoStatus.CANCELADO)))
+    .groupBy(pedidos.clienteId)
+    .having(lt(sql`MAX(${pedidos.createdAt})`, limite))
+    .as("sub");
+
+  const rows = await dbConn
+    .select({
+      clienteId: clientes.id,
+      nome: clientes.nome,
+      ultimaCompra: sub.ultimaCompra,
+      valorTotalHistorico: sub.valorTotalHistorico,
+    })
+    .from(clientes)
+    .innerJoin(sub, eq(sub.clienteId, clientes.id))
+    .where(eq(clientes.tenantId, tenantId));
+
+  return rows.map((r) => ({
+    clienteId: r.clienteId,
+    nome: r.nome ?? "",
+    ultimaCompra: r.ultimaCompra ? new Date(r.ultimaCompra).toISOString().slice(0, 10) : null,
+    valorTotalHistorico: Number(r.valorTotalHistorico ?? 0),
+  }));
 }
 
 /**

@@ -139,8 +139,12 @@ export class LeoSalesAnalysis {
         extra: { entity: this.name, acao: 'getTopProducts', limit, tenantId: this.tenantId },
       });
 
-      // LEO_SALES_TOP_PRODUCTS_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_SALES_TOP_PRODUCTS_REAL_IMPLEMENTATION_REQUIRED");
+      const products = await salesAnalyticsTool.getTopProducts({
+        tenantId: this.tenantId,
+        limit
+      });
+
+      return products;
 
     } catch (error) {
       logError('Failed to get top products', {

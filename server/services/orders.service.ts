@@ -971,6 +971,39 @@ export async function updatePedidoStatus(tenantId: number, id: number, status: s
   });
 }
 
+export async function getTopProducts(
+  tenantId: number,
+  limit: number = 10
+): Promise<Array<{ productId: number; productName: string; quantity: number; revenue: number }>> {
+  assertRequiredId(tenantId, "tenantId");
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const result = await dbConn
+    .select({
+      productId: itensPedido.produtoId,
+      productName: itensPedido.descricao,
+      quantity: sql<number>`SUM(${itensPedido.quantidade})`.as("quantity"),
+      revenue: sql<number>`SUM(${itensPedido.quantidade} * ${itensPedido.valorUnitario})`.as("revenue"),
+    })
+    .from(itensPedido)
+    .innerJoin(pedidos, eq(itensPedido.pedidoId, pedidos.id))
+    .where(and(
+      eq(itensPedido.tenantId, tenantId),
+      ne(pedidos.status, PedidoStatus.CANCELADO)
+    ))
+    .groupBy(itensPedido.produtoId, itensPedido.descricao)
+    .orderBy(desc(sql`SUM(${itensPedido.quantidade})`))
+    .limit(limit);
+
+  return result.map(r => ({
+    productId: Number(r.productId ?? 0),
+    productName: r.productName ?? "",
+    quantity: Number(r.quantity ?? 0),
+    revenue: Number(r.revenue ?? 0),
+  }));
+}
+
 /**
  * Atualiza status do pedido com validação de transição e bloqueio pessimista
  * Wrapper equivalente a updateOrderStatusSafe do módulo safe-order

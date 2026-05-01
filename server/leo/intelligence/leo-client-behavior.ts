@@ -1,9 +1,18 @@
 import { logInfo, logError } from '../../_core/logger.js';
 import { ClientBehavior } from '../../_core/types.js';
-import { InfrastructureError } from '../../_core/errors/typed-errors.js';
+import { InfrastructureError, ValidationError } from '../../_core/errors/typed-errors.js';
+import { learningClientsTool } from '../../tools/learning-clients.tool.js';
 
 export class LeoClientBehavior {
   private readonly name = 'ClientBehavior';
+  private readonly tenantId: number;
+
+  constructor(tenantId: number) {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
+    this.tenantId = tenantId;
+  }
 
   /**
    * Identify inactive clients
@@ -11,11 +20,22 @@ export class LeoClientBehavior {
   async identifyInactiveClients(daysThreshold: number = 90): Promise<ClientBehavior[]> {
     try {
       logInfo(`Identifying inactive clients (threshold: ${daysThreshold} days)`, {
-        extra: { entity: this.name, acao: 'identifyInactiveClients', daysThreshold }
+        extra: { entity: this.name, acao: 'identifyInactiveClients', daysThreshold, tenantId: this.tenantId }
       });
 
-      // LEO_CLIENT_INACTIVE_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_CLIENT_INACTIVE_REAL_IMPLEMENTATION_REQUIRED");
+      const inactiveClients = await learningClientsTool.getInactiveClients({
+        tenantId: this.tenantId,
+        daysThreshold
+      });
+
+      return inactiveClients.map(c => ({
+        clientId: c.clienteId,
+        lastPurchase: c.ultimaCompra ? new Date(c.ultimaCompra) : new Date(0),
+        frequency: 0,
+        avgTicket: 0,
+        status: 'inactive',
+        recommendations: ['Cliente inativo - entrar em contato para reativar']
+      }));
 
     } catch (error) {
       logError('Failed to identify inactive clients', {

@@ -4,7 +4,7 @@ import type { ServiceActor } from '../_core/service-actor.js';
 import type { SecureToolContext } from '../_core/secure-context.js';
 
 export const learningClientsTool = {
-  async getMetrics(input: { tenantId: number; limit?: number; actor?: ServiceActor }, context?: SecureToolContext) {
+  getMetrics: async function(input: { tenantId: number; limit?: number; actor?: ServiceActor }, context?: SecureToolContext) {
     if (!input.tenantId) {
       throw new ValidationError('tenantId required');
     }
@@ -25,5 +25,13 @@ export const learningClientsTool = {
     }
 
     return clientesService.listClientesComMetricasPedidos(input.tenantId, actor, input.limit ?? 500);
+  },
+
+  getInactiveClients: async function(input: { tenantId: number; daysThreshold?: number }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    const days = input.daysThreshold;
+    return clientesService.getClientesInativos(input.tenantId, days);
   }
 };
