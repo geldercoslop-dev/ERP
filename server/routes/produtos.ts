@@ -17,9 +17,8 @@ import {
   getProdutoById as dbGetProdutoById,
 
   getAllProdutosComPrecoVigente,
-
   updateEstoqueProduto,
-
+  calculateProdutoInitialStock,
 } from '../services/inventory.service.js';
 
 
@@ -176,17 +175,9 @@ export async function getProdutoById(request: Request) {
 export async function createProduto(request: Request) {
 
   try {
-
     const tenantId = requireTenantFromRequest(request);
-
     const data = createSchema.parse(request.body);
-
-    const estoqueCores = (data.cores || []).reduce((s, c) => s + Number(c.estoque || 0), 0);
-
-    const estoqueVar = (data.variacoes || []).reduce((s, v) => s + Number(v.estoque || 0), 0);
-
-    const estoqueTotal = estoqueCores + estoqueVar;
-
+    const estoqueTotal = calculateProdutoInitialStock(data);
     const result = await dbCreateProduto(tenantId, {
 
       tenantId,

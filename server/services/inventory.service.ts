@@ -12,11 +12,14 @@ import { nanoid } from "nanoid";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
 import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
+import { createLogger } from "../infra/structured-logger.js";
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
 type DbTx = Parameters<Parameters<Database['transaction']>[0]>[0];
 type DbConn = Database;
+
+const logger = createLogger("inventory-service");
 
 // Types
 export type CreateProdutoInput = InsertProduto;
@@ -26,6 +29,19 @@ export type UpdateEstoqueInput = {
   quantidade: number;
   audit?: { actorUserId?: number; actorVendedorId?: number; traceId?: string; motivo?: string };
 };
+
+/**
+ * Calcula o estoque inicial total baseado em cores e variações.
+ * Migrado de server/routes/produtos.ts para centralização de regra de negócio.
+ */
+export function calculateProdutoInitialStock(data: {
+  cores?: Array<{ estoque?: number | string | null }>;
+  variacoes?: Array<{ estoque?: number | string | null }>;
+}): number {
+  const estoqueCores = (data.cores || []).reduce((s, c) => s + Number(c.estoque || 0), 0);
+  const estoqueVar = (data.variacoes || []).reduce((s, v) => s + Number(v.estoque || 0), 0);
+  return estoqueCores + estoqueVar;
+}
 
 /**
  * CORES
@@ -96,7 +112,7 @@ export async function createProduto(tenantId: number, data: CreateProdutoInput) 
     // Garantir que o retorno tenha um ID válido
     return ensureCreatedResult({ id: produtoId });
   } catch (error) {
-    console.error("Erro ao criar produto:", error);
+    logger.error("Erro ao criar produto", error instanceof Error ? error : new Error(String(error)), { operation: "createProduto" });
     throw error;
   }
 }
@@ -402,7 +418,7 @@ export async function updateProduto(tenantId: number, id: number, data: UpdatePr
     if (!after) throw new InfrastructureError("Falha ao atualizar produto");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao atualizar produto:", error);
+    logger.error("Erro ao atualizar produto", error instanceof Error ? error : new Error(String(error)), { operation: "updateProduto" });
     throw error;
   }
 }
@@ -417,7 +433,7 @@ export async function deleteProduto(tenantId: number, id: number) {
     if (!after || after.ativo !== false) throw new InfrastructureError("Falha ao excluir logicamente produto");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir produto:", error);
+    logger.error("Erro ao excluir produto", error instanceof Error ? error : new Error(String(error)), { operation: "deleteProduto" });
     throw error;
   }
 }
