@@ -2346,7 +2346,7 @@ pendencias: router({
         descricao: z.string().optional(),
         valor: z.string(),
         dataVencimento: z.preprocess(
-          (v) => (typeof v === "string" || typeof v === "number") ? new Date(v) : v,
+          (v) => { return (typeof v === "string" || typeof v === "number") ? new Date(v) : v; },
           z.date().refine((d) => !Number.isNaN(d.getTime()), { message: "Data de vencimento inválida" })
         ),
         planoContasId: z.number().optional(),
