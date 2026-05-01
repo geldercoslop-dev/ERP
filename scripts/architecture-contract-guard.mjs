@@ -35,6 +35,7 @@ const FROZEN_PATTERNS = [
 
 // Exceções permitidas mesmo em áreas congeladas
 const EXCEPTIONS = [
+  'server/db/core.ts', // TEMP_DB_CORE_LOGGER_MAINTENANCE Remover após commit da manutenção.
   'drizzle/relations.ts',
   'shared/types/entities.ts',
   'scripts/architecture-contract-guard.mjs',

@@ -11,6 +11,7 @@ import * as schema from "../../drizzle/schema.js";
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 import { setupDatabaseMonitoring } from "../_core/monitoring-setup.js";
 import { toDbResult } from "../_core/db-result.js";
+import { createLogger } from "../infra/structured-logger.js";
 import { requireBootstrap } from "../_core/bootstrap.js";
 import {
   users,
@@ -381,9 +382,9 @@ export async function ensureAdminUser(tenantId: number): Promise<void> {
     });
   } catch (e) {
     if (process.env.NODE_ENV === "development") {
-      console.error("❌ ERRO CAPTURADO EM DEV - NÃO ENCERRANDO");
-      console.error("[ensureAdminUser]", e);
-      console.log("🔥 SERVER STILL RUNNING AFTER ERROR");
+      const logger = createLogger("db-core");
+      logger.error("❌ ERRO CAPTURADO EM DEV - NÃO ENCERRANDO", e instanceof Error ? e : new Error(String(e)), { operation: "ensureAdminUser" });
+      logger.info("🔥 SERVER STILL RUNNING AFTER ERROR", { operation: "ensureAdminUser" });
       return;
     }
     throw e;
@@ -481,7 +482,8 @@ export async function insertLeoActionLog(params: {
       }),
     });
   } catch (error) {
-    console.error("[db/core] insertLeoActionLog:", error);
+    const logger = createLogger("db-core");
+    logger.error("[db/core] insertLeoActionLog", error instanceof Error ? error : new Error(String(error)), { operation: "insertLeoActionLog" });
   }
 }
 
