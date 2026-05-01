@@ -41,6 +41,9 @@ export type CreateClienteInput = {
 import { nanoid } from "nanoid";
 import { recordQueryTime } from "../_core/system-monitor.js";
 import { auditLog } from "../_core/audit-log.js";
+import { createLogger } from "../infra/structured-logger.js";
+
+const logger = createLogger("clientes-service");
 
 // Types — entrada do router: nome e telefone obrigatórios; normalização feita no createCliente
 export type CreateClienteWithVendedorInput = {
@@ -708,7 +711,7 @@ export async function ensureClienteVendedorLink(
 
     return { success: true };
   } catch (error) {
-    console.error("[ensureClienteVendedorLink] Error:", error);
+    logger.error("Erro ao garantir vínculo cliente-vendedor", error instanceof Error ? error : new Error(String(error)), { operation: "ensureClienteVendedorLink" });
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

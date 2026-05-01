@@ -12,6 +12,9 @@ import type { ServiceActor } from "../_core/service-actor.js";
 import { assertVendedorActor } from "../_core/service-actor.js";
 import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
 import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
+import { createLogger } from "../infra/structured-logger.js";
+
+const logger = createLogger("orders-service");
 
 // Type REAL da transaction Drizzle
 import type { Database } from '../db/core.js';
@@ -904,7 +907,7 @@ export async function updatePedido(
     if (!after) throw new InfrastructureError("Falha ao atualizar pedido");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao atualizar pedido:", error);
+    logger.error("Erro ao atualizar pedido", error instanceof Error ? error : new Error(String(error)), { operation: "updatePedido" });
     throw error;
   }
 }
@@ -926,7 +929,7 @@ export async function deletePedido(tenantId: number, actor: ServiceActor, id: nu
     if (after) throw new InfrastructureError("Falha ao excluir pedido");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir pedido:", error);
+    logger.error("Erro ao excluir pedido", error instanceof Error ? error : new Error(String(error)), { operation: "deletePedido" });
     throw error;
   }
 }
@@ -1368,7 +1371,7 @@ export async function getReportVendasPeriodo(tenantId: number, params: { dataIni
       itens: itens as Array<{ data: string; quantidade: number; valor: string }> || []
     };
   } catch (error) {
-    console.error('Error in getReportVendasPeriodo:', error);
+    logger.error("Erro ao gerar relatório de vendas", error instanceof Error ? error : new Error(String(error)), { operation: "getReportVendasPeriodo" });
     return { totalPedidos: 0, totalValor: "0", itens: [] };
   }
 }
@@ -1409,7 +1412,7 @@ export async function getReportProdutosMaisVendidos(tenantId: number, params: {
     
     return result as Array<{ descricao: string; quantidade: number; valorTotal: string }> || [];
   } catch (error) {
-    console.error('Error in getReportProdutosMaisVendidos:', error);
+    logger.error("Erro ao gerar relatório de produtos mais vendidos", error instanceof Error ? error : new Error(String(error)), { operation: "getReportProdutosMaisVendidos" });
     throw new InfrastructureError('Falha ao gerar relatório de produtos mais vendidos', { cause: error });
   }
 }
