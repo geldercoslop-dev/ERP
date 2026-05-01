@@ -4,6 +4,9 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc.js";
 import type { Carga, NewCarga, PedidoCarga, NewPedidoCarga } from "../../shared/types/index.js";
 import { requireTenant } from "../_core/tenant.js";
 import * as logisticaService from "../services/logistica.service.js";
+import { createLogger } from "../infra/structured-logger.js";
+
+const logger = createLogger("logistica-router");
 
 // Schema de validação
 const createCargaSchema = z.object({
@@ -60,7 +63,7 @@ export const logisticaRouter = router({
           pageSize: input.limit
         };
       } catch (error) {
-        console.error("Erro ao listar cargas:", error);
+        logger.error("Erro ao listar cargas", error instanceof Error ? error : new Error(String(error)), { operation: "listCargas" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao buscar cargas",
@@ -92,7 +95,7 @@ export const logisticaRouter = router({
           data: carga,
         };
       } catch (error) {
-        console.error("Erro ao criar carga:", error);
+        logger.error("Erro ao criar carga", error instanceof Error ? error : new Error(String(error)), { operation: "createCarga" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao criar carga",
@@ -119,7 +122,7 @@ export const logisticaRouter = router({
           data: carga,
         };
       } catch (error) {
-        console.error("Erro ao buscar carga:", error);
+        logger.error("Erro ao buscar carga", error instanceof Error ? error : new Error(String(error)), { operation: "getCargaById" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao buscar carga",
@@ -140,7 +143,7 @@ export const logisticaRouter = router({
           message: "Pedido adicionado à carga com sucesso",
         };
       } catch (error) {
-        console.error("Erro ao adicionar pedido à carga:", error);
+        logger.error("Erro ao adicionar pedido à carga", error instanceof Error ? error : new Error(String(error)), { operation: "addPedidoCarga" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao adicionar pedido à carga",
@@ -167,7 +170,7 @@ export const logisticaRouter = router({
           data: pedidoCarga,
         };
       } catch (error) {
-        console.error("Erro ao atualizar pedido da carga:", error);
+        logger.error("Erro ao atualizar pedido da carga", error instanceof Error ? error : new Error(String(error)), { operation: "updatePedidoCarga" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao atualizar pedido da carga",
@@ -191,7 +194,7 @@ export const logisticaRouter = router({
           message: "Pedido removido da carga com sucesso",
         };
       } catch (error) {
-        console.error("Erro ao remover pedido da carga:", error);
+        logger.error("Erro ao remover pedido da carga", error instanceof Error ? error : new Error(String(error)), { operation: "removePedidoCarga" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao remover pedido da carga",
@@ -218,7 +221,7 @@ export const logisticaRouter = router({
           data: carga,
         };
       } catch (error) {
-        console.error("Erro ao atualizar status da carga:", error);
+        logger.error("Erro ao atualizar status da carga", error instanceof Error ? error : new Error(String(error)), { operation: "updateCargaStatus" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao atualizar status da carga",
@@ -255,7 +258,7 @@ export const logisticaRouter = router({
           },
         };
       } catch (error) {
-        console.error("Erro ao gerar relatório de entrega:", error);
+        logger.error("Erro ao gerar relatório de entrega", error instanceof Error ? error : new Error(String(error)), { operation: "gerarRelatorioEntrega" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao gerar relatório de entrega",
@@ -280,7 +283,7 @@ export const logisticaRouter = router({
           message: "Carga finalizada com sucesso",
         };
       } catch (error) {
-        console.error("Erro ao finalizar carga:", error);
+        logger.error("Erro ao finalizar carga", error instanceof Error ? error : new Error(String(error)), { operation: "finalizarCarga" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao finalizar carga",
