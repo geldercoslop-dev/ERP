@@ -5,6 +5,9 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { createLogger } from '../infra/structured-logger.js';
+
+const logger = createLogger('SafeDefaults');
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -70,8 +73,10 @@ export function safeHandler(handler: (req: Request, res: Response, next: NextFun
     try {
       await handler(req, res, next);
     } catch (error: unknown) {
-      console.error('[SafeHandler] Erro capturado:', error);
-      
+      logger.error('[SafeHandler] Erro capturado', error instanceof Error ? error : new Error(String(error)), {
+        operation: 'safeHandler'
+      });
+
       // Retornar resposta segura em caso de erro
       res.status(500).json({
         success: false,

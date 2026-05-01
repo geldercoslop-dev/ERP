@@ -1,4 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import { createLogger } from '../infra/structured-logger.js';
+
+const logger = createLogger('ErrorHandler');
 
 type Payload = Record<string, unknown>;
 
@@ -36,17 +39,14 @@ export function globalErrorHandler(
   next: NextFunction
 ): void {
   const reqWithTenant = req as Request & { tenantId?: number };
-  // Validar req.user antes de acessar
-  const user = req.user && typeof req.user === 'object' ? req.user : undefined;
   // Log error
-  console.error('[GlobalErrorHandler] Error:', {
-    message: error.message,
+  const userId = req.user ? (req.user as { id?: number }).id : undefined;
+  logger.error('[GlobalErrorHandler] Error', error, {
+    operation: 'globalErrorHandler',
     url: req.url,
     method: req.method,
-    body: req.body,
-    user,
-    tenantId: reqWithTenant.tenantId,
-    timestamp: new Date().toISOString()
+    userId,
+    tenantId: reqWithTenant.tenantId
   });
 
   // Default error response

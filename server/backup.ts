@@ -2,6 +2,9 @@ import archiver from 'archiver';
 import { Response } from 'express';
 import { gerarBackupCompleto } from './services/backup.service.js';
 import { ValidationError } from './_core/errors/typed-errors.js';
+import { createLogger } from './infra/structured-logger.js';
+
+const logger = createLogger('Backup');
 
 export async function gerarBackupZip(res: Response, tenantId: string) {
   try {
@@ -50,7 +53,10 @@ export async function gerarBackupZip(res: Response, tenantId: string) {
     
     return true;
   } catch (error) {
-    console.error('Erro ao gerar backup:', error);
+    logger.error('Erro ao gerar backup', error instanceof Error ? error : new Error(String(error)), {
+      operation: 'gerarBackupZip',
+      tenantId: parseInt(tenantId, 10)
+    });
     throw error;
   }
 }

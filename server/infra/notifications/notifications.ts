@@ -1,5 +1,8 @@
 import { notifyOwner } from '../../_core/notification.js';
 import { nanoid } from 'nanoid';
+import { createLogger } from '../structured-logger.js';
+
+const logger = createLogger('Notifications');
 
 // Tipo principal de notificação
 export type Notification = {
@@ -35,7 +38,9 @@ export async function notify(notification: Omit<Notification, 'id' | 'createdAt'
     
     return fullNotification;
   } catch (error) {
-    console.error('[Notificação] Erro ao enviar:', error);
+    logger.error('[Notificação] Erro ao enviar', error instanceof Error ? error : new Error(String(error)), {
+      operation: 'notify'
+    });
     // Mesmo se falhar o envio, salvamos localmente
     notifications.push(fullNotification);
     throw error;
@@ -53,7 +58,9 @@ export async function notifyMultiple(notificationsData: Omit<Notification, 'id' 
       const result = await notify(notificationData);
       results.push(result);
     } catch (error) {
-      console.error('[Notificação] Erro ao enviar múltiplas:', error);
+      logger.error('[Notificação] Erro ao enviar múltiplas', error instanceof Error ? error : new Error(String(error)), {
+        operation: 'notifyMultiple'
+      });
       // Continua enviando as outras
     }
   }
@@ -91,7 +98,9 @@ export async function notificarAdmin(titulo: string, mensagem: string): Promise<
     });
     return true;
   } catch (error) {
-    console.error('[Notificações] Erro ao enviar notificação para admin:', error);
+    logger.error('[Notificações] Erro ao enviar notificação para admin', error instanceof Error ? error : new Error(String(error)), {
+      operation: 'notificarAdmin'
+    });
     return false;
   }
 }
@@ -110,7 +119,10 @@ export async function notificarVendedor(vendedorId: number, titulo: string, mens
     });
     return true;
   } catch (error) {
-    console.error('[Notificações] Erro ao enviar notificação para vendedor:', error);
+    logger.error('[Notificações] Erro ao enviar notificação para vendedor', error instanceof Error ? error : new Error(String(error)), {
+      operation: 'notificarVendedor',
+      vendedorId
+    });
     return false;
   }
 }

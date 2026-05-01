@@ -1,4 +1,7 @@
 import { notifyOwner } from './_core/notification.js';
+import { createLogger } from './infra/structured-logger.js';
+
+const logger = createLogger('Notifications');
 
 /**
  * Envia notificação push para o proprietário (admin)
@@ -11,7 +14,9 @@ export async function notificarAdmin(titulo: string, mensagem: string) {
     });
     return true;
   } catch (error) {
-    console.error('[Notificações] Erro ao enviar notificação para admin:', error);
+    logger.error('[Notificações] Erro ao enviar notificação para admin', error instanceof Error ? error : new Error(String(error)), {
+      operation: 'notificarAdmin'
+    });
     return false;
   }
 }
@@ -28,7 +33,10 @@ export async function notificarVendedor(vendedorId: number, titulo: string, mens
     console.log(`[Notificação para Vendedor ${vendedorId}] ${titulo}: ${mensagem}`);
     return true;
   } catch (error) {
-    console.error('[Notificações] Erro ao enviar notificação para vendedor:', error);
+    logger.error('[Notificações] Erro ao enviar notificação para vendedor', error instanceof Error ? error : new Error(String(error)), {
+      operation: 'notificarVendedor',
+      vendedorId
+    });
     return false;
   }
 }

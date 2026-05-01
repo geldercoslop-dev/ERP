@@ -9,7 +9,9 @@ import {
   getInternalStatus,
   internalStatusAuthGuard,
 } from './internal-status.controller.js';
+import { createLogger } from '../infra/structured-logger.js';
 
+const logger = createLogger('InternalRouter');
 const router = Router();
 
 /**
@@ -20,7 +22,9 @@ const router = Router();
  */
 router.get('/status', internalStatusAuthGuard, (req: Request, res: Response) => {
   getInternalStatus(req, res).catch((error) => {
-    console.error('Internal status error:', error);
+    logger.error('Internal status error', error instanceof Error ? error : new Error(String(error)), {
+      operation: 'getInternalStatus'
+    });
     res.status(500).json({ error: 'Internal server error' });
   });
 });
