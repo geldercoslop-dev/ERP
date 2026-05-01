@@ -54,8 +54,6 @@ const AUTHORIZED_C3_CORE_FILES = [
   'server/_core/ownership.ts',
   'server/_core/sdk.ts',
   'server/_core/service-actor.ts',
-  // TEMP_CORE_MAINTENANCE_LOGGER_ROTATION - Remover após commit da manutenção.
-  'server/_core/logger-rotation.ts',
 ];
 
 // Padrões proibidos em adições na janela C3.1
