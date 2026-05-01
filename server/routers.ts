@@ -203,7 +203,6 @@ function mapPedidoAccessError(e: unknown): never {
   throw e;
 }
 import { notificarAdmin, notificarVendedor } from "./notifications.js";
-import * as produtosRoutes from "./routes/produtos.js";
 import * as promocoesRoutes from "./routes/promocoes.js";
 
 export const appRouter = router({
@@ -750,11 +749,66 @@ export const appRouter = router({
       }),
 
     create: adminProcedure
-      .input(z.any())
+      .input(z.object({
+        descricao: z.string().min(2),
+        marca: z.string().optional().nullable(),
+        fornecedor: z.string().optional().nullable(),
+        categoria: z.string().optional().nullable(),
+        custo: z.coerce.number().min(0),
+        descontoFabrica: z.coerce.number().min(0).optional(),
+        ipi: z.coerce.number().min(0).optional(),
+        frete: z.coerce.number().min(0).optional(),
+        montagem: z.coerce.number().min(0).optional(),
+        lucro: z.coerce.number().min(0).optional(),
+        comissao: z.coerce.number().min(0).optional(),
+        jurosCartao: z.coerce.number().min(0).optional(),
+        valorVenda: z.coerce.number().min(0),
+        prazoGarantia: z.coerce.number().min(0).default(90),
+        grupoId: z.number().optional(),
+        ativo: z.boolean().optional(),
+        cores: z.array(z.object({
+          corId: z.number().min(1),
+          estoque: z.preprocess(
+            (v) => (v === "" || v == null ? 0 : typeof v === "string" ? Number(v) : v),
+            z.number().int().min(0).refine((n) => !Number.isNaN(n), { message: "Estoque inválido" })
+          )
+        })).optional(),
+        variacoes: z.array(z.object({
+          tamanho: z.string().optional().default(""),
+          temEspelho: z.boolean().default(false),
+          acrescimoCusto: z.coerce.number().min(0).default(0),
+          estoque: z.preprocess(
+            (v) => (v === "" || v == null ? 0 : typeof v === "string" ? Number(v) : v),
+            z.number().int().min(0).refine((n) => !Number.isNaN(n), { message: "Estoque inválido" })
+          ).default(0),
+        })).optional(),
+      }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        // Validação real fica em server/routes/produtos.ts (Zod)
-        return await produtosRoutes.createProduto(toExpressRequest({ body: input, tenantId }));
+        const estoqueTotal = inventoryService.calculateProdutoInitialStock(input);
+        
+        // Normalizar campos decimais para string (Drizzle decimal)
+        const payload = {
+          ...input,
+          tenantId,
+          estoque: estoqueTotal,
+          custo: input.custo.toFixed(2),
+          valorVenda: input.valorVenda.toFixed(2),
+          descontoFabrica: input.descontoFabrica?.toFixed(2),
+          ipi: input.ipi?.toFixed(2),
+          frete: input.frete?.toFixed(2),
+          montagem: input.montagem?.toFixed(2),
+          lucro: input.lucro?.toFixed(2),
+          comissao: input.comissao?.toFixed(2),
+          jurosCartao: input.jurosCartao?.toFixed(2),
+          ativo: input.ativo ?? true,
+        };
+
+        // Remove campos que não são colunas diretas da tabela produtos
+        const { cores: _c, variacoes: _v, ...dbPayload } = payload;
+
+        const result = await inventoryService.createProduto(tenantId, dbPayload as Parameters<typeof inventoryService.createProduto>[1]);
+        return { message: 'Produto criado', produto: result };
       }),
 
     update: adminProcedure
@@ -804,7 +858,8 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
-        return await produtosRoutes.deleteProduto(toExpressRequest({ params: { id: input.id.toString() }, tenantId }));
+        await inventoryService.deleteProduto(tenantId, input.id);
+        return { message: 'Produto removido' };
       }),
 
     buscar: protectedProcedure
