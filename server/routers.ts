@@ -862,7 +862,8 @@ export const appRouter = router({
 
     estoqueBaixo: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = await requireTenant(ctx);
-      return await produtosRoutes.verificarEstoqueBaixo(toExpressRequest({ tenantId }));
+      const { items, total } = await inventoryService.getProdutosEstoqueBaixo(tenantId, 50);
+      return { produtos: items, total };
     }),
   }),
 
