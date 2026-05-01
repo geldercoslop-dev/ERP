@@ -195,7 +195,9 @@ export async function getConnectionPool(): Promise<mysql.Pool> {
     (_pool as mysql.Pool & { on?: (ev: string, fn: (err: unknown) => void) => void }).on?.(
       "error",
       (err: unknown) => {
-        console.error("[Database] Unexpected pool error:", err);
+        observabilityLogger.error("[Database] Unexpected pool error", err instanceof Error ? err : new Error(String(err)), {
+          operation: "getConnectionPool"
+        });
         const code = err && typeof err === "object" && "code" in err ? (err as { code?: string }).code : undefined;
         if (code === "PROTOCOL_CONNECTION_LOST" || code === "ECONNREFUSED" || code === "ETIMEDOUT") {
           console.log("[Database] Connection lost. Attempting to recreate pool...");
@@ -208,7 +210,9 @@ export async function getConnectionPool(): Promise<mysql.Pool> {
     globalThis.db = _pool;
     return _pool;
   } catch (error) {
-    console.error("[Database] Failed to create connection pool:", error);
+    observabilityLogger.error("[Database] Failed to create connection pool", error instanceof Error ? error : new Error(String(error)), {
+      operation: "getConnectionPool"
+    });
     _pool = null;
     globalThis.db = undefined;
     const msg = error instanceof Error ? error.message : String(error);
@@ -240,8 +244,11 @@ async function testPool(pool: mysql.Pool, maxRetries = 10): Promise<void> {
       const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
       
       // LOG COMPLETO PARA DIAGNÓSTICO
-      console.error(`[Database] Connection test failed (attempt ${attempt}/${maxRetries}):`, {
-        message: msg,
+      const errorDetails = error instanceof Error ? error : new Error(msg);
+      observabilityLogger.error(`[Database] Connection test failed (attempt ${attempt}/${maxRetries})`, errorDetails, {
+        operation: "testPool",
+        attempt,
+        maxRetries,
         code,
         errno: error && typeof error === "object" && "errno" in error ? (error as { errno?: number }).errno : undefined,
         sqlState: error && typeof error === "object" && "sqlState" in error ? (error as { sqlState?: string }).sqlState : undefined,
@@ -378,7 +385,9 @@ export async function closeConnectionPool(): Promise<void> {
       console.log("[Database] Connection pool closed successfully");
       _pool = null;
     } catch (error) {
-      console.error("[Database] Error closing connection pool:", error);
+      observabilityLogger.error("[Database] Error closing connection pool", error instanceof Error ? error : new Error(String(error)), {
+        operation: "closeConnectionPool"
+      });
     }
   }
 }
