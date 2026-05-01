@@ -5,12 +5,21 @@ import type { Produto, NewProduto } from "../../shared/types/index.js";
 import { createSuccessResponse, createErrorResponse, createPaginatedResponse } from "../_core/api-response.js";
 import { requireTenant } from "../_core/tenant.js";
 import * as inventoryService from "../services/cached-inventory.service.js";
+import { calculateProdutoInitialStock } from "../services/inventory.service.js";
 import type { ApiResponse } from "../_core/api-response.js";
 import { createLogger } from "../infra/structured-logger.js";
 
 const logger = createLogger("produtos-router");
 
 // Schema de validação
+const corItemSchema = z.object({
+  estoque: z.number().min(0).default(0),
+});
+
+const variacaoItemSchema = z.object({
+  estoque: z.number().min(0).default(0),
+});
+
 const createProdutoSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   marca: z.string().optional(),
@@ -30,6 +39,8 @@ const createProdutoSchema = z.object({
   estoque: z.number().min(0).default(0),
   ativo: z.boolean().default(true),
   bloquearEstoqueNegativo: z.boolean().default(true),
+  cores: z.array(corItemSchema).optional(),
+  variacoes: z.array(variacaoItemSchema).optional(),
 });
 
 const updateProdutoSchema = createProdutoSchema.partial().extend({
@@ -84,9 +95,11 @@ export const produtosRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const tenantId = await requireTenant(ctx);
+        const estoqueTotal = calculateProdutoInitialStock(input);
         const payload: Record<string, unknown> = {
           ...input,
           tenantId,
+          estoque: estoqueTotal,
           custo: input.custo?.toString(),
           descontoFabrica: input.descontoFabrica?.toString(),
           ipi: input.ipi?.toString(),
