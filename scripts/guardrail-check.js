@@ -25,11 +25,6 @@ const C3_1_ALLOWED_FILES = [
   "server/_core/service-actor.ts",
 ];
 
-// TEMP_DATABASE_LOGGER_MAINTENANCE — permitir commit de logger em infra DB; remover após fechamento da janela.
-const TEMP_DATABASE_LOGGER_MAINTENANCE = [
-  "server/config/database.ts"
-];
-
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -218,14 +213,6 @@ function main() {
       } else {
         process.exit(1);
       }
-    }
-
-    // TEMP_DATABASE_LOGGER_MAINTENANCE — permitir commit de logger em infra DB; remover após fechamento da janela.
-    if (violations.length === 1 && TEMP_DATABASE_LOGGER_MAINTENANCE.includes(violations[0])) {
-      console.log("\n📋 Arquivo de infra DB em janela de manutenção:");
-      violations.forEach(f => console.log(" - " + f));
-      console.log("\n✔ Guardrail OK — TEMP_DATABASE_LOGGER_MAINTENANCE ativo\n");
-      return;
     }
 
     // Bloqueia outros arquivos
