@@ -12,6 +12,7 @@
 
 import { nanoid } from "nanoid";
 import { TRPCError } from "@trpc/server";
+import { createLogger } from "../infra/structured-logger.js";
 
 /**
  * Log de tentativas de duplicação (para auditoria)
@@ -102,7 +103,8 @@ export function logDuplicationAttempt(
   duplicationAttempts.push(attempt);
 
   // Log para debugging
-  console.warn(`[DUPLICAÇÃO] requestId=${requestId}, clienteId=${clienteId}, motivo=${motivo}`);
+  const logger = createLogger("pedido-control");
+  logger.warn(`[DUPLICAÇÃO] requestId=${requestId}, clienteId=${clienteId}, motivo=${motivo}`, { operation: "logDuplicationAttempt" });
 
   if (duplicationAttempts.length > 100000) {
     duplicationAttempts.splice(0, 50000); // Manter últimos 50k

@@ -3,6 +3,8 @@
  * Objetivo: evitar chamadas excessivas às APIs (TTL padrão 5 minutos).
  * Features: estatísticas, limpeza automática, expiração por tempo.
  */
+import { createLogger } from "../infra/structured-logger.js";
+
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const MIN_TTL_MS = 5_000;
 const MAX_TTL_MS = 15 * 60 * 1000;
@@ -62,7 +64,8 @@ function cleanup(): void {
   stats.totalKeys = store.size;
   
   if (expiredKeys.length > 0 && process.env.NODE_ENV !== "production") {
-    console.log(`[Cache] Cleanup: removidas ${expiredKeys.length} chaves expiradas`);
+    const logger = createLogger("api-cache");
+    logger.info(`[Cache] Cleanup: removidas ${expiredKeys.length} chaves expiradas`, { operation: "cleanupExpired" });
   }
 }
 
