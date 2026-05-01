@@ -20,9 +20,26 @@ if (!existsSync(LOG_DIR)) {
 }
 
 // Logger simplificado
-const logInfo = (message: string, context?: any) => {
+type LogContext = Record<string, unknown>;
+
+function normalizeLogContext(context?: unknown): LogContext {
+  if (typeof context === 'object' && context !== null) {
+    return context as LogContext;
+  }
+  if (context === undefined) {
+    return {};
+  }
+  return { context };
+}
+
+const logInfo = (message: string, context?: unknown) => {
   const timestamp = new Date().toISOString();
-  const logEntry = { timestamp, level: 'info', message, ...context };
+  const logEntry = { 
+    timestamp, 
+    level: 'info', 
+    message, 
+    ...normalizeLogContext(context)
+  };
   try {
     writeFileSync(LOG_FILE, JSON.stringify(logEntry) + '\n', { flag: 'a' });
   } catch (error) {
@@ -30,7 +47,7 @@ const logInfo = (message: string, context?: any) => {
   }
 };
 
-const logError = (message: string, error?: Error | unknown, context?: any) => {
+const logError = (message: string, error?: Error | unknown, context?: unknown) => {
   const timestamp = new Date().toISOString();
   const err = error instanceof Error ? error : (error != null ? new Error(String(error)) : undefined);
   const logEntry = { 
@@ -38,7 +55,7 @@ const logError = (message: string, error?: Error | unknown, context?: any) => {
     level: 'error', 
     message, 
     ...(err && { error: err.message, stack: err.stack }),
-    ...context 
+    ...normalizeLogContext(context)
   };
   try {
     writeFileSync(LOG_FILE, JSON.stringify(logEntry) + '\n', { flag: 'a' });
@@ -47,9 +64,14 @@ const logError = (message: string, error?: Error | unknown, context?: any) => {
   }
 };
 
-const logWarn = (message: string, context?: any) => {
+const logWarn = (message: string, context?: unknown) => {
   const timestamp = new Date().toISOString();
-  const logEntry = { timestamp, level: 'warn', message, ...context };
+  const logEntry = { 
+    timestamp, 
+    level: 'warn', 
+    message, 
+    ...normalizeLogContext(context)
+  };
   try {
     writeFileSync(LOG_FILE, JSON.stringify(logEntry) + '\n', { flag: 'a' });
   } catch (error) {
@@ -57,9 +79,14 @@ const logWarn = (message: string, context?: any) => {
   }
 };
 
-const logDebug = (message: string, context?: any) => {
+const logDebug = (message: string, context?: unknown) => {
   const timestamp = new Date().toISOString();
-  const logEntry = { timestamp, level: 'debug', message, ...context };
+  const logEntry = { 
+    timestamp, 
+    level: 'debug', 
+    message, 
+    ...normalizeLogContext(context)
+  };
   try {
     writeFileSync(LOG_FILE, JSON.stringify(logEntry) + '\n', { flag: 'a' });
   } catch (error) {
