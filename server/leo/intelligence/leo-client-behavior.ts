@@ -96,8 +96,9 @@ export class LeoClientBehavior {
         extra: { entity: this.name, acao: 'getClientSegmentation' }
       });
 
-      // LEO_CLIENT_SEGMENTATION_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_CLIENT_SEGMENTATION_REAL_IMPLEMENTATION_REQUIRED");
+      return await learningClientsTool.getClientSegmentation({
+        tenantId: this.tenantId
+      });
 
     } catch (error) {
       logError('Failed to get client segmentation', {

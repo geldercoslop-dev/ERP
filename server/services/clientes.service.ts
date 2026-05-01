@@ -1150,6 +1150,110 @@ export async function listClientesComMetricasPedidos(
   }
 }
 
+export type ClienteSegmentacaoMetrics = {
+  segment: string;
+  count: number;
+  avgTicket: number;
+  totalRevenue: number;
+  characteristics: string[];
+};
+
+/**
+ * Realiza a segmentação de clientes baseada em RFM (Recência, Frequência e Valor).
+ */
+export async function getClientSegmentation(
+  tenantId: number
+): Promise<{ success: boolean; data?: ClienteSegmentacaoMetrics[]; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    assertDbConnection(dbConn);
+
+    // 1. Buscar métricas base de todos os clientes do tenant
+    const baseMetrics = await dbConn
+      .select({
+        clienteId: clientes.id,
+        totalPedidos: sql<number>`COUNT(${pedidos.id})`.as("totalPedidos"),
+        totalComprado: sql<number>`COALESCE(SUM(${pedidos.total}), 0)`.as("totalComprado"),
+        primeiraCompra: sql<Date>`MIN(${pedidos.createdAt})`.as("primeiraCompra"),
+        ultimaCompra: sql<Date>`MAX(${pedidos.createdAt})`.as("ultimaCompra"),
+      })
+      .from(clientes)
+      .leftJoin(pedidos, and(
+        eq(pedidos.clienteId, clientes.id),
+        eq(pedidos.tenantId, tenantId),
+        ne(pedidos.status, PedidoStatus.CANCELADO)
+      ))
+      .where(eq(clientes.tenantId, tenantId))
+      .groupBy(clientes.id);
+
+    // 2. Calcular média de faturamento do tenant para o critério VIP
+    const totalTenantRevenue = baseMetrics.reduce((sum, m) => sum + Number(m.totalComprado), 0);
+    const avgTenantRevenue = baseMetrics.length > 0 ? totalTenantRevenue / baseMetrics.length : 0;
+
+    const now = new Date();
+    
+    // 3. Inicializar contadores por segmento
+    const segments: Record<string, { count: number; totalTicket: number; totalRevenue: number; characteristics: string[] }> = {
+      'VIP': { count: 0, totalTicket: 0, totalRevenue: 0, characteristics: ['Alta frequência (>=3)', 'Alto faturamento (>= média)', 'Ativo'] },
+      'Recorrente': { count: 0, totalTicket: 0, totalRevenue: 0, characteristics: ['Alta frequência (>=3)', 'Compra recente (<=45 dias)'] },
+      'Novo': { count: 0, totalTicket: 0, totalRevenue: 0, characteristics: ['Primeira compra recente (<=30 dias)'] },
+      'Em risco': { count: 0, totalTicket: 0, totalRevenue: 0, characteristics: ['Inativo entre 45 e 90 dias'] },
+      'Inativo': { count: 0, totalTicket: 0, totalRevenue: 0, characteristics: ['Sem compras ou inativo > 90 dias'] },
+      'Ocasional': { count: 0, totalTicket: 0, totalRevenue: 0, characteristics: ['Baixa frequência', 'Ativo'] },
+    };
+
+    // 4. Classificar cada cliente
+    baseMetrics.forEach(m => {
+      const totalPedidos = Number(m.totalPedidos);
+      const totalComprado = Number(m.totalComprado);
+      const first = m.primeiraCompra ? new Date(m.primeiraCompra) : null;
+      const last = m.ultimaCompra ? new Date(m.ultimaCompra) : null;
+      const daysSinceLast = last ? (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24) : 999;
+      const daysSinceFirst = first ? (now.getTime() - first.getTime()) / (1000 * 60 * 60 * 24) : 999;
+
+      let segment = 'Ocasional';
+
+      if (!last || daysSinceLast > 90) {
+        segment = 'Inativo';
+      } else if (daysSinceLast > 45) {
+        segment = 'Em risco';
+      } else if (daysSinceFirst <= 30 && totalPedidos === 1) {
+        segment = 'Novo';
+      } else if (totalPedidos >= 3 && totalComprado >= avgTenantRevenue) {
+        segment = 'VIP';
+      } else if (totalPedidos >= 3) {
+        segment = 'Recorrente';
+      }
+
+      const s = segments[segment];
+      s.count++;
+      s.totalRevenue += totalComprado;
+      s.totalTicket += totalPedidos > 0 ? totalComprado / totalPedidos : 0;
+    });
+
+    // 5. Formatar retorno ordenado
+    const orderedKeys = ['VIP', 'Recorrente', 'Novo', 'Em risco', 'Inativo', 'Ocasional'];
+    const result: ClienteSegmentacaoMetrics[] = orderedKeys.map(key => {
+      const s = segments[key];
+      return {
+        segment: key,
+        count: s.count,
+        avgTicket: s.count > 0 ? Number((s.totalTicket / s.count).toFixed(2)) : 0,
+        totalRevenue: Number(s.totalRevenue.toFixed(2)),
+        characteristics: s.characteristics
+      };
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export type ClienteFrequenciaMetrics = {
   clienteId: number;
   clienteNome: string;
