@@ -1150,6 +1150,99 @@ export async function listClientesComMetricasPedidos(
   }
 }
 
+export type ClienteFrequenciaMetrics = {
+  clienteId: number;
+  clienteNome: string;
+  totalPedidos: number;
+  primeiroPedido: Date | null;
+  ultimoPedido: Date | null;
+  diasEntrePedidos: number;
+  frequencia: number;
+  status: 'active' | 'at_risk' | 'inactive';
+};
+
+/**
+ * Analisa a frequência de compra de um ou todos os clientes do tenant.
+ * Cálculo Real: Baseado no intervalo entre o primeiro e último pedido.
+ */
+export async function analyzePurchaseFrequency(
+  tenantId: number,
+  clientId?: number
+): Promise<{ success: boolean; data?: ClienteFrequenciaMetrics[]; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    assertDbConnection(dbConn);
+
+    const conditions = [
+      eq(pedidos.tenantId, tenantId),
+      ne(pedidos.status, PedidoStatus.CANCELADO)
+    ];
+
+    if (clientId) {
+      conditions.push(eq(pedidos.clienteId, clientId));
+    }
+
+    const rows = await dbConn
+      .select({
+        clienteId: pedidos.clienteId,
+        clienteNome: clientes.nome,
+        totalPedidos: sql<number>`COUNT(*)`.as("totalPedidos"),
+        primeiroPedido: sql<Date>`MIN(${pedidos.createdAt})`.as("primeiroPedido"),
+        ultimoPedido: sql<Date>`MAX(${pedidos.createdAt})`.as("ultimoPedido"),
+      })
+      .from(pedidos)
+      .innerJoin(clientes, and(
+        eq(clientes.id, pedidos.clienteId),
+        eq(clientes.tenantId, tenantId)
+      ))
+      .where(and(...conditions))
+      .groupBy(pedidos.clienteId, clientes.nome);
+
+    const metrics: ClienteFrequenciaMetrics[] = rows.map(r => {
+      const total = Number(r.totalPedidos);
+      const start = r.primeiroPedido ? new Date(r.primeiroPedido) : null;
+      const end = r.ultimoPedido ? new Date(r.ultimoPedido) : null;
+      
+      let diasEntre = 0;
+      let freq = 0;
+      
+      if (start && end && total > 1) {
+        const diffMs = end.getTime() - start.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        diasEntre = Math.round(diffDays / (total - 1));
+        freq = Number((total / (diffDays || 1)).toFixed(4));
+      }
+
+      // Lógica de status simplificada mas real
+      let status: 'active' | 'at_risk' | 'inactive' = 'active';
+      if (end) {
+        const diffUltimo = (new Date().getTime() - end.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffUltimo > 90) status = 'inactive';
+        else if (diffUltimo > 45 || (diasEntre > 0 && diffUltimo > diasEntre * 1.5)) status = 'at_risk';
+      }
+
+      return {
+        clienteId: r.clienteId,
+        clienteNome: r.clienteNome || 'Cliente sem nome',
+        totalPedidos: total,
+        primeiroPedido: start,
+        ultimoPedido: end,
+        diasEntrePedidos: diasEntre,
+        frequencia: freq,
+        status
+      };
+    });
+
+    return { success: true, data: metrics };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 // ===== WRAPPER FUNCTIONS FOR ROUTER COMPATIBILITY =====
 // These functions match the DB layer contract for direct router replacement
 

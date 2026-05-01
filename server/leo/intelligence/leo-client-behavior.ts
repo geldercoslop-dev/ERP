@@ -60,8 +60,18 @@ export class LeoClientBehavior {
         extra: { entity: this.name, acao: 'analyzePurchaseFrequency', clientId }
       });
 
-      // LEO_CLIENT_PURCHASE_FREQUENCY_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_CLIENT_PURCHASE_FREQUENCY_REAL_IMPLEMENTATION_REQUIRED");
+      const metrics = await learningClientsTool.analyzePurchaseFrequency({
+        tenantId: this.tenantId,
+        clientId
+      });
+
+      return metrics.map(m => ({
+        clientId: m.clienteId,
+        clientName: m.clienteNome,
+        frequency: m.frequencia,
+        avgDaysBetweenPurchases: m.diasEntrePedidos,
+        status: m.status
+      }));
 
     } catch (error) {
       logError('Failed to analyze purchase frequency', {

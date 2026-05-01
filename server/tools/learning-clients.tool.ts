@@ -1,5 +1,5 @@
 import * as clientesService from '../services/clientes.service.js';
-import { ValidationError } from '../_core/errors/typed-errors.js';
+import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 import type { ServiceActor } from '../_core/service-actor.js';
 import type { SecureToolContext } from '../_core/secure-context.js';
 
@@ -33,5 +33,16 @@ export const learningClientsTool = {
     }
     const days = input.daysThreshold;
     return clientesService.getClientesInativos(input.tenantId, days);
+  },
+
+  analyzePurchaseFrequency: async function(input: { tenantId: number; clientId?: number }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    const result = await clientesService.analyzePurchaseFrequency(input.tenantId, input.clientId);
+    if (!result.success) {
+      throw new InfrastructureError(result.error || 'Falha ao analisar frequência de compra');
+    }
+    return result.data || [];
   }
 };
