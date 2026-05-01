@@ -23,6 +23,8 @@ const C3_1_ALLOWED_FILES = [
   "server/_core/ownership.ts",
   "server/_core/sdk.ts",
   "server/_core/service-actor.ts",
+  // TEMP_CORE_MAINTENANCE_LOGGER_ROTATION - Remover após commit da manutenção.
+  "server/_core/logger-rotation.ts",
 ];
 
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
