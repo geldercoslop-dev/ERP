@@ -16,6 +16,11 @@ for (const file of files) {
     continue;
   }
 
+  // Ignorar arquivos de documentação (falsos positivos em texto descritivo)
+  if (file.endsWith(".md") || file.startsWith("docs/")) {
+    continue;
+  }
+
   const content = readFileSync(file, "utf-8");
 
   // 🔴 1. BLOQUEAR CAST INSEGURO (as any)
