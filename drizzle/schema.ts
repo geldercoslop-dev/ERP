@@ -98,6 +98,7 @@ export const produtos = mysqlTable(
     prazoGarantia: int("prazo_garantia").default(90).notNull(),
     grupoId: int("grupo_id").references(() => gruposPrecificacao.id),
     estoque: int("estoque").default(0).notNull(),
+    bloquearEstoqueNegativo: boolean("bloquear_estoque_negativo").default(true).notNull(),
     ativo: boolean("ativo").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
