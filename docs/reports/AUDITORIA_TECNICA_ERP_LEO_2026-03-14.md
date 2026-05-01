@@ -480,7 +480,6 @@ Impacto:
 
 Ocorrencias observadas em:
 
-- `server/routes/produtos.ts`
 - `server/routes/pedidos.ts`
 - `server/routers/leo.router.ts`
 

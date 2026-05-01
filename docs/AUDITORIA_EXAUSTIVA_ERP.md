@@ -488,7 +488,6 @@ Arquivos com maior número de ocorrências (grep : any | as any):
 - server/services/reports/pdf.service.ts
 - client/src/pages/Estoque.tsx, ContasReceber.tsx, Clientes.tsx, NovaVenda.tsx, Promocoes.tsx, CargaDetalhes.tsx, LogisticaRelatorioViagem.tsx
 - server/routers/pedidos.router.ts
-- server/routers/produtos.router.ts
 - server/_core/api-response.ts
 - server/_core/request-middleware.ts
 - server/_core/endpoint-auditor.ts

@@ -30,7 +30,7 @@ Foram corrigidos **35+ erros TypeScript críticos** em infraestrutura e módulos
 - ✅ **clientes.router.ts**: Removido fallback `getVendedorByUserId`
 - ✅ **financeiro.router.ts**: Removido fallback `getVendedorByUserId`
 - ✅ **pedidos.router.ts**: Removido fallback `getVendedorByUserId`
-- ✅ **produtos.router.ts**: Removido fallback `getVendedorByUserId`
+- ✅ **routers.ts**: Removido fallback `getVendedorByUserId` (consolidado)
 
 **Motivo**: Função não existe em `users.service.ts`. Apenas `getVendedorById` disponível.
 
@@ -157,7 +157,6 @@ Todos os módulos LEO foram auditados e corrigidos:
 | clientes.router.ts | 1 | Roteador |
 | financeiro.router.ts | 1 | Roteador |
 | pedidos.router.ts | 1 | Roteador |
-| produtos.router.ts | 1 | Roteador |
 | logistica.ts | 4 | Roteador |
 | system-health.ts | 2 | Admin |
 | queue/worker.ts | 1 | Queue |

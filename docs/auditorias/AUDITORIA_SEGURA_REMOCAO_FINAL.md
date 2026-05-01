@@ -116,7 +116,7 @@ Estes routers **existem** em `server/routers/` mas **NÃO estão importados** em
 | Financial Router | `financeiro.router.ts` | Orphaned | ⚠️ Implementado em routers.ts inline |
 | Logística Router | `logistica.ts` | Orphaned | ⚠️ Service existe, router pode estar desatualizado |
 | Clientes Router | `clientes.ts` / `clientes.router.ts` | Orphaned | ⚠️ Via routes/clientes em uso |
-| Produtos Router | `produtos.ts` / `produtos.router.ts` | Orphaned | ⚠️ Via routes/produtos em uso |
+| Produtos Router | *(consolidado)* | ✅ **RESOLVIDO** | ✅ Rota legada removida e migração concluída em 2026-05-01 |
 | **pedidos.router.ts.broken** | `pedidos.router.ts.broken` | **QUEBRADO** | ❌ Deletar (arquivo .broken) |
 
 **Ações necessárias:**

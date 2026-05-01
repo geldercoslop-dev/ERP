@@ -44,7 +44,7 @@ Nenhum padrão N+1 óbvio identificado nas listagens principais.
 ## 4. Listas completas desnecessárias
 
 - **produtos.list:** Retorna todos os produtos (catálogo). Em catálogo grande, considerar paginação ou busca sob demanda.
-- **estoqueBaixo:** Usa `produtosRoutes.verificarEstoqueBaixo`; verificar se não carrega lista gigante.
+- **estoqueBaixo:** Rota legada removida; verificar implementação atual não carrega lista gigante.
 - **diagnostico.run:** Admin-only; pode fazer várias queries; aceitável para ferramenta interna.
 
 ---

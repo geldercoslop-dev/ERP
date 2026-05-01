@@ -10,7 +10,6 @@ Resumo em linguagem simples do que foi alterado e como validar.
 |---------|-----------|
 | `server/db.ts` | Tipo `AuditAction` com ENTRADA/SAIDA/AJUSTE/BAIXA; `insertAuditLog` aceita `tx` opcional para uso em transação; `updateEstoqueProduto` e `ajusteRapidoEstoque` registram movimentação em `audit_log` (saldoAnterior, saldoNovo, motivo, traceId); `runDiagnosticoConsistencia` retorna `tipoProblema`, `entidade`, `id`, `detalhe`, `sugestao` e inclui verificação de **contas a receber órfãs**; `criarNotaEntrada` grava auditoria de estoque por item (ENTRADA) dentro da transação. |
 | `server/routers.ts` | `atualizarEstoque` chama `db.updateEstoqueProduto` direto com auditoria (actorUserId/actorVendedorId, traceId); erro `ESTOQUE_NEGATIVO`/`ESTOQUE_INSUFICIENTE` → TRPCError BAD_REQUEST; após `baixarPedidoDireto` sucesso → `insertAuditLog` action BAIXA, entity pedido. |
-| `server/routes/produtos.ts` | Resposta 400 com mensagem clara quando `e.code === 'ESTOQUE_NEGATIVO'` ou `ESTOQUE_INSUFICIENTE`. |
 | `client/src/pages/Diagnostico.tsx` | Interface com `tipoProblema`, `entidade`, `detalhe`, `sugestao`; lista de problemas exibe detalhe e sugestão por item; texto atualizado (contas órfãs). |
 | `server/tests/run-core-tests.ts` | Validação do formato do diagnóstico (tipoProblema, entidade, detalhe, sugestao); **teste de rollback**: transação que atualiza estoque e lança erro → confere que estoque não foi alterado. |
 | `scripts/BOTAO_RODAR_TESTES_CORE.bat` | Novo script: roda `npm run test:core`. |

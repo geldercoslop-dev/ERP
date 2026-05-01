@@ -107,8 +107,7 @@ pnpm run build
 ❌ server/routers/leo.router.ts
 ❌ server/routers/clientes.ts
 ❌ server/routers/clientes.router.ts
-❌ server/routers/produtos.ts
-❌ server/routers/produtos.router.ts
+✅ server/routers/produtos.ts *(ativo - rota legada consolidada)*
 ❌ server/routers/financeiro.router.ts
 ❌ server/routers/logistica.ts
 ❌ server/routers/admin/index.ts

@@ -1056,36 +1056,6 @@
       "count": 1
     },
     {
-      "file": "server/routers/produtos.router.ts",
-      "kind": "as-any",
-      "snippet": "const id = (res as any)?.[0]?.insertId ?? (res as any)?.insertId;",
-      "count": 2
-    },
-    {
-      "file": "server/routers/produtos.router.ts",
-      "kind": "as-any",
-      "snippet": "const res = await (tx as any).insert(db.gruposPrecificacao).values({ ...data });",
-      "count": 1
-    },
-    {
-      "file": "server/routers/produtos.router.ts",
-      "kind": "as-any",
-      "snippet": "createdBy: (ctx.user as any)?.id,",
-      "count": 1
-    },
-    {
-      "file": "server/routers/produtos.router.ts",
-      "kind": "colon-any",
-      "snippet": "} catch (e: any) {",
-      "count": 1
-    },
-    {
-      "file": "server/routers/produtos.router.ts",
-      "kind": "colon-any",
-      "snippet": "const patch: any = {",
-      "count": 1
-    },
-    {
       "file": "server/routers/produtos.ts",
       "kind": "as-any",
       "snippet": "usuario: (ctx as any).user?.name || \"Sistema\",",
@@ -1119,42 +1089,6 @@
       "file": "server/routes/pedidos.ts",
       "kind": "colon-any",
       "snippet": "function verificarEstoqueDisponivel(itens: PedidoItem[]): { disponivel: boolean; itensIndisponiveis: any[] } {",
-      "count": 1
-    },
-    {
-      "file": "server/routes/produtos.ts",
-      "kind": "as-any",
-      "snippet": "} as any);",
-      "count": 1
-    },
-    {
-      "file": "server/routes/produtos.ts",
-      "kind": "as-any",
-      "snippet": "const { cores, variacoes, ...rest } = data as any;",
-      "count": 1
-    },
-    {
-      "file": "server/routes/produtos.ts",
-      "kind": "colon-any",
-      "snippet": "} catch (e: any) {",
-      "count": 3
-    },
-    {
-      "file": "server/routes/produtos.ts",
-      "kind": "colon-any",
-      "snippet": "const baixo = produtos.filter((p: any) => Number(p.estoque) <= 0);",
-      "count": 1
-    },
-    {
-      "file": "server/routes/produtos.ts",
-      "kind": "colon-any",
-      "snippet": "const filtrados = produtos.filter((p: any) =>",
-      "count": 1
-    },
-    {
-      "file": "server/routes/produtos.ts",
-      "kind": "colon-any",
-      "snippet": "const patch: any = { ...rest };",
       "count": 1
     },
     {

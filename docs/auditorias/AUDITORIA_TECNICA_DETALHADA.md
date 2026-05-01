@@ -102,8 +102,6 @@ server/routers/
 ├── leo.ts                       ❌ ORPHANED
 ├── logistica.ts                ❌ ORPHANED
 ├── pedidos.router.ts.broken    🔴 QUEBRADO
-├── produtos.ts                 ❌ ORPHANED (via routes/produtos em uso)
-├── produtos.router.ts          ❌ ORPHANED (via routes/produtos em uso)
 ├── smart-auth.ts               ❌ ORPHANED
 └── [active routers in routers.ts main]
 ```
@@ -164,23 +162,20 @@ Clientes:
 └── server/routes/clientes.ts       ← ATIVA (em uso)
 
 Produtos:
-├── server/routers/produtos.ts
-├── server/routers/produtos.router.ts
-└── server/routes/produtos.ts       ← ATIVA (em uso)
+├── server/routers/produtos.ts    ATIVO (atualizado com calculateProdutoInitialStock)
 ```
 
-**Diagnóstico:** `server/routes/` é a versão ativa  
-**Ação:** Deletar versões orphaned
+**Diagnóstico:** Rota legada de produtos foi migrada para `server/routers.ts`  
+**Ação:** Deletar versões orphaned restantes
 
 ```bash
 rm server/routers/clientes.ts
 rm server/routers/clientes.router.ts
-rm server/routers/produtos.ts
-rm server/routers/produtos.router.ts
 ```
 
 ---
 
+#### FINANCEIRO.ROUTER.TS
 #### ⚠️ FINANCEIRO.ROUTER.TS
 
 **Arquivo:** `server/routers/financeiro.router.ts`  
@@ -355,8 +350,6 @@ rm server/routers/pedidos.router.ts.broken
 # rm server/routers/leo-admin*.ts
 # rm server/routers/clientes.ts
 # rm server/routers/clientes.router.ts
-# rm server/routers/produtos.ts
-# rm server/routers/produtos.router.ts
 ```
 
 ### Validar Tipos (3-5 minutos)

@@ -23,7 +23,7 @@
 | getById | query | protected | `/api/trpc/clientes.getById` | clientesService |
 
 ### 📦 PRODUTOS (`produtosRouter`)
-**File**: `server/routers/produtos.router.ts`
+**File**: `server/routers.ts` (consolidado)
 **Service**: `server/services/inventory.service.ts`
 
 | Endpoint | Method | Auth | Path | Dependencies |

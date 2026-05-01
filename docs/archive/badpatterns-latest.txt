@@ -782,15 +782,6 @@
   server/routers/logistica.ts:274
   ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
 
-  server/routers/logistica.ts:275
-  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
-
-  server/routers/produtos.router.ts:238
-  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
-
-  server/routers/produtos.ts:206
-  ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
-
   server/routers/smart-auth.ts:92
   ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
 
@@ -868,12 +859,6 @@
 
   server/routers.ts:2495
   ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria
-
-  server/routes/produtos.ts:162
-  ÔÜá´©Å  unknown usado sem narrowing/type guard em callback
-
-  server/routes/produtos.ts:162
-  ÔÜá´©Å  Acesso a propriedade em unknown sem guard detectado
 
   server/routes/test-monitoring.ts:109
   ÔÜá´©Å  unknown convertido e usado sem valida├º├úo intermedi├íria

@@ -51,7 +51,6 @@
 ✓ leo.router.ts
 ✓ leo.ts
 ✓ logistica.ts
-✓ produtos.router.ts
 ✓ produtos.ts
 
 

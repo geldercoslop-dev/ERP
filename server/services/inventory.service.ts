@@ -32,7 +32,7 @@ export type UpdateEstoqueInput = {
 
 /**
  * Calcula o estoque inicial total baseado em cores e variações.
- * Migrado de server/routes/produtos.ts para centralização de regra de negócio.
+ * Regra de negócio centralizada em inventory.service.ts.
  */
 export function calculateProdutoInitialStock(data: {
   cores?: Array<{ estoque?: number | string | null }>;
