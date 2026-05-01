@@ -74,30 +74,11 @@ Use tipagem correta.
     // Suspicious: setInterval, setTimeout, .start(), new X() at import time
     // Safe new X() inside: class methods, functions, async functions, arrow functions, object methods
     const suspiciousPatterns = /setInterval\s*\(|setTimeout\s*\(|\.start\s*\(|new\s+[A-Z][a-zA-Z0-9_]*\s*\(/;
-    const safeBoundaries = [
-      /\bfunction\b/,
-      /\basync\s+function\b/,
-      /\bclass\b/,
-      /\bconstructor\s*\(/,
-      /\bmethod\s*\(/, // decorator pattern
-      /\bget\s+\w+\s*\(/, // getter
-      /\bset\s+\w+\s*\(/, // setter
-      /=>/,
-      /:\s*async\s*\(/, // object method: execute: async (
-      /:\s*\(/, // object method shorthand: execute: (
-      /\.query\s*\(/,
-      /\.mutation\s*\(/,
-      /\.use\s*\(/,
-      /router\s*\(\{/,
-      /createTRPCRouter\s*\(/,
-      /Router\s*\(\)/,
-      /{\s*execute\s*:/, // object literal with execute method
-      /{\s*\w+\s*:\s*(async\s*)?\(/ // object literal with any method
-    ];
 
     const lines = content.split("\n");
     let braceDepth = 0;
-    const boundaryStack = [];
+    const boundaryStack = []; // Stack of brace depths where functions/classes start
+    let pendingFunctionBoundary = null; // For multiline function declarations
     let inBlockComment = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -119,20 +100,82 @@ Use tipagem correta.
       const codeWithoutStrings = codePart
         .replace(/(['"`])(?:(?!\1|\\).|\\.)*\1/g, "");
 
-      // Check for safe boundaries before counting braces on this line
-      for (const boundary of safeBoundaries) {
-        if (boundary.test(codeWithoutStrings)) {
-          boundaryStack.push(braceDepth);
-        }
-      }
-
       // Count braces to track execution context for import-time guard
       const openBraces = (codeWithoutStrings.match(/\{/g) || []).length;
       const closeBraces = (codeWithoutStrings.match(/\}/g) || []).length;
+
+      // Check if this line completes a pending multiline function declaration
+      if (pendingFunctionBoundary !== null && openBraces > 0) {
+        boundaryStack.push(pendingFunctionBoundary);
+        pendingFunctionBoundary = null;
+      }
+
+      // BEFORE updating braceDepth: check if this line starts a function boundary
+      // A line starts a function/class scope if it matches function patterns AND has an opening brace
+      const functionStartPatterns = [
+        /\bexport\s+(async\s+)?function\b/,
+        /\b(async\s+)?function\s+\w+\s*\(/,
+        /\bclass\s+\w+\b/,
+        /\bconstructor\s*\(/,
+        /\b(method|get|set)\s+\w+\s*\(/,
+        /=>\s*\{/,
+        /:\s*(async\s*)?\([^)]*\)\s*=>\s*\{/,
+        /:\s*(async\s*)?\([^)]*\)\s*\{/,
+        /\b\w+\s*:\s*(async\s*)?\([^)]*\)\s*=>\s*\{/,
+        /\b\w+\s*:\s*(async\s*)?function\s*\(/,
+      ];
+
+      let hasFunctionBoundary = false;
+      for (const pattern of functionStartPatterns) {
+        if (pattern.test(codeWithoutStrings) && openBraces > 0) {
+          hasFunctionBoundary = true;
+          break;
+        }
+      }
+
+      // Check for function declarations that may span multiple lines (brace on next line)
+      // These patterns detect function declarations where the { is on a subsequent line
+      const functionDeclPatterns = [
+        /\bexport\s+(async\s+)?function\s+\w+\s*\(/,
+        /\b(async\s+)?function\s+\w+\s*\(/,
+      ];
+      let hasFunctionDeclStart = false;
+      for (const pattern of functionDeclPatterns) {
+        if (pattern.test(codeWithoutStrings)) {
+          hasFunctionDeclStart = true;
+          break;
+        }
+      }
+
+      // If function decl starts on this line but brace is NOT here, mark as pending
+      if (hasFunctionDeclStart && openBraces === 0) {
+        pendingFunctionBoundary = braceDepth;
+      }
+
+      // Check for arrow function with brace on same line: const x = () => {
+      const arrowWithBrace = /=>\s*\{/.test(codeWithoutStrings);
+
+      // Check for object method with brace: { method() { or { async method() {
+      const objectMethod = /:\s*(async\s+)?\w+\s*\([^)]*\)\s*\{/.test(codeWithoutStrings) ||
+                           /\b\w+\s*:\s*(async\s+)?\([^)]*\)\s*\{/.test(codeWithoutStrings) ||
+                           /\b\w+\s*:\s*function\s*\(/.test(codeWithoutStrings);
+
+      // Check for class method: methodName() { or async methodName() {
+      const classMethod = /^\s*(async\s+)?\w+\s*\([^)]*\)\s*\{/.test(codeWithoutStrings) ||
+                          /^\s*\*?\w+\s*\([^)]*\)\s*\{/.test(codeWithoutStrings);
+
+      if ((hasFunctionBoundary || arrowWithBrace || objectMethod || classMethod) && openBraces > 0) {
+        // This line starts a new function scope
+        // Push the current braceDepth (before this line's braces are counted)
+        // because the code INSIDE will be at braceDepth + 1 or more
+        boundaryStack.push(braceDepth);
+      }
+
+      // Update brace depth
       braceDepth += openBraces - closeBraces;
       if (braceDepth < 0) braceDepth = 0;
 
-      // If closed back to or below the boundary depth, invalidate
+      // Pop boundaries that have been closed
       while (boundaryStack.length > 0 && braceDepth <= boundaryStack[boundaryStack.length - 1]) {
         boundaryStack.pop();
       }
@@ -141,14 +184,18 @@ Use tipagem correta.
       const suspiciousMatch = codeWithoutStrings.match(suspiciousPatterns);
       if (suspiciousMatch) {
         const suspiciousIndex = suspiciousMatch.index;
+
+        // Check if there's a function boundary on this same line BEFORE the suspicious pattern
         let hasPriorBoundary = false;
-        for (const boundary of safeBoundaries) {
-          const boundaryMatch = codeWithoutStrings.match(boundary);
-          if (boundaryMatch && boundaryMatch.index < suspiciousIndex) {
+        for (const pattern of functionStartPatterns) {
+          const match = codeWithoutStrings.match(pattern);
+          if (match && match.index < suspiciousIndex) {
             hasPriorBoundary = true;
             break;
           }
         }
+
+        // VIOLATION if: not inside any function AND no boundary on same line before it
         if (!hasPriorBoundary && boundaryStack.length === 0) {
           console.error(`
 🚫 IMPORT-TIME EXECUTION DETECTADO em ${file} (linha ${i + 1})
