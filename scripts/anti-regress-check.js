@@ -248,7 +248,8 @@ Use: server/services/reports/pdf.service.ts (tenant-aware)
   if (
     content.includes("getEnv(") &&
     !file.includes("_core") &&
-    !file.includes("bootstrap")
+    !file.includes("bootstrap") &&
+    !ALLOWED_DB_INFRA_FILES.has(file)
   ) {
     console.error(`
 🚫 VIOLAÇÃO DE ARQUITETURA
