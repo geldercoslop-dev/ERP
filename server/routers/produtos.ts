@@ -6,6 +6,9 @@ import { createSuccessResponse, createErrorResponse, createPaginatedResponse } f
 import { requireTenant } from "../_core/tenant.js";
 import * as inventoryService from "../services/cached-inventory.service.js";
 import type { ApiResponse } from "../_core/api-response.js";
+import { createLogger } from "../infra/structured-logger.js";
+
+const logger = createLogger("produtos-router");
 
 // Schema de validação
 const createProdutoSchema = z.object({
@@ -67,7 +70,7 @@ export const produtosRouter = router({
           "Produtos listados com sucesso"
         );
       } catch (error) {
-        console.error("Erro ao listar produtos:", error);
+        logger.error("Erro ao listar produtos", error instanceof Error ? error : new Error(String(error)), { operation: "list" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao buscar produtos",
@@ -98,7 +101,7 @@ export const produtosRouter = router({
         const produto = await inventoryService.createProduto(tenantId, payload as Parameters<typeof inventoryService.createProduto>[1]);
         return createSuccessResponse(produto, "Produto criado com sucesso");
       } catch (error) {
-        console.error("Erro ao criar produto:", error);
+        logger.error("Erro ao criar produto", error instanceof Error ? error : new Error(String(error)), { operation: "create" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao criar produto",
@@ -138,7 +141,7 @@ export const produtosRouter = router({
           data: produto,
         };
       } catch (error) {
-        console.error("Erro ao atualizar produto:", error);
+        logger.error("Erro ao atualizar produto", error instanceof Error ? error : new Error(String(error)), { operation: "update" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao atualizar produto",
@@ -155,7 +158,7 @@ export const produtosRouter = router({
         await inventoryService.deleteProduto(tenantId, input.id);
         return createSuccessResponse(null, "Produto removido com sucesso");
       } catch (error) {
-        console.error("Erro ao excluir produto:", error);
+        logger.error("Erro ao excluir produto", error instanceof Error ? error : new Error(String(error)), { operation: "delete" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao excluir produto",
@@ -181,7 +184,7 @@ export const produtosRouter = router({
           data: produto,
         };
       } catch (error) {
-        console.error("Erro ao buscar produto:", error);
+        logger.error("Erro ao buscar produto", error instanceof Error ? error : new Error(String(error)), { operation: "getById" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao buscar produto",
@@ -212,7 +215,7 @@ export const produtosRouter = router({
           data: produto,
         };
       } catch (error) {
-        console.error("Erro ao atualizar estoque:", error);
+        logger.error("Erro ao atualizar estoque", error instanceof Error ? error : new Error(String(error)), { operation: "updateEstoque" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao atualizar estoque",
@@ -236,7 +239,7 @@ export const produtosRouter = router({
           total: items.length,
         };
       } catch (error) { 
-        console.error("Erro ao buscar estoque baixo:", error);
+        logger.error("Erro ao buscar estoque baixo", error instanceof Error ? error : new Error(String(error)), { operation: "getEstoqueBaixo" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao buscar estoque baixo",
