@@ -108,6 +108,7 @@ export default function ProdutosConnected() {
     fornecedor: "",
     categoria: "",
     prazoGarantia: 90,
+    bloquearEstoqueNegativo: true,
   });
 
   // Cores e estoque por cor
@@ -190,6 +191,7 @@ export default function ProdutosConnected() {
       fornecedor: p.fornecedor ?? "",
       categoria: p.categoria ?? "",
       prazoGarantia: Number(p.prazoGarantia ?? 90),
+      bloquearEstoqueNegativo: p.bloquearEstoqueNegativo === true,
     }));
 
     if (Array.isArray(p.cores)) setCoresSelecionadas(p.cores);
@@ -521,6 +523,22 @@ export default function ProdutosConnected() {
                   );
                 })}
               </div>
+            </div>
+
+            <div className="mt-6 border-t pt-5">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="bloquearEstoqueNegativo"
+                  checked={formData.bloquearEstoqueNegativo}
+                  onCheckedChange={(checked) => setFormData({ ...formData, bloquearEstoqueNegativo: !!checked })}
+                />
+                <Label htmlFor="bloquearEstoqueNegativo" className="text-sm font-medium leading-none cursor-pointer">
+                  Bloquear estoque negativo
+                </Label>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1 ml-6">
+                Se ativado, o sistema impedirá vendas que resultem em estoque menor que zero.
+              </p>
             </div>
 
             {/* Ações */}

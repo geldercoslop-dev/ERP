@@ -133,9 +133,10 @@ class SafeStockService {
         }
 
         const saldoAnterior = Number(produto.estoque || 0);
+        const bloquearNegativo = produto.bloquear_estoque_negativo !== 0; // SQL returns 1 or 0 for boolean
 
         // 2. Validar operação
-        this.validateOperation(operation, saldoAnterior);
+        this.validateOperation(operation, saldoAnterior, bloquearNegativo);
 
         // 3. Calcular novo saldo
         const saldoNovo = this.calculateNewSaldo(saldoAnterior, operation);
@@ -239,8 +240,8 @@ class SafeStockService {
   /**
    * Valida se operação é permitida
    */
-  private validateOperation(operation: StockOperation, saldoAtual: number): void {
-    if (operation.tipo === 'saida' && operation.quantidade > saldoAtual) {
+  private validateOperation(operation: StockOperation, saldoAtual: number, bloquearNegativo: boolean = true): void {
+    if (operation.tipo === 'saida' && bloquearNegativo && operation.quantidade > saldoAtual) {
       throw new StockError(
         `Estoque insuficiente. Saldo atual: ${saldoAtual}, solicitado: ${operation.quantidade}`,
         'ESTOQUE_INSUFICIENTE',
@@ -313,7 +314,12 @@ class SafeStockService {
           .where(sql`${produtos.tenantId} = ${tenantId} AND ${produtos.id} = ${produtoId}`);
       } else {
         // Para saída, verifica se ainda tem estoque suficiente
-        if (estoqueAtual < quantidade) {
+        const bloquearNegativo = (await tx.select({ bn: produtos.bloquearEstoqueNegativo })
+          .from(produtos)
+          .where(sql`${produtos.tenantId} = ${tenantId} AND ${produtos.id} = ${produtoId}`)
+          .limit(1))[0]?.bn ?? true;
+
+        if (bloquearNegativo && estoqueAtual < quantidade) {
           return {
             success: false,
             message: `Estoque insuficiente: disponível ${estoqueAtual}, solicitado ${quantidade}`

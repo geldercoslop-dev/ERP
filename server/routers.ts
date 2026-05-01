@@ -771,6 +771,7 @@ export const appRouter = router({
         ),
         prazoGarantia: z.number().int("Prazo de garantia deve ser um número inteiro").min(0, "Prazo de garantia não pode ser negativo"),
         ativo: z.boolean().optional(),
+        bloquearEstoqueNegativo: z.boolean().optional(),
         grupoId: z.number().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {

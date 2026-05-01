@@ -18,6 +18,7 @@ type ProdutoRowLock = {
   estoque: number;
   /** Ausente quando a query SQL não retorna a coluna `ativo`. */
   ativo?: boolean;
+  bloquearEstoqueNegativo?: boolean;
 };
 
 function parseProdutoRow(row: unknown): ProdutoRowLock | null {
@@ -29,6 +30,7 @@ function parseProdutoRow(row: unknown): ProdutoRowLock | null {
     descricao: String(row["descricao"] ?? ""),
     estoque: Number(row["estoque"] ?? 0),
     ativo: row["ativo"] === undefined ? undefined : Boolean(row["ativo"]),
+    bloquearEstoqueNegativo: row["bloquear_estoque_negativo"] === undefined ? undefined : Boolean(row["bloquear_estoque_negativo"]),
   };
 }
 
@@ -91,7 +93,7 @@ export async function updateStockSafe(
 
       // 1. Bloquear o produto para leitura (SELECT FOR UPDATE) com tenantId
       const [produto] = await tx.execute(
-        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenantId = ? AND id = ? FOR UPDATE`,
+        `SELECT id, descricao, estoque, ativo, bloquear_estoque_negativo FROM produtos WHERE tenantId = ? AND id = ? FOR UPDATE`,
         [tenantId, produtoId]
       );
 
@@ -122,7 +124,8 @@ export async function updateStockSafe(
         : estoqueAtual - quantidade;
 
       // 4. Validar estoque negativo
-      if (novoEstoque < 0) {
+      const bloquear = produtoData.bloquearEstoqueNegativo ?? true;
+      if (bloquear && novoEstoque < 0) {
         return { success: false, error: `ESTOQUE_INSUFICIENTE: Estoque atual (${estoqueAtual}) insuficiente para saída de ${Math.abs(quantidade)}. Saldo seria: ${novoEstoque}` };
       }
 

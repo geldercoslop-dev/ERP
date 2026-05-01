@@ -436,12 +436,17 @@ export async function ajusteRapidoEstoque(
   assertDbConnection(dbConn);
   
   const ajuste = tipo === "entrada" ? quantidade : -quantidade;
-  const res = await dbConn.select({ estoque: produtos.estoque, descricao: produtos.descricao }).from(produtos).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, produtoId))).limit(1);
+  const res = await dbConn.select({ 
+    estoque: produtos.estoque, 
+    descricao: produtos.descricao,
+    bloquearEstoqueNegativo: produtos.bloquearEstoqueNegativo 
+  }).from(produtos).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, produtoId))).limit(1);
   const row = res[0];
   if (!row) throw new ValidationError("Produto não encontrado");
   const saldoAnterior = Number(row.estoque ?? 0);
+  const bloquear = row.bloquearEstoqueNegativo ?? true;
 
-  if (tipo === "saida" && quantidade > 0 && saldoAnterior < quantidade) {
+  if (tipo === "saida" && quantidade > 0 && bloquear && saldoAnterior < quantidade) {
     throw new ValidationError(`Estoque insuficiente para saída do produto "${row.descricao}". Saldo atual: ${saldoAnterior}.`);
   }
   

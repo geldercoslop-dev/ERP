@@ -26,6 +26,7 @@ const createProdutoSchema = z.object({
   grupoId: z.number().optional(),
   estoque: z.number().min(0).default(0),
   ativo: z.boolean().default(true),
+  bloquearEstoqueNegativo: z.boolean().default(true),
 });
 
 const updateProdutoSchema = createProdutoSchema.partial().extend({
