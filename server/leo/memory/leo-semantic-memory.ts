@@ -250,7 +250,7 @@ export class LeoSemanticMemory {
       const totalEventos = stats.eventos;
       const totalPadroes = stats.padroes;
       const totalDecisoes = stats.decisoes;
-      const eficiencia = Math.random() * 30 + 60;
+      const eficiencia = 0; // Métrica indisponível — requer cálculo real de eficiência operacional
       const resumo = {
         id: nanoid(),
         tipo: 'diario' as const,

@@ -499,8 +499,8 @@ export class LeoSystemMonitor {
    */
   private async contarErrosRecentes(): Promise<number> {
     try {
-      // Simulação - em produção analisar arquivos de log
-      return Math.floor(Math.random() * 10);
+      // Métrica indisponível — requer análise de logs de produção
+      return 0;
     } catch (error) {
       return 0;
     }
@@ -534,23 +534,8 @@ export class LeoSystemMonitor {
    */
   async getLogsRecentes(limite: number = 100): Promise<LogEntry[]> {
     try {
-      // Simulação - em produção ler arquivos de log reais
-      const logs: LogEntry[] = [];
-      
-      for (let i = 0; i < Math.min(limite, 20); i++) {
-        const timestamp = new Date(Date.now() - i * 60000);
-        const levels: Array<'error' | 'warn' | 'info' | 'debug'> = ['error', 'warn', 'info', 'debug'];
-        const level = levels[Math.floor(Math.random() * levels.length)];
-        
-        logs.push({
-          timestamp,
-          level,
-          message: `Log de exemplo ${level} #${i}`,
-          source: 'leo-system-monitor',
-        });
-      }
-
-      return logs.reverse(); // Mais recentes primeiro
+      // Logs indisponíveis — requer leitura de arquivos de log reais em produção
+      return [];
     } catch (error) {
       console.error('[LeoSystemMonitor] Erro ao obter logs:', error);
       return [];

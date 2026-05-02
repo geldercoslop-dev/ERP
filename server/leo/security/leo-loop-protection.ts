@@ -5,6 +5,7 @@
  * Monitora padrões de execução e bloqueia comportamentos anômalos
  */
 
+import { randomUUID } from 'crypto';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 import { leoEvents } from '../memory/leo-events.js';
 import { leoTaskQueue } from '../tasks/leo-task-queue.js';
@@ -359,7 +360,7 @@ class LeoLoopProtection {
    */
   private async handleSuspiciousPattern(taskId: string, taskType: string, pattern: SuspiciousPatternMatch): Promise<void> {
     const alert: LoopAlert = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `alert_${randomUUID()}`,
       type: 'pattern_loop',
       severity: 'high',
       taskId,
@@ -402,7 +403,7 @@ class LeoLoopProtection {
 
     if (recentFailures >= this.config.maxFailuresPerTask) {
       const alert: LoopAlert = {
-        id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `alert_${randomUUID()}`,
         type: 'task_loop',
         severity: 'critical',
         taskId,
@@ -442,7 +443,7 @@ class LeoLoopProtection {
    */
   private async handleLongExecution(taskId: string, history: TaskExecutionHistory, duration: number): Promise<void> {
     const alert: LoopAlert = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `alert_${randomUUID()}`,
       type: 'execution_loop',
       severity: 'medium',
       taskId,
@@ -475,7 +476,7 @@ class LeoLoopProtection {
    */
   private async handleActionLoop(action: string, count: number): Promise<void> {
     const alert: LoopAlert = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `alert_${randomUUID()}`,
       type: 'action_loop',
       severity: 'high',
       description: `Loop de ações detectado: "${action}" executada ${count} vezes`,
@@ -604,7 +605,7 @@ class LeoLoopProtection {
    * Gera ID único para alerta
    */
   private generateAlertId(): string {
-    return `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `alert_${randomUUID()}`;
   }
 
   /**
