@@ -1347,6 +1347,152 @@ export async function analyzePurchaseFrequency(
   }
 }
 
+export type ClienteChurnRisk = {
+  clientId: number;
+  clientName: string;
+  riskScore: number;
+  riskLevel: "low" | "medium" | "high";
+  factors: string[];
+  recommendations: string[];
+};
+
+/**
+ * Prediz o risco de churn (abandono) de clientes baseado em dados reais.
+ * Cálculo Determinístico: Score baseado em recência, frequência, status e valor.
+ */
+export async function predictChurnRisk(
+  tenantId: number
+): Promise<{ success: boolean; data?: ClienteChurnRisk[]; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    assertDbConnection(dbConn);
+
+    // 1. Obter métricas de frequência de compra
+    const freqResult = await analyzePurchaseFrequency(tenantId);
+    if (!freqResult.success || !freqResult.data) {
+      return { success: false, error: freqResult.error || "Falha ao obter métricas de frequência" };
+    }
+
+    // 2. Obter valor total histórico por cliente
+    const valorRows = await dbConn
+      .select({
+        clienteId: pedidos.clienteId,
+        valorTotal: sql<number>`COALESCE(SUM(${pedidos.total}), 0)`.as("valorTotal")
+      })
+      .from(pedidos)
+      .where(and(
+        eq(pedidos.tenantId, tenantId),
+        ne(pedidos.status, PedidoStatus.CANCELADO)
+      ))
+      .groupBy(pedidos.clienteId);
+
+    const valorMap = new Map<number, number>();
+    for (const row of valorRows) {
+      valorMap.set(row.clienteId, Number(row.valorTotal));
+    }
+
+    // 3. Calcular risco para cada cliente
+    const now = Date.now();
+    const churnRisks: ClienteChurnRisk[] = freqResult.data.map(cliente => {
+      let score = 0;
+      const factors: string[] = [];
+
+      // Recência (peso 40%)
+      if (!cliente.ultimoPedido) {
+        score += 40;
+        factors.push("Nenhuma compra registrada");
+      } else {
+        const diasDesdeUltimaCompra = (now - cliente.ultimoPedido.getTime()) / (1000 * 60 * 60 * 24);
+        if (diasDesdeUltimaCompra > 90) {
+          score += 40;
+          factors.push(`Última compra há ${Math.floor(diasDesdeUltimaCompra)} dias`);
+        } else if (diasDesdeUltimaCompra > 60) {
+          score += 30;
+          factors.push(`Última compra há ${Math.floor(diasDesdeUltimaCompra)} dias`);
+        } else if (diasDesdeUltimaCompra > 45) {
+          score += 20;
+          factors.push(`Última compra há ${Math.floor(diasDesdeUltimaCompra)} dias`);
+        } else if (cliente.diasEntrePedidos > 0 && diasDesdeUltimaCompra > cliente.diasEntrePedidos * 1.5) {
+          score += 15;
+          factors.push(`Atraso de ${Math.floor(diasDesdeUltimaCompra - cliente.diasEntrePedidos)} dias do padrão de compra`);
+        }
+      }
+
+      // Frequência (peso 30%)
+      if (cliente.totalPedidos === 0) {
+        score += 30;
+        factors.push("Nenhum pedido realizado");
+      } else if (cliente.totalPedidos === 1) {
+        score += 20;
+        factors.push("Apenas 1 pedido no histórico");
+      } else if (cliente.totalPedidos < 3) {
+        score += 10;
+        factors.push(`${cliente.totalPedidos} pedidos no histórico`);
+      }
+
+      // Status (peso 20%)
+      if (cliente.status === "inactive") {
+        score += 20;
+        factors.push("Status: inativo");
+      } else if (cliente.status === "at_risk") {
+        score += 15;
+        factors.push("Status: em risco");
+      }
+
+      // Valor histórico (peso 10%)
+      const valorHistorico = valorMap.get(cliente.clienteId) || 0;
+      if (valorHistorico < 100) {
+        score += 10;
+        factors.push(`Valor histórico baixo: R$ ${valorHistorico.toFixed(2)}`);
+      } else if (valorHistorico < 500) {
+        score += 5;
+        factors.push(`Valor histórico moderado: R$ ${valorHistorico.toFixed(2)}`);
+      }
+
+      // Limitar score máximo a 100
+      score = Math.min(100, score);
+
+      // Classificar nível de risco
+      let riskLevel: "low" | "medium" | "high" = "low";
+      if (score >= 60) {
+        riskLevel = "high";
+      } else if (score >= 35) {
+        riskLevel = "medium";
+      }
+
+      // Gerar recomendações baseadas no nível de risco
+      const recommendations: string[] = [];
+      if (riskLevel === "high") {
+        recommendations.push("Contato urgente - oferecer desconto exclusivo de reativação");
+        recommendations.push("Ligação personalizada do vendedor");
+      } else if (riskLevel === "medium") {
+        recommendations.push("Enviar campanha de relacionamento com novidades");
+        recommendations.push("Oferecer frete grátis na próxima compra");
+      } else {
+        recommendations.push("Manter relacionamento padrão");
+        recommendations.push("Incluir em newsletters regulares");
+      }
+
+      return {
+        clientId: cliente.clienteId,
+        clientName: cliente.clienteNome,
+        riskScore: score,
+        riskLevel,
+        factors,
+        recommendations
+      };
+    });
+
+    return { success: true, data: churnRisks };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 // ===== WRAPPER FUNCTIONS FOR ROUTER COMPATIBILITY =====
 // These functions match the DB layer contract for direct router replacement
 

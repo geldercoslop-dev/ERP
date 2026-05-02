@@ -55,5 +55,16 @@ export const learningClientsTool = {
       throw new InfrastructureError(result.error || 'Falha ao obter segmentação de clientes');
     }
     return result.data || [];
+  },
+
+  predictChurnRisk: async function(input: { tenantId: number }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    const result = await clientesService.predictChurnRisk(input.tenantId);
+    if (!result.success) {
+      throw new InfrastructureError(result.error || 'Falha ao prever risco de churn');
+    }
+    return result.data || [];
   }
 };

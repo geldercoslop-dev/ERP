@@ -124,8 +124,9 @@ export class LeoClientBehavior {
         extra: { entity: this.name, acao: 'predictChurnRisk' }
       });
 
-      // LEO_CLIENT_CHURN_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_CLIENT_CHURN_REAL_IMPLEMENTATION_REQUIRED");
+      return await learningClientsTool.predictChurnRisk({
+        tenantId: this.tenantId
+      });
 
     } catch (error) {
       logError('Failed to predict churn risk', {
