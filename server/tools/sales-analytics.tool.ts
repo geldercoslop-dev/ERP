@@ -1,5 +1,5 @@
 import * as ordersService from '../services/orders.service.js';
-import { ValidationError } from '../_core/errors/typed-errors.js';
+import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 
 export const salesAnalyticsTool = {
   aggregateTicketPedidos: async function(input: { tenantId: number; vendedorId?: number; since?: Date }) {
@@ -56,5 +56,16 @@ export const salesAnalyticsTool = {
     }
     const limit = input.limit;
     return ordersService.getTopProducts(input.tenantId, limit);
+  },
+
+  analyzeSalesByCategory: async function(input: { tenantId: number }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    const result = await ordersService.analyzeSalesByCategory(input.tenantId);
+    if (!result.success) {
+      throw new InfrastructureError(result.error || 'Falha ao analisar vendas por categoria');
+    }
+    return result.data || [];
   }
 };

@@ -167,8 +167,9 @@ export class LeoSalesAnalysis {
         extra: { entity: this.name, acao: 'analyzeSalesByCategory', tenantId: this.tenantId },
       });
 
-      // LEO_SALES_CATEGORY_ANALYSIS_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_SALES_CATEGORY_ANALYSIS_REAL_IMPLEMENTATION_REQUIRED");
+      return await salesAnalyticsTool.analyzeSalesByCategory({
+        tenantId: this.tenantId
+      });
 
     } catch (error) {
       logError('Failed to analyze sales by category', {

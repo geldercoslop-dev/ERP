@@ -1802,3 +1802,88 @@ export async function insertItensPedidoAndContasReceberInTransaction(
     observacoes: 'Gerada automaticamente no pedido. Será substituída/ajustada na baixa.',
   });
 }
+
+export type SalesByCategory = {
+  category: string;
+  total: number;
+  percentage: number;
+  growth: number;
+};
+
+/**
+ * Analisa vendas por categoria de produto.
+ * Cálculo Real: Agrega itens de pedidos não cancelados por categoria.
+ */
+export async function analyzeSalesByCategory(
+  tenantId: number
+): Promise<{ success: boolean; data?: SalesByCategory[]; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    assertDbConnection(dbConn);
+
+    const now = new Date();
+    const periodoAtualInicio = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const periodoAnteriorInicio = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    // Query para dados agregados por categoria
+    const rows = await dbConn
+      .select({
+        categoria: sql<string>`COALESCE(${produtos.categoria}, 'Sem categoria')`.as("categoria"),
+        totalValor: sql<number>`SUM(${itensPedido.quantidade} * CAST(${itensPedido.valorUnitario} AS DECIMAL(10,2)))`.as("totalValor"),
+        totalAtual: sql<number>`SUM(CASE WHEN ${pedidos.createdAt} >= ${periodoAtualInicio} THEN ${itensPedido.quantidade} * CAST(${itensPedido.valorUnitario} AS DECIMAL(10,2)) ELSE 0 END)`.as("totalAtual"),
+        totalAnterior: sql<number>`SUM(CASE WHEN ${pedidos.createdAt} >= ${periodoAnteriorInicio} AND ${pedidos.createdAt} < ${periodoAtualInicio} THEN ${itensPedido.quantidade} * CAST(${itensPedido.valorUnitario} AS DECIMAL(10,2)) ELSE 0 END)`.as("totalAnterior"),
+      })
+      .from(itensPedido)
+      .innerJoin(pedidos, and(
+        eq(itensPedido.pedidoId, pedidos.id),
+        eq(pedidos.tenantId, tenantId)
+      ))
+      .innerJoin(produtos, and(
+        eq(itensPedido.produtoId, produtos.id),
+        eq(produtos.tenantId, tenantId)
+      ))
+      .where(and(
+        eq(itensPedido.tenantId, tenantId),
+        ne(pedidos.status, PedidoStatus.CANCELADO)
+      ))
+      .groupBy(sql`COALESCE(${produtos.categoria}, 'Sem categoria')`);
+
+    // Calcular total geral para percentuais
+    const totalGeral = rows.reduce((sum, r) => sum + Number(r.totalValor), 0);
+
+    // Formatar resultado
+    const result: SalesByCategory[] = rows.map(r => {
+      const total = Number(r.totalValor);
+      const atual = Number(r.totalAtual);
+      const anterior = Number(r.totalAnterior);
+
+      // Calcular crescimento
+      let growth = 0;
+      if (anterior === 0 && atual > 0) {
+        growth = 100;
+      } else if (anterior === 0 && atual === 0) {
+        growth = 0;
+      } else {
+        growth = Number((((atual - anterior) / anterior) * 100).toFixed(2));
+      }
+
+      return {
+        category: r.categoria || 'Sem categoria',
+        total: Number(total.toFixed(2)),
+        percentage: totalGeral > 0 ? Number(((total / totalGeral) * 100).toFixed(2)) : 0,
+        growth
+      };
+    });
+
+    // Ordenar por total desc
+    result.sort((a, b) => b.total - a.total);
+
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
