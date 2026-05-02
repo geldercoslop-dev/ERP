@@ -14,6 +14,7 @@ import { leoErpObserver } from '../perception/leo-erp-observer.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 import { LeoEventType, LeoEventPriority } from '../../../shared/types/index.js';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
+import { randomUUID } from 'crypto';
 
 /** Tipo mínimo do contexto do loop para decisões (events/health/erp com estrutura conhecida) */
 interface LoopContextShaped {
@@ -228,7 +229,7 @@ export class LeoLoop {
       const eventsOpen = (context.events as { open: number }).open;
       if (eventsOpen > 0) {
         decisions.push({
-          id: `decision_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `decision_${randomUUID()}`,
           action: 'process_events',
           description: 'Processar eventos abertos',
           priority: 'high',
@@ -240,7 +241,7 @@ export class LeoLoop {
       const healthStatus = (context.health as { status?: string }).status;
       if (healthStatus !== 'healthy') {
         decisions.push({
-          id: `decision_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `decision_${randomUUID()}`,
           action: 'health_check',
           description: 'Verificar saúde do sistema',
           priority: 'critical',
@@ -252,7 +253,7 @@ export class LeoLoop {
       const erpData = context.erp as { alerts?: unknown[] };
       if (erpData.alerts && erpData.alerts.length > 0) {
         decisions.push({
-          id: `decision_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `decision_${randomUUID()}`,
           action: 'process_alerts',
           description: 'Processar alertas do ERP',
           priority: 'medium',
