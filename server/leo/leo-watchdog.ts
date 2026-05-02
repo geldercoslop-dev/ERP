@@ -8,7 +8,6 @@
 import { insertLeoActionLog } from '../services/ai/leo-action-logger.js';
 import { leoEvents } from './memory/leo-events.js';
 import { leoLoop } from './engine/leo-loop.js';
-import { leoSystemMonitor } from './perception/leo-system-monitor.js';
 
 export interface WatchdogConfig {
   checkInterval: number; // milissegundos

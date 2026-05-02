@@ -7,10 +7,10 @@
 import { leoEngine } from '../engine/leo-engine.js';
 import { leoComputerControl } from '../actions/leo-computer-control.js';
 import { leoDesktopControl } from '../actions/leo-desktop-control.js';
-import { leoScreen } from '../perception/leo-screen.js';
+import { getLeoScreen } from '../perception/leo-screen.js';
 import leoOcr from '../perception/leo-ocr.js';
 import { leoAutomation } from '../actions/leo-automation.js';
-import { leoSystemMonitor } from '../perception/leo-system-monitor.js';
+import { getLeoSystemMonitor } from '../perception/leo-system-monitor.js';
 import { leoEvents } from '../memory/leo-events.js';
 import { leoErpTool } from '../../tools/leo-erp.tool.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
@@ -214,7 +214,7 @@ export class LeoOperatorMode {
 
       // Iniciar sistemas automáticos conforme configuração
       if (this.config.permissoes.monitorarSistema) {
-        await leoSystemMonitor.iniciarMonitoramento(60000); // 1 minuto
+        await getLeoSystemMonitor().iniciarMonitoramento(60000); // 1 minuto
       }
 
       if (this.config.permissoes.executarAutomacoes) {
@@ -259,7 +259,7 @@ export class LeoOperatorMode {
       }
 
       // Parar sistemas automáticos
-      await leoSystemMonitor.pararMonitoramento();
+      await getLeoSystemMonitor().pararMonitoramento();
       await leoAutomation.pararAutomacao();
 
       // Desativar modo
@@ -464,7 +464,7 @@ export class LeoOperatorMode {
     performance: unknown;
   }> {
     const capabilities = await leoEngine.getCapabilities();
-    const systemStatus = await leoSystemMonitor.verificarSistema();
+    const systemStatus = await getLeoSystemMonitor().verificarSistema();
     const automationStats = await leoAutomation.getEstatisticas();
     const eventsStats = await leoEvents.getEstatisticas();
 

@@ -13,7 +13,7 @@ import { leoTaskQueue } from '../leo/tasks/leo-task-queue.js';
 import { leoMemory } from '../leo/memory/leo-memory.js';
 import { leoOperatorMode } from '../leo/operator/leo-operator-controller.js';
 import { leoErpObserver } from '../leo/perception/leo-erp-observer.js';
-import { leoSystemMonitor } from '../leo/perception/leo-system-monitor.js';
+import { getLeoSystemMonitor } from '../leo/perception/leo-system-monitor.js';
 import { leoEvents } from '../leo/memory/leo-events.js';
 import { leoAutomation } from '../leo/actions/leo-automation.js';
 import { listPendingApprovals, getPendingApproval, approveAction, rejectAction } from '../services/leo-approval.service.js';
@@ -31,7 +31,7 @@ export const leoAdminRouter = router({
       const operatorMode = leoOperatorMode.isModoOperadorAtivo();
       const taskStats = await leoTaskQueue.getStats();
       const memoryStats = await leoMemory.getStats();
-      const systemHealth = await leoSystemMonitor.verificarSistema();
+      const systemHealth = await getLeoSystemMonitor().verificarSistema();
       const erpContext = await leoErpObserver.getLastContext();
       const automationStats = await leoAutomation.getEstatisticas();
       const eventsStats = await leoEvents.getEstatisticas();
@@ -387,7 +387,7 @@ export const leoAdminRouter = router({
     // Verificar saúde do sistema
     health: adminProcedure.query(async () => {
       try {
-        const health = await leoSystemMonitor.verificarSistema();
+        const health = await getLeoSystemMonitor().verificarSistema();
         return {
           success: true,
           data: health,
@@ -404,7 +404,7 @@ export const leoAdminRouter = router({
     // Gerar relatório de saúde
     report: adminProcedure.query(async () => {
       try {
-        const report = await leoSystemMonitor.gerarRelatorioSaude();
+        const report = await getLeoSystemMonitor().gerarRelatorioSaude();
         return {
           success: true,
           data: report,
@@ -423,7 +423,7 @@ export const leoAdminRouter = router({
       .input(z.object({ limit: z.number().optional().default(100) }))
       .query(async ({ input }) => {
         try {
-          const logs = await leoSystemMonitor.getLogsRecentes(input.limit);
+          const logs = await getLeoSystemMonitor().getLogsRecentes(input.limit);
           return {
             success: true,
             data: logs,
@@ -603,7 +603,7 @@ export const leoAdminRouter = router({
 
         // Parar monitoramento
         try {
-          const monitorResult = await leoSystemMonitor.pararMonitoramento();
+          const monitorResult = await getLeoSystemMonitor().pararMonitoramento();
           results.push({ success: monitorResult.success, message: monitorResult.message || 'Monitoramento parado', component: 'monitor' });
         } catch (error) {
           results.push({ success: false, message: error instanceof Error ? error.message : 'Erro', component: 'monitor' });

@@ -13,7 +13,7 @@ import { stripSensitiveIdsFromUnknown } from '../../_core/strip-sensitive-payloa
 import type { PedidoInput } from '../../services/leo-service.js';
 import { leoComputerControl } from './leo-computer-control.js';
 import { leoDesktopControl } from './leo-desktop-control.js';
-import { leoScreen } from '../perception/leo-screen.js';
+import { getLeoScreen } from '../perception/leo-screen.js';
 import leoOcr from '../perception/leo-ocr.js';
 import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 
@@ -428,7 +428,7 @@ async function executarOperacaoSistema(action: LeoActionRequest, context: LeoRun
       case 'capturar_tela':
         const path = typeof parametros?.path === 'string' ? parametros.path : undefined;
         const usuario = typeof parametros?.usuario === 'string' ? parametros.usuario : undefined;
-        const resultadoCaptura = await leoScreen.capturarTela(path, usuario);
+        const resultadoCaptura = await getLeoScreen().capturarTela(path, usuario);
         return {
           success: resultadoCaptura.success,
           message: resultadoCaptura.message ?? '',

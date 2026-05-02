@@ -27,9 +27,9 @@ export { getLeoScheduler } from './engine/leo-scheduler.js';
 
 // LEO Perception
 export { leoErpObserver } from './perception/leo-erp-observer.js';
-export { LeoScreen, leoScreen, type ScreenCaptureResult } from './perception/leo-screen.js';
+export { LeoScreen, getLeoScreen, type ScreenCaptureResult } from './perception/leo-screen.js';
 export { recognizeText, type OCRResult } from './perception/leo-ocr.js';
-export { LeoSystemMonitor, leoSystemMonitor, type SystemStatus, type LogEntry, type AlertLevel } from './perception/leo-system-monitor.js';
+export { LeoSystemMonitor, getLeoSystemMonitor, type SystemStatus, type LogEntry, type AlertLevel } from './perception/leo-system-monitor.js';
 
 // LEO Planning
 export { leoPlanner } from './planning/leo-planner.js';

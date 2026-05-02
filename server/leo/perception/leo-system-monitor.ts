@@ -627,5 +627,13 @@ export class LeoSystemMonitor {
   }
 }
 
-// Exportar instância singleton
-export const leoSystemMonitor = LeoSystemMonitor.getInstance();
+// LAZY SINGLETON: Não executa no import, só na primeira chamada
+let leoSystemMonitorInstance: LeoSystemMonitor | null = null;
+
+export function getLeoSystemMonitor(): LeoSystemMonitor {
+  if (!leoSystemMonitorInstance) {
+    leoSystemMonitorInstance = LeoSystemMonitor.getInstance();
+  }
+  return leoSystemMonitorInstance;
+}
+

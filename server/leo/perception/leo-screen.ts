@@ -88,6 +88,12 @@ export class LeoScreen {
   }
 }
 
-export const leoScreen = new LeoScreen();
+// LAZY SINGLETON: Não executa no import, só na primeira chamada
+let leoScreenInstance: LeoScreen | null = null;
 
-export default leoScreen;
+export function getLeoScreen(): LeoScreen {
+  if (!leoScreenInstance) {
+    leoScreenInstance = new LeoScreen();
+  }
+  return leoScreenInstance;
+}

@@ -8,7 +8,6 @@
 import { leoEngine } from './leo-engine.js';
 import { buildLeoContext } from '../utils/leo-context.js';
 import { leoMemory } from '../memory/leo-memory.js';
-import { leoSystemMonitor } from '../perception/leo-system-monitor.js';
 import { leoEvents } from '../memory/leo-events.js';
 import { leoErpObserver } from '../perception/leo-erp-observer.js';
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';

@@ -114,9 +114,6 @@ function isCleanupJobPayload(data: unknown): data is CleanupJobPayload {
 }
 
 // Importações dos módulos existentes (serão adaptados para uso assíncrono)
-// import { leoOcr } from '../leo/perception/leo-ocr.js';
-// import { leoScreen } from '../leo/perception/leo-screen.js';
-// import { leoEngine } from '../leo/engine/leo-engine.js';
 
 /**
  * Processador de Jobs OCR
@@ -185,12 +182,6 @@ export async function processScreenshotJob(data: JobData): Promise<JobResult> {
     const { options, area } = data.payload;
     
     // TODO: Implementar captura de tela assíncrona
-    // let screenshotResult;
-    // if (area) {
-    //   screenshotResult = await leoScreen.captureArea(area.x, area.y, area.width, area.height, options, data.userId);
-    // } else {
-    //   screenshotResult = await leoScreen.capturarTela(options, data.userId);
-    // }
     
     // Simulação por enquanto
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simula tempo de screenshot
