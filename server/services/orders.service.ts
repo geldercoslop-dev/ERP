@@ -2188,3 +2188,216 @@ export async function detectSeasonalPatterns(
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
+
+// =============================================================================
+// CANCELAMENTO COMPLETO DE PEDIDO (P4)
+// =============================================================================
+
+/**
+ * Status que representam pedido com estoque já baixado.
+ * Estes status significam que o produto foi fisicamente retirado do estoque.
+ */
+const STATUS_COM_ESTOQUE_BAIXADO: readonly string[] = [
+  PedidoStatus.GERADO,
+  PedidoStatus.CONFERIDO,
+  PedidoStatus.IMPRESSO,
+  PedidoStatus.EM_ROTA,
+] as const;
+
+/**
+ * Cancela um pedido de forma transacional, devolvendo estoque quando apropriado
+ * e cancelando contas a receber pendentes vinculadas.
+ *
+ * REGRAS DE DEVOLUÇÃO DE ESTOQUE:
+ * - Devolve estoque APENAS se o pedido estava em status que já baixou estoque
+ *   (GERADO, CONFERIDO, IMPRESSO, EM_ROTA)
+ * - NÃO devolve estoque se status era PENDENTE_ESTOQUE (estoque nunca foi baixado)
+ * - NÃO devolve estoque se pedido já estava CANCELADO
+ *
+ * REGRAS DE CANCELAMENTO FINANCEIRO:
+ * - Cancela apenas contasReceber com status PENDENTE
+ * - Não cancela contas já RECEBIDA ou VENCIDA (já foram pagas/baixadas)
+ * - Usa pedidoId para vinculação (campo FK existente no schema)
+ */
+export async function cancelarPedidoSafe(
+  tenantId: number,
+  pedidoId: number,
+  actor?: ServiceActor
+): Promise<{
+  success: true;
+  pedidoId: number;
+  status: typeof PedidoStatus.CANCELADO;
+  estoqueDevolvido: boolean;
+  contasCanceladas: number;
+}> {
+  // Validações obrigatórias
+  assertRequiredId(tenantId, "tenantId");
+  assertRequiredId(pedidoId, "pedidoId");
+
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  return dbConn.transaction(async (tx: DbTx) => {
+    // 1. Buscar pedido com bloqueio pessimista (FOR UPDATE)
+    const pedidoRows = await tx
+      .select({
+        id: pedidos.id,
+        numero: pedidos.numero,
+        status: pedidos.status,
+        clienteId: pedidos.clienteId,
+      })
+      .from(pedidos)
+      .where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId)))
+      .for("update")
+      .limit(1);
+
+    if (pedidoRows.length === 0) {
+      throw new PedidoAccessError("NOT_FOUND", "Pedido não encontrado.");
+    }
+
+    const pedido = pedidoRows[0];
+    const statusAnterior = pedido.status;
+
+    // 2. Impedir cancelamento de pedido ENTREGUE
+    if (statusAnterior === PedidoStatus.ENTREGUE) {
+      throw new ValidationError("Pedido ENTREGUE não pode ser cancelado.");
+    }
+
+    // 3. Idempotência: se já está CANCELADO, retorna estado seguro
+    if (statusAnterior === PedidoStatus.CANCELADO) {
+      return {
+        success: true,
+        pedidoId,
+        status: PedidoStatus.CANCELADO,
+        estoqueDevolvido: false,
+        contasCanceladas: 0,
+      };
+    }
+
+    // 4. Determinar se deve devolver estoque
+    const deveDevolverEstoque = STATUS_COM_ESTOQUE_BAIXADO.includes(statusAnterior);
+    let estoqueDevolvido = false;
+
+    // 5. Devolver estoque se necessário
+    if (deveDevolverEstoque) {
+      const itensRows = await tx
+        .select({
+          produtoId: itensPedido.produtoId,
+          quantidade: itensPedido.quantidade,
+          tipo: itensPedido.tipo,
+        })
+        .from(itensPedido)
+        .where(and(eq(itensPedido.tenantId, tenantId), eq(itensPedido.pedidoId, pedidoId)));
+
+      for (const item of itensRows) {
+        // Apenas itens do tipo CATALOGO têm estoque controlado
+        if (item.tipo === "CATALOGO" && item.produtoId) {
+          // Buscar estoque atual
+          const produtoRows = await tx
+            .select({ estoque: produtos.estoque })
+            .from(produtos)
+            .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, item.produtoId)))
+            .limit(1);
+
+          if (produtoRows.length > 0) {
+            const estoqueAtual = Number(produtoRows[0].estoque ?? 0);
+            const novoEstoque = estoqueAtual + item.quantidade;
+
+            // Atualizar estoque
+            await tx
+              .update(produtos)
+              .set({ estoque: novoEstoque })
+              .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, item.produtoId)));
+
+            // Registrar audit_log de entrada de estoque
+            await insertAuditLog(
+              {
+                tenantId,
+                actorUserId: actor?.userId ?? null,
+                actorVendedorId: actor?.vendedorId ?? null,
+                action: "ENTRADA",
+                entity: "estoque",
+                entityId: String(item.produtoId),
+                payloadJson: JSON.stringify({
+                  pedidoId,
+                  quantidade: item.quantidade,
+                  motivo: "CANCELAMENTO_PEDIDO",
+                  saldoAnterior: estoqueAtual,
+                  saldoNovo: novoEstoque,
+                }),
+                traceId: nanoid(10),
+              },
+              tx
+            );
+          }
+        }
+      }
+      estoqueDevolvido = true;
+    }
+
+    // 6. Cancelar contasReceber pendentes vinculadas ao pedido
+    let contasCanceladas = 0;
+
+    const contasPendentes = await tx
+      .select({ id: contasReceber.id })
+      .from(contasReceber)
+      .where(
+        and(
+          eq(contasReceber.tenantId, tenantId),
+          eq(contasReceber.pedidoId, pedidoId),
+          eq(contasReceber.status, ContaReceberStatus.PENDENTE)
+        )
+      );
+
+    for (const conta of contasPendentes) {
+      await tx
+        .update(contasReceber)
+        .set({
+          status: ContaReceberStatus.CANCELADO,
+          updatedAt: new Date(),
+          observacoes: `Cancelada automaticamente devido ao cancelamento do pedido #${pedido.numero}`,
+        })
+        .where(and(eq(contasReceber.tenantId, tenantId), eq(contasReceber.id, conta.id)));
+      contasCanceladas++;
+    }
+
+    // 7. Atualizar pedido para CANCELADO
+    await tx
+      .update(pedidos)
+      .set({
+        status: PedidoStatus.CANCELADO,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId)));
+
+    // 8. Registrar audit_log do cancelamento
+    await insertAuditLog(
+      {
+        tenantId,
+        actorUserId: actor?.userId ?? null,
+        actorVendedorId: actor?.vendedorId ?? null,
+        action: "CANCELAR_PEDIDO",
+        entity: "pedido",
+        entityId: String(pedidoId),
+        payloadJson: JSON.stringify({
+          pedidoId,
+          numero: pedido.numero,
+          statusAnterior,
+          statusNovo: PedidoStatus.CANCELADO,
+          estoqueDevolvido,
+          contasCanceladas,
+        }),
+        traceId: nanoid(10),
+      },
+      tx
+    );
+
+    return {
+      success: true,
+      pedidoId,
+      status: PedidoStatus.CANCELADO,
+      estoqueDevolvido,
+      contasCanceladas,
+    };
+  });
+}

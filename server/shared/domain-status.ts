@@ -27,13 +27,14 @@ export const PedidoStatusValues = [
 export type PedidoStatusValue = (typeof PedidoStatusValues)[number];
 export type PedidoStatusType = typeof PedidoStatus[keyof typeof PedidoStatus];
 
-export const ContaReceberStatusValues = ["PENDENTE", "RECEBIDA", "VENCIDA"] as const;
+export const ContaReceberStatusValues = ["PENDENTE", "RECEBIDA", "VENCIDA", "CANCELADO"] as const;
 export type ContaReceberStatusValue = (typeof ContaReceberStatusValues)[number];
 
 export const ContaReceberStatus = {
   PENDENTE: "PENDENTE",
   RECEBIDA: "RECEBIDA",
   VENCIDA: "VENCIDA",
+  CANCELADO: "CANCELADO",
 } as const satisfies Record<string, ContaReceberStatusValue>;
 
 export const ContaPagarStatusValues = ["PENDENTE", "PAGO", "VENCIDA"] as const;

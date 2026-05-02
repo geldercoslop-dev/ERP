@@ -499,7 +499,8 @@ export type AuditAction =
   | "IMPERSONATE_STOP"
   | "update_status"
   | "dashboard_view"
-  | "leo_action";
+  | "leo_action"
+  | "CANCELAR_PEDIDO";
 
 /**
  * @deprecated-audit-write
