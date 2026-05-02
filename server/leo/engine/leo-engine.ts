@@ -7,6 +7,7 @@ import { LeoEvent, LeoDecision, LeoAction, ILeoMemory, ILeoErpObserver,
 LeoEventType, LeoEventPriority, type Payload } from '../../../shared/types/index.js';
 import { logInfo, logError } from '../../_core/logger-rotation.js';
 import { InfrastructureError } from '../../_core/errors/typed-errors.js';
+import { randomUUID } from 'crypto';
 
 export class LeoEngine {
   private static instance: LeoEngine;
@@ -127,7 +128,7 @@ export class LeoEngine {
    * Tomada de decisão baseada no evento
    */
   private async makeDecision(event: LeoEvent): Promise<LeoDecision> {
-    const decisionId = `decision_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const decisionId = `decision_${randomUUID()}`;
     
     // Lógica simplificada de decisão
     let action = 'monitor';
@@ -191,7 +192,7 @@ export class LeoEngine {
    * Executa ação baseada na decisão
    */
   private async executeAction(decision: LeoDecision): Promise<LeoAction> {
-    const actionId = `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const actionId = `action_${randomUUID()}`;
     
     let actionResult: unknown;
     let status: 'pending' | 'running' | 'completed' | 'failed' = 'completed';
