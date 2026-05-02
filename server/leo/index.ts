@@ -18,7 +18,6 @@ export * from './agent/index.js';
 
 // LEO Plugins
 import { DesktopAutomationPlugin } from './plugins/desktop-plugin.js';
-DesktopAutomationPlugin.start();
 
 // LEO Engine
 export { LeoEngine, leoEngine } from './engine/leo-engine.js';
@@ -35,7 +34,6 @@ export { LeoSystemMonitor, leoSystemMonitor, type SystemStatus, type LogEntry, t
 // LEO Planning
 export { leoPlanner } from './planning/leo-planner.js';
 export { leoInsights } from './planning/leo-insights.js';
-export { leoDailyReport } from './planning/leo-daily-report.js';
 
 // LEO Actions
 export { executeLeoAction, type LeoActionResult } from './actions/leo-actions.js';
