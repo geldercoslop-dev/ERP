@@ -45,8 +45,6 @@ const EXCEPTIONS = [
   '.husky/pre-commit',
   '.husky/pre-push',
   'docs/',
-  // TEMP_LEO_SEASONAL_PATTERN_TYPES_MAINTENANCE — permitir criação do contrato tipado SeasonalPattern em _core/types.ts; remover após fechamento da janela.
-  'server/_core/types.ts',
 ];
 
 // Janela controlada C3.1 - arquivos _core autorizados para remoção de DB direto
