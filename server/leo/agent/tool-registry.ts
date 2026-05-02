@@ -14,7 +14,7 @@ export interface ToolDefinition {
 }
 
 // Registry de ferramentas
-class ToolRegistry {
+export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
 
   constructor() {
@@ -270,5 +270,12 @@ class ToolRegistry {
   }
 }
 
-// Export singleton
-export const toolRegistry = new ToolRegistry();
+// Lazy singleton - evita execução no import
+let toolRegistryInstance: ToolRegistry | null = null;
+
+export function getToolRegistry(): ToolRegistry {
+  if (!toolRegistryInstance) {
+    toolRegistryInstance = new ToolRegistry();
+  }
+  return toolRegistryInstance;
+}

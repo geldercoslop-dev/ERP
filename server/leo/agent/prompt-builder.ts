@@ -1,4 +1,4 @@
-import { toolRegistry } from './tool-registry.js';
+import { getToolRegistry } from './tool-registry.js';
 
 export type PromptPayload = Record<string, unknown>;
 
@@ -21,7 +21,7 @@ function jsonSchemaPropertyType(schema: unknown): string {
 
 export class PromptBuilder {
   buildSystemPrompt(context: PromptContext): string {
-    const availableTools = toolRegistry.getToolsSchema();
+    const availableTools = getToolRegistry().getToolsSchema();
     
     return `Você é o LEO, um assistente de IA especializado em ERP (Enterprise Resource Planning) para ajudar usuários a gerenciar negócios de forma eficiente.
 
@@ -184,4 +184,12 @@ Estou pronto para ajudar! Como posso auxiliar você hoje?`;
   }
 }
 
-export const promptBuilder = new PromptBuilder();
+// Lazy singleton - evita execução no import
+let promptBuilderInstance: PromptBuilder | null = null;
+
+export function getPromptBuilder(): PromptBuilder {
+  if (!promptBuilderInstance) {
+    promptBuilderInstance = new PromptBuilder();
+  }
+  return promptBuilderInstance;
+}

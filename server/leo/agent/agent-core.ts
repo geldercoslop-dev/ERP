@@ -1,6 +1,6 @@
-import { toolRegistry } from './tool-registry.js';
-import { modelRouter } from './model-router.js';
-import { promptBuilder } from './prompt-builder.js';
+import { getToolRegistry } from './tool-registry.js';
+import { getModelRouter } from './model-router.js';
+import { getPromptBuilder } from './prompt-builder.js';
 import { leoLogManager } from '../utils/leo-log-manager.js';
 import { agentPermissions } from '../security/agent-permissions.js';
 import { LeoActionsLog } from '../utils/leo-actions-log.js';
@@ -173,9 +173,9 @@ export class LeoAgentCore {
    * Build prompt with CONTEXTO SEGURO and available tools
    */
   async buildPrompt(request: AgentRequest, secureContext: SecureAgentContext): Promise<string> {
-    const availableTools = toolRegistry.getToolsSchema();
+    const availableTools = getToolRegistry().getToolsSchema();
     
-    return await promptBuilder.buildSystemPrompt({
+    return await getPromptBuilder().buildSystemPrompt({
       tenantId: secureContext.tenantId,
       userRole: secureContext.userRole,
       userId: secureContext.userId,
@@ -188,9 +188,9 @@ export class LeoAgentCore {
    * Call model router for AI response with CONTEXTO SEGURO
    */
   async callModelRouter(prompt: string, secureContext: SecureAgentContext): Promise<ModelResponse> {
-    const availableTools = toolRegistry.getToolsSchema();
+    const availableTools = getToolRegistry().getToolsSchema();
     
-    return await modelRouter.getResponse({
+    return await getModelRouter().getResponse({
       prompt,
       tools: availableTools,
       context: {
@@ -260,5 +260,12 @@ export class LeoAgentCore {
   }
 }
 
-// Export singleton
-export const leoAgentCore = new LeoAgentCore();
+// Lazy singleton - evita execução no import
+let leoAgentCoreInstance: LeoAgentCore | null = null;
+
+export function getLeoAgentCore(): LeoAgentCore {
+  if (!leoAgentCoreInstance) {
+    leoAgentCoreInstance = new LeoAgentCore();
+  }
+  return leoAgentCoreInstance;
+}

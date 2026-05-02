@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { toolExecutor } from "../leo/agent/tool-executor.js";
-import { toolRegistry } from "../leo/agent/tool-registry.js";
+import { getToolExecutor } from "../leo/agent/tool-executor.js";
+import { getToolRegistry } from "../leo/agent/tool-registry.js";
 import type { SecureToolContext } from "../_core/secure-context.js";
 
 const tenantContext: SecureToolContext = {
@@ -14,7 +14,7 @@ const tenantContext: SecureToolContext = {
 
 let flakyAttempts = 0;
 
-toolRegistry.register({
+getToolRegistry().register({
   name: "failsafe_flaky_tool",
   description: "Tool de teste para retry automático",
   inputSchema: z.object({}),
@@ -27,7 +27,7 @@ toolRegistry.register({
   },
 });
 
-toolRegistry.register({
+getToolRegistry().register({
   name: "failsafe_timeout_tool",
   description: "Tool de teste para timeout",
   inputSchema: z.object({}),
@@ -39,11 +39,11 @@ toolRegistry.register({
 
 async function run(): Promise<void> {
   console.log("[FAILSAFE] Iniciando teste de retry...");
-  const retryResult = await toolExecutor.executeTool("failsafe_flaky_tool", {}, tenantContext);
+  const retryResult = await getToolExecutor().executeTool("failsafe_flaky_tool", {}, tenantContext);
   console.log("[FAILSAFE] Retry result:", JSON.stringify(retryResult));
 
   console.log("[FAILSAFE] Iniciando teste de timeout...");
-  const timeoutResult = await toolExecutor.executeTool("failsafe_timeout_tool", {}, tenantContext);
+  const timeoutResult = await getToolExecutor().executeTool("failsafe_timeout_tool", {}, tenantContext);
   console.log("[FAILSAFE] Timeout result:", JSON.stringify(timeoutResult));
 
   const retryOk = retryResult.success === true;

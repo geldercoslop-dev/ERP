@@ -86,8 +86,8 @@ export class ModelRouter {
     try {
       const provider = this.selectProvider(request);
       if (!provider) {
-        console.warn('Nenhum provider disponível, usando mock response');
-        return this.getMockResponse(request);
+        console.warn('Nenhum provider disponível, usando fallback response');
+        return this.getFallbackUnavailableResponse(request);
       }
       
       const response = await provider.generateResponse(request.prompt, request.tools);
@@ -104,7 +104,7 @@ export class ModelRouter {
       console.error('Erro crítico no ModelRouter:', error);
       
       // Fallback seguro que não quebra o fluxo de segurança
-      return this.getMockResponse(request);
+      return this.getFallbackUnavailableResponse(request);
     }
   }
 
@@ -170,7 +170,7 @@ export class ModelRouter {
   private async getFallbackResponse(request: ModelRequest, failedProvider: AIProvider): Promise<ModelResponse> {
     const fallbackProvider = failedProvider === this.groqProvider ? this.geminiProvider : this.groqProvider;
     if (!fallbackProvider) {
-      return this.getMockResponse(request);
+      return this.getFallbackUnavailableResponse(request);
     }
     try {
       console.log(`Using fallback provider: ${this.getProviderName(fallbackProvider)}`);
@@ -187,15 +187,15 @@ export class ModelRouter {
     } catch (fallbackError) {
       console.error('Fallback provider also failed:', fallbackError);
       
-      // Último recurso: mock response
-      return this.getMockResponse(request);
+      // Último recurso: fallback indisponível
+      return this.getFallbackUnavailableResponse(request);
     }
   }
 
   /**
-   * Mock response como último recurso
+   * Fallback response quando nenhum provider está disponível
    */
-  private getMockResponse(request: ModelRequest): ModelResponse {
+  private getFallbackUnavailableResponse(request: ModelRequest): ModelResponse {
     return {
       content: 'Desculpe, estou com dificuldades para processar sua solicitação no momento. Por favor, tente novamente mais tarde.',
       toolCalls: [],
@@ -204,7 +204,7 @@ export class ModelRouter {
         completionTokens: 0,
         totalTokens: 0,
       },
-      provider: 'mock',
+      provider: 'unavailable',
       model: 'fallback',
       processingTime: 0,
     };
@@ -284,5 +284,12 @@ export class ModelRouter {
   }
 }
 
-// Export singleton
-export const modelRouter = new ModelRouter();
+// Lazy singleton - evita execução no import
+let modelRouterInstance: ModelRouter | null = null;
+
+export function getModelRouter(): ModelRouter {
+  if (!modelRouterInstance) {
+    modelRouterInstance = new ModelRouter();
+  }
+  return modelRouterInstance;
+}

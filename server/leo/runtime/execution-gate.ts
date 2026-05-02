@@ -24,7 +24,7 @@
 
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { logInfo, logError } from '../../_core/logger.js';
-import { toolExecutor, type ToolExecutionContext, type ToolExecutionResult } from '../agent/tool-executor.js';
+import { getToolExecutor, type ToolExecutionContext, type ToolExecutionResult } from '../agent/tool-executor.js';
 import { agentPermissions } from '../security/agent-permissions.js';
 import { LeoActionsLog } from '../utils/leo-actions-log.js';
 import type { SecureRole } from '../../_core/secure-context.js';
@@ -264,7 +264,7 @@ async function executeViaTool(request: ExecutionGateRequest): Promise<ToolExecut
     vendedorId: context.vendedorId,
   };
   
-  return await toolExecutor.executeTool(toolName, parameters || {}, toolContext);
+  return await getToolExecutor().executeTool(toolName, parameters || {}, toolContext);
 }
 
 /**

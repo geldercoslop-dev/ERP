@@ -4,7 +4,7 @@
  */
 
 import { ActionExecutor, type ActionResponse, type ActionParams } from "./action-executor.js";
-import { toolRegistry } from "../../leo/agent/tool-registry.js";
+import { getToolRegistry } from "../../leo/agent/tool-registry.js";
 import { logger } from "../../utils/logger.js";
 import type { ExecutionGuard } from "./leo-execution-guard.js";
 
@@ -51,7 +51,7 @@ export function planTasks(
   const steps: PlanStep[] = [];
 
   // Se já existe um toolCall único, usar como única etapa
-  if (interpretation.toolCall && toolRegistry.getTool(interpretation.toolCall.tool)) {
+  if (interpretation.toolCall && getToolRegistry().getTool(interpretation.toolCall.tool)) {
     steps.push({ tool: interpretation.toolCall.tool, input: interpretation.toolCall.input ?? {} });
     return { steps };
   }
@@ -63,13 +63,13 @@ export function planTasks(
   const hasPedidos = /pedidos|vendas/.test(msg);
 
   if (hasRelatorio && hasTopClientes && hasPedidos) {
-    if (toolRegistry.getTool("listar_pedidos")) {
+    if (getToolRegistry().getTool("listar_pedidos")) {
       steps.push({ tool: "listar_pedidos", input: { page: 1, pageSize: 100 } });
     }
-    if (toolRegistry.getTool("resumo_financeiro")) {
+    if (getToolRegistry().getTool("resumo_financeiro")) {
       steps.push({ tool: "resumo_financeiro", input: { periodo: "hoje" } });
     }
-    if (toolRegistry.getTool("buscar_cliente")) {
+    if (getToolRegistry().getTool("buscar_cliente")) {
       steps.push({ tool: "buscar_cliente", input: {} });
     }
   }
@@ -96,7 +96,7 @@ export async function executePlan(plan: TaskPlan, ctx: PlanContext): Promise<Exe
   let lastMessage = "";
 
   for (const step of plan.steps) {
-    const tool = toolRegistry.getTool(step.tool);
+    const tool = getToolRegistry().getTool(step.tool);
     if (!tool) {
       console.warn(`Task planner: tool não encontrada: ${step.tool}`);
       stepResults.push({

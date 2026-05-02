@@ -3,7 +3,7 @@
  * Integra: permissões, log, cache, timeout (3s), execution guard (5 tools / 10s por requisição).
  */
 
-import { toolRegistry } from "../../leo/agent/tool-registry.js";
+import { getToolRegistry } from "../../leo/agent/tool-registry.js";
 import type { ToolContext } from "../../leo/agent/tool-registry.js";
 import type { ServiceInvocationStore } from "../../_core/service-entry-guard.js";
 import { buildBootstrapInvocation, runWithServiceInvocationAsync } from "../../_core/service-entry-guard.js";
@@ -109,7 +109,7 @@ export class ActionExecutor {
       };
     }
 
-    const tool = toolRegistry.getTool(action);
+    const tool = getToolRegistry().getTool(action);
     if (!tool) {
       return {
         success: false,

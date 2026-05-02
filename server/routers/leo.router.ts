@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc.js";
 import { perguntar } from "../services/ai/erp-ai.service.js";
 import { resolveServiceActor } from "../_core/service-actor.js";
-import { leoAgentCore } from "../leo/agent/agent-core.js";
+import { getLeoAgentCore } from "../leo/agent/agent-core.js";
 import { leoLogManager } from "../leo/utils/leo-log-manager.js";
 import { leoActionService, type LeoAction, type LeoActionPayloadMap } from "../services/leoAction.service.js";
 import { parseLeoActionPayload } from "../services/leoActionPayload.parse.js";
@@ -85,7 +85,7 @@ const leoRouterWithMiddleware = router({
 
       // Usar o novo LEO Agent Core
       try {
-        const agentResponse = await leoAgentCore.handleRequest({
+        const agentResponse = await getLeoAgentCore().handleRequest({
           message: input.pergunta,
           tenantId: ctx.tenantId,
           userRole: ctx.user?.role,
@@ -146,7 +146,7 @@ const leoRouterWithMiddleware = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "ID do tenant é obrigatório para o LEO Agent." });
       }
 
-      const agentResponse = await leoAgentCore.handleRequest({
+      const agentResponse = await getLeoAgentCore().handleRequest({
         message: input.message,
         tenantId: ctx.tenantId,
         userRole: ctx.user?.role,

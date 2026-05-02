@@ -9,7 +9,7 @@ import {
   toSecureToolContext,
 } from '../../_core/tenant-ownership.js';
 import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
-import { toolRegistry, ToolDefinition } from './tool-registry.js';
+import { getToolRegistry, ToolDefinition } from './tool-registry.js';
 import { leoLogManager } from '../utils/leo-log-manager.js';
 
 /** Alias do contexto seguro de execução (handlers e executor). */
@@ -67,7 +67,7 @@ export class ToolExecutor {
 
     for (let attempt = 1; attempt <= ToolExecutor.MAX_RETRIES + 1; attempt += 1) {
       try {
-        const tool = toolRegistry.getTool(toolName);
+        const tool = getToolRegistry().getTool(toolName);
         if (!tool) {
           return { error: `Tool '${toolName}' não encontrada` };
         }
@@ -150,7 +150,7 @@ export class ToolExecutor {
       }
 
       // Validar tool existe
-      const tool = toolRegistry.getTool(toolName);
+      const tool = getToolRegistry().getTool(toolName);
       if (!tool) {
         throw new ValidationError(`Tool '${toolName}' não encontrada`);
       }
@@ -329,7 +329,7 @@ export class ToolExecutor {
   // Lista todas as tools disponíveis para o contexto atual
   async getAvailableTools(context: ToolExecutionContext): Promise<ToolDefinition[]> {
     const { agentPermissions } = await import('../security/agent-permissions.js');
-    const allTools = toolRegistry.getAllTools();
+    const allTools = getToolRegistry().getAllTools();
     const availableTools: ToolDefinition[] = [];
 
     for (const tool of allTools) {
@@ -352,5 +352,12 @@ export class ToolExecutor {
   }
 }
 
-// Export singleton
-export const toolExecutor = new ToolExecutor();
+// Lazy singleton - evita execução no import
+let toolExecutorInstance: ToolExecutor | null = null;
+
+export function getToolExecutor(): ToolExecutor {
+  if (!toolExecutorInstance) {
+    toolExecutorInstance = new ToolExecutor();
+  }
+  return toolExecutorInstance;
+}

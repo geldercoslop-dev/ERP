@@ -5,7 +5,7 @@
  */
 
 import { agentPermissions } from './agent-permissions.js';
-import { toolExecutor } from '../agent/tool-executor.js';
+import { getToolExecutor } from '../agent/tool-executor.js';
 
 interface TestResult {
   testName: string;
@@ -178,7 +178,7 @@ class SecurityTester {
   private async testIsolamentoVendedorId() {
     // Smoke: tool criar_pedido existe e contexto vendedor é obrigatório no executor
     try {
-      const executionResult = await toolExecutor.executeTool(
+      const executionResult = await getToolExecutor().executeTool(
         'criar_pedido',
         {
           dados: {
