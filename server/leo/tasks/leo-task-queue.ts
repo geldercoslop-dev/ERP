@@ -5,6 +5,7 @@
  * Implementa processamento em fila para evitar overload do loop
  */
 
+import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import { rotationLogger } from '../../_core/logger-rotation.js';
 import type { LeoTask, Payload } from '../types.js';
@@ -170,7 +171,7 @@ class LeoTaskQueue extends EventEmitter {
    * Adiciona uma tarefa à fila
    */
   async addTask(task: Omit<LeoTaskFull, 'createdAt' | 'attempts' | 'processedAt' | 'result' | 'error' | 'executionTime'>): Promise<LeoTaskFull> {
-    const taskId = task.id || `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const taskId = task.id || `task_${randomUUID()}`;
     const taskWithId: LeoTaskFull = {
       ...task,
       id: taskId,
