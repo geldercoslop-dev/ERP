@@ -2,6 +2,7 @@ import { logInfo, logError } from '../../_core/logger.js';
 import { AnomalyDetection } from '../../_core/types.js';
 import { InfrastructureError, ValidationError } from '../../_core/errors/typed-errors.js';
 import { salesAnalyticsTool } from '../../tools/sales-analytics.tool.js';
+import { inventoryAnalyticsTool } from '../../tools/inventory-analytics.tool.js';
 
 export class LeoAnomalyDetection {
   private readonly name = 'AnomalyDetection';
@@ -54,8 +55,19 @@ export class LeoAnomalyDetection {
         extra: { entity: this.name, acao: 'detectInventoryAnomalies' }
       });
 
-      // LEO_ANOMALY_INVENTORY_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_ANOMALY_INVENTORY_REAL_IMPLEMENTATION_REQUIRED");
+      const inventoryAnomalies = await inventoryAnalyticsTool.detectInventoryAnomalies({
+        tenantId: this.tenantId
+      });
+
+      // Mapear InventoryAnomaly para AnomalyDetection
+      return inventoryAnomalies.map(anomaly => ({
+        type: 'inventory',
+        description: anomaly.message,
+        severity: anomaly.severity,
+        data: anomaly.data,
+        detectedAt: new Date(),
+        actions: [anomaly.recommendation]
+      }));
 
     } catch (error) {
       logError('Failed to detect inventory anomalies', {

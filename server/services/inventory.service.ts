@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, or, inArray, lte } from "drizzle-orm";
+import { eq, and, desc, asc, sql, or, inArray, lte, gte, ne } from "drizzle-orm";
 import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index.js";
 import type { NewProduto as InsertProduto, InsertCor } from "../db/index.js";
 import {
@@ -6,8 +6,9 @@ import {
   cores,
   itensPedido,
   gruposPrecificacao,
+  pedidos,
 } from "../../drizzle/schema.js";
-// import { PendenciaStatus } from "../shared/domain-status.js"; // não usado - tabela pendencias não existe
+import { PedidoStatus } from "../shared/domain-status.js";
 import { nanoid } from "nanoid";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
@@ -28,6 +29,23 @@ export type UpdateEstoqueInput = {
   id: number;
   quantidade: number;
   audit?: { actorUserId?: number; actorVendedorId?: number; traceId?: string; motivo?: string };
+};
+
+// Anomaly Detection Types
+export type InventoryAnomalyData = {
+  productId: number;
+  productName: string;
+  currentStock: number;
+  recentSales?: number;
+  daysWithoutSales?: number;
+};
+
+export type InventoryAnomaly = {
+  type: string;
+  severity: "low" | "medium" | "high";
+  message: string;
+  data: InventoryAnomalyData;
+  recommendation: string;
 };
 
 /**
@@ -749,4 +767,143 @@ export async function listProdutoVendasStatsLeoLearning(tenantId: number): Promi
     vendasCount: Number(r.vendasCount ?? 0),
     receita: Number(r.receita ?? 0),
   }));
+}
+
+/**
+ * Detecta anomalias de estoque para um tenant
+ * Anomalias detectadas:
+ * - inventory_negative: produto ativo com estoque < 0 (severity high)
+ * - inventory_blocked_zero: produto ativo com bloquearEstoqueNegativo = true e estoque = 0 (severity medium)
+ * - inventory_recent_sales_zero_stock: produto ativo com estoque = 0 e venda nos ultimos 30 dias (severity high)
+ * - inventory_stale_stock: produto ativo com estoque > 0 e sem venda nos ultimos 180 dias (severity low)
+ */
+export async function detectInventoryAnomalies(tenantId: number): Promise<InventoryAnomaly[]> {
+  // Validar tenantId
+  if (!Number.isInteger(tenantId) || tenantId <= 0) {
+    throw new ValidationError("tenantId deve ser um numero inteiro positivo");
+  }
+
+  const dbConn = await getDb();
+  assertDbConnection(dbConn);
+
+  const anomalies: InventoryAnomaly[] = [];
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const oneHundredEightyDaysAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+
+  // Buscar todos os produtos ativos do tenant
+  const activeProducts = await dbConn
+    .select({
+      id: produtos.id,
+      descricao: produtos.descricao,
+      estoque: produtos.estoque,
+      bloquearEstoqueNegativo: produtos.bloquearEstoqueNegativo,
+      createdAt: produtos.createdAt,
+    })
+    .from(produtos)
+    .where(and(eq(produtos.tenantId, tenantId), eq(produtos.ativo, true)));
+
+  for (const product of activeProducts) {
+    const productId = product.id;
+    const productName = product.descricao ?? "Produto sem descricao";
+    const currentStock = Number(product.estoque ?? 0);
+    const blockNegative = product.bloquearEstoqueNegativo ?? true;
+
+    // 1. inventory_negative: produto ativo com estoque < 0
+    if (currentStock < 0) {
+      anomalies.push({
+        type: "inventory_negative",
+        severity: "high",
+        message: `Produto "${productName}" possui estoque negativo: ${currentStock}`,
+        data: {
+          productId,
+          productName,
+          currentStock,
+        },
+        recommendation: "Verificar movimentacoes de estoque e corrigir saldo do produto",
+      });
+      continue;
+    }
+
+    // 2. inventory_blocked_zero: produto ativo com bloquearEstoqueNegativo = true e estoque = 0
+    if (blockNegative && currentStock === 0) {
+      anomalies.push({
+        type: "inventory_blocked_zero",
+        severity: "medium",
+        message: `Produto "${productName}" esta com estoque zerado e bloqueio de negativo ativo`,
+        data: {
+          productId,
+          productName,
+          currentStock,
+        },
+        recommendation: "Repor estoque ou avaliar desativacao do produto",
+      });
+    }
+
+    // Buscar vendas recentes do produto (ultimos 180 dias)
+    const recentSalesData = await dbConn
+      .select({
+        quantidade: sql<number>`COALESCE(SUM(${itensPedido.quantidade}), 0)`.as("quantidade"),
+        lastSaleDate: sql<Date | null>`MAX(${pedidos.createdAt})`.as("lastSaleDate"),
+      })
+      .from(itensPedido)
+      .innerJoin(pedidos, eq(itensPedido.pedidoId, pedidos.id))
+      .where(
+        and(
+          eq(itensPedido.tenantId, tenantId),
+          eq(itensPedido.produtoId, productId),
+          eq(pedidos.tenantId, tenantId),
+          gte(pedidos.createdAt, oneHundredEightyDaysAgo),
+          ne(pedidos.status, PedidoStatus.CANCELADO)
+        )
+      );
+
+    const recentSales = recentSalesData[0];
+    const salesCount = recentSales ? Number(recentSales.quantidade ?? 0) : 0;
+    const lastSaleDate = recentSales?.lastSaleDate;
+
+    // 3. inventory_recent_sales_zero_stock: produto ativo com estoque = 0 e venda nos ultimos 30 dias
+    if (currentStock === 0 && salesCount > 0 && lastSaleDate && lastSaleDate >= thirtyDaysAgo) {
+      anomalies.push({
+        type: "inventory_recent_sales_zero_stock",
+        severity: "high",
+        message: `Produto "${productName}" esta sem estoque mas teve venda recente`,
+        data: {
+          productId,
+          productName,
+          currentStock,
+          recentSales: salesCount,
+        },
+        recommendation: "Repor estoque urgentemente - produto em demanda",
+      });
+    }
+
+    // 4. inventory_stale_stock: produto ativo com estoque > 0 e sem venda nos ultimos 180 dias
+    if (currentStock > 0 && salesCount === 0) {
+      // Verificar se o produto existe ha mais de 180 dias
+      const productCreatedAt = product.createdAt;
+      const isOldProduct = productCreatedAt && productCreatedAt <= oneHundredEightyDaysAgo;
+
+      if (isOldProduct) {
+        const daysWithoutSales = lastSaleDate
+          ? Math.floor((now.getTime() - new Date(lastSaleDate).getTime()) / (24 * 60 * 60 * 1000))
+          : Math.floor((now.getTime() - new Date(productCreatedAt).getTime()) / (24 * 60 * 60 * 1000));
+
+        anomalies.push({
+          type: "inventory_stale_stock",
+          severity: "low",
+          message: `Produto "${productName}" possui estoque sem movimentacao ha mais de 180 dias`,
+          data: {
+            productId,
+            productName,
+            currentStock,
+            daysWithoutSales,
+          },
+          recommendation: "Avaliar promocao ou descontinuacao do produto",
+        });
+      }
+    }
+  }
+
+  return anomalies;
 }
