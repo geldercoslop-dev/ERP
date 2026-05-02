@@ -6,6 +6,7 @@
 import { LeoEvent, LeoDecision, LeoAction, ILeoMemory, ILeoErpObserver, 
 LeoEventType, LeoEventPriority, type Payload } from '../../../shared/types/index.js';
 import { logInfo, logError } from '../../_core/logger-rotation.js';
+import { InfrastructureError } from '../../_core/errors/typed-errors.js';
 
 export class LeoEngine {
   private static instance: LeoEngine;
@@ -282,13 +283,10 @@ export class LeoEngine {
       return leoMemoryPersistence;
     } catch (error) {
       logError('Erro ao obter serviço de memória', error);
-      // Retornar implementação mock
-      return {
-        saveDecision: async () => {},
-        getRecentDecisions: async () => [],
-        addDecision: async () => {},
-        getRecentHistory: async () => []
-      };
+      throw new InfrastructureError('LeoMemoryPersistence service unavailable', {
+        service: 'leoMemoryPersistence',
+        reason: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 
@@ -301,12 +299,10 @@ export class LeoEngine {
       return leoErpObserver;
     } catch (error) {
       logError('Erro ao obter serviço de observação ERP', error);
-      // Retornar implementação mock
-      return {
-        observe: async () => ({ success: false, error: 'Service not available' }),
-        collectErpContext: async () => ({}),
-        getLastContext: () => null
-      };
+      throw new InfrastructureError('LeoErpObserver service unavailable', {
+        service: 'leoErpObserver',
+        reason: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 
