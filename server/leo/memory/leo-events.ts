@@ -8,6 +8,7 @@
 import { insertLeoActionLog } from '../../services/ai/leo-action-logger.js';
 import type { LeoEvent } from '../../../shared/types/index.js';
 import { LeoEventType, LeoEventPriority, LeoEventStatus } from '../../../shared/types/index.js';
+import { randomUUID } from 'crypto';
 
 export type { LeoEvent };
 
@@ -99,7 +100,7 @@ export class LeoEvents {
   async createEvent(input: CreateEventInput): Promise<LeoEvent> {
     const now = new Date();
     const event: LeoEvent = {
-      id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `event_${randomUUID()}`,
       tipo: (input.tipo as LeoEventType) ?? LeoEventType.PERCEPCAO,
       titulo: input.descricao ?? '',
       descricao: input.descricao,
