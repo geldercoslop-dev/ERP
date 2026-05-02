@@ -57,6 +57,7 @@ import {
   processEstoqueEPendenciasInTransaction,
   extractPedidoIdFromInsert,
   insertItensPedidoAndContasReceberInTransaction,
+  cancelarPedidoSafe,
 } from "./services/orders.service.js";
 import * as logisticaService from "./services/logistica.service.js";
 import { buscarRegistros } from "./services/audit-service.js"; 
@@ -1504,6 +1505,12 @@ export const appRouter = router({
         }
         if (proximo === 'EM_ROTA' && atual !== 'IMPRESSO' && atual !== 'EM_ROTA') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'EM_ROTA só pode vir de IMPRESSO.' });
+        }
+        // Usar cancelarPedidoSafe para cancelamento (devolve estoque e cancela contasReceber)
+        if (proximo === 'CANCELADO') {
+          const actor = await resolveServiceActor(ctx);
+          const result = await cancelarPedidoSafe(tenantId, input.id, actor);
+          return { success: true, estoqueDevolvido: result.estoqueDevolvido, contasCanceladas: result.contasCanceladas };
         }
         const result = await executeCommand(
           { commandName: "pedidos.updateStatus", idempotencyKey: input.idempotencyKey ?? undefined },
