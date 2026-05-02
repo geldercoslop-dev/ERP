@@ -4,6 +4,7 @@
  * Endpoints administrativos para controle do operador autônomo
  */
 
+import { randomUUID } from 'crypto';
 import { router, adminProcedure } from '../_core/trpc.js';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
@@ -210,7 +211,7 @@ export const leoAdminRouter = router({
       .mutation(async ({ input }) => {
         try {
           const result = await leoTaskQueue.addTask({
-            id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: `task_${randomUUID()}`,
             type: input.type as LeoTaskType,
             priority: input.priority as LeoTaskPriority,
             payload: input.payload,

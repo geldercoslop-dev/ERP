@@ -5,6 +5,7 @@
  * (ex.: "quem é esse cliente?", "quanto ele está devendo?").
  */
 
+import { randomUUID } from "crypto";
 import { logger } from "../../utils/logger.js";
 
 export type MemoryEntry = {
@@ -63,7 +64,7 @@ class LeoMemory {
     tenantId?: number
   ): void {
     const entry: MemoryEntry = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: randomUUID(),
       usuario,
       pergunta,
       resposta,
