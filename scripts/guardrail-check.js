@@ -16,6 +16,11 @@ const ALLOWED_SCHEMA_FILES = [
   "shared/types/entities.ts",
 ];
 
+// TEMP_LEO_SEASONAL_PATTERN_TYPES_MAINTENANCE — permitir criação do contrato tipado SeasonalPattern em _core/types.ts; remover após fechamento da janela.
+const TEMP_LEO_SEASONAL_PATTERN_TYPES_MAINTENANCE = [
+  "server/_core/types.ts",
+];
+
 // Arquivos permitidos da C3.1 (remoção de DB direto do _core)
 const C3_1_ALLOWED_FILES = [
   "server/_core/domain-audit.ts",
@@ -75,7 +80,10 @@ function isOnlyAllowedSchemaFiles(violations) {
   if (violations.length === 0) return true;
 
   // Verifica se todas as violações são arquivos permitidos
-  return violations.every(file => ALLOWED_SCHEMA_FILES.includes(file));
+  return violations.every(file =>
+    ALLOWED_SCHEMA_FILES.includes(file) ||
+    TEMP_LEO_SEASONAL_PATTERN_TYPES_MAINTENANCE.includes(file)
+  );
 }
 
 function isOnlyC3_1AllowedFiles(violations) {
