@@ -45,6 +45,11 @@ const EXCEPTIONS = [
   '.husky/pre-commit',
   '.husky/pre-push',
   'docs/',
+  // TEMP_ORDER_CANCEL_AUDIT_ACTION_MAINTENANCE
+  // Janela temporária para permitir adição de AuditAction "CANCELAR_PEDIDO" em server/db/core.ts
+  // Necessária para implementação do cancelamento seguro de pedido (P4)
+  // Remover após commit do cancelamento
+  'server/db/core.ts',
 ];
 
 // Janela controlada C3.1 - arquivos _core autorizados para remoção de DB direto
