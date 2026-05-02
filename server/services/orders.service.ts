@@ -1887,3 +1887,157 @@ export async function analyzeSalesByCategory(
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
+
+export type SalesAnomalyData = {
+  currentValue: number;
+  baselineValue: number;
+  percentageChange: number;
+  period: string;
+  orderCount?: number;
+  averageTicket?: number;
+};
+
+export type SalesAnomaly = {
+  type: string;
+  severity: "low" | "medium" | "high";
+  message: string;
+  data: SalesAnomalyData;
+  recommendation: string;
+};
+
+/**
+ * Detecta anomalias em vendas comparando períodos.
+ * Analisa faturamento, quantidade de pedidos e ticket médio.
+ */
+export async function detectSalesAnomalies(
+  tenantId: number
+): Promise<{ success: boolean; data?: SalesAnomaly[]; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    assertDbConnection(dbConn);
+
+    const now = new Date();
+    const periodo30Dias = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const periodo7Dias = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Agregar dados diários dos últimos 30 dias
+    const dailyRows = await dbConn
+      .select({
+        dataDia: sql<string>`DATE(${pedidos.createdAt})`.as("dataDia"),
+        totalRevenue: sql<number>`COALESCE(SUM(${pedidos.total}), 0)`.as("totalRevenue"),
+        orderCount: sql<number>`COUNT(*)`.as("orderCount"),
+      })
+      .from(pedidos)
+      .where(and(
+        eq(pedidos.tenantId, tenantId),
+        ne(pedidos.status, PedidoStatus.CANCELADO),
+        gte(pedidos.createdAt, periodo30Dias)
+      ))
+      .groupBy(sql`DATE(${pedidos.createdAt})`)
+      .orderBy(desc(sql`DATE(${pedidos.createdAt})`));
+
+    // Se menos de 5 dias com pedidos, retornar vazio para evitar falso positivo
+    if (dailyRows.length < 5) {
+      return { success: true, data: [] };
+    }
+
+    const anomalies: SalesAnomaly[] = [];
+
+    // Calcular médias
+    const totalRevenue30d = dailyRows.reduce((sum, r) => sum + Number(r.totalRevenue), 0);
+    const avgRevenue30d = totalRevenue30d / dailyRows.length;
+
+    // Últimos 7 dias
+    const last7Days = dailyRows.filter(r => {
+      const rowDate = new Date(r.dataDia);
+      return rowDate >= periodo7Dias;
+    });
+
+    const totalRevenue7d = last7Days.reduce((sum, r) => sum + Number(r.totalRevenue), 0);
+    const avgRevenue7d = last7Days.length > 0 ? totalRevenue7d / last7Days.length : 0;
+
+    // Dia atual ou mais recente
+    const currentDay = dailyRows[0];
+    const currentRevenue = Number(currentDay.totalRevenue);
+    const currentOrderCount = Number(currentDay.orderCount);
+    const currentAvgTicket = currentOrderCount > 0 ? currentRevenue / currentOrderCount : 0;
+
+    // Calcular ticket médio histórico
+    const totalOrders30d = dailyRows.reduce((sum, r) => sum + Number(r.orderCount), 0);
+    const avgTicket30d = totalOrders30d > 0 ? totalRevenue30d / totalOrders30d : 0;
+
+    // Detectar queda brusca (current < 50% da média 7 dias)
+    if (avgRevenue7d > 0 && currentRevenue < avgRevenue7d * 0.5) {
+      const severity = currentRevenue < avgRevenue7d * 0.3 ? "high" : "medium";
+      const percentageChange = Number((((currentRevenue - avgRevenue7d) / avgRevenue7d) * 100).toFixed(2));
+
+      anomalies.push({
+        type: "revenue_drop",
+        severity,
+        message: severity === "high"
+          ? `Queda severa no faturamento: ${percentageChange}% em relação à média de 7 dias`
+          : `Queda no faturamento: ${percentageChange}% em relação à média de 7 dias`,
+        data: {
+          currentValue: Number(currentRevenue.toFixed(2)),
+          baselineValue: Number(avgRevenue7d.toFixed(2)),
+          percentageChange,
+          period: "7 dias",
+          orderCount: currentOrderCount,
+          averageTicket: Number(currentAvgTicket.toFixed(2))
+        },
+        recommendation: severity === "high"
+          ? "Investigar imediatamente: verificar problemas técnicos, estoque ou equipe"
+          : "Revisar campanhas de marketing e follow-up com clientes recentes"
+      });
+    }
+
+    // Detectar pico (current > 300% da média 30 dias)
+    if (avgRevenue30d > 0 && currentRevenue > avgRevenue30d * 3) {
+      const severity = currentRevenue > avgRevenue30d * 5 ? "high" : "medium";
+      const percentageChange = Number((((currentRevenue - avgRevenue30d) / avgRevenue30d) * 100).toFixed(2));
+
+      anomalies.push({
+        type: "revenue_spike",
+        severity,
+        message: `Pico de faturamento: +${percentageChange}% acima da média de 30 dias`,
+        data: {
+          currentValue: Number(currentRevenue.toFixed(2)),
+          baselineValue: Number(avgRevenue30d.toFixed(2)),
+          percentageChange,
+          period: "30 dias",
+          orderCount: currentOrderCount,
+          averageTicket: Number(currentAvgTicket.toFixed(2))
+        },
+        recommendation: "Verificar se há pedidos em duplicidade ou erros de digitação"
+      });
+    }
+
+    // Detectar ticket médio anormal (> 500% da média)
+    if (avgTicket30d > 0 && currentAvgTicket > avgTicket30d * 5) {
+      const percentageChange = Number((((currentAvgTicket - avgTicket30d) / avgTicket30d) * 100).toFixed(2));
+
+      anomalies.push({
+        type: "ticket_anomaly",
+        severity: "medium",
+        message: `Ticket médio anormal: ${percentageChange}% acima da média histórica`,
+        data: {
+          currentValue: Number(currentAvgTicket.toFixed(2)),
+          baselineValue: Number(avgTicket30d.toFixed(2)),
+          percentageChange,
+          period: "30 dias",
+          orderCount: currentOrderCount,
+          averageTicket: Number(currentAvgTicket.toFixed(2))
+        },
+        recommendation: "Revisar pedidos do dia para identificar possíveis erros de valor"
+      });
+    }
+
+    return { success: true, data: anomalies };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}

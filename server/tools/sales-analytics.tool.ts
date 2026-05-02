@@ -67,5 +67,16 @@ export const salesAnalyticsTool = {
       throw new InfrastructureError(result.error || 'Falha ao analisar vendas por categoria');
     }
     return result.data || [];
+  },
+
+  detectSalesAnomalies: async function(input: { tenantId: number }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    const result = await ordersService.detectSalesAnomalies(input.tenantId);
+    if (!result.success) {
+      throw new InfrastructureError(result.error || 'Falha ao detectar anomalias de vendas');
+    }
+    return result.data || [];
   }
 };

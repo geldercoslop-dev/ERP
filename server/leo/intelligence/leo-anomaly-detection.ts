@@ -1,9 +1,18 @@
 import { logInfo, logError } from '../../_core/logger.js';
 import { AnomalyDetection } from '../../_core/types.js';
-import { InfrastructureError } from '../../_core/errors/typed-errors.js';
+import { InfrastructureError, ValidationError } from '../../_core/errors/typed-errors.js';
+import { salesAnalyticsTool } from '../../tools/sales-analytics.tool.js';
 
 export class LeoAnomalyDetection {
   private readonly name = 'AnomalyDetection';
+  private readonly tenantId: number;
+
+  constructor(tenantId: number) {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError("tenantId obrigatório");
+    }
+    this.tenantId = tenantId;
+  }
 
   /**
    * Detect sales anomalies
@@ -14,8 +23,19 @@ export class LeoAnomalyDetection {
         extra: { entity: this.name, acao: 'detectSalesAnomalies' }
       });
 
-      // LEO_ANOMALY_SALES_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_ANOMALY_SALES_REAL_IMPLEMENTATION_REQUIRED");
+      const salesAnomalies = await salesAnalyticsTool.detectSalesAnomalies({
+        tenantId: this.tenantId
+      });
+
+      // Mapear SalesAnomaly para AnomalyDetection
+      return salesAnomalies.map(anomaly => ({
+        type: 'sales',
+        description: anomaly.message,
+        severity: anomaly.severity,
+        data: anomaly.data,
+        detectedAt: new Date(),
+        actions: [anomaly.recommendation]
+      }));
 
     } catch (error) {
       logError('Failed to detect sales anomalies', {
