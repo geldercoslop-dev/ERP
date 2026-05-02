@@ -148,7 +148,7 @@ async function executarConsulta(action: LeoActionRequest, context: LeoRuntimeCon
     let actorConsulta;
     try {
       actorConsulta = actorFromLeoRuntimeContext({
-        usuario: context.usuario as { role?: string; vendedorId?: number },
+        usuario: context.usuario,
       });
     } catch {
       return {
@@ -272,7 +272,7 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
           }
           const stripped = stripSensitiveIdsFromUnknown(parametros);
           const actorOp = actorFromLeoRuntimeContext({
-            usuario: context.usuario as { role?: string; vendedorId?: number },
+            usuario: context.usuario,
           });
           const clienteId = Number(stripped.clienteId);
           const itensRaw = stripped.itens;
@@ -311,10 +311,17 @@ async function executarOperacaoERP(action: LeoActionRequest, context: LeoRuntime
         } else if (operation === 'cancelar_pedido') {
           const pedidoId = typeof parametros?.pedidoId === 'number' ? parametros.pedidoId : undefined;
           const motivo = typeof parametros?.motivo === 'string' ? parametros.motivo : undefined;
+          const tenantId = context.tenantId;
+          if (!Number.isFinite(tenantId) || tenantId <= 0) {
+            return { success: false, message: 'tenantId obrigatório no contexto LEO', executionTime: Date.now() - startTime };
+          }
           if (pedidoId === undefined) {
             return { success: false, message: 'pedidoId é obrigatório', executionTime: Date.now() - startTime };
           }
-          const resultado = await leoErpTool.cancelarPedido({ pedidoId, motivo, usuarioId: context.usuario?.id ?? 0 });
+          const actorOp = actorFromLeoRuntimeContext({
+            usuario: context.usuario,
+          });
+          const resultado = await leoErpTool.cancelarPedido({ tenantId, pedidoId, motivo, actor: actorOp });
           return {
             success: resultado.success,
             message: resultado.message || 'Pedido cancelado com sucesso',

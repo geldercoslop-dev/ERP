@@ -28,8 +28,14 @@ export const leoErpTool = {
     return leoErpService.editarPedido(input.pedidoId, input.dados, input.usuarioId);
   },
 
-  async cancelarPedido(input: { pedidoId: number; motivo?: string; usuarioId?: number }) {
-    return leoErpService.cancelarPedido(input.pedidoId, input.motivo, input.usuarioId);
+  async cancelarPedido(input: { tenantId: number; pedidoId: number; motivo?: string; actor: ServiceActor }) {
+    if (!input.tenantId) {
+      throw new ValidationError('tenantId required');
+    }
+    if (!input.actor) {
+      throw new ValidationError('actor required');
+    }
+    return leoErpService.cancelarPedido(input.tenantId, input.pedidoId, input.motivo, input.actor);
   },
 
   async atualizarStatusPedido(input: { tenantId: number; pedidoId: number; novoStatus: string }) {

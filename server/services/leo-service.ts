@@ -5,7 +5,7 @@
  * usando apenas services existentes (sem acesso direto ao DB).
  */
 
-import { listPedidos, createPedidoSafe, getPedidoByIdForActor, updatePedidoStatus } from './orders.service.js';
+import { listPedidos, createPedidoSafe, getPedidoByIdForActor, updatePedidoStatus, cancelarPedidoSafe } from './orders.service.js';
 import { listClientes, createCliente } from './clientes.service.js';
 import { ADMIN_ACTOR, assertVendedorActor, type ServiceActor } from '../_core/service-actor.js';
 import { getAllProdutos, getProdutoById, updateEstoqueProduto } from './inventory.service.js';
@@ -91,14 +91,15 @@ export class LeoErpService {
   }
 
   /**
-   * Cancela um pedido
+   * Cancela um pedido de forma segura (devolve estoque e cancela contas receber)
    */
-  async cancelarPedido(pedidoId: number, motivo?: string, usuarioId?: number) {
+  async cancelarPedido(tenantId: number, pedidoId: number, motivo?: string, actor?: ServiceActor) {
+    assertTenantId(tenantId);
     try {
-      await this.atualizarStatusPedido(1, pedidoId, 'CANCELADO'); // Simplificado
+      const result = await cancelarPedidoSafe(tenantId, pedidoId, actor);
       return {
         success: true,
-        data: { pedidoId, status: 'CANCELADO' },
+        data: { pedidoId, status: 'CANCELADO', estoqueDevolvido: result.estoqueDevolvido, contasCanceladas: result.contasCanceladas },
         message: `Pedido ${pedidoId} cancelado`,
       };
     } catch (error) {
