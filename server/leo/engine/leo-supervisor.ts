@@ -405,8 +405,8 @@ class LeoSupervisor {
           await this.handleViolation('memory_usage', this.status.currentMemoryUsage, this.limits.maxMemoryUsage);
         }
 
-        // CPU usage (simulado - implementação real dependeria de biblioteca específica)
-        this.status.currentCpuUsage = Math.random() * 20 + 10; // Simulação 10-30%
+        // Métrica indisponível — requer biblioteca específica de monitoramento de CPU
+        this.status.currentCpuUsage = 0;
         
         if (this.status.currentCpuUsage > this.limits.maxCpuUsage) {
           await this.handleViolation('cpu_usage', this.status.currentCpuUsage, this.limits.maxCpuUsage);

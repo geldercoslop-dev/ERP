@@ -3,6 +3,7 @@
  * Implementação simplificada usando interfaces oficiais
  */
 
+import { randomUUID } from 'crypto';
 import type { LeoEvent, ILeoErpObserver, LeoObserveResult, Payload } from "../../../shared/types/index.js";
 import { LeoEventType, LeoEventPriority, LeoEventStatus } from "../../../shared/types/index.js";
 import { logInfo, logError } from '../../_core/logger-rotation.js';
@@ -203,7 +204,7 @@ export class LeoErpObserver implements ILeoErpObserver {
     const entityId = this.extractEntityId(params.dados);
     
     return {
-      id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `event_${randomUUID()}`,
       tipo: params.tipo,
       titulo: params.titulo,
       descricao: params.descricao,

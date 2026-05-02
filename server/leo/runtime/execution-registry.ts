@@ -16,6 +16,7 @@
  * Consulte CORE_IMMUTABLE.md antes de modificar.
  */
 
+import { randomUUID } from 'crypto';
 import { logInfo, logError } from '../../_core/logger.js';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 import type { ExecutionContext } from './execution-contract-layer.js';
@@ -268,7 +269,7 @@ class ExecutionRegistry {
    * Gera ID único
    */
   private generateId(): string {
-    return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `exec_${randomUUID()}`;
   }
 }
 

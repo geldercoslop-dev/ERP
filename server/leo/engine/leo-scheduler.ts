@@ -8,6 +8,7 @@
  * HARDENING: All tools must be called via Execution Gate, never directly
  */
 
+import { randomUUID } from 'crypto';
 import { insertLeoLegacyActionLog } from '../../services/leo-action-log.service.js';
 import { ValidationError, InfrastructureError } from '../../_core/errors/typed-errors.js';
 import { leoEvents } from '../memory/leo-events.js';
@@ -99,34 +100,7 @@ class CronParser {
     return isNaN(value) ? [] : [value];
   }
 
-  static getNextRun(schedule: string, from: Date = new Date()): Date {
-    try {
-      const cron = this.parse(schedule);
-      const next = new Date(from);
-      
-      // Adicionar 1 minuto para evitar execução imediata
-      next.setMinutes(next.getMinutes() + 1);
-      next.setSeconds(0);
-      next.setMilliseconds(0);
-
-      // Procurar próxima data correspondente (limitado a 1 ano)
-      for (let i = 0; i < 365 * 24 * 60; i++) {
-        if (this.matchesCron(next, cron)) {
-          return next;
-        }
-        next.setMinutes(next.getMinutes() + 1);
-      }
-
-      throw new InfrastructureError('Não foi possível encontrar próxima data de execução');
-    } catch (error) {
-      // Fallback para 1 hora se expressão for inválida
-      const fallback = new Date(from);
-      fallback.setHours(fallback.getHours() + 1);
-      return fallback;
-    }
-  }
-
-  private static matchesCron(
+  static matchesCron(
     date: Date,
     cron: { minutes: number[]; hours: number[]; days: number[]; months: number[]; weekdays: number[] }
   ): boolean {
@@ -160,6 +134,37 @@ class LeoScheduler {
       LeoScheduler.instance = new LeoScheduler();
     }
     return LeoScheduler.instance;
+  }
+
+  /**
+   * Calcula próxima data de execução baseado no schedule cron
+   */
+  private calculateNextRun(schedule: string, from?: Date): Date {
+    const baseDate = from ?? new Date();
+    try {
+      const cron = CronParser.parse(schedule);
+      const next = new Date(baseDate);
+
+      // Adicionar 1 minuto para evitar execução imediata
+      next.setMinutes(next.getMinutes() + 1);
+      next.setSeconds(0);
+      next.setMilliseconds(0);
+
+      // Procurar próxima data correspondente (limitado a 1 ano)
+      for (let i = 0; i < 365 * 24 * 60; i++) {
+        if (CronParser.matchesCron(next, cron)) {
+          return next;
+        }
+        next.setMinutes(next.getMinutes() + 1);
+      }
+
+      throw new InfrastructureError('Não foi possível encontrar próxima data de execução');
+    } catch (error) {
+      // Fallback para 1 hora se expressão for inválida
+      const fallback = new Date(baseDate);
+      fallback.setHours(fallback.getHours() + 1);
+      return fallback;
+    }
   }
 
   /**
@@ -268,7 +273,7 @@ class LeoScheduler {
         priority: task.priority,
         enabled: task.enabled,
         lastRun: task.lastRun,
-        nextRun: CronParser.getNextRun(task.schedule),
+        nextRun: this.calculateNextRun(task.schedule),
         runCount: 0,
         errorCount: 0,
         maxErrors: task.maxErrors || 5,
@@ -344,7 +349,7 @@ class LeoScheduler {
     
     // Recalcular próxima execução se schedule mudou
     if (updates.schedule && updates.schedule !== task.schedule) {
-      updatedTask.nextRun = CronParser.getNextRun(updates.schedule);
+      updatedTask.nextRun = this.calculateNextRun(updates.schedule);
     }
 
     this.scheduledTasks.set(taskId, updatedTask);
@@ -602,7 +607,7 @@ class LeoScheduler {
    * Gera ID único para tarefa agendada
    */
   private generateTaskId(): string {
-    return `sched_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `sched_${randomUUID()}`;
   }
 
   /**
@@ -656,17 +661,6 @@ class LeoScheduler {
   }
 
   /**
-   * Calcula próxima data de execução baseado no schedule
-   */
-  private calculateNextRun(schedule: string): Date {
-    const now = new Date();
-    
-    // Implementação simplificada - apenas adicionar 1 hora para exemplo
-    const nextRun = new Date(now.getTime() + 60 * 60 * 1000);
-    return nextRun;
-  }
-
-  /**
    * Obtém estatísticas do scheduler
    */
   getStats(): ScheduleStats {
@@ -700,5 +694,12 @@ class LeoScheduler {
   }
 }
 
-// Exportar instância singleton
-export const leoScheduler = LeoScheduler.getInstance();
+// LAZY SINGLETON: Não executa no import, só na primeira chamada
+let leoSchedulerInstance: LeoScheduler | null = null;
+
+export function getLeoScheduler(): LeoScheduler {
+  if (!leoSchedulerInstance) {
+    leoSchedulerInstance = LeoScheduler.getInstance();
+  }
+  return leoSchedulerInstance;
+}

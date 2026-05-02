@@ -23,7 +23,7 @@ import { DesktopAutomationPlugin } from './plugins/desktop-plugin.js';
 export { LeoEngine, leoEngine } from './engine/leo-engine.js';
 export { leoLoop } from './engine/leo-loop.js';
 export { leoSupervisor } from './engine/leo-supervisor.js';
-export { leoScheduler } from './engine/leo-scheduler.js';
+export { getLeoScheduler } from './engine/leo-scheduler.js';
 
 // LEO Perception
 export { leoErpObserver } from './perception/leo-erp-observer.js';

@@ -3,6 +3,7 @@
  * Tipagem forte e estrutura padronizada
  */
 
+import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import {
   LeoTask,
@@ -43,7 +44,7 @@ export class LeoTaskQueue extends EventEmitter implements TaskQueue {
    * Adiciona tarefa à fila
    */
   async add(taskData: Omit<LeoTask, 'id' | 'createdAt' | 'attempts' | 'status' | 'processedAt' | 'result' | 'error' | 'executionTime'>): Promise<LeoTask> {
-    const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const taskId = `task_${randomUUID()}`;
     
     const task: LeoTask = {
       ...taskData,

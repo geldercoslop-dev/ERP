@@ -11,7 +11,7 @@ import { leoEngine } from '../leo/engine/leo-engine.js';
 import { ValidationError, InfrastructureError } from '../_core/errors/typed-errors.js';
 import { leoLoop } from '../leo/engine/leo-loop.js';
 import { leoTaskQueue } from '../leo/tasks/leo-task-queue.js';
-import { leoScheduler } from '../leo/engine/leo-scheduler.js';
+import { getLeoScheduler } from '../leo/engine/leo-scheduler.js';
 import { leoSupervisor } from '../leo/engine/leo-supervisor.js';
 import { leoLoopProtection } from '../leo/security/leo-loop-protection.js';
 import { leoErpObserver } from '../leo/perception/leo-erp-observer.js';
@@ -36,7 +36,7 @@ export const leoAdminDashboardRouter = router({
       
       // Estatísticas de tarefas
       const taskStats = await leoTaskQueue.getStats();
-      const schedulerStats = leoScheduler.getStats();
+      const schedulerStats = getLeoScheduler().getStats();
       const plannerStats = leoPlanner.getStatistics();
       
       // Eventos recentes
@@ -194,8 +194,8 @@ export const leoAdminDashboardRouter = router({
    * Tarefas agendadas
    */
   scheduledTasks: adminProcedure.query(async () => {
-    const tasks = leoScheduler.getScheduledTasks();
-    const stats = leoScheduler.getStats();
+    const tasks = getLeoScheduler().getScheduledTasks();
+    const stats = getLeoScheduler().getStats();
     
     return {
       tasks,
@@ -329,7 +329,7 @@ export const leoAdminDashboardRouter = router({
     }))
     .mutation(async ({ input }) => {
       try {
-        const task = await leoScheduler.addScheduledTask({
+        const task = await getLeoScheduler().addScheduledTask({
           name: input.name,
           type: input.type,
           schedule: input.schedule,
@@ -494,7 +494,7 @@ export const leoAdminDashboardRouter = router({
   settings: adminProcedure.query(async () => {
     try {
       const supervisorLimits = leoSupervisor.getStatus().limits;
-      const schedulerTasks = leoScheduler.getScheduledTasks();
+      const schedulerTasks = getLeoScheduler().getScheduledTasks();
       
       return {
         supervisor: {
