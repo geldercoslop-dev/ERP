@@ -22,6 +22,7 @@
  * Consulte CORE_IMMUTABLE.md antes de modificar.
  */
 
+import { randomUUID } from 'crypto';
 import { ValidationError } from '../../_core/errors/typed-errors.js';
 import { logInfo, logError } from '../../_core/logger.js';
 import { getToolExecutor, type ToolExecutionContext, type ToolExecutionResult } from '../agent/tool-executor.js';
@@ -90,7 +91,7 @@ export async function executeLeoActionGate(request: ExecutionGateRequest): Promi
     tenantId: request.context.tenantId,
     entrypoint: 'executeLeoActionGate',
     timestamp: new Date(),
-    traceId: `gate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    traceId: `gate_${randomUUID()}`,
   };
   
   return await withExecutionOrigin('execution-gate', executionContext, async () => {
