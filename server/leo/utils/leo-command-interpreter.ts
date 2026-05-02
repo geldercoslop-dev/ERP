@@ -18,7 +18,7 @@ export async function interpretLeoCommand(message: string, tenantId: number, con
 
   const salesAnalysis = new LeoSalesAnalysis(tenantId);
   const stockMonitor = LeoStockMonitor.getInstance();
-  const patternDetection = new LeoPatternDetection();
+  const patternDetection = new LeoPatternDetection(tenantId);
 
   try {
     const lowerMessage = message.toLowerCase();

@@ -1,9 +1,18 @@
 import { logInfo, logError } from '../../_core/logger.js';
-import { SalesPattern } from '../../_core/types.js';
-import { InfrastructureError } from '../../_core/errors/typed-errors.js';
+import { SalesPattern, SeasonalPattern } from '../../_core/types.js';
+import { InfrastructureError, ValidationError } from '../../_core/errors/typed-errors.js';
+import { seasonalAnalyticsTool } from '../../tools/seasonal-analytics.tool.js';
 
 export class LeoPatternDetection {
   private readonly name = 'PatternDetection';
+  private readonly tenantId: number;
+
+  constructor(tenantId: number) {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new ValidationError('tenantId obrigatório');
+    }
+    this.tenantId = tenantId;
+  }
 
   /**
    * Detect sales patterns based on historical data
@@ -29,15 +38,16 @@ export class LeoPatternDetection {
   /**
    * Identify seasonal patterns in sales
    */
-  async detectSeasonalPatterns(): Promise<any[]> {
+  async detectSeasonalPatterns(): Promise<SeasonalPattern[]> {
     try {
       logInfo('Detecting seasonal patterns', {
         acao: 'detectSeasonalPatterns',
         extra: { entity: this.name }
       });
 
-      // LEO_PATTERN_SEASONAL_REAL_IMPLEMENTATION_REQUIRED
-      throw new InfrastructureError("LEO_PATTERN_SEASONAL_REAL_IMPLEMENTATION_REQUIRED");
+      return await seasonalAnalyticsTool.detectSeasonalPatterns({
+        tenantId: this.tenantId
+      });
 
     } catch (error) {
       logError('Failed to detect seasonal patterns', {

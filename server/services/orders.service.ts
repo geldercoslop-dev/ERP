@@ -2041,3 +2041,150 @@ export async function detectSalesAnomalies(
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
+
+import type { SeasonalPattern, SeasonalPatternType } from "../_core/types.js";
+
+export async function detectSeasonalPatterns(
+  tenantId: number
+): Promise<{ success: boolean; data?: SeasonalPattern[]; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    assertDbConnection(dbConn);
+
+    const now = new Date();
+    const dozeMesesAtras = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+    const pedidosRows = await dbConn
+      .select({
+        dataCriacao: pedidos.dataCriacao,
+        total: pedidos.total,
+      })
+      .from(pedidos)
+      .where(
+        and(
+          eq(pedidos.tenantId, tenantId),
+          ne(pedidos.status, PedidoStatus.CANCELADO),
+          gte(pedidos.dataCriacao, dozeMesesAtras)
+        )
+      )
+      .orderBy(pedidos.dataCriacao);
+
+    if (pedidosRows.length < 30) {
+      return { success: true, data: [] };
+    }
+
+    const mesesComDados = new Set(
+      pedidosRows.map((r) => {
+        const d = new Date(r.dataCriacao);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      })
+    ).size;
+
+    if (mesesComDados < 6) {
+      return { success: true, data: [] };
+    }
+
+    const patterns: SeasonalPattern[] = [];
+
+    const faturamentoPorMes: Record<number, { total: number; count: number }> = {};
+    const faturamentoPorDiaSemana: Record<number, { total: number; count: number }> = {};
+
+    for (const row of pedidosRows) {
+      const data = new Date(row.dataCriacao);
+      const mes = data.getMonth();
+      const diaSemana = data.getDay();
+      const total = Number(row.total);
+
+      if (!faturamentoPorMes[mes]) {
+        faturamentoPorMes[mes] = { total: 0, count: 0 };
+      }
+      faturamentoPorMes[mes].total += total;
+      faturamentoPorMes[mes].count += 1;
+
+      if (!faturamentoPorDiaSemana[diaSemana]) {
+        faturamentoPorDiaSemana[diaSemana] = { total: 0, count: 0 };
+      }
+      faturamentoPorDiaSemana[diaSemana].total += total;
+      faturamentoPorDiaSemana[diaSemana].count += 1;
+    }
+
+    const mesesNomes = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    const diasNomes = [
+      "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+      "Quinta-feira", "Sexta-feira", "Sábado"
+    ];
+
+    const totalGeral = pedidosRows.reduce((sum, r) => sum + Number(r.total), 0);
+    const mediaMensal = totalGeral / 12;
+    const mediaDiaria = totalGeral / pedidosRows.length;
+
+    for (let mes = 0; mes < 12; mes++) {
+      const dadosMes = faturamentoPorMes[mes];
+      if (!dadosMes || dadosMes.count < 1) continue;
+
+      const mediaMes = dadosMes.total / dadosMes.count;
+      const variation = Math.abs(mediaMes - mediaMensal) / mediaMensal;
+
+      if (variation >= 0.3) {
+        const percentageChange = Number((variation * 100).toFixed(2));
+        const isAbove = mediaMes > mediaMensal;
+        const severity: "low" | "medium" | "high" =
+          percentageChange >= 100 ? "high" : percentageChange >= 50 ? "medium" : "low";
+        const confidence = Math.min(1, dadosMes.count / 30);
+
+        patterns.push({
+          type: "monthly" as SeasonalPatternType,
+          period: mesesNomes[mes],
+          currentValue: Number(dadosMes.total.toFixed(2)),
+          historicalAverage: Number(mediaMensal.toFixed(2)),
+          percentageChange,
+          confidence: Number(confidence.toFixed(2)),
+          severity,
+          recommendation: isAbove
+            ? `Faturamento acima da média em ${mesesNomes[mes]}: aproveitar com campanhas`
+            : `Faturamento abaixo da média em ${mesesNomes[mes]}: considerar incentivos`,
+        });
+      }
+    }
+
+    for (let dia = 0; dia < 7; dia++) {
+      const dadosDia = faturamentoPorDiaSemana[dia];
+      if (!dadosDia || dadosDia.count < 1) continue;
+
+      const mediaDia = dadosDia.total / dadosDia.count;
+      const variation = Math.abs(mediaDia - mediaDiaria) / mediaDiaria;
+
+      if (variation >= 0.3) {
+        const percentageChange = Number((variation * 100).toFixed(2));
+        const isAbove = mediaDia > mediaDiaria;
+        const severity: "low" | "medium" | "high" =
+          percentageChange >= 100 ? "high" : percentageChange >= 50 ? "medium" : "low";
+        const confidence = Math.min(1, dadosDia.count / 30);
+
+        patterns.push({
+          type: "weekday" as SeasonalPatternType,
+          period: diasNomes[dia],
+          currentValue: Number(dadosDia.total.toFixed(2)),
+          historicalAverage: Number((mediaDiaria * dadosDia.count).toFixed(2)),
+          percentageChange,
+          confidence: Number(confidence.toFixed(2)),
+          severity,
+          recommendation: isAbove
+            ? `Maior volume nas ${diasNomes[dia]}: priorizar atendimento`
+            : `Menor volume nas ${diasNomes[dia]}: reduzir escala ou fazer promoções`,
+        });
+      }
+    }
+
+    return { success: true, data: patterns };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}

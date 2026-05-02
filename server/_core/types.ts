@@ -193,6 +193,19 @@ export interface AnomalyDetection {
   actions: string[];
 }
 
+export type SeasonalPatternType = "monthly" | "weekday";
+
+export type SeasonalPattern = {
+  type: SeasonalPatternType;
+  period: string;
+  currentValue: number;
+  historicalAverage: number;
+  percentageChange: number;
+  confidence: number;
+  severity: "low" | "medium" | "high";
+  recommendation: string;
+};
+
 // Desktop Automation Types
 export interface DesktopAction {
   type: 'click' | 'type' | 'screenshot' | 'open' | 'close' | 'wait';
