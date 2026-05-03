@@ -7,7 +7,7 @@
 
 import type { TransactionConnection } from '../types/transaction.types.js';
 import { runTransaction } from '../services/db-transaction.js';
-import { updateStockSafe, reserveStockForOrder } from '../services/stock-safety.service.js';
+import { reserveStockForOrder } from '../services/stock-safety.service.js';
 import { insertAuditLog } from '../services/audit-service.js';
 import { logInfo } from '../_core/logger.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
@@ -220,106 +220,6 @@ export async function createOrderSafe(orderData: CreateOrderData): Promise<Order
       auditRecord
     };
   }, 'SERIALIZABLE'); // Usar isolamento serializável para evitar race conditions
-}
-
-/**
- * Cancela pedido de forma segura devolvendo estoque
- */
-export async function cancelOrderSafe(
-  tenantId: number,
-  pedidoId: number,
-  motivo: string = 'Cancelamento',
-  usuarioId?: number,
-  vendedorId?: number
-): Promise<{ success: boolean; message: string; movimentacoes?: Record<string, unknown>[] }> {
-  if (!tenantId) throw new ValidationError("tenantId is required");
-
-  return runTransaction(async (tx: TransactionConnection) => {
-     logInfo(`[SafeOrder] Iniciando cancelamento seguro do pedido - Tenant: ${tenantId}, ID: ${pedidoId}`);
-
-    // 1. Buscar dados do pedido com bloqueio e tenantId
-    const [pedido] = await tx.execute(
-      `SELECT id, numero, status, clienteNome, total FROM pedidos WHERE tenantId = ? AND id = ? FOR UPDATE`,
-      [tenantId, pedidoId]
-    );
-
-    if (!pedido || !(pedido as Array<Record<string, unknown>>)[0]) {
-      throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
-    }
-
-    const pedidoData = (pedido as Array<Record<string, unknown>>)[0];
-
-    // 2. Validar status do pedido
-    if ((pedidoData.status as string) === 'CANCELADO') {
-      throw new ValidationError('PEDIDO_JA_CANCELADO: Pedido já está cancelado');
-    }
-
-    if ((pedidoData.status as string) === 'ENTREGUE') {
-      throw new ValidationError('PEDIDO_ENTREGUE: Pedido entregue não pode ser cancelado');
-    }
-
-    // 3. Buscar itens do pedido
-    const [itens] = await tx.execute(
-      `SELECT produtoId, quantidade FROM itens_pedido WHERE pedidoId = ?`,
-      [pedidoId]
-    );
-
-    const itensPedido = itens as Array<{ produtoId: number; quantidade: number }>;
-
-    // 4. Devolver estoque (usando reserveStockForOrder que agora aceita tenantId)
-    const movimentacoesEstoque = await reserveStockForOrder(
-      tenantId,
-      itensPedido.map((item: { produtoId: number; quantidade: number }) => ({
-        produtoId: item.produtoId,
-        quantidade: -item.quantidade // Devolução (quantidade negativa)
-      })),
-      pedidoId,
-      usuarioId,
-      vendedorId
-    );
-
-    // 5. Atualizar status do pedido com tenantId
-    await tx.execute(
-      `UPDATE pedidos SET status = ?, updatedAt = NOW() WHERE tenantId = ? AND id = ?`,
-      ['CANCELADO', tenantId, pedidoId]
-    );
-
-    // 6. Registrar auditoria com tenantId
-    const actorUserIdForAudit: number | null = usuarioId === undefined ? null : usuarioId;
-    const actorVendedorIdForAudit: number | null = vendedorId === undefined ? null : vendedorId;
-
-    await tx.execute(
-      `INSERT INTO audit_log (
-        tenantId, actorUserId, actorVendedorId, action, entity, entityId,
-        payloadJson, traceId, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        tenantId,
-        actorUserIdForAudit,
-        actorVendedorIdForAudit,
-        'PEDIDO_CANCELAMENTO',
-        'pedido',
-        pedidoId,
-        JSON.stringify({
-          pedidoId,
-          numero: pedidoData.numero,
-          clienteNome: pedidoData.clienteNome,
-          motivo,
-          itensDevolvidos: itensPedido.length,
-          valorTotal: pedidoData.total
-        }),
-        `CANCEL_${pedidoId}_${Date.now()}`
-      ]
-    );
-
-    logInfo(`[SafeOrder] Pedido cancelado com sucesso - ID: ${pedidoId}`);
-
-    return {
-      success: true,
-      message: `Pedido #${pedidoData.numero} cancelado com sucesso`,
-      movimentacoes: movimentacoesEstoque.data
-    };
-  }, 'SERIALIZABLE');
 }
 
 /**
