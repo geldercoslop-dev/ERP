@@ -84,7 +84,7 @@ function hasStockErrorCode(error: unknown): error is { code?: string; message?: 
   return typeof candidate.code === "string" || typeof candidate.message === "string";
 }
 
-type PedidoStatus = "GERADO" | "IMPRESSO" | "EM_ROTA" | "ENTREGUE" | "CANCELADO";
+type PedidoStatus = "GERADO" | "CONFERIDO" | "IMPRESSO" | "EM_ROTA" | "ENTREGUE" | "CANCELADO";
 type PedidoCargaItem = { id: number };
 type RowWithVendedorId = { vendedorId: number };
 type CounterSelectRow = { seq: number | null };
@@ -1484,28 +1484,13 @@ export const appRouter = router({
     updateStatus: protectedProcedure
       .input(z.object({
         id: z.number(),
-        status: z.enum(['GERADO','IMPRESSO','EM_ROTA','ENTREGUE','CANCELADO']),
+        status: z.enum(['GERADO','CONFERIDO','IMPRESSO','EM_ROTA','ENTREGUE','CANCELADO']),
         idempotencyKey: z.string().max(64).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await assertOwnership(ctx, "pedido", input.id);
         const tenantId = await requireTenant(ctx);
-        const pedido = await getPedidoById(tenantId, input.id);
-        if (!pedido) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-        const atual = pedido.status as PedidoStatus;
         const proximo = input.status as PedidoStatus;
-        if (atual === 'ENTREGUE' && proximo !== 'ENTREGUE') {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Pedido ENTREGUE não pode voltar status.' });
-        }
-        if (atual === 'CANCELADO' && proximo !== 'CANCELADO') {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Pedido CANCELADO não pode voltar status.' });
-        }
-        if (proximo === 'IMPRESSO' && atual !== 'GERADO' && atual !== 'IMPRESSO') {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'IMPRESSO só pode vir de GERADO.' });
-        }
-        if (proximo === 'EM_ROTA' && atual !== 'IMPRESSO' && atual !== 'EM_ROTA') {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'EM_ROTA só pode vir de IMPRESSO.' });
-        }
         // Usar cancelarPedidoSafe para cancelamento (devolve estoque e cancela contasReceber)
         if (proximo === 'CANCELADO') {
           const actor = await resolveServiceActor(ctx);
