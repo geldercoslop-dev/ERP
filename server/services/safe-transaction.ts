@@ -38,7 +38,7 @@ export interface SafeTransaction {
 
 export interface PedidoOperation {
   pedidoId: number;
-  acao: 'criar' | 'atualizar' | 'cancelar' | 'atualizar_status';
+  acao: 'criar' | 'atualizar' | 'atualizar_status';
   dados?: Record<string, unknown>;
   tenantId?: number;
   actorUserId?: number;
@@ -339,9 +339,6 @@ class SafeTransactionService {
       case 'atualizar':
         return await this.atualizarPedido(tx, pedidoOp);
       
-      case 'cancelar':
-        return await this.cancelarPedido(tx, pedidoOp);
-      
       case 'atualizar_status':
         return await this.atualizarStatusPedido(tx, pedidoOp);
       
@@ -468,52 +465,6 @@ class SafeTransactionService {
       success: true,
       pedidoId: pedidoOp.pedidoId,
       operation: 'atualizar_pedido',
-      affectedRows: meta.affectedRows,
-    };
-  }
-
-  /**
-   * Cancelar pedido
-   */
-  private async cancelarPedido(tx: DbTx, pedidoOp: PedidoOperation): Promise<Record<string, unknown>> {
-    // Validate tenantId
-    if (!pedidoOp.tenantId || !Number.isInteger(pedidoOp.tenantId) || pedidoOp.tenantId <= 0) {
-      throw new ValidationError("tenantId obrigatório para cancelamento de pedido");
-    }
-    
-    const motivo = pedidoOp.dados?.motivo;
-    const result = await tx
-      .update(pedidos)
-      .set({
-        status: PedidoStatus.CANCELADO,
-        observacoes: typeof motivo === "string" ? motivo : undefined,
-        updatedAt: new Date(),
-      })
-      .where(eq(pedidos.id, pedidoOp.pedidoId));
-
-    const meta = readMysqlExecResult(result);
-    
-    // Auditoria de cancelamento de pedido
-    await logAuditAction(
-      "cancel",
-      "pedidos",
-      { 
-        pedidoId: pedidoOp.pedidoId,
-        motivo: pedidoOp.dados?.motivo,
-        operation: 'cancelar_pedido'
-      },
-      {
-        tenantId: pedidoOp.tenantId,
-        entityId: pedidoOp.pedidoId.toString(),
-        actorUserId: pedidoOp.actorUserId,
-        actorVendedorId: pedidoOp.actorVendedorId
-      }
-    );
-    
-    return {
-      success: true,
-      pedidoId: pedidoOp.pedidoId,
-      operation: 'cancelar_pedido',
       affectedRows: meta.affectedRows,
     };
   }
