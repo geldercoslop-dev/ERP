@@ -1009,8 +1009,8 @@ export async function getTopProducts(
 }
 
 /**
- * Atualiza status do pedido com validação de transição e bloqueio pessimista
- * Wrapper equivalente a updateOrderStatusSafe do módulo safe-order
+ * Atualiza status do pedido com validação de transição oficial
+ * Wrapper que delega para atualizarStatusPedido (status normais) ou cancelarPedidoSafe (CANCELADO)
  */
 export async function updateOrderStatusSafe(
   tenantId: number,
@@ -1022,69 +1022,25 @@ export async function updateOrderStatusSafe(
 ): Promise<{ success: boolean; message: string }> {
   assertRequiredId(tenantId, "tenantId");
   assertRequiredId(pedidoId, "pedidoId");
-  const dbConn = await getDb();
-  assertDbConnection(dbConn);
 
-  return dbConn.transaction(async (tx: DbTx) => {
-    // 1. Buscar pedido atual com bloqueio pessimista (FOR UPDATE)
-    const pedidoRows = await tx
-      .select({ id: pedidos.id, numero: pedidos.numero, status: pedidos.status })
-      .from(pedidos)
-      .where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId)))
-      .for("update")
-      .limit(1);
-
-    if (pedidoRows.length === 0) {
-      throw new ValidationError('PEDIDO_NAO_ENCONTRADO: Pedido não encontrado ou acesso negado');
-    }
-
-    const pedidoData = pedidoRows[0];
-
-    // 2. Validar transição de status
-    const statusValidos: Record<string, string[]> = {
-      'PENDENTE': ['PROCESSANDO', 'CANCELADO'],
-      'PROCESSANDO': ['APROVADO', 'CANCELADO'],
-      'APROVADO': ['SEPARACAO', 'CANCELADO'],
-      'SEPARACAO': ['ENTREGA', 'CANCELADO'],
-      'ENTREGA': ['ENTREGUE'],
-      'ENTREGUE': [],
-      'CANCELADO': []
-    };
-
-    const transicoesPermitidas = statusValidos[pedidoData.status] || [];
-    if (!transicoesPermitidas.includes(novoStatus)) {
-      throw new ValidationError(`TRANSICAO_INVALIDA: Não é possível mudar de ${pedidoData.status} para ${novoStatus}`);
-    }
-
-    // 3. Atualizar status
-    await tx
-      .update(pedidos)
-      .set({ status: novoStatus, updatedAt: new Date() })
-      .where(and(eq(pedidos.id, pedidoId), eq(pedidos.tenantId, tenantId)));
-
-    // 4. Registrar auditoria
-    await insertAuditLog({
-      tenantId,
-      actorUserId: usuarioId ?? null,
-      actorVendedorId: vendedorId ?? null,
-      action: 'update_status',
-      entity: 'pedido',
-      entityId: String(pedidoId),
-      payloadJson: JSON.stringify({
-        pedidoId,
-        numero: pedidoData.numero,
-        statusAnterior: pedidoData.status,
-        novoStatus,
-        motivo
-      }),
-      traceId: `STATUS_${pedidoId}_${Date.now()}`,
-    }, tx);
-
+  // CANCELADO usa fluxo seguro separado
+  if (novoStatus === PedidoStatus.CANCELADO) {
+    const actor: ServiceActor | undefined = vendedorId && vendedorId > 0
+      ? { role: "vendedor", vendedorId }
+      : undefined;
+    const result = await cancelarPedidoSafe(tenantId, pedidoId, actor);
     return {
       success: true,
-      message: `Status do pedido #${pedidoData.numero} atualizado para ${novoStatus}`
+      message: `Pedido #${result.pedidoId} cancelado com sucesso (estoqueDevolvido: ${result.estoqueDevolvido}, contasCanceladas: ${result.contasCanceladas})`
     };
-  });
+  }
+
+  // Demais status usam máquina oficial via atualizarStatusPedido
+  const result = await atualizarStatusPedido(tenantId, pedidoId, novoStatus);
+  return {
+    success: result.success,
+    message: `Status do pedido atualizado para ${novoStatus}`
+  };
 }
 
 export async function buscarPedidos(
