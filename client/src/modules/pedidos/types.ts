@@ -52,6 +52,7 @@ export interface PedidoListParams extends PedidoFilters {
  */
 export const PEDIDO_STATUS_ENUM = [
   "GERADO",
+  "CONFERIDO",
   "IMPRESSO",
   "EM_ROTA",
   "ENTREGUE",

@@ -27,6 +27,111 @@ export const PedidoStatusValues = [
 export type PedidoStatusValue = (typeof PedidoStatusValues)[number];
 export type PedidoStatusType = typeof PedidoStatus[keyof typeof PedidoStatus];
 
+/**
+ * Matriz oficial de transições permitidas entre status de pedidos.
+ * Cada status mapeia para os status para os quais pode transicionar.
+ * Estado terminal: apenas transição para si mesmo (permanecer no estado).
+ */
+export const PedidoStatusTransitions: Record<PedidoStatusValue, PedidoStatusValue[]> = {
+  GERADO: ["GERADO", "CONFERIDO", "CANCELADO"],
+  CONFERIDO: ["CONFERIDO", "IMPRESSO", "CANCELADO"],
+  IMPRESSO: ["IMPRESSO", "EM_ROTA", "CANCELADO"],
+  EM_ROTA: ["EM_ROTA", "ENTREGUE", "CANCELADO"],
+  ENTREGUE: ["ENTREGUE"],
+  CANCELADO: ["CANCELADO"],
+  PENDENTE_ESTOQUE: ["PENDENTE_ESTOQUE", "GERADO", "CANCELADO"],
+};
+
+/**
+ * Resultado da validação de transição de status.
+ */
+export interface PedidoStatusTransitionResult {
+  valid: boolean;
+  allowed: boolean;
+  from: string;
+  to: string;
+  reason?: string;
+}
+
+/**
+ * Valida se uma transição de status de pedido é permitida.
+ * @param from - Status de origem
+ * @param to - Status de destino
+ * @returns Objeto com resultado da validação
+ */
+export function validatePedidoStatusTransition(
+  from: string,
+  to: string
+): PedidoStatusTransitionResult {
+  const validFrom = PedidoStatusValues.includes(from as PedidoStatusValue);
+  const validTo = PedidoStatusValues.includes(to as PedidoStatusValue);
+
+  if (!validFrom && !validTo) {
+    return {
+      valid: false,
+      allowed: false,
+      from,
+      to,
+      reason: `Status origem e destino inválidos: ${from}, ${to}`,
+    };
+  }
+
+  if (!validFrom) {
+    return {
+      valid: false,
+      allowed: false,
+      from,
+      to,
+      reason: `Status origem inválido: ${from}`,
+    };
+  }
+
+  if (!validTo) {
+    return {
+      valid: false,
+      allowed: false,
+      from,
+      to,
+      reason: `Status destino inválido: ${to}`,
+    };
+  }
+
+  const allowedTransitions = PedidoStatusTransitions[from as PedidoStatusValue];
+  const allowed = allowedTransitions.includes(to as PedidoStatusValue);
+
+  if (!allowed) {
+    return {
+      valid: true,
+      allowed: false,
+      from,
+      to,
+      reason: `Transição não permitida: ${from} → ${to}`,
+    };
+  }
+
+  return {
+    valid: true,
+    allowed: true,
+    from,
+    to,
+  };
+}
+
+/**
+ * Assertiva para transição de status de pedido.
+ * Lança Error se a transição for inválida ou não permitida.
+ * @param from - Status de origem
+ * @param to - Status de destino
+ * @throws Error se a transição for inválida
+ */
+export function assertPedidoStatusTransition(from: string, to: string): void {
+  const result = validatePedidoStatusTransition(from, to);
+
+  if (!result.valid || !result.allowed) {
+    throw new Error(result.reason || `Transição de status inválida: ${from} → ${to}`);
+  }
+}
+
 export const ContaReceberStatusValues = ["PENDENTE", "RECEBIDA", "VENCIDA", "CANCELADO"] as const;
 export type ContaReceberStatusValue = (typeof ContaReceberStatusValues)[number];
 
