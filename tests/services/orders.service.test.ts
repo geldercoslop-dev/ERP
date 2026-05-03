@@ -91,7 +91,7 @@ describe("OrdersService", () => {
         id: 1,
         clienteNome: "Cliente Teste",
         total: "100.50",
-        status: "PENDENTE",
+        status: "GERADO",
         tenantId: 1,
         createdAt: new Date(),
       };

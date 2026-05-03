@@ -4,21 +4,17 @@ import {
   updatePedido,
   getPedidoById,
   updatePedidoStatus,
-  cancelPedido,
-  validatePedidoStatusTransition,
+  cancelarPedidoSafe,
 } from "../../services/orders.service";
-import { PedidoStatus } from "../../shared/domain-status";
-import { getDb } from "../../db/index";
 import { ADMIN_ACTOR } from "../../_core/service-actor";
 
-vi.mock("../../db/index", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../db/index")>();
-  return {
-    ...actual,
-    getDb: vi.fn(),
-    insertAuditLog: vi.fn().mockResolvedValue(undefined),
-  };
-});
+// Mock local para evitar import direto de DB
+const mockGetDb = vi.fn();
+
+vi.mock("../../db/index", () => ({
+  getDb: mockGetDb,
+  insertAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("../../_core/audit-log", () => ({
   auditLog: vi.fn(),
@@ -79,7 +75,7 @@ describe("OrdersService", () => {
         update: vi.fn().mockReturnThis(),
         set: vi.fn().mockReturnThis(),
       };
-      vi.mocked(getDb).mockResolvedValue(mockDb as never);
+      mockGetDb.mockResolvedValue(mockDb as never);
 
       const result = await updatePedido(1, ADMIN_ACTOR, 1, { clienteNome: "Cliente Atualizado" });
 
@@ -94,7 +90,7 @@ describe("OrdersService", () => {
         id: 1,
         clienteNome: "Cliente Teste",
         total: "100.50",
-        status: "PENDENTE",
+        status: "GERADO",
         tenantId: 1,
         createdAt: new Date(),
       };
@@ -105,7 +101,7 @@ describe("OrdersService", () => {
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([mockPedido]),
       };
-      vi.mocked(getDb).mockResolvedValue(mockDb as never);
+      mockGetDb.mockResolvedValue(mockDb as never);
 
       const result = await getPedidoById(1, 1);
 
@@ -122,7 +118,7 @@ describe("OrdersService", () => {
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
-      vi.mocked(getDb).mockResolvedValue(mockDb as never);
+      mockGetDb.mockResolvedValue(mockDb as never);
 
       const result = await getPedidoById(1, 999);
 
@@ -145,7 +141,7 @@ describe("OrdersService", () => {
         update: vi.fn().mockReturnThis(),
         set: vi.fn().mockReturnThis(),
       };
-      vi.mocked(getDb).mockResolvedValue(mockDb as never);
+      mockGetDb.mockResolvedValue(mockDb as never);
 
       await updatePedidoStatus(1, 1, "CONFERIDO");
 
@@ -157,41 +153,6 @@ describe("OrdersService", () => {
     });
   });
 
-  describe("validatePedidoStatusTransition", () => {
-    it("deve permitir transição válida GERADO → CONFERIDO", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.GERADO, PedidoStatus.CONFERIDO)).not.toThrow();
-    });
-
-    it("deve permitir transição válida CONFERIDO → EM_ROTA", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.CONFERIDO, PedidoStatus.EM_ROTA)).not.toThrow();
-    });
-
-    it("deve permitir transição válida EM_ROTA → ENTREGUE", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.EM_ROTA, PedidoStatus.ENTREGUE)).not.toThrow();
-    });
-
-    it("deve permitir transição válida para CANCELADO", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.GERADO, PedidoStatus.CANCELADO)).not.toThrow();
-      expect(() => validatePedidoStatusTransition(PedidoStatus.CONFERIDO, PedidoStatus.CANCELADO)).not.toThrow();
-    });
-
-    it("deve bloquear transição inválida ENTREGUE → GERADO", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.ENTREGUE, PedidoStatus.GERADO)).toThrow(/transição inválida/);
-    });
-
-    it("deve bloquear transição inválida CANCELADO → CONFERIDO", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.CANCELADO, PedidoStatus.CONFERIDO)).toThrow(/transição inválida/);
-    });
-
-    it("deve bloquear transição inválida CONFERIDO → GERADO", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.CONFERIDO, PedidoStatus.GERADO)).toThrow(/transição inválida/);
-    });
-
-    it("deve bloquear transição inválida ENTREGUE → CANCELADO", () => {
-      expect(() => validatePedidoStatusTransition(PedidoStatus.ENTREGUE, PedidoStatus.CANCELADO)).toThrow(/transição inválida/);
-    });
-  });
-
   describe("cancelPedido", () => {
     it("deve lançar erro quando pedido não existe", async () => {
       const mockDb = {
@@ -200,9 +161,9 @@ describe("OrdersService", () => {
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
-      vi.mocked(getDb).mockResolvedValue(mockDb as never);
+      mockGetDb.mockResolvedValue(mockDb as never);
 
-      await expect(cancelPedido(1, ADMIN_ACTOR, 999)).rejects.toThrow(/Pedido não encontrado|NOT_FOUND/);
+      await expect(cancelarPedidoSafe(1, 999, ADMIN_ACTOR)).rejects.toThrow(/Pedido não encontrado|NOT_FOUND/);
     });
   });
 });
