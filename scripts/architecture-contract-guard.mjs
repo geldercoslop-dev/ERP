@@ -45,8 +45,6 @@ const EXCEPTIONS = [
   '.husky/pre-commit',
   '.husky/pre-push',
   'docs/',
-  // P20.4 authorized doc path update: ENV_RULES.md path reference only
-  'server/_core/env/ENV_RULES.md',
 ];
 
 // Janela controlada C3.1 - arquivos _core autorizados para remoção de DB direto
@@ -87,12 +85,34 @@ function getChangedFiles(staged = true) {
 }
 
 /**
+ * Verifica se arquivo tem autorização P20.4 para update de caminho doc
+ * Requer variável ERP_AUTHORIZED_FROZEN_DOC_UPDATE=P20_4_ENV_RULES_PATH_UPDATE
+ */
+function isP20_4AuthorizedFrozenDocUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P20_4_ENV_RULES_PATH_UPDATE';
+  const envValue = process.env.ERP_AUTHORIZED_FROZEN_DOC_UPDATE;
+  
+  if (relativePath === 'server/_core/env/ENV_RULES.md' && envValue === authorizedValue) {
+    return { authorized: true, reason: 'P20.4 formal window: ERP_AUTHORIZED_FROZEN_DOC_UPDATE=' + authorizedValue };
+  }
+  
+  return { authorized: false };
+}
+
+/**
  * Verifica se um arquivo está em área congelada
  */
 function isFrozen(file) {
   const relativePath = relative(ROOT, file).replace(/\\/g, '/');
   
-  // Verifica exceções primeiro
+  // Verifica janela formal P20.4 primeiro
+  const p20_4Check = isP20_4AuthorizedFrozenDocUpdate(file);
+  if (p20_4Check.authorized) {
+    return { frozen: false, exception: true, p20_4: p20_4Check.reason };
+  }
+  
+  // Verifica exceções padrão
   for (const exception of EXCEPTIONS) {
     if (relativePath.startsWith(exception) || relativePath === exception) {
       // Exceção especial: relations.ts e entities.ts precisam passar no drizzle-schema-guard

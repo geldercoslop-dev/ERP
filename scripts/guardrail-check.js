@@ -25,10 +25,20 @@ const C3_1_ALLOWED_FILES = [
   "server/_core/service-actor.ts",
 ];
 
-// P20.4 authorized doc path update: ENV_RULES.md path reference only
-const P20_4_AUTHORIZED_DOC_FILES = [
-  "server/_core/env/ENV_RULES.md",
-];
+/**
+ * Verifica se arquivo tem autorização P20.4 para update de caminho doc
+ * Requer variável ERP_AUTHORIZED_FROZEN_DOC_UPDATE=P20_4_ENV_RULES_PATH_UPDATE
+ */
+function isP20_4AuthorizedFrozenDocUpdate(filePath) {
+  const authorizedValue = "P20_4_ENV_RULES_PATH_UPDATE";
+  const envValue = process.env.ERP_AUTHORIZED_FROZEN_DOC_UPDATE;
+  
+  if (filePath === "server/_core/env/ENV_RULES.md" && envValue === authorizedValue) {
+    return { authorized: true, reason: "P20.4 formal window: ERP_AUTHORIZED_FROZEN_DOC_UPDATE=" + authorizedValue };
+  }
+  
+  return { authorized: false };
+}
 
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
@@ -221,9 +231,13 @@ function main() {
     }
 
     // P20.4 authorized doc path update: ENV_RULES.md path reference only
-    if (violations.length === 1 && P20_4_AUTHORIZED_DOC_FILES.includes(violations[0])) {
-      console.log("✔ Guardrail OK — " + violations[0] + " permitido por autorização P20.4 (doc path update)\n");
-      return;
+    // Requer variável ERP_AUTHORIZED_FROZEN_DOC_UPDATE=P20_4_ENV_RULES_PATH_UPDATE
+    if (violations.length === 1) {
+      const p20_4Check = isP20_4AuthorizedFrozenDocUpdate(violations[0]);
+      if (p20_4Check.authorized) {
+        console.log("✔ Guardrail OK — " + violations[0] + " permitido por " + p20_4Check.reason + "\n");
+        return;
+      }
     }
 
     // Bloqueia outros arquivos
