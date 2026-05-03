@@ -26,6 +26,7 @@ import {
   PedidoStatusValues,
   PendenciaStatus,
   type PedidoStatusValue,
+  assertPedidoStatusTransition,
 } from "../shared/domain-status.js";
 import { validateStatus } from "../shared/guards/domain-guard.js";
 
@@ -1282,6 +1283,32 @@ export async function atualizarStatusPedido(
   assertRequiredId(pedidoId, "pedidoId");
   const dbConn = tx ?? await getDb();
   assertDbConnection(dbConn);
+
+  // Validar se status é oficial
+  if (!PedidoStatusValues.includes(novoStatus as PedidoStatusValue)) {
+    throw new ValidationError(`Status '${novoStatus}' não é um status oficial de pedido`);
+  }
+
+  // Bloquear CANCELADO direto — deve usar cancelarPedidoSafe
+  if (novoStatus === PedidoStatus.CANCELADO) {
+    throw new ValidationError("Use cancelarPedidoSafe para cancelar pedidos");
+  }
+
+  // Buscar pedido atual para validar transição (usando dbConn para respeitar tx)
+  const pedidoRows = await dbConn
+    .select({ status: pedidos.status })
+    .from(pedidos)
+    .where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.id, pedidoId)))
+    .limit(1);
+
+  if (pedidoRows.length === 0) {
+    throw new ValidationError("Pedido não encontrado");
+  }
+
+  const statusAtual = pedidoRows[0].status;
+
+  // Validar transição de status usando máquina oficial
+  assertPedidoStatusTransition(statusAtual, novoStatus);
 
   await dbConn.update(pedidos).set({ status: novoStatus }).where(and(eq(pedidos.id, pedidoId), eq(pedidos.tenantId, tenantId)));
   return { success: true };
