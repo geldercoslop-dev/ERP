@@ -45,6 +45,8 @@ const EXCEPTIONS = [
   '.husky/pre-commit',
   '.husky/pre-push',
   'docs/',
+  // P20.4 authorized doc path update: ENV_RULES.md path reference only
+  'server/_core/env/ENV_RULES.md',
 ];
 
 // Janela controlada C3.1 - arquivos _core autorizados para remoção de DB direto

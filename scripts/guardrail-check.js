@@ -25,6 +25,11 @@ const C3_1_ALLOWED_FILES = [
   "server/_core/service-actor.ts",
 ];
 
+// P20.4 authorized doc path update: ENV_RULES.md path reference only
+const P20_4_AUTHORIZED_DOC_FILES = [
+  "server/_core/env/ENV_RULES.md",
+];
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -213,6 +218,12 @@ function main() {
       } else {
         process.exit(1);
       }
+    }
+
+    // P20.4 authorized doc path update: ENV_RULES.md path reference only
+    if (violations.length === 1 && P20_4_AUTHORIZED_DOC_FILES.includes(violations[0])) {
+      console.log("✔ Guardrail OK — " + violations[0] + " permitido por autorização P20.4 (doc path update)\n");
+      return;
     }
 
     // Bloqueia outros arquivos

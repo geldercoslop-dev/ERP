@@ -99,7 +99,7 @@ O Phase 0 Guard deve validar:
 - ✅ `server/tests/concurrency-test.ts`
 - ✅ `server/tests/orchestrator-consistency.ts`
 - ✅ `server/tests/run-core-tests.ts`
-- ✅ `scripts/security-attack-test.ts`
+- ✅ `tests/security/security-attack-test.ts`
 - ✅ `scripts/maintenance/cleanup-idempotency.ts`
 
 #### Arquivo legado (mantido para compatibilidade)

@@ -8,11 +8,13 @@
 process.env.SERVICE_ENTRY_GUARD ??= "0";
 
 /** Carrega .env da raiz antes de qualquer módulo que use DATABASE_URL. */
-import { initEnv } from "../server/_core/env/bootstrapEnv";
+import { initEnv } from "../../server/_core/env/bootstrapEnv.js";
 
 initEnv();
 
-import { toolExecutor } from "../server/leo/agent/tool-executor";
+import { getToolExecutor } from "../../server/leo/agent/tool-executor.js";
+
+const toolExecutor = getToolExecutor();
 
 console.log("🔍 AUDITOR EXTERNO - TESTE DE BYPASS LEO");
 console.log("==========================================\n");
