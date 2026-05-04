@@ -143,6 +143,37 @@ function isP23_EAuthorizedBootstrapUpdate(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-F para remover snapshot órfão
+ * Requer variável ERP_AUTHORIZED_SNAPSHOT_CLEAN=P23_F_REMOVE_ORPHAN_0000_SNAPSHOT
+ * Permite somente drizzle/meta/0000_snapshot.json
+ */
+function isP23_FAuthorizedSnapshotClean(filePath) {
+  const authorizedValue = "P23_F_REMOVE_ORPHAN_0000_SNAPSHOT";
+  const envValue = process.env.ERP_AUTHORIZED_SNAPSHOT_CLEAN;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo é exatamente o snapshot órfão 0000
+  if (filePath === "drizzle/meta/0000_snapshot.json") {
+    return {
+      authorized: true,
+      reason: "P23-F formal window: ERP_AUTHORIZED_SNAPSHOT_CLEAN=" + authorizedValue + " (remove orphan 0000 snapshot)"
+    };
+  }
+
+  // Arquivo fora do escopo: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -401,6 +432,17 @@ function main() {
         console.log("\n📋 Arquivos P23-E bootstrap detectados:");
         p23_e_bootstrapViolations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — P23-E formal window: ERP_AUTHORIZED_BOOTSTRAP_UPDATE=P23_E_MIGRATE_RUNNER_DB_ONLY (migrate runner DB-only bootstrap)\n");
+        return;
+      }
+    }
+
+    // P23-F authorized snapshot clean: remove orphan 0000_snapshot.json only
+    // Requer variável ERP_AUTHORIZED_SNAPSHOT_CLEAN=P23_F_REMOVE_ORPHAN_0000_SNAPSHOT
+    // Permite somente drizzle/meta/0000_snapshot.json
+    if (violations.length === 1 && violations[0] === "drizzle/meta/0000_snapshot.json") {
+      const p23_fCheck = isP23_FAuthorizedSnapshotClean(violations[0]);
+      if (p23_fCheck.authorized) {
+        console.log("\n✔ Guardrail OK — " + p23_fCheck.reason + "\n");
         return;
       }
     }
