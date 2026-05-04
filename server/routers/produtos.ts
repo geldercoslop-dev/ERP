@@ -8,6 +8,8 @@ import * as inventoryService from "../services/cached-inventory.service.js";
 import { calculateProdutoInitialStock } from "../services/inventory.service.js";
 import type { ApiResponse } from "../_core/api-response.js";
 import { createLogger } from "../infra/structured-logger.js";
+import * as skuService from "../services/sku.service.js";
+import { ValidationError } from "../_core/errors/typed-errors.js";
 
 const logger = createLogger("produtos-router");
 
@@ -45,6 +47,42 @@ const createProdutoSchema = z.object({
 
 const updateProdutoSchema = createProdutoSchema.partial().extend({
   id: z.number(),
+});
+
+// Schemas de validação para SKU
+const createSkuSchema = z.object({
+  produtoId: z.number().int().positive(),
+  corId: z.number().int().positive().nullable().optional(),
+  descricaoSku: z.string().min(1, "Descrição do SKU é obrigatória"),
+  skuCode: z.string().nullable().optional(),
+  tamanho: z.string().nullable().optional(),
+  temEspelho: z.boolean().default(false),
+  atributosJson: z.string().nullable().optional(),
+  estoque: z.number().int().default(0),
+  bloquearEstoqueNegativo: z.boolean().default(true),
+  acrescimoCusto: z.union([z.number(), z.string()]).optional(),
+  valorVenda: z.union([z.number(), z.string()]).nullable().optional(),
+  ativo: z.boolean().default(true),
+});
+
+const updateSkuSchema = z.object({
+  skuId: z.number().int().positive(),
+  corId: z.number().int().positive().nullable().optional(),
+  descricaoSku: z.string().min(1).optional(),
+  skuCode: z.string().nullable().optional(),
+  tamanho: z.string().nullable().optional(),
+  temEspelho: z.boolean().optional(),
+  atributosJson: z.string().nullable().optional(),
+  acrescimoCusto: z.union([z.number(), z.string()]).optional(),
+  valorVenda: z.union([z.number(), z.string()]).nullable().optional(),
+  ativo: z.boolean().optional(),
+  bloquearEstoqueNegativo: z.boolean().optional(),
+});
+
+const setSkuEstoqueSchema = z.object({
+  skuId: z.number().int().positive(),
+  estoque: z.number().int(),
+  motivo: z.string().optional(),
 });
 
 // Router de produtos
@@ -251,7 +289,7 @@ export const produtosRouter = router({
           data: items.slice(0, input.limit),
           total: items.length,
         };
-      } catch (error) { 
+      } catch (error) {
         logger.error("Erro ao buscar estoque baixo", error instanceof Error ? error : new Error(String(error)), { operation: "getEstoqueBaixo" });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -259,4 +297,103 @@ export const produtosRouter = router({
         });
       }
     }),
+
+  // ===== SKUS (Nested procedures) =====
+  skus: router({
+    // Listar SKUs por produto
+    listByProduto: protectedProcedure
+      .input(z.object({ produtoId: z.number().int().positive() }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const skus = await skuService.listSkusByProduto(tenantId, input.produtoId);
+          return createSuccessResponse(skus, "SKUs listados com sucesso");
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+          }
+          logger.error("Erro ao listar SKUs", error instanceof Error ? error : new Error(String(error)), { operation: "listByProduto" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao listar SKUs" });
+        }
+      }),
+
+    // Buscar SKU por ID
+    getById: protectedProcedure
+      .input(z.object({ skuId: z.number().int().positive() }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const sku = await skuService.getSkuById(tenantId, input.skuId);
+          if (!sku) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "SKU não encontrado" });
+          }
+          return createSuccessResponse(sku, "SKU encontrado");
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+          }
+          logger.error("Erro ao buscar SKU", error instanceof Error ? error : new Error(String(error)), { operation: "getById" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao buscar SKU" });
+        }
+      }),
+
+    // Criar SKU
+    create: protectedProcedure
+      .input(createSkuSchema)
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const result = await skuService.createSku(tenantId, input);
+          return createSuccessResponse(result, "SKU criado com sucesso");
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+          }
+          logger.error("Erro ao criar SKU", error instanceof Error ? error : new Error(String(error)), { operation: "create" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar SKU" });
+        }
+      }),
+
+    // Atualizar SKU
+    update: protectedProcedure
+      .input(updateSkuSchema)
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const { skuId, ...updateData } = input;
+          const result = await skuService.updateSku(tenantId, skuId, updateData);
+          return createSuccessResponse(result, "SKU atualizado com sucesso");
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+          }
+          logger.error("Erro ao atualizar SKU", error instanceof Error ? error : new Error(String(error)), { operation: "update" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao atualizar SKU" });
+        }
+      }),
+
+    // Ajustar estoque de SKU
+    setEstoque: protectedProcedure
+      .input(setSkuEstoqueSchema)
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const tenantId = await requireTenant(ctx);
+          const actorUserId = ctx.user?.id;
+          const actorVendedorId = ctx.vendedor?.id;
+          const result = await skuService.setSkuEstoque(tenantId, input.skuId, {
+            estoque: input.estoque,
+            motivo: input.motivo,
+            actorUserId,
+            actorVendedorId,
+          });
+          return createSuccessResponse(result, "Estoque do SKU ajustado com sucesso");
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+          }
+          logger.error("Erro ao ajustar estoque do SKU", error instanceof Error ? error : new Error(String(error)), { operation: "setEstoque" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao ajustar estoque do SKU" });
+        }
+      }),
+  }),
 });
