@@ -206,6 +206,46 @@ function isP23_EAuthorizedBootstrapUpdate(filePath) {
   return { authorized: false };
 }
 
+// Janela formal P23-G1 - Limpeza de types de produtoVariacoes autorizada
+const P23_G1_AUTHORIZED_FILES = [
+  'shared/types/entities.d.ts',
+  'server/services/inventory.service.ts',
+];
+
+/**
+ * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
+ * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
+ * Permite somente:
+ *   - shared/types/entities.d.ts
+ *   - server/services/inventory.service.ts
+ */
+function isP23_G1AuthorizedTypesCleanup(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES';
+  const envValue = process.env.ERP_AUTHORIZED_TYPES_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_G1_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-G1 formal window: ERP_AUTHORIZED_TYPES_UPDATE=' + authorizedValue + ' (remove obsolete product variations references)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 /**
  * Verifica se um arquivo está em área congelada
  */
@@ -234,6 +274,12 @@ function isFrozen(file) {
   const p23_e_bootstrapCheck = isP23_EAuthorizedBootstrapUpdate(file);
   if (p23_e_bootstrapCheck.authorized) {
     return { frozen: false, exception: true, p23_e_bootstrap: p23_e_bootstrapCheck.reason };
+  }
+
+  // Verifica janela formal P23-G1 (limpeza de types de product variations)
+  const p23_g1Check = isP23_G1AuthorizedTypesCleanup(file);
+  if (p23_g1Check.authorized) {
+    return { frozen: false, exception: true, p23_g1: p23_g1Check.reason };
   }
 
   // Verifica exceções padrão

@@ -174,6 +174,45 @@ function isP23_FAuthorizedSnapshotClean(filePath) {
   return { authorized: false };
 }
 
+// Janela formal P23-G1 - Limpeza de types de produtoVariacoes autorizada
+const P23_G1_AUTHORIZED_FILES = [
+  "shared/types/entities.d.ts",
+  "server/services/inventory.service.ts",
+];
+
+/**
+ * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
+ * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
+ * Permite somente:
+ *   - shared/types/entities.d.ts
+ *   - server/services/inventory.service.ts
+ */
+function isP23_G1AuthorizedTypesCleanup(filePath) {
+  const authorizedValue = "P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES";
+  const envValue = process.env.ERP_AUTHORIZED_TYPES_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_G1_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-G1 formal window: ERP_AUTHORIZED_TYPES_UPDATE=" + authorizedValue + " (remove obsolete product variations references)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -443,6 +482,20 @@ function main() {
       const p23_fCheck = isP23_FAuthorizedSnapshotClean(violations[0]);
       if (p23_fCheck.authorized) {
         console.log("\n✔ Guardrail OK — " + p23_fCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-G1 authorized types update: remove obsolete product variations references
+    // Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
+    // Permite somente shared/types/entities.d.ts e server/services/inventory.service.ts
+    const allP23_G1_Authorized = violations.every(v => P23_G1_AUTHORIZED_FILES.includes(v));
+    if (allP23_G1_Authorized) {
+      const p23_g1Check = isP23_G1AuthorizedTypesCleanup(violations[0]);
+      if (p23_g1Check.authorized) {
+        console.log("\n📋 Arquivos P23-G1 detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_g1Check.reason + "\n");
         return;
       }
     }

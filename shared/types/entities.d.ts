@@ -7,8 +7,8 @@
  * - Nomes em PascalCase (User, Cliente, Produto, ...) representam o tipo da linha ($inferSelect).
  * - Prefixo New* representa o tipo de inserção ($inferInsert).
  */
-import type { users, vendedores, clientes, cores, produtos, produtoSkus, produtoVariacoes, gruposPrecificacao, promocoes, promocoesItens, pedidos, itensPedido, cargas, pedidosCarga, pendencias, boletos, pagamentosBoleto, comissoes, planoContas, contasFixas, contasPagar, contasReceber, caixaMensal, configuracoes, counters, schemaVersion } from "../../drizzle/schema";
-export type { users, vendedores, clientes, cores, produtos, produtoSkus, produtoVariacoes, gruposPrecificacao, promocoes, promocoesItens, pedidos, itensPedido, cargas, pedidosCarga, pendencias, boletos, pagamentosBoleto, comissoes, planoContas, contasFixas, contasPagar, contasReceber, caixaMensal, configuracoes, counters, schemaVersion, };
+import type { users, vendedores, clientes, cores, produtos, produtoSkus, gruposPrecificacao, promocoes, promocoesItens, pedidos, itensPedido, cargas, pedidosCarga, pendencias, boletos, pagamentosBoleto, comissoes, planoContas, contasFixas, contasPagar, contasReceber, caixaMensal, configuracoes, counters, schemaVersion } from "../../drizzle/schema";
+export type { users, vendedores, clientes, cores, produtos, produtoSkus, gruposPrecificacao, promocoes, promocoesItens, pedidos, itensPedido, cargas, pedidosCarga, pendencias, boletos, pagamentosBoleto, comissoes, planoContas, contasFixas, contasPagar, contasReceber, caixaMensal, configuracoes, counters, schemaVersion, };
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Vendedor = typeof vendedores.$inferSelect;
@@ -21,8 +21,6 @@ export type Produto = typeof produtos.$inferSelect;
 export type NewProduto = typeof produtos.$inferInsert;
 export type ProdutoSku = typeof produtoSkus.$inferSelect;
 export type NewProdutoSku = typeof produtoSkus.$inferInsert;
-export type ProdutoVariacao = typeof produtoVariacoes.$inferSelect;
-export type NewProdutoVariacao = typeof produtoVariacoes.$inferInsert;
 export type GrupoPrecificacao = typeof gruposPrecificacao.$inferSelect;
 export type NewGrupoPrecificacao = typeof gruposPrecificacao.$inferInsert;
 export type Promocao = typeof promocoes.$inferSelect;

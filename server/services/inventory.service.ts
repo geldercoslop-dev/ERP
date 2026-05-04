@@ -49,16 +49,17 @@ export type InventoryAnomaly = {
 };
 
 /**
- * Calcula o estoque inicial total baseado em cores e variações.
+ * Calcula o estoque inicial total baseado em dados do produto.
  * Regra de negócio centralizada em inventory.service.ts.
+ * Nota: variacoes/cores obsoleto - estoque agora definido diretamente no produto ou via SKU.
  */
 export function calculateProdutoInitialStock(data: {
+  estoque?: number | string | null;
   cores?: Array<{ estoque?: number | string | null }>;
   variacoes?: Array<{ estoque?: number | string | null }>;
 }): number {
-  const estoqueCores = (data.cores || []).reduce((s, c) => s + Number(c.estoque || 0), 0);
-  const estoqueVar = (data.variacoes || []).reduce((s, v) => s + Number(v.estoque || 0), 0);
-  return estoqueCores + estoqueVar;
+  // Usar estoque direto se informado, senao 0 (variacoes/cores obsoletos, ignorados)
+  return Number(data.estoque || 0);
 }
 
 /**
@@ -165,17 +166,13 @@ export async function getAllProdutosComPrecoVigente(tenantId: number, refDate: D
   };
 
   // Otimização: Buscar produtos com JOIN para evitar N+1
+  // Nota: produto_variacoes removido - SKU nao integrado nesta missao
   const query = `
     SELECT 
       p.*,
-      GROUP_CONCAT(DISTINCT c.nome ORDER BY c.nome SEPARATOR ' | ') as cores,
-      GROUP_CONCAT(DISTINCT NULLIF(TRIM(pv.tamanho), '') ORDER BY pv.tamanho SEPARATOR ' | ') as tamanhos,
-      MAX(CASE WHEN pv.temEspelho = 1 THEN 1 ELSE 0 END) as temEspelho,
       MIN(pi.precoPromocional) as precoPromo,
       SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT pr.nome ORDER BY pi.precoPromocional ASC SEPARATOR ' | '), ' | ', 1) as promoNome
     FROM produtos p
-    LEFT JOIN produto_variacoes pv ON p.id = pv.produtoId
-    LEFT JOIN cores c ON c.id = pv.corId
     LEFT JOIN promocoes_itens pi ON p.id = pi.produtoId
     LEFT JOIN promocoes pr ON pi.promocaoId = pr.id 
       AND pr.tenantId = ? 
@@ -193,28 +190,19 @@ export async function getAllProdutosComPrecoVigente(tenantId: number, refDate: D
   const safeRows = ensureArray(rows as unknown[]);
   
   // Processar os resultados
+  // Nota: produto_variacoes removido - SKU nao integrado, retornando valores placeholder
   const result = safeRows.map((p) => {
     const row = p as Record<string, unknown>;
-    const coresStr = String(row.cores || "").trim();
-    const tamanhosStr = String(row.tamanhos || "").trim();
-    const cor = coresStr ? coresStr.split("|")[0]?.trim() : "";
-    const tamanho = tamanhosStr ? tamanhosStr.split("|")[0]?.trim() : "";
-    const temEspelho = Boolean(row.temEspelho);
     const precoPromo = row.precoPromo ? Number(row.precoPromo) : null;
     const promoNome = row.promoNome || null;
     
     const valorVenda = precoPromo || Number(row.valorVenda);
     const temPromo = Boolean(precoPromo);
     
-    let descricaoOperacional = String(row.descricao);
-    if (cor) descricaoOperacional += ` - ${cor}`;
-    if (tamanho) descricaoOperacional += ` (${tamanho})`;
-    if (temEspelho) descricaoOperacional += " COM ESPELHO";
+    // descricaoOperacional: apenas descricao do produto (sem cor/tamanho/espelho)
+    const descricaoOperacional = String(row.descricao);
     
     // Remover campos temporários do resultado
-    delete row.cores;
-    delete row.tamanhos;
-    delete row.temEspelho;
     delete row.precoPromo;
     delete row.promoNome;
     
@@ -226,9 +214,9 @@ export async function getAllProdutosComPrecoVigente(tenantId: number, refDate: D
       promoAtiva: temPromo, 
       promoNome: promoNome, 
       descricaoOperacional,
-      cor: cor || undefined,
-      tamanho: tamanho || undefined,
-      temEspelho
+      cor: undefined,
+      tamanho: undefined,
+      temEspelho: false,
     };
   });
   
@@ -293,17 +281,13 @@ export async function getProdutosComPrecoVigentePaged(
   `;
   
   // Consulta principal com paginação
+  // Nota: produto_variacoes removido - SKU nao integrado nesta missao
   const query = `
     SELECT 
       p.*,
-      GROUP_CONCAT(DISTINCT c.nome ORDER BY c.nome SEPARATOR ' | ') as cores,
-      GROUP_CONCAT(DISTINCT NULLIF(TRIM(pv.tamanho), '') ORDER BY pv.tamanho SEPARATOR ' | ') as tamanhos,
-      MAX(CASE WHEN pv.temEspelho = 1 THEN 1 ELSE 0 END) as temEspelho,
       MIN(pi.precoPromocional) as precoPromo,
       SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT pr.nome ORDER BY pi.precoPromocional ASC SEPARATOR ' | '), ' | ', 1) as promoNome
     FROM produtos p
-    LEFT JOIN produto_variacoes pv ON p.id = pv.produtoId
-    LEFT JOIN cores c ON c.id = pv.corId
     LEFT JOIN promocoes_itens pi ON p.id = pi.produtoId
     LEFT JOIN promocoes pr ON pi.promocaoId = pr.id 
       AND pr.tenantId = ? 
@@ -331,28 +315,19 @@ export async function getProdutosComPrecoVigentePaged(
   const safeRows = ensureArray(rows[0] as unknown[]);
   
   // Processar os resultados
+  // Nota: produto_variacoes removido - SKU nao integrado, retornando valores placeholder
   const items = safeRows.map((p) => {
     const row = p as Record<string, unknown>;
-    const coresStr = String(row.cores || "").trim();
-    const tamanhosStr = String(row.tamanhos || "").trim();
-    const cor = coresStr ? coresStr.split("|")[0]?.trim() : "";
-    const tamanho = tamanhosStr ? tamanhosStr.split("|")[0]?.trim() : "";
-    const temEspelho = Boolean(row.temEspelho);
     const precoPromo = row.precoPromo ? Number(row.precoPromo) : null;
     const promoNome = row.promoNome || null;
     
     const valorVenda = precoPromo || Number(row.valorVenda);
     const temPromo = Boolean(precoPromo);
     
-    let descricaoOperacional = String(row.descricao);
-    if (cor) descricaoOperacional += ` - ${cor}`;
-    if (tamanho) descricaoOperacional += ` (${tamanho})`;
-    if (temEspelho) descricaoOperacional += " COM ESPELHO";
+    // descricaoOperacional: apenas descricao do produto (sem cor/tamanho/espelho)
+    const descricaoOperacional = String(row.descricao);
     
     // Remover campos temporários do resultado
-    delete row.cores;
-    delete row.tamanhos;
-    delete row.temEspelho;
     delete row.precoPromo;
     delete row.promoNome;
     
@@ -364,9 +339,9 @@ export async function getProdutosComPrecoVigentePaged(
       promoAtiva: temPromo, 
       promoNome: promoNome, 
       descricaoOperacional,
-      cor: cor || undefined,
-      tamanho: tamanho || undefined,
-      temEspelho
+      cor: undefined,
+      tamanho: undefined,
+      temEspelho: false,
     };
   });
   
