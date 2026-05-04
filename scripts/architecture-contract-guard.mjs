@@ -56,6 +56,16 @@ const AUTHORIZED_C3_CORE_FILES = [
   'server/_core/service-actor.ts',
 ];
 
+// Janela formal P23-B - Schema produto_skus autorizado
+const P23_B_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/relations.ts',
+  'shared/types/entities.d.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0005_needy_microchip.sql',
+  'drizzle/meta/0005_snapshot.json',
+];
+
 // Áreas permitidas para evolução (domínio)
 const ALLOWED_PATTERNS = [
   'server/services/',
@@ -101,6 +111,38 @@ function isP20_4AuthorizedFrozenDocUpdate(filePath) {
 }
 
 /**
+ * Verifica se arquivo tem autorização P23-B para schema produto_skus
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_B_PRODUCT_SKU_SCHEMA
+ * Permite somente os 6 arquivos específicos da P23-B
+ */
+function isP23_BAuthorizedSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_B_PRODUCT_SKU_SCHEMA';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+  
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+  
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+  
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_B_AUTHORIZED_FILES.includes(relativePath)) {
+    return { 
+      authorized: true, 
+      reason: 'P23-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (product sku schema)' 
+    };
+  }
+  
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
  * Verifica se um arquivo está em área congelada
  */
 function isFrozen(file) {
@@ -110,6 +152,12 @@ function isFrozen(file) {
   const p20_4Check = isP20_4AuthorizedFrozenDocUpdate(file);
   if (p20_4Check.authorized) {
     return { frozen: false, exception: true, p20_4: p20_4Check.reason };
+  }
+  
+  // Verifica janela formal P23-B (schema produto_skus)
+  const p23_bCheck = isP23_BAuthorizedSchemaUpdate(file);
+  if (p23_bCheck.authorized) {
+    return { frozen: false, exception: true, p23_b: p23_bCheck.reason };
   }
   
   // Verifica exceções padrão

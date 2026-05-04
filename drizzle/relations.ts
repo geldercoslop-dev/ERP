@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { clientes, clienteVendedores, vendedores, cargas, comissoes, pedidos, fornecedores, contasFixas, planoContas, contasPagar, contasReceber, cores, itensPedido, produtos, pedidosCarga, users } from "./schema.js";
+import { clientes, clienteVendedores, vendedores, cargas, comissoes, pedidos, fornecedores, contasFixas, planoContas, contasPagar, contasReceber, cores, itensPedido, produtos, produtoSkus, pedidosCarga, users } from "./schema.js";
 
 export const clienteVendedoresRelations = relations(clienteVendedores, ({one}) => ({
 	cliente: one(clientes, {
@@ -133,10 +133,23 @@ export const itensPedidoRelations = relations(itensPedido, ({one}) => ({
 
 export const coresRelations = relations(cores, ({many}) => ({
 	itensPedidos: many(itensPedido),
+	produtoSkus: many(produtoSkus),
 }));
 
 export const produtosRelations = relations(produtos, ({many}) => ({
 	itensPedidos: many(itensPedido),
+	produtoSkus: many(produtoSkus),
+}));
+
+export const produtoSkusRelations = relations(produtoSkus, ({one}) => ({
+	produto: one(produtos, {
+		fields: [produtoSkus.produtoId],
+		references: [produtos.id]
+	}),
+	cor: one(cores, {
+		fields: [produtoSkus.corId],
+		references: [cores.id]
+	}),
 }));
 
 export const pedidosCargaRelations = relations(pedidosCarga, ({one}) => ({

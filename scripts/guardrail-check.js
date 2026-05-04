@@ -25,6 +25,16 @@ const C3_1_ALLOWED_FILES = [
   "server/_core/service-actor.ts",
 ];
 
+// Janela formal P23-B - Schema produto_skus autorizado
+const P23_B_AUTHORIZED_FILES = [
+  "drizzle/schema.ts",
+  "drizzle/relations.ts",
+  "shared/types/entities.d.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/0005_needy_microchip.sql",
+  "drizzle/meta/0005_snapshot.json",
+];
+
 /**
  * Verifica se arquivo tem autorização P20.4 para update de caminho doc
  * Requer variável ERP_AUTHORIZED_FROZEN_DOC_UPDATE=P20_4_ENV_RULES_PATH_UPDATE
@@ -37,6 +47,37 @@ function isP20_4AuthorizedFrozenDocUpdate(filePath) {
     return { authorized: true, reason: "P20.4 formal window: ERP_AUTHORIZED_FROZEN_DOC_UPDATE=" + authorizedValue };
   }
   
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-B para schema produto_skus
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_B_PRODUCT_SKU_SCHEMA
+ * Permite somente os 6 arquivos específicos da P23-B
+ */
+function isP23_BAuthorizedSchemaUpdate(filePath) {
+  const authorizedValue = "P23_B_PRODUCT_SKU_SCHEMA";
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+  
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+  
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+  
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_B_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (product sku schema)"
+    };
+  }
+  
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
   return { authorized: false };
 }
 
@@ -236,6 +277,20 @@ function main() {
       const p20_4Check = isP20_4AuthorizedFrozenDocUpdate(violations[0]);
       if (p20_4Check.authorized) {
         console.log("✔ Guardrail OK — " + violations[0] + " permitido por " + p20_4Check.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-B authorized schema update: produto_skus schema only
+    // Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_B_PRODUCT_SKU_SCHEMA
+    // Verifica se todas as violações são dos arquivos P23-B autorizados
+    const allP23_B_Authorized = violations.every(v => P23_B_AUTHORIZED_FILES.includes(v));
+    if (allP23_B_Authorized) {
+      const p23_bCheck = isP23_BAuthorizedSchemaUpdate(violations[0]);
+      if (p23_bCheck.authorized) {
+        console.log("\n📋 Arquivos P23-B detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_bCheck.reason + "\n");
         return;
       }
     }

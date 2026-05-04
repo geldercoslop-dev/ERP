@@ -36,6 +36,13 @@
       "when": 1777593003481,
       "tag": "0004_migration_1777592998701",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1777853004917,
+      "tag": "0005_needy_microchip",
+      "breakpoints": true
     }
   ]
 }

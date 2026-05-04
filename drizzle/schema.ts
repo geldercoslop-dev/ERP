@@ -110,6 +110,44 @@ export const produtos = mysqlTable(
   }),
 );
 
+export const produtoSkus = mysqlTable(
+  "produto_skus",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
+    produtoId: int("produto_id").notNull().references(() => produtos.id, { onDelete: "cascade" }),
+    corId: int("cor_id").references(() => cores.id),
+    descricaoSku: varchar("descricao_sku", { length: 255 }).notNull(),
+    skuCode: varchar("sku_code", { length: 100 }),
+    tamanho: varchar("tamanho", { length: 50 }),
+    temEspelho: boolean("tem_espelho").default(false).notNull(),
+    atributosJson: text("atributos_json"),
+    estoque: int("estoque").default(0).notNull(),
+    bloquearEstoqueNegativo: boolean("bloquear_estoque_negativo").default(true).notNull(),
+    acrescimoCusto: decimal("acrescimo_custo", { precision: 10, scale: 2 }).default("0").notNull(),
+    valorVenda: decimal("valor_venda", { precision: 10, scale: 2 }),
+    ativo: boolean("ativo").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index("produto_skus_tenant_id_idx").on(table.tenantId),
+    produtoIdIdx: index("produto_skus_produto_id_idx").on(table.produtoId),
+    corIdIdx: index("produto_skus_cor_id_idx").on(table.corId),
+    ativoIdx: index("produto_skus_ativo_idx").on(table.ativo),
+    tenantProdutoIdx: index("produto_skus_tenant_produto_idx").on(table.tenantId, table.produtoId),
+    skuCodeIdx: index("produto_skus_sku_code_idx").on(table.skuCode),
+    skuUnique: unique("produto_skus_unique").on(
+      table.tenantId,
+      table.produtoId,
+      table.corId,
+      table.tamanho,
+      table.temEspelho,
+      table.descricaoSku,
+    ),
+  }),
+);
+
 export const promocoes = mysqlTable(
   "promocoes",
   {
