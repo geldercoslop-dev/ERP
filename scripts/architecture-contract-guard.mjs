@@ -119,26 +119,58 @@ function isP23_BAuthorizedSchemaUpdate(filePath) {
   const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
   const authorizedValue = 'P23_B_PRODUCT_SKU_SCHEMA';
   const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
-  
+
   // Sem variável: bloqueia
   if (!envValue) {
     return { authorized: false };
   }
-  
+
   // Variável errada: bloqueia
   if (envValue !== authorizedValue) {
     return { authorized: false };
   }
-  
+
   // Variável correta: verifica se arquivo está na lista exata
   if (P23_B_AUTHORIZED_FILES.includes(relativePath)) {
-    return { 
-      authorized: true, 
-      reason: 'P23-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (product sku schema)' 
+    return {
+      authorized: true,
+      reason: 'P23-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (product sku schema)'
     };
   }
-  
+
   // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-E para limpeza do journal Drizzle
+ * Requer variável ERP_AUTHORIZED_JOURNAL_UPDATE=P23_E_REMOVE_ORPHAN_JOURNAL_ENTRY
+ * Permite somente drizzle/meta/_journal.json
+ */
+function isP23_EAuthorizedJournalUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_E_REMOVE_ORPHAN_JOURNAL_ENTRY';
+  const envValue = process.env.ERP_AUTHORIZED_JOURNAL_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo é exatamente o journal
+  if (relativePath === 'drizzle/meta/_journal.json') {
+    return {
+      authorized: true,
+      reason: 'P23-E formal window: ERP_AUTHORIZED_JOURNAL_UPDATE=' + authorizedValue + ' (remove orphan drizzle journal entry)'
+    };
+  }
+
+  // Arquivo fora do escopo: bloqueia mesmo com variável correta
   return { authorized: false };
 }
 
@@ -159,7 +191,13 @@ function isFrozen(file) {
   if (p23_bCheck.authorized) {
     return { frozen: false, exception: true, p23_b: p23_bCheck.reason };
   }
-  
+
+  // Verifica janela formal P23-E (limpeza do journal drizzle)
+  const p23_eCheck = isP23_EAuthorizedJournalUpdate(file);
+  if (p23_eCheck.authorized) {
+    return { frozen: false, exception: true, p23_e: p23_eCheck.reason };
+  }
+
   // Verifica exceções padrão
   for (const exception of EXCEPTIONS) {
     if (relativePath.startsWith(exception) || relativePath === exception) {

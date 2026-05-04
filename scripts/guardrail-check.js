@@ -58,17 +58,17 @@ function isP20_4AuthorizedFrozenDocUpdate(filePath) {
 function isP23_BAuthorizedSchemaUpdate(filePath) {
   const authorizedValue = "P23_B_PRODUCT_SKU_SCHEMA";
   const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
-  
+
   // Sem variável: bloqueia
   if (!envValue) {
     return { authorized: false };
   }
-  
+
   // Variável errada: bloqueia
   if (envValue !== authorizedValue) {
     return { authorized: false };
   }
-  
+
   // Variável correta: verifica se arquivo está na lista exata
   if (P23_B_AUTHORIZED_FILES.includes(filePath)) {
     return {
@@ -76,8 +76,39 @@ function isP23_BAuthorizedSchemaUpdate(filePath) {
       reason: "P23-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (product sku schema)"
     };
   }
-  
+
   // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-E para limpeza do journal Drizzle
+ * Requer variável ERP_AUTHORIZED_JOURNAL_UPDATE=P23_E_REMOVE_ORPHAN_JOURNAL_ENTRY
+ * Permite somente drizzle/meta/_journal.json
+ */
+function isP23_EAuthorizedJournalUpdate(filePath) {
+  const authorizedValue = "P23_E_REMOVE_ORPHAN_JOURNAL_ENTRY";
+  const envValue = process.env.ERP_AUTHORIZED_JOURNAL_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo é exatamente o journal
+  if (filePath === "drizzle/meta/_journal.json") {
+    return {
+      authorized: true,
+      reason: "P23-E formal window: ERP_AUTHORIZED_JOURNAL_UPDATE=" + authorizedValue + " (remove orphan drizzle journal entry)"
+    };
+  }
+
+  // Arquivo fora do escopo: bloqueia mesmo com variável correta
   return { authorized: false };
 }
 
@@ -291,6 +322,17 @@ function main() {
         console.log("\n📋 Arquivos P23-B detectados:");
         violations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — " + p23_bCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-E authorized journal update: remove orphan drizzle journal entry only
+    // Requer variável ERP_AUTHORIZED_JOURNAL_UPDATE=P23_E_REMOVE_ORPHAN_JOURNAL_ENTRY
+    // Permite somente drizzle/meta/_journal.json
+    if (violations.length === 1 && violations[0] === "drizzle/meta/_journal.json") {
+      const p23_eCheck = isP23_EAuthorizedJournalUpdate(violations[0]);
+      if (p23_eCheck.authorized) {
+        console.log("\n✔ Guardrail OK — " + p23_eCheck.reason + "\n");
         return;
       }
     }
