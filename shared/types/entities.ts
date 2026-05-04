@@ -136,8 +136,6 @@ export type JobExecution = Record<string, unknown> & { id?: number };
 export type NewJobExecution = Partial<JobExecution>;
 
 // Stubs para tabelas removidas do schema atual (compatibilidade legada)
-export type ProdutoVariacao = Record<string, unknown> & { id?: number };
-export type NewProdutoVariacao = Partial<ProdutoVariacao>;
 export type PromocaoItem = Record<string, unknown> & { id?: number };
 export type NewPromocaoItem = Partial<PromocaoItem>;
 export type PagamentoBoleto = Record<string, unknown> & { id?: number };
