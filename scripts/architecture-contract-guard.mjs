@@ -212,6 +212,16 @@ const P23_G1_AUTHORIZED_FILES = [
   'server/services/inventory.service.ts',
 ];
 
+// Janela formal P23-G2.1-B - Schema sku_id em itens_pedido autorizado
+const P23_G21_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/relations.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0006_migration_1777933000000.sql',
+  'drizzle/meta/0006_snapshot.json',
+  'server/_core/migration-guard.ts',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -239,6 +249,44 @@ function isP23_G1AuthorizedTypesCleanup(filePath) {
     return {
       authorized: true,
       reason: 'P23-G1 formal window: ERP_AUTHORIZED_TYPES_UPDATE=' + authorizedValue + ' (remove obsolete product variations references)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-G2.1-B para adicionar sku_id em itens_pedido
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_G21_ADD_SKU_ID_TO_ITENS_PEDIDO
+ * Permite somente os 6 arquivos específicos da P23-G2.1-B:
+ *   - drizzle/schema.ts
+ *   - drizzle/relations.ts
+ *   - drizzle/meta/_journal.json
+ *   - drizzle/0006_migration_1777933000000.sql
+ *   - drizzle/meta/0006_snapshot.json
+ *   - server/_core/migration-guard.ts
+ */
+function isP23_G21AuthorizedSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_G21_ADD_SKU_ID_TO_ITENS_PEDIDO';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_G21_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-G2.1-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (add sku_id nullable to itens_pedido + migration guard prefix/hash)'
     };
   }
 
@@ -280,6 +328,12 @@ function isFrozen(file) {
   const p23_g1Check = isP23_G1AuthorizedTypesCleanup(file);
   if (p23_g1Check.authorized) {
     return { frozen: false, exception: true, p23_g1: p23_g1Check.reason };
+  }
+
+  // Verifica janela formal P23-G2.1-B (adicionar sku_id em itens_pedido)
+  const p23_g21Check = isP23_G21AuthorizedSchemaUpdate(file);
+  if (p23_g21Check.authorized) {
+    return { frozen: false, exception: true, p23_g21: p23_g21Check.reason };
   }
 
   // Verifica exceções padrão

@@ -305,6 +305,7 @@ export const itensPedido = mysqlTable(
     tipo: mysqlEnum("tipo", ["LIVRE", "CATALOGO"]).default("LIVRE").notNull(),
     produtoId: int("produto_id").references(() => produtos.id),
     corId: int("cor_id").references(() => cores.id),
+    skuId: int("sku_id").references(() => produtoSkus.id),
     corNome: varchar("cor_nome", { length: 100 }),
     descricao: text("descricao").notNull(),
     marca: varchar("marca", { length: 255 }),
@@ -317,6 +318,7 @@ export const itensPedido = mysqlTable(
   (table) => ({
     tenantIdIdx: index("itens_pedido_tenant_id_idx").on(table.tenantId),
     pedidoIdx: index("itens_pedido_pedido_idx").on(table.pedidoId),
+    skuIdIdx: index("itens_pedido_sku_id_idx").on(table.skuId),
   }),
 );
 

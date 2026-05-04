@@ -4,6 +4,7 @@
  */
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { getConnectionPool } from "../config/database.js";
 import { InfrastructureError } from "./errors/typed-errors.js";
 
@@ -25,6 +26,14 @@ interface JournalEntry {
 
 interface Journal {
   entries: JournalEntry[];
+}
+
+/**
+ * Calcula o hash SHA-256 do conteúdo SQL da migration
+ * Padrão compatível com Drizzle ORM migrator
+ */
+function calculateMigrationHash(sqlContent: string): string {
+  return crypto.createHash("sha256").update(sqlContent).digest("hex");
 }
 
 /**
@@ -96,26 +105,57 @@ export async function validateMigrationConsistency(): Promise<void> {
     );
     const dbRows = dbMigrations[0] as Array<{ id: number; hash: string; created_at: number }>;
 
-    if (dbRows.length !== journal.entries.length) {
+    // Verificar se banco está à frente do journal (nunca permitido)
+    if (dbRows.length > journal.entries.length) {
       throw new InfrastructureError(
         `DRIFT CRÍTICO DE MIGRATIONS: Banco tem ${dbRows.length} migrations aplicadas, ` +
-        `mas journal referencia ${journal.entries.length} migrations. ` +
-        `Sistema NÃO pode iniciar. Estado inconsistente.`
+        `mas journal referencia apenas ${journal.entries.length} migrations. ` +
+        `Sistema NÃO pode iniciar. Banco está à frente do journal.`
       );
     }
 
-    // Verificar que timestamps batem (ordem e conteúdo)
-    for (let i = 0; i < journal.entries.length; i++) {
-      const journalEntry = journal.entries[i];
-      const dbRow = dbRows[i];
+    // Verificar se banco tem menos migrations que journal (pending válido)
+    // ou igual (totalmente aplicado) - ambos são válidos se o prefixo bater
+    if (dbRows.length > 0) {
+      // Verificar que cada migration aplicada no banco bate com a correspondente no journal
+      for (let i = 0; i < dbRows.length; i++) {
+        const journalEntry = journal.entries[i];
+        const dbRow = dbRows[i];
 
-      if (journalEntry.when !== dbRow.created_at) {
-        throw new InfrastructureError(
-          `DRIFT CRÍTICO DE MIGRATIONS: Migration idx ${i} tem timestamp inconsistente. ` +
-          `Journal: ${journalEntry.when}, Banco: ${dbRow.created_at}. ` +
-          `Sistema NÃO pode iniciar.`
-        );
+        if (!journalEntry) {
+          throw new InfrastructureError(
+            `DRIFT CRÍTICO DE MIGRATIONS: Migration idx ${i} existe no banco mas não existe no journal. ` +
+            `Sistema NÃO pode iniciar.`
+          );
+        }
+
+        if (journalEntry.when !== dbRow.created_at) {
+          throw new InfrastructureError(
+            `DRIFT CRÍTICO DE MIGRATIONS: Migration idx ${i} tem timestamp inconsistente. ` +
+            `Journal: ${journalEntry.when}, Banco: ${dbRow.created_at}. ` +
+            `Sistema NÃO pode iniciar.`
+          );
+        }
+
+        // Validar hash do arquivo SQL vs hash armazenado no banco
+        const sqlFilePath = path.join(drizzleFolder, `${journalEntry.tag}.sql`);
+        const sqlContent = fs.readFileSync(sqlFilePath, "utf-8");
+        const calculatedHash = calculateMigrationHash(sqlContent);
+
+        if (calculatedHash.toLowerCase() !== dbRow.hash.toLowerCase()) {
+          throw new InfrastructureError(
+            `DRIFT CRÍTICO DE MIGRATIONS: Migration idx ${i} (${journalEntry.tag}) tem hash divergente. ` +
+            `Banco: ${dbRow.hash}, Calculado: ${calculatedHash}. ` +
+            `Sistema NÃO pode iniciar. Arquivo SQL pode ter sido alterado após aplicação.`
+          );
+        }
       }
+    }
+
+    // Logar estado de pending migrations se houver
+    if (dbRows.length < journal.entries.length) {
+      const pendingCount = journal.entries.length - dbRows.length;
+      console.log(`[MigrationGuard] ⏳ ${pendingCount} migration(s) pendente(s) detectada(s). Execute 'pnpm db:migrate' para aplicar.`);
     }
 
     console.log(`[MigrationGuard] ✅ Validação de consistência OK: ${journal.entries.length} migrations`);

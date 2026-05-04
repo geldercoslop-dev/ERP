@@ -129,6 +129,10 @@ export const itensPedidoRelations = relations(itensPedido, ({one}) => ({
 		fields: [itensPedido.produtoId],
 		references: [produtos.id]
 	}),
+	produtoSku: one(produtoSkus, {
+		fields: [itensPedido.skuId],
+		references: [produtoSkus.id]
+	}),
 }));
 
 export const coresRelations = relations(cores, ({many}) => ({
