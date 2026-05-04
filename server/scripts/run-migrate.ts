@@ -4,6 +4,7 @@
  * Em produção: rode após backup e confira /api/health.
  */
 import path from "path";
+import { bootstrapServer } from "../_core/bootstrap.js";
 import { initEnv } from "../_core/env/bootstrapEnv.js";
 import { createServiceContext, runWithServiceContext } from "../core/service-context.js";
 
@@ -11,6 +12,9 @@ import { createServiceContext, runWithServiceContext } from "../core/service-con
 initEnv();
 
 async function main(): Promise<void> {
+  // Bootstrap oficial antes de acessar getDb()
+  await bootstrapServer();
+
   await runWithServiceContext(createServiceContext(), async () => {
     const { getDb } = await import("../db/index.js");
     const { migrate } = await import("drizzle-orm/mysql2/migrator");
