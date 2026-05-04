@@ -236,6 +236,7 @@ export interface CreatePedidoSafeInput {
     tipo: string;
     produtoId?: number;
     corId?: number | null;
+    skuId?: number | null;
     corNome?: string | null;
     descricao: string;
     marca?: string | null;
@@ -487,6 +488,7 @@ export async function createPedidoSafe(
         tipo: (i.tipo === 'CATALOGO' ? 'CATALOGO' : 'LIVRE') as 'LIVRE' | 'CATALOGO',
         produtoId: i.produtoId || null,
         corId: i.corId || null,
+        skuId: i.skuId ?? null,
         corNome: i.corNome || null,
         descricao: `${i.descricao}${i.corNome ? ` ${i.corNome}` : ''}`.trim(),
         marca: i.marca || null,
@@ -1741,6 +1743,7 @@ export async function insertItensPedidoAndContasReceberInTransaction(
     tipo: string;
     produtoId?: number | null;
     corId?: number | null;
+    skuId?: number | null;
     corNome?: string | null;
     descricao: string;
     marca?: string | null;
@@ -1760,6 +1763,7 @@ export async function insertItensPedidoAndContasReceberInTransaction(
     tipo: (i.tipo === 'CATALOGO' ? 'CATALOGO' : 'LIVRE') as 'LIVRE' | 'CATALOGO',
     produtoId: i.produtoId || null,
     corId: i.corId || null,
+    skuId: i.skuId ?? null,
     corNome: i.corNome || null,
     descricao: `${i.descricao}${i.corNome ? ` ${i.corNome}` : ''}`.trim(),
     marca: i.marca || null,
