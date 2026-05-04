@@ -607,6 +607,24 @@ async function decrementSkuEstoqueInTx(
   };
 }
 
+/**
+ * Decrementa estoque de SKU dentro de uma transação existente.
+ * NÃO abre transação própria - deve ser chamada dentro de uma transação ativa.
+ * Aceita SOMENTE DbTx, não DbConn.
+ */
+export async function decrementSkuEstoqueInExistingTransaction(
+  tx: DbTx,
+  tenantId: number,
+  skuId: number,
+  quantidade: number
+): Promise<SkuStockOperationResult> {
+  assertTenantId(tenantId);
+  assertRequiredId(skuId, "skuId");
+  assertPositiveQuantity(quantidade);
+
+  return decrementSkuEstoqueInTx(tx, tenantId, skuId, quantidade);
+}
+
 export async function decrementSkuEstoque(
   txOrDb: DbExecutor,
   tenantId: number,
@@ -686,5 +704,6 @@ export default {
   updateSku,
   setSkuEstoque,
   decrementSkuEstoque,
+  decrementSkuEstoqueInExistingTransaction,
   incrementSkuEstoque,
 };
