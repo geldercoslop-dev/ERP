@@ -201,6 +201,73 @@ export async function bootstrapServer(): Promise<void> {
 }
 
 /**
+ * BOOTSTRAP MÍNIMO PARA CLI/MIGRATION - DB-ONLY CONTRACT
+ * 
+ * CONTRATO EXPLÍCITO:
+ * - DB-only bootstrap for CLI migrations.
+ * - Proibido adicionar Redis/runtime health/server/workers aqui.
+ * - Se no futuro migration precisar de Redis, isso deve ser nova função e nova revisão arquitetural.
+ * 
+ * Ordem de inicialização:
+ * 1. ENV (carregado explicitamente)
+ * 2. Validação de ENV crítico
+ * 3. Database (espera e valida conexão)
+ * 4. Marca bootstrap como completo
+ * 
+ * NÃO inicializa:
+ * - Redis
+ * - Runtime health check
+ * - Auto-heal loop
+ * - HTTP server
+ * - Workers/queues
+ */
+export async function bootstrapMigrationCli(): Promise<void> {
+  // Fail-fast se já foi inicializado
+  if (globalThis.__BOOTSTRAPPED__) {
+    systemLogger.warn('[BOOTSTRAP-CLI] Já inicializado, ignorando chamada duplicada');
+    return;
+  }
+
+  // Marcar bootstrap como em progresso
+  globalThis.__BOOTSTRAP_IN_PROGRESS__ = true;
+
+  const startTime = Date.now();
+  systemLogger.info('[BOOTSTRAP-CLI] Iniciando bootstrap mínimo para CLI/migration...');
+
+  try {
+    // 1. Carregar ENV (ZERO import-time side effects)
+    systemLogger.info('[BOOTSTRAP-CLI] Carregando ENV...');
+    initEnv();
+    systemLogger.info('[BOOTSTRAP-CLI] ENV carregado');
+
+    // 2. Validar ENV crítico
+    systemLogger.info('[BOOTSTRAP-CLI] Validando ENV...');
+    validateRequiredEnv();
+    systemLogger.info('[BOOTSTRAP-CLI] ENV validado com sucesso');
+
+    // 3. Database - esperar e validar (CRÍTICO - sem isso não inicia)
+    systemLogger.info('[BOOTSTRAP-CLI] Aguardando Database...');
+    await waitForDatabaseReady();
+    systemLogger.info('[BOOTSTRAP-CLI] Database pronto');
+
+    // 4. Marcar bootstrap como completo
+    globalThis.__BOOTSTRAPPED__ = true;
+    globalThis.__BOOTSTRAP_ERROR__ = null;
+    globalThis.__BOOTSTRAP_IN_PROGRESS__ = false;
+
+    const duration = Date.now() - startTime;
+    systemLogger.info({ duration }, '[BOOTSTRAP-CLI] Bootstrap CLI concluído com sucesso (sem Redis)');
+
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    globalThis.__BOOTSTRAP_ERROR__ = err;
+    globalThis.__BOOTSTRAP_IN_PROGRESS__ = false;
+    systemLogger.error({ error: err.message }, '[BOOTSTRAP-CLI] FALHA CRÍTICA no bootstrap CLI');
+    throw err;
+  }
+}
+
+/**
  * Reset do estado do bootstrap (apenas para testes)
  * NÃO usar em produção
  */

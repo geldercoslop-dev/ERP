@@ -112,6 +112,37 @@ function isP23_EAuthorizedJournalUpdate(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-E para bootstrap DB-only migrate runner
+ * Requer variável ERP_AUTHORIZED_BOOTSTRAP_UPDATE=P23_E_MIGRATE_RUNNER_DB_ONLY
+ * Permite somente server/_core/bootstrap.ts e server/scripts/run-migrate.ts
+ */
+function isP23_EAuthorizedBootstrapUpdate(filePath) {
+  const authorizedValue = "P23_E_MIGRATE_RUNNER_DB_ONLY";
+  const envValue = process.env.ERP_AUTHORIZED_BOOTSTRAP_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (filePath === "server/_core/bootstrap.ts" || filePath === "server/scripts/run-migrate.ts") {
+    return {
+      authorized: true,
+      reason: "P23-E formal window: ERP_AUTHORIZED_BOOTSTRAP_UPDATE=" + authorizedValue + " (migrate runner DB-only bootstrap)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -252,6 +283,22 @@ function isRbacTypingCleanupAllowed(files) {
 function main() {
   const files = getChangedFiles();
 
+  // P23-E authorized bootstrap update: migrate runner DB-only bootstrap
+  // Requer variável ERP_AUTHORIZED_BOOTSTRAP_UPDATE=P23_E_MIGRATE_RUNNER_DB_ONLY
+  // Permite somente server/_core/bootstrap.ts e server/scripts/run-migrate.ts
+  // Verifica ANTES do checkBlocked porque run-migrate.ts não está em BLOCKED_PATHS
+  const p23_e_bootstrap_authorized_files = ["server/_core/bootstrap.ts", "server/scripts/run-migrate.ts"];
+  const allP23_E_Bootstrap_Authorized = files.length > 0 && files.every(f => p23_e_bootstrap_authorized_files.includes(f));
+  if (allP23_E_Bootstrap_Authorized) {
+    const p23_e_bootstrapCheck = isP23_EAuthorizedBootstrapUpdate(files[0]);
+    if (p23_e_bootstrapCheck.authorized) {
+      console.log("\n📋 Arquivos P23-E bootstrap detectados:");
+      files.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — " + p23_e_bootstrapCheck.reason + "\n");
+      return;
+    }
+  }
+
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
@@ -333,6 +380,27 @@ function main() {
       const p23_eCheck = isP23_EAuthorizedJournalUpdate(violations[0]);
       if (p23_eCheck.authorized) {
         console.log("\n✔ Guardrail OK — " + p23_eCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-E authorized bootstrap update: migrate runner DB-only bootstrap
+    // Requer variável ERP_AUTHORIZED_BOOTSTRAP_UPDATE=P23_E_MIGRATE_RUNNER_DB_ONLY
+    // Permite server/_core/bootstrap.ts e server/scripts/run-migrate.ts
+    // Verifica se as violações contêm os arquivos P23-E autorizados
+    const p23_e_bootstrap_authorized_files = ["server/_core/bootstrap.ts", "server/scripts/run-migrate.ts"];
+    const hasP23_E_BootstrapFiles = violations.some(v => p23_e_bootstrap_authorized_files.includes(v));
+    if (hasP23_E_BootstrapFiles) {
+      // Verifica cada arquivo P23-E nas violações
+      const p23_e_bootstrapViolations = violations.filter(v => p23_e_bootstrap_authorized_files.includes(v));
+      const allP23_E_BootstrapAuthorized = p23_e_bootstrapViolations.every(v => {
+        const check = isP23_EAuthorizedBootstrapUpdate(v);
+        return check.authorized;
+      });
+      if (allP23_E_BootstrapAuthorized) {
+        console.log("\n📋 Arquivos P23-E bootstrap detectados:");
+        p23_e_bootstrapViolations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — P23-E formal window: ERP_AUTHORIZED_BOOTSTRAP_UPDATE=P23_E_MIGRATE_RUNNER_DB_ONLY (migrate runner DB-only bootstrap)\n");
         return;
       }
     }

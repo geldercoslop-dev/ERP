@@ -4,16 +4,12 @@
  * Em produção: rode após backup e confira /api/health.
  */
 import path from "path";
-import { bootstrapServer } from "../_core/bootstrap.js";
-import { initEnv } from "../_core/env/bootstrapEnv.js";
+import { bootstrapMigrationCli } from "../_core/bootstrap.js";
 import { createServiceContext, runWithServiceContext } from "../core/service-context.js";
 
-// Load ENV explicitly (NO import-time side effects)
-initEnv();
-
 async function main(): Promise<void> {
-  // Bootstrap oficial antes de acessar getDb()
-  await bootstrapServer();
+  // Bootstrap mínimo para CLI/migration (ENV + DB apenas, sem Redis)
+  await bootstrapMigrationCli();
 
   await runWithServiceContext(createServiceContext(), async () => {
     const { getDb } = await import("../db/index.js");

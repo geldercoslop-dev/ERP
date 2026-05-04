@@ -175,6 +175,38 @@ function isP23_EAuthorizedJournalUpdate(filePath) {
 }
 
 /**
+ * Verifica se arquivo tem autorização P23-E para bootstrap DB-only migrate runner
+ * Requer variável ERP_AUTHORIZED_BOOTSTRAP_UPDATE=P23_E_MIGRATE_RUNNER_DB_ONLY
+ * Permite somente server/_core/bootstrap.ts e server/scripts/run-migrate.ts
+ */
+function isP23_EAuthorizedBootstrapUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_E_MIGRATE_RUNNER_DB_ONLY';
+  const envValue = process.env.ERP_AUTHORIZED_BOOTSTRAP_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (relativePath === 'server/_core/bootstrap.ts' || relativePath === 'server/scripts/run-migrate.ts') {
+    return {
+      authorized: true,
+      reason: 'P23-E formal window: ERP_AUTHORIZED_BOOTSTRAP_UPDATE=' + authorizedValue + ' (migrate runner DB-only bootstrap)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
  * Verifica se um arquivo está em área congelada
  */
 function isFrozen(file) {
@@ -196,6 +228,12 @@ function isFrozen(file) {
   const p23_eCheck = isP23_EAuthorizedJournalUpdate(file);
   if (p23_eCheck.authorized) {
     return { frozen: false, exception: true, p23_e: p23_eCheck.reason };
+  }
+
+  // Verifica janela formal P23-E (bootstrap DB-only migrate runner)
+  const p23_e_bootstrapCheck = isP23_EAuthorizedBootstrapUpdate(file);
+  if (p23_e_bootstrapCheck.authorized) {
+    return { frozen: false, exception: true, p23_e_bootstrap: p23_e_bootstrapCheck.reason };
   }
 
   // Verifica exceções padrão
