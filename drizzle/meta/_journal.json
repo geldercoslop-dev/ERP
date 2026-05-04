@@ -5,33 +5,26 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1777281350982,
-      "tag": "0000_keen_omega_flight",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
       "when": 1777478991625,
       "tag": "0002_lucky_bloodstorm",
       "breakpoints": true
     },
     {
-      "idx": 2,
+      "idx": 1,
       "version": "5",
       "when": 1777510608906,
       "tag": "0003_migration_1777510606165",
       "breakpoints": true
     },
     {
-      "idx": 3,
+      "idx": 2,
       "version": "5",
       "when": 1777593003481,
       "tag": "0004_migration_1777592998701",
       "breakpoints": true
     },
     {
-      "idx": 4,
+      "idx": 3,
       "version": "5",
       "when": 1777853004917,
       "tag": "0005_needy_microchip",
