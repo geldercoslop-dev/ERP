@@ -511,6 +511,7 @@ export async function createPedidoSafe(
             vendedorId: vendedorIdResolved,
             produtoId: i.produtoId,
             corId: i.corId ?? null,
+            skuId: i.skuId ?? null,
             quantidade: qtdPendente,
             status: PendenciaStatus.PENDENTE,
           });
