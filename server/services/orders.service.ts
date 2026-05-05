@@ -13,6 +13,11 @@ import { assertVendedorActor } from "../_core/service-actor.js";
 import { assertTenantId, assertDbConnection } from "../_core/errors/assertions.js";
 import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
 import { createLogger } from "../infra/structured-logger.js";
+import {
+  evaluateSkuEstoquePedidoInExistingTransaction,
+  processSkuEstoquePedidoInExistingTransaction,
+  type SkuEstoquePedidoEvaluationResult,
+} from "./sku.service.js";
 
 const logger = createLogger("orders-service");
 
@@ -379,29 +384,67 @@ export async function createPedidoSafe(
       throw new InfrastructureError('Falha na geração de número de pedido');
     }
 
-    // 2. Bloquear produtos para atualização (FOR UPDATE)
+    // 2. Bloquear produtos para atualização (FOR UPDATE) - APENAS ITENS SEM SKU (fluxo legado)
     const catalogIds = Array.from(
       new Set(
         input.itens
-          .filter((x: { tipo: string; produtoId?: number }) => x.tipo === 'CATALOGO' && x.produtoId)
+          .filter((x: { tipo: string; produtoId?: number; skuId?: number | null }) => x.tipo === 'CATALOGO' && x.produtoId && !x.skuId)
           .map((x: { produtoId?: number }) => x.produtoId)
       )
     ) as number[];
     const estoquePorProduto: Record<number, number> = {};
-    
+
     if (catalogIds.length > 0) {
       const rows = await tx.select({ id: produtos.id, estoque: produtos.estoque })
         .from(produtos)
         .where(and(eq(produtos.tenantId, tenantId), inArray(produtos.id, catalogIds)))
         .for('update');
-      
+
       for (const r of rows) {
         estoquePorProduto[Number(r.id)] = Number(r.estoque ?? 0);
       }
     }
 
-    // 3. Validar estoque e definir status
+    // 3. Agregar SKUs por quantidade total (evita avaliação por item)
+    const skuAgregados = new Map<number, { skuId: number; quantidadeTotal: number; produtoId: number; corId: number | null }>();
+    for (const i of input.itens) {
+      if (i.tipo === 'CATALOGO' && i.skuId) {
+        if (!i.produtoId) {
+          throw new ValidationError("Item com SKU exige produtoId");
+        }
+        const existente = skuAgregados.get(i.skuId);
+        if (existente) {
+          if (existente.produtoId !== i.produtoId) {
+            throw new ValidationError(`SKU ${i.skuId} com produtoId inconsistente`);
+          }
+          existente.quantidadeTotal += i.quantidade;
+        } else {
+          skuAgregados.set(i.skuId, {
+            skuId: i.skuId,
+            quantidadeTotal: i.quantidade,
+            produtoId: i.produtoId,
+            corId: i.corId ?? null,
+          });
+        }
+      }
+    }
+
+    // 4. Avaliar estoque de SKUs (SEM débito) usando quantidade total
+    const skuEvaluations = new Map<number, SkuEstoquePedidoEvaluationResult>();
+    for (const [skuId, agregado] of skuAgregados) {
+      const evaluation = await evaluateSkuEstoquePedidoInExistingTransaction(
+        tx,
+        tenantId,
+        skuId,
+        agregado.quantidadeTotal
+      );
+      skuEvaluations.set(skuId, evaluation);
+    }
+
+    // 5. Validar estoque e definir status
     const itensComFalta: Set<number> = new Set();
+    let skuPendente = false;
+
     for (const i of input.itens) {
       if (!i || typeof i !== "object") {
         throw new ValidationError("Item do pedido inválido");
@@ -418,12 +461,20 @@ export async function createPedidoSafe(
       if (!Number.isFinite(Number(i.custo ?? 0))) {
         throw new ValidationError("Custo do item inválido");
       }
-      if (i.tipo === 'CATALOGO' && i.produtoId) {
+      // Apenas itens sem skuId usam produtos.estoque para validação
+      if (i.tipo === 'CATALOGO' && i.produtoId && !i.skuId) {
         const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
         if (estoqueAtual < i.quantidade) itensComFalta.add(i.produtoId);
       }
     }
-    const statusPedido = itensComFalta.size > 0 ? PedidoStatus.PENDENTE_ESTOQUE : PedidoStatus.GERADO;
+    // Verificar se algum SKU está pendente (usando avaliação por quantidade total)
+    for (const [skuId, evaluation] of skuEvaluations) {
+      if (evaluation.status === "PENDENTE_ESTOQUE") {
+        skuPendente = true;
+        break;
+      }
+    }
+    const statusPedido = (itensComFalta.size > 0 || skuPendente) ? PedidoStatus.PENDENTE_ESTOQUE : PedidoStatus.GERADO;
 
     // 4. Inserir pedido
     const pedidoInsert = await tx.insert(pedidos).values({
@@ -481,6 +532,7 @@ export async function createPedidoSafe(
 
     // 5. Inserir itens e atualizar estoque/pendências
     let gerouPendencia = false;
+
     for (const i of input.itens) {
       await tx.insert(itensPedido).values({
         tenantId,
@@ -498,10 +550,11 @@ export async function createPedidoSafe(
         prazoGarantia: i.prazoGarantia,
       });
 
-      if (i.tipo === 'CATALOGO' && i.produtoId) {
+      // Fluxo LEGADO: apenas itens sem skuId processam estoque em produtos.estoque
+      if (i.tipo === 'CATALOGO' && i.produtoId && !i.skuId) {
         const estoqueAtual = estoquePorProduto[i.produtoId] ?? 0;
         const falta = estoqueAtual < i.quantidade;
-        
+
         if (statusPedido === PedidoStatus.PENDENTE_ESTOQUE && falta) {
           gerouPendencia = true;
           const qtdPendente = estoqueAtual > 0 ? i.quantidade - estoqueAtual : i.quantidade;
@@ -511,16 +564,16 @@ export async function createPedidoSafe(
             vendedorId: vendedorIdResolved,
             produtoId: i.produtoId,
             corId: i.corId ?? null,
-            skuId: i.skuId ?? null,
+            skuId: null,
             quantidade: qtdPendente,
             status: PendenciaStatus.PENDENTE,
           });
         }
-        
+
         if (statusPedido === PedidoStatus.GERADO && !falta) {
           const novoEstoque = estoqueAtual - i.quantidade;
           await tx.update(produtos).set({ estoque: novoEstoque }).where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, i.produtoId)));
-          
+
           await insertAuditLog({
             tenantId,
             actorUserId: actor?.userId ?? null,
@@ -532,6 +585,58 @@ export async function createPedidoSafe(
             traceId: nanoid(10),
           }, tx);
         }
+      }
+
+    }
+
+    // 6. Processar estoque SKU agregado (fora do loop de itens)
+    for (const [skuId, agregado] of skuAgregados) {
+      const evaluation = skuEvaluations.get(skuId);
+      if (!evaluation) continue;
+
+      if (statusPedido === PedidoStatus.GERADO) {
+        // Debita SKU apenas se pedido foi aprovado (usando quantidade total)
+        const result = await processSkuEstoquePedidoInExistingTransaction(
+          tx,
+          tenantId,
+          skuId,
+          agregado.quantidadeTotal
+        );
+
+        // Confirma que foi debitado
+        if (result.status === "DEBITADO") {
+          await insertAuditLog({
+            tenantId,
+            actorUserId: actor?.userId ?? null,
+            actorVendedorId: actor?.vendedorId ?? null,
+            action: "SAIDA",
+            entity: "estoque_sku",
+            entityId: String(skuId),
+            payloadJson: JSON.stringify({
+              pedidoId,
+              skuId,
+              quantidade: agregado.quantidadeTotal,
+              saldoAnterior: result.saldoAnterior,
+              saldoNovo: result.saldoNovo,
+            }),
+            traceId: nanoid(10),
+          }, tx);
+        }
+      }
+
+      if (statusPedido === PedidoStatus.PENDENTE_ESTOQUE && evaluation.status === "PENDENTE_ESTOQUE") {
+        // Cria pendência com skuId para SKU pendente (produtoId obrigatório)
+        gerouPendencia = true;
+        await tx.insert(pendencias).values({
+          tenantId,
+          pedidoId,
+          vendedorId: vendedorIdResolved,
+          produtoId: agregado.produtoId,
+          corId: agregado.corId,
+          skuId: skuId,
+          quantidade: evaluation.quantidadePendente,
+          status: PendenciaStatus.PENDENTE,
+        });
       }
     }
 

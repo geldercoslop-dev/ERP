@@ -77,6 +77,33 @@ export interface SkuStockOperationResult {
   message: string;
 }
 
+/**
+ * Resultado da avaliação de estoque SKU para pedido (SEM débito).
+ * Usado para decisão de status do pedido sem alterar estoque.
+ */
+export type SkuEstoquePedidoEvaluationResult =
+  | {
+      status: "DISPONIVEL";
+      skuId: number;
+      quantidade: number;
+      saldoAnterior: number;
+      saldoProjetado: number;
+    }
+  | {
+      status: "NEGATIVO_PERMITIDO";
+      skuId: number;
+      quantidade: number;
+      saldoAnterior: number;
+      saldoProjetado: number;
+    }
+  | {
+      status: "PENDENTE_ESTOQUE";
+      skuId: number;
+      quantidade: number;
+      quantidadePendente: number;
+      saldoAnterior: number;
+    };
+
 export interface SkuWithDetails {
   id: number;
   tenantId: number;
@@ -680,6 +707,68 @@ async function applySkuStockDebitInTx(
     .where(and(eq(produtoSkus.tenantId, tenantId), eq(produtoSkus.id, skuId)));
 }
 
+/**
+ * Avalia estoque de SKU para pedido dentro de transação existente (SEM débito).
+ * NÃO abre transaction() - deve ser chamada dentro de uma transação ativa.
+ * Aceita SOMENTE DbTx.
+ *
+ * Regras:
+ * - Estoque suficiente: retorna DISPONIVEL
+ * - Estoque insuficiente + permite negativo: retorna NEGATIVO_PERMITIDO
+ * - Estoque insuficiente + bloqueia negativo: retorna PENDENTE_ESTOQUE
+ *
+ * NÃO lança erro de estoque insuficiente (exceto para parâmetros inválidos).
+ * NÃO altera produtoSkus.estoque.
+ */
+export async function evaluateSkuEstoquePedidoInExistingTransaction(
+  tx: DbTx,
+  tenantId: number,
+  skuId: number,
+  quantidade: number
+): Promise<SkuEstoquePedidoEvaluationResult> {
+  assertTenantId(tenantId);
+  assertRequiredId(skuId, "skuId");
+  assertPositiveQuantity(quantidade);
+
+  const sku = await getSkuForUpdate(tx, tenantId, skuId);
+
+  const saldoAnterior = sku.estoque;
+  const saldoProjetado = saldoAnterior - quantidade;
+
+  // Cenário 1: Estoque suficiente → retorna DISPONIVEL (sem débito)
+  if (saldoAnterior >= quantidade) {
+    return {
+      status: "DISPONIVEL",
+      skuId,
+      quantidade,
+      saldoAnterior,
+      saldoProjetado,
+    };
+  }
+
+  // Cenário 2: Estoque insuficiente mas permite negativo → retorna NEGATIVO_PERMITIDO
+  if (!sku.bloquearEstoqueNegativo) {
+    return {
+      status: "NEGATIVO_PERMITIDO",
+      skuId,
+      quantidade,
+      saldoAnterior,
+      saldoProjetado,
+    };
+  }
+
+  // Cenário 3: Estoque insuficiente e bloqueia negativo → retorna PENDENTE_ESTOQUE
+  const quantidadePendente = quantidade - saldoAnterior;
+
+  return {
+    status: "PENDENTE_ESTOQUE",
+    skuId,
+    quantidade,
+    quantidadePendente,
+    saldoAnterior,
+  };
+}
+
 export async function processSkuEstoquePedidoInExistingTransaction(
   tx: DbTx,
   tenantId: number,
@@ -828,6 +917,7 @@ export default {
   setSkuEstoque,
   decrementSkuEstoque,
   decrementSkuEstoqueInExistingTransaction,
+  evaluateSkuEstoquePedidoInExistingTransaction,
   processSkuEstoquePedidoInExistingTransaction,
   incrementSkuEstoque,
 };
