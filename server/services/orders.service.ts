@@ -17,6 +17,7 @@ import {
   evaluateSkuEstoquePedidoInExistingTransaction,
   processSkuEstoquePedidoInExistingTransaction,
   incrementSkuEstoque,
+  validateSkuForPedidoInExistingTransaction,
   type SkuEstoquePedidoEvaluationResult,
 } from "./sku.service.js";
 
@@ -413,6 +414,8 @@ export async function createPedidoSafe(
         if (!i.produtoId) {
           throw new ValidationError("Item com SKU exige produtoId");
         }
+        // Validação forte do SKU antes de agregar (dentro da transação)
+        await validateSkuForPedidoInExistingTransaction(tx, tenantId, i.skuId, i.produtoId, i.corId);
         const existente = skuAgregados.get(i.skuId);
         if (existente) {
           if (existente.produtoId !== i.produtoId) {

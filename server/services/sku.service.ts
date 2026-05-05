@@ -375,6 +375,65 @@ export async function getSkuById(
   return mapSkuWithDetails(results[0]);
 }
 
+/**
+ * Validação forte de SKU para item de pedido dentro de uma transação existente.
+ * NÃO abre transação própria - deve ser chamada dentro de uma transação ativa.
+ * Regras:
+ * - SKU deve existir
+ * - SKU deve pertencer ao tenant
+ * - SKU deve pertencer ao produto informado
+ * - SKU deve estar ativo
+ * - corId deve ser coerente (se informado no item e no SKU)
+ */
+export async function validateSkuForPedidoInExistingTransaction(
+  tx: DbTx,
+  tenantId: number,
+  skuId: number,
+  produtoId: number,
+  corId?: number | null
+): Promise<void> {
+  assertTenantId(tenantId);
+  assertRequiredId(skuId, "skuId");
+  assertRequiredId(produtoId, "produtoId");
+
+  const rows = await tx
+    .select({
+      id: produtoSkus.id,
+      tenantId: produtoSkus.tenantId,
+      produtoId: produtoSkus.produtoId,
+      corId: produtoSkus.corId,
+      ativo: produtoSkus.ativo,
+    })
+    .from(produtoSkus)
+    .where(and(eq(produtoSkus.tenantId, tenantId), eq(produtoSkus.id, skuId)))
+    .limit(1);
+
+  if (rows.length === 0) {
+    throw new ValidationError("SKU não encontrado");
+  }
+
+  const sku = rows[0];
+
+  if (sku.tenantId !== tenantId) {
+    throw new ValidationError("SKU não pertence ao tenant");
+  }
+
+  if (sku.produtoId !== produtoId) {
+    throw new ValidationError("SKU não pertence ao produto informado");
+  }
+
+  if (!sku.ativo) {
+    throw new ValidationError("SKU inativo");
+  }
+
+  // Validar coerência de cor se ambos informados
+  if (corId !== undefined && corId !== null && sku.corId !== null) {
+    if (sku.corId !== corId) {
+      throw new ValidationError("SKU incompatível com cor informada");
+    }
+  }
+}
+
 // ============================================================================
 // CRUD
 // ============================================================================
