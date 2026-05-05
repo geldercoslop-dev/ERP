@@ -16,6 +16,7 @@ import { createLogger } from "../infra/structured-logger.js";
 import {
   evaluateSkuEstoquePedidoInExistingTransaction,
   processSkuEstoquePedidoInExistingTransaction,
+  incrementSkuEstoque,
   type SkuEstoquePedidoEvaluationResult,
 } from "./sku.service.js";
 
@@ -2378,13 +2379,45 @@ export async function cancelarPedidoSafe(
           produtoId: itensPedido.produtoId,
           quantidade: itensPedido.quantidade,
           tipo: itensPedido.tipo,
+          skuId: itensPedido.skuId,
         })
         .from(itensPedido)
         .where(and(eq(itensPedido.tenantId, tenantId), eq(itensPedido.pedidoId, pedidoId)));
 
       for (const item of itensRows) {
         // Apenas itens do tipo CATALOGO têm estoque controlado
-        if (item.tipo === "CATALOGO" && item.produtoId) {
+        if (item.tipo !== "CATALOGO") continue;
+
+        // Fluxo SKU: item com skuId devolve em produtoSkus.estoque
+        if (item.skuId) {
+          const skuResult = await incrementSkuEstoque(tx, tenantId, item.skuId, item.quantidade);
+
+          // Registrar audit_log de entrada de estoque SKU
+          await insertAuditLog(
+            {
+              tenantId,
+              actorUserId: actor?.userId ?? null,
+              actorVendedorId: actor?.vendedorId ?? null,
+              action: "ENTRADA",
+              entity: "estoque_sku",
+              entityId: String(item.skuId),
+              payloadJson: JSON.stringify({
+                pedidoId,
+                skuId: item.skuId,
+                quantidade: item.quantidade,
+                saldoAnterior: skuResult.saldoAnterior,
+                saldoNovo: skuResult.saldoNovo,
+                motivo: "CANCELAMENTO_PEDIDO",
+              }),
+              traceId: nanoid(10),
+            },
+            tx
+          );
+          continue;
+        }
+
+        // Fluxo LEGADO: item sem skuId mantém devolução em produtos.estoque
+        if (item.produtoId) {
           // Buscar estoque atual
           const produtoRows = await tx
             .select({ estoque: produtos.estoque })
