@@ -222,6 +222,15 @@ const P23_G21_AUTHORIZED_FILES = [
   'server/_core/migration-guard.ts',
 ];
 
+// Janela formal P23-G2.2-B - Schema sku_id em pendencias autorizado
+const P23_G22_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/relations.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0007_add_sku_id_to_pendencias.sql',
+  'drizzle/meta/0007_snapshot.json',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -295,6 +304,43 @@ function isP23_G21AuthorizedSchemaUpdate(filePath) {
 }
 
 /**
+ * Verifica se arquivo tem autorização P23-G2.2-B para adicionar sku_id em pendencias
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_G22_ADD_SKU_ID_TO_PENDENCIAS
+ * Permite somente os 5 arquivos específicos da P23-G2.2-B:
+ *   - drizzle/schema.ts
+ *   - drizzle/relations.ts
+ *   - drizzle/meta/_journal.json
+ *   - drizzle/0007_add_sku_id_to_pendencias.sql
+ *   - drizzle/meta/0007_snapshot.json
+ */
+function isP23_G22AuthorizedPendenciasSkuSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_G22_ADD_SKU_ID_TO_PENDENCIAS';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_G22_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-G2.2-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (add sku_id nullable to pendencias)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
  * Verifica se um arquivo está em área congelada
  */
 function isFrozen(file) {
@@ -334,6 +380,12 @@ function isFrozen(file) {
   const p23_g21Check = isP23_G21AuthorizedSchemaUpdate(file);
   if (p23_g21Check.authorized) {
     return { frozen: false, exception: true, p23_g21: p23_g21Check.reason };
+  }
+
+  // Verifica janela formal P23-G2.2-B (adicionar sku_id em pendencias)
+  const p23_g22Check = isP23_G22AuthorizedPendenciasSkuSchemaUpdate(file);
+  if (p23_g22Check.authorized) {
+    return { frozen: false, exception: true, p23_g22: p23_g22Check.reason };
   }
 
   // Verifica exceções padrão

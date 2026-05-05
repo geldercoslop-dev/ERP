@@ -538,18 +538,25 @@ export const comissoes = mysqlTable(
   }),
 );
 
-export const pendencias = mysqlTable("pendencias", {
-  id: int("id").primaryKey().autoincrement(),
-  tenantId: int("tenant_id").notNull(),
-  pedidoId: int("pedido_id").notNull().references(() => pedidos.id),
-  vendedorId: int("vendedor_id").notNull().references(() => vendedores.id),
-  produtoId: int("produto_id").notNull().references(() => produtos.id),
-  corId: int("cor_id").references(() => cores.id),
-  quantidade: int("quantidade").notNull(),
-  status: varchar("status", { length: 50 }).notNull(),
-  dataPedido: timestamp("data_pedido").defaultNow().notNull(),
-  dataResolvido: timestamp("data_resolvido"),
-});
+export const pendencias = mysqlTable(
+  "pendencias",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
+    pedidoId: int("pedido_id").notNull().references(() => pedidos.id),
+    vendedorId: int("vendedor_id").notNull().references(() => vendedores.id),
+    produtoId: int("produto_id").notNull().references(() => produtos.id),
+    corId: int("cor_id").references(() => cores.id),
+    skuId: int("sku_id").references(() => produtoSkus.id),
+    quantidade: int("quantidade").notNull(),
+    status: varchar("status", { length: 50 }).notNull(),
+    dataPedido: timestamp("data_pedido").defaultNow().notNull(),
+    dataResolvido: timestamp("data_resolvido"),
+  },
+  (table) => ({
+    skuIdIdx: index("pendencias_sku_id_idx").on(table.skuId),
+  }),
+);
 
 export const counters = mysqlTable(
   "counters",

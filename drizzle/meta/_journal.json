@@ -36,6 +36,13 @@
       "when": 1777933000000,
       "tag": "0006_migration_1777933000000",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1777960500000,
+      "tag": "0007_add_sku_id_to_pendencias",
+      "breakpoints": true
     }
   ]
 }

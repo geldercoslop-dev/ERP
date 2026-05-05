@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { clientes, clienteVendedores, vendedores, cargas, comissoes, pedidos, fornecedores, contasFixas, planoContas, contasPagar, contasReceber, cores, itensPedido, produtos, produtoSkus, pedidosCarga, users } from "./schema.js";
+import { clientes, clienteVendedores, vendedores, cargas, comissoes, pedidos, fornecedores, contasFixas, planoContas, contasPagar, contasReceber, cores, itensPedido, pendencias, produtos, produtoSkus, pedidosCarga, users } from "./schema.js";
 
 export const clienteVendedoresRelations = relations(clienteVendedores, ({one}) => ({
 	cliente: one(clientes, {
@@ -153,6 +153,13 @@ export const produtoSkusRelations = relations(produtoSkus, ({one}) => ({
 	cor: one(cores, {
 		fields: [produtoSkus.corId],
 		references: [cores.id]
+	}),
+}));
+
+export const pendenciasRelations = relations(pendencias, ({one}) => ({
+	produtoSku: one(produtoSkus, {
+		fields: [pendencias.skuId],
+		references: [produtoSkus.id]
 	}),
 }));
 
