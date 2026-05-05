@@ -20,6 +20,31 @@ import path from "path";
 let _loaded = false;
 
 /**
+ * Sanitiza DATABASE_URL para log, mascarando TODAS as informações sensíveis.
+ * Permite apenas: protocolo e porta. Tudo mais é [REDACTED].
+ * Ex: mysql://user:password@host:3306/db -> mysql://[REDACTED]:[REDACTED]@[REDACTED]:3306/[REDACTED]
+ */
+function sanitizeDatabaseUrl(url: string | undefined): string {
+  if (!url) return "(não configurado)";
+  try {
+    const parsed = new URL(url);
+    const protocol = parsed.protocol;
+    const port = parsed.port;
+    return `${protocol}//[REDACTED]:[REDACTED]@[REDACTED]${port ? ":" + port : ""}/[REDACTED]`;
+  } catch {
+    return "(URL inválida - mascarada)";
+  }
+}
+
+/**
+ * Sanitiza secret para log, mostrando apenas indicador de presença.
+ */
+function sanitizeSecret(secret: string | undefined): string {
+  if (!secret) return "(não configurado)";
+  return `[REDACTED] (${secret.length} chars)`;
+}
+
+/**
  * Carrega variáveis de ambiente de .env (apenas em desenvolvimento)
  * 
  * Esta é a ÚNICA função autorizada para carregar ENV no sistema.
@@ -55,15 +80,15 @@ export function initEnv(): void {
   if (process.env.NODE_ENV !== "production") {
     if (envExists) {
       const result = dotenv.config({ path: envPath });
-      console.log("🔥 DOTENV RESULT:", result);
+      console.log("🔥 DOTENV carregado, variáveis:", result.parsed ? Object.keys(result.parsed).join(", ") : "(nenhuma)");
       if (result.error) {
         console.error("❌ [ENV] Erro ao carregar .env:", result.error.message);
         process.exit(1);
       }
       console.log("✅ [ENV] carregado de arquivo .env (ambiente local)");
       console.log("[ENV] dotenv carregado (log 'injected env' é da biblioteca, ignorar)");
-      console.log("🔥 DATABASE_URL após load:", process.env.DATABASE_URL);
-      console.log("🔥 APP_SECRET após load:", process.env.APP_SECRET);
+      console.log("🔥 DATABASE_URL após load:", sanitizeDatabaseUrl(process.env.DATABASE_URL));
+      console.log("🔥 APP_SECRET após load:", sanitizeSecret(process.env.APP_SECRET));
     } else {
       console.log("ℹ️  [ENV] usando variáveis do runtime (sem .env)");
     }

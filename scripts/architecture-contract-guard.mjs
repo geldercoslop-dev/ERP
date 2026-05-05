@@ -231,6 +231,12 @@ const P23_G22_AUTHORIZED_FILES = [
   'drizzle/meta/0007_snapshot.json',
 ];
 
+// Janela formal P23-SEC - Env log sanitize autorizado
+const P23_SEC_AUTHORIZED_FILES = [
+  'server/_core/env/bootstrapEnv.ts',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -341,6 +347,40 @@ function isP23_G22AuthorizedPendenciasSkuSchemaUpdate(filePath) {
 }
 
 /**
+ * Verifica se arquivo tem autorização P23-SEC para env log sanitize
+ * Requer variável ERP_AUTHORIZED_CORE_ENV_UPDATE=P23_SEC_ENV_LOG_SANITIZE
+ * Permite somente:
+ *   - server/_core/env/bootstrapEnv.ts (sanitização de logs)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_SecAuthorizedCoreEnvUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_SEC_ENV_LOG_SANITIZE';
+  const envValue = process.env.ERP_AUTHORIZED_CORE_ENV_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_SEC_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-SEC formal window: ERP_AUTHORIZED_CORE_ENV_UPDATE=' + authorizedValue + ' (env log sanitize)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
  * Verifica se um arquivo está em área congelada
  */
 function isFrozen(file) {
@@ -386,6 +426,12 @@ function isFrozen(file) {
   const p23_g22Check = isP23_G22AuthorizedPendenciasSkuSchemaUpdate(file);
   if (p23_g22Check.authorized) {
     return { frozen: false, exception: true, p23_g22: p23_g22Check.reason };
+  }
+
+  // Verifica janela formal P23-SEC (env log sanitize)
+  const p23_secCheck = isP23_SecAuthorizedCoreEnvUpdate(file);
+  if (p23_secCheck.authorized) {
+    return { frozen: false, exception: true, p23_sec: p23_secCheck.reason };
   }
 
   // Verifica exceções padrão

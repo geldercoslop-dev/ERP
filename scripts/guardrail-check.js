@@ -199,6 +199,13 @@ const P23_G22_AUTHORIZED_FILES = [
   "drizzle/meta/0007_snapshot.json",
 ];
 
+// Janela formal P23-SEC - Env log sanitize autorizado
+const P23_SEC_AUTHORIZED_FILES = [
+  "server/_core/env/bootstrapEnv.ts",
+  "scripts/architecture-contract-guard.mjs",
+  "scripts/guardrail-check.js",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -298,6 +305,40 @@ function isP23_G22AuthorizedPendenciasSkuSchemaUpdate(filePath) {
     return {
       authorized: true,
       reason: "P23-G2.2-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (add sku_id nullable to pendencias)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-SEC para env log sanitize
+ * Requer variável ERP_AUTHORIZED_CORE_ENV_UPDATE=P23_SEC_ENV_LOG_SANITIZE
+ * Permite somente:
+ *   - server/_core/env/bootstrapEnv.ts (sanitização de logs)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ *   - scripts/guardrail-check.js (janela formal)
+ */
+function isP23_SecAuthorizedCoreEnvUpdate(filePath) {
+  const authorizedValue = "P23_SEC_ENV_LOG_SANITIZE";
+  const envValue = process.env.ERP_AUTHORIZED_CORE_ENV_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_SEC_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-SEC formal window: ERP_AUTHORIZED_CORE_ENV_UPDATE=" + authorizedValue + " (env log sanitize)"
     };
   }
 
@@ -616,6 +657,20 @@ function main() {
         console.log("\n📋 Arquivos P23-G2.2-B detectados:");
         violations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — " + p23_g22Check.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-SEC authorized core env update: env log sanitize
+    // Requer variável ERP_AUTHORIZED_CORE_ENV_UPDATE=P23_SEC_ENV_LOG_SANITIZE
+    // Permite somente server/_core/env/bootstrapEnv.ts, scripts/architecture-contract-guard.mjs e scripts/guardrail-check.js
+    const allP23_Sec_Authorized = violations.every(v => P23_SEC_AUTHORIZED_FILES.includes(v));
+    if (allP23_Sec_Authorized) {
+      const p23_secCheck = isP23_SecAuthorizedCoreEnvUpdate(violations[0]);
+      if (p23_secCheck.authorized) {
+        console.log("\n📋 Arquivos P23-SEC detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_secCheck.reason + "\n");
         return;
       }
     }
