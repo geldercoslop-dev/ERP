@@ -625,6 +625,129 @@ export async function decrementSkuEstoqueInExistingTransaction(
   return decrementSkuEstoqueInTx(tx, tenantId, skuId, quantidade);
 }
 
+// ============================================================================
+// API TRANSACIONAL DE AVALIAÇÃO/DÉBITO SKU PARA PEDIDOS
+// ============================================================================
+
+/**
+ * Resultado da avaliação/debito de estoque SKU em pedido.
+ * Discriminado: ou debitou com sucesso, ou identificou pendência de estoque.
+ */
+export type SkuEstoquePedidoResult =
+  | {
+      status: "DEBITADO";
+      skuId: number;
+      quantidade: number;
+      saldoAnterior: number;
+      saldoNovo: number;
+    }
+  | {
+      status: "PENDENTE_ESTOQUE";
+      skuId: number;
+      quantidade: number;
+      quantidadePendente: number;
+      saldoAnterior: number;
+    };
+
+/**
+ * Processa estoque de SKU para pedido dentro de transação existente.
+ * NÃO abre transaction() - deve ser chamada dentro de uma transação ativa.
+ * Aceita SOMENTE DbTx.
+ *
+ * Regras:
+ * - Estoque suficiente: debita e retorna DEBITADO
+ * - Estoque insuficiente + permite negativo: debita negativo e retorna DEBITADO
+ * - Estoque insuficiente + bloqueia negativo: NÃO debita, retorna PENDENTE_ESTOQUE
+ *
+ * NÃO lança erro de estoque insuficiente (exceto para parâmetros inválidos).
+ */
+// Helper interno: aplica débito de estoque SKU dentro da transação existente
+// NÃO exportar - uso interno apenas
+// NÃO abre transaction() - assume tx ativa
+// Sem regra de negócio, apenas executa o update
+async function applySkuStockDebitInTx(
+  tx: DbTx,
+  tenantId: number,
+  skuId: number,
+  saldoNovo: number
+): Promise<void> {
+  await tx
+    .update(produtoSkus)
+    .set({
+      estoque: saldoNovo,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(produtoSkus.tenantId, tenantId), eq(produtoSkus.id, skuId)));
+}
+
+export async function processSkuEstoquePedidoInExistingTransaction(
+  tx: DbTx,
+  tenantId: number,
+  skuId: number,
+  quantidade: number
+): Promise<SkuEstoquePedidoResult> {
+  assertTenantId(tenantId);
+  assertRequiredId(skuId, "skuId");
+  assertPositiveQuantity(quantidade);
+
+  const sku = await getSkuForUpdate(tx, tenantId, skuId);
+
+  const saldoAnterior = sku.estoque;
+  const saldoNovo = saldoAnterior - quantidade;
+
+  // Cenário 1: Estoque suficiente → debita e retorna DEBITADO
+  if (saldoAnterior >= quantidade) {
+    await applySkuStockDebitInTx(tx, tenantId, skuId, saldoNovo);
+
+    logger.info("SKU estoque debitado (suficiente)", {
+      tenantId,
+      payload: { skuId, saldoAnterior, saldoNovo, quantidade },
+    });
+
+    return {
+      status: "DEBITADO",
+      skuId,
+      quantidade,
+      saldoAnterior,
+      saldoNovo,
+    };
+  }
+
+  // Cenário 2: Estoque insuficiente mas permite negativo → debita e retorna DEBITADO
+  if (!sku.bloquearEstoqueNegativo) {
+    await applySkuStockDebitInTx(tx, tenantId, skuId, saldoNovo);
+
+    logger.info("SKU estoque debitado (negativo permitido)", {
+      tenantId,
+      payload: { skuId, saldoAnterior, saldoNovo, quantidade, bloquearEstoqueNegativo: false },
+    });
+
+    return {
+      status: "DEBITADO",
+      skuId,
+      quantidade,
+      saldoAnterior,
+      saldoNovo,
+    };
+  }
+
+  // Cenário 3: Estoque insuficiente e bloqueia negativo → NÃO debita, retorna PENDENTE_ESTOQUE
+  const quantidadePendente = quantidade - saldoAnterior;
+
+  logger.info("SKU estoque insuficiente (bloqueado)", {
+    tenantId,
+    payload: { skuId, saldoAnterior, quantidade, quantidadePendente },
+  });
+
+  return {
+    status: "PENDENTE_ESTOQUE",
+    skuId,
+    quantidade,
+    quantidadePendente,
+    saldoAnterior,
+  };
+}
+
 export async function decrementSkuEstoque(
   txOrDb: DbExecutor,
   tenantId: number,
@@ -705,5 +828,6 @@ export default {
   setSkuEstoque,
   decrementSkuEstoque,
   decrementSkuEstoqueInExistingTransaction,
+  processSkuEstoquePedidoInExistingTransaction,
   incrementSkuEstoque,
 };
