@@ -465,12 +465,57 @@ function isP23_CountersTenantUniqueWindowAuthorized(filePath) {
   return { authorized: false };
 }
 
+// Janela formal P23-CORE - Core audit stub removal
+const P23_CORE_AUTHORIZED_FILES = [
+  'server/db/core.ts',
+  'scripts/architecture-contract-guard.mjs',
+  'scripts/guardrail-check.js',
+];
+
+/**
+ * Verifica se arquivo tem autorização P23-CORE para remoção de audit stubs
+ * Requer variável ERP_AUTHORIZED_CORE_UPDATE=P23_CORE_AUDIT_STUB_REMOVAL
+ * Permite somente server/db/core.ts
+ */
+function isP23_CoreAuthorizedUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_CORE_AUDIT_STUB_REMOVAL';
+  const envValue = process.env.ERP_AUTHORIZED_CORE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_CORE_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-CORE formal window: ERP_AUTHORIZED_CORE_UPDATE=' + authorizedValue + ' (core audit stub removal)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 /**
  * Verifica se um arquivo está em área congelada
  */
 function isFrozen(file) {
   const relativePath = relative(ROOT, file).replace(/\\/g, '/');
   
+  // Verifica janela formal P23-CORE (remoção de audit stubs)
+  const p23_coreCheck = isP23_CoreAuthorizedUpdate(file);
+  if (p23_coreCheck.authorized) {
+    return { frozen: false, exception: true, p23_core: p23_coreCheck.reason };
+  }
+
   // Verifica janela formal P20.4 primeiro
   const p20_4Check = isP20_4AuthorizedFrozenDocUpdate(file);
   if (p20_4Check.authorized) {

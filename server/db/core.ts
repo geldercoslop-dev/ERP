@@ -460,33 +460,6 @@ export async function clienteTemPedidoDoVendedor(clienteId: number, vendedorId: 
   return row.length > 0;
 }
 
-export async function insertLeoActionLog(params: {
-  tenantId?: number | null;
-  usuario: string;
-  acao: string;
-  entidade: string;
-  dados?: string | null;
-  resultado: string;
-}): Promise<void> {
-  try {
-    if (params.tenantId == null) return;
-    await insertAuditLog({
-      tenantId: params.tenantId,
-      action: "leo_action",
-      entity: params.entidade,
-      payloadJson: JSON.stringify({
-        usuario: params.usuario,
-        acao: params.acao,
-        dados: params.dados ?? null,
-        resultado: params.resultado,
-      }),
-    });
-  } catch (error) {
-    const logger = createLogger("db-core");
-    logger.error("[db/core] insertLeoActionLog", error instanceof Error ? error : new Error(String(error)), { operation: "insertLeoActionLog" });
-  }
-}
-
 export type AuditAction =
   | "create"
   | "update"
@@ -501,40 +474,6 @@ export type AuditAction =
   | "dashboard_view"
   | "leo_action"
   | "CANCELAR_PEDIDO";
-
-/**
- * @deprecated-audit-write
- * 
- * NÃO usar diretamente.
- * 
- * REGRA:
- * Toda escrita deve passar por:
- * server/services/audit-log.service.ts
- * 
- * Motivo:
- * - sanitização
- * - validação
- * - padronização de payload
- * 
- * TODO (fase futura):
- * delegar automaticamente para audit-log.service.ts
- */
-export async function insertAuditLog(
-  params: {
-    tenantId?: number | null;
-    actorUserId?: number | null;
-    actorVendedorId?: number | null;
-    action: AuditAction;
-    entity: string;
-    entityId?: string | number | null;
-    payloadJson?: string | null;
-    traceId?: string | null;
-  },
-  _tx?: unknown
-): Promise<void> {
-  void params;
-  void _tx;
-}
 
 export async function closeDb(): Promise<void> {
   if (pool) {

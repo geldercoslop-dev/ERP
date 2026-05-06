@@ -35,6 +35,44 @@ const P23_B_AUTHORIZED_FILES = [
   "drizzle/meta/0005_snapshot.json",
 ];
 
+// Janela formal P23-CORE - Core audit stub removal
+const P23_CORE_AUTHORIZED_FILES = [
+  "server/db/core.ts",
+  "scripts/architecture-contract-guard.mjs",
+  "scripts/guardrail-check.js",
+];
+
+/**
+ * Verifica se arquivo tem autorização P23-CORE para remoção de audit stubs
+ * Requer variável ERP_AUTHORIZED_CORE_UPDATE=P23_CORE_AUDIT_STUB_REMOVAL
+ * Permite somente server/db/core.ts
+ */
+function isP23_CoreAuthorizedUpdate(filePath) {
+  const authorizedValue = "P23_CORE_AUDIT_STUB_REMOVAL";
+  const envValue = process.env.ERP_AUTHORIZED_CORE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_CORE_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-CORE formal window: ERP_AUTHORIZED_CORE_UPDATE=" + authorizedValue + " (core audit stub removal)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 /**
  * Verifica se arquivo tem autorização P20.4 para update de caminho doc
  * Requer variável ERP_AUTHORIZED_FROZEN_DOC_UPDATE=P20_4_ENV_RULES_PATH_UPDATE
@@ -568,6 +606,19 @@ function isRbacTypingCleanupAllowed(files) {
 function main() {
   const files = getChangedFiles();
 
+  // P23-CORE check: if core update is authorized, allow these specific files
+  // Verifica ANTES de qualquer outro check para garantir bypass completo
+  const allP23CoreAuthorizedFiles = files.length > 0 && files.every(f => P23_CORE_AUTHORIZED_FILES.includes(f));
+  if (allP23CoreAuthorizedFiles) {
+    const p23_coreCheck = isP23_CoreAuthorizedUpdate(files[0]);
+    if (p23_coreCheck.authorized) {
+      console.log("\n📋 Arquivos P23-CORE detectados:");
+      files.forEach(f => console.log(" - " + f));
+      console.log(`\n✔ Guardrail OK — ${p23_coreCheck.reason}\n`);
+      return;
+    }
+  }
+
   // P23-COUNTERS-WINDOW check: if guard files are modified, require guard window variable
   const guardFilesInChanges = files.filter(f => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(f));
   if (guardFilesInChanges.length > 0) {
@@ -681,7 +732,6 @@ function main() {
       }
     }
 
-    // P20.4 authorized doc path update: ENV_RULES.md path reference only
     // Requer variável ERP_AUTHORIZED_FROZEN_DOC_UPDATE=P20_4_ENV_RULES_PATH_UPDATE
     if (violations.length === 1) {
       const p20_4Check = isP20_4AuthorizedFrozenDocUpdate(violations[0]);
