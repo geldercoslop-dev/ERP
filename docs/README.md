@@ -1,4 +1,4 @@
-﻿# GRS â€“ Sistema de GestÃ£o e FinanÃ§as
+# GRS â€“ Sistema de GestÃ£o e FinanÃ§as
 
 Sistema profissional de gestÃ£o de vendas, pedidos, cargas, vendedores e financeiro. Frontend em React (Vite) e backend em Node.js (Express + tRPC), com banco MySQL.
 
@@ -70,6 +70,7 @@ Sistema profissional de gestÃ£o de vendas, pedidos, cargas, vendedores e finan
 | `npm run db:push:prod` | **NÃ£o executa** â€“ lembra de usar migrations em produÃ§Ã£o |
 | `npm run db:generate` | Gera arquivos de migraÃ§Ã£o |
 | `npm run db:migrate` | Aplica migraÃ§Ãµes pendentes no banco |
+| `npm run verify:base` | Executa validaÃ§Ãµes crÃ­ticas (Redis, MySQL, AUDIT_LOG_RUNTIME_VALIDATION) |
 | `npm run check` | Verifica TypeScript (tsc --noEmit) |
 
 ---

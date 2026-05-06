@@ -29,7 +29,6 @@ Esta pasta contém scripts que foram desativados e não fazem parte do runtime a
 
 ### Scripts de Validação (desativados)
 - `validar-db-real.mjs` - Validação de banco real
-- `verify-audit-log.mjs` - Verificação de audit log
 - `verificar-estrutura-tabelas.mjs` - Verificação de estrutura de tabelas
 
 ### Scripts de Inserção de Dados (desativados)
