@@ -474,13 +474,15 @@ const P23_CORE_AUTHORIZED_FILES = [
 
 /**
  * Verifica se arquivo tem autorização P23-CORE para remoção de audit stubs
+ * Janela histórica ENCERRADA no commit 2884615ea.
  * Requer variável ERP_AUTHORIZED_CORE_UPDATE=P23_CORE_AUDIT_STUB_REMOVAL
- * Permite somente server/db/core.ts
+ * Permite somente a lista exata de arquivos do commit 2884615ea.
  */
 function isP23_CoreAuthorizedUpdate(filePath) {
   const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
   const authorizedValue = 'P23_CORE_AUDIT_STUB_REMOVAL';
   const envValue = process.env.ERP_AUTHORIZED_CORE_UPDATE;
+  const authorizedCommit = '2884615ea';
 
   // Sem variável: bloqueia
   if (!envValue) {
@@ -492,11 +494,24 @@ function isP23_CoreAuthorizedUpdate(filePath) {
     return { authorized: false };
   }
 
+  // Verifica se o commit atual é o autorizado para esta janela histórica
+  let currentCommit = '';
+  try {
+    currentCommit = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim();
+  } catch (e) { /* ignore */ }
+
+  if (currentCommit !== authorizedCommit) {
+    return { 
+      authorized: false, 
+      reason: `P23-CORE window CLOSED. Authorized only for commit ${authorizedCommit}. Current: ${currentCommit}`
+    };
+  }
+
   // Variável correta: verifica se arquivo está na lista exata
   if (P23_CORE_AUTHORIZED_FILES.includes(relativePath)) {
     return {
       authorized: true,
-      reason: 'P23-CORE formal window: ERP_AUTHORIZED_CORE_UPDATE=' + authorizedValue + ' (core audit stub removal)'
+      reason: 'P23-CORE HISTORICAL window (LOCKED): ERP_AUTHORIZED_CORE_UPDATE=' + authorizedValue + ' (core audit stub removal)'
     };
   }
 

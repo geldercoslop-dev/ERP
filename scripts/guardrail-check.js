@@ -44,12 +44,14 @@ const P23_CORE_AUTHORIZED_FILES = [
 
 /**
  * Verifica se arquivo tem autorização P23-CORE para remoção de audit stubs
+ * Janela histórica ENCERRADA no commit 2884615ea.
  * Requer variável ERP_AUTHORIZED_CORE_UPDATE=P23_CORE_AUDIT_STUB_REMOVAL
- * Permite somente server/db/core.ts
+ * Permite somente a lista exata de arquivos do commit 2884615ea.
  */
 function isP23_CoreAuthorizedUpdate(filePath) {
   const authorizedValue = "P23_CORE_AUDIT_STUB_REMOVAL";
   const envValue = process.env.ERP_AUTHORIZED_CORE_UPDATE;
+  const authorizedCommit = "2884615ea";
 
   // Sem variável: bloqueia
   if (!envValue) {
@@ -61,11 +63,24 @@ function isP23_CoreAuthorizedUpdate(filePath) {
     return { authorized: false };
   }
 
+  // Verifica se o commit atual é o autorizado para esta janela histórica
+  let currentCommit = "";
+  try {
+    currentCommit = execSync("git rev-parse --short HEAD").toString().trim();
+  } catch (e) { /* ignore */ }
+
+  if (currentCommit !== authorizedCommit) {
+    return { 
+      authorized: false, 
+      reason: `P23-CORE window CLOSED. Authorized only for commit ${authorizedCommit}. Current: ${currentCommit}`
+    };
+  }
+
   // Variável correta: verifica se arquivo está na lista exata
   if (P23_CORE_AUTHORIZED_FILES.includes(filePath)) {
     return {
       authorized: true,
-      reason: "P23-CORE formal window: ERP_AUTHORIZED_CORE_UPDATE=" + authorizedValue + " (core audit stub removal)"
+      reason: "P23-CORE HISTORICAL window (LOCKED): ERP_AUTHORIZED_CORE_UPDATE=" + authorizedValue + " (core audit stub removal)"
     };
   }
 
@@ -607,7 +622,7 @@ function main() {
   const files = getChangedFiles();
 
   // P23-CORE check: if core update is authorized, allow these specific files
-  // Verifica ANTES de qualquer outro check para garantir bypass completo
+  // Janela histórica restrita ao commit 2884615ea
   const allP23CoreAuthorizedFiles = files.length > 0 && files.every(f => P23_CORE_AUTHORIZED_FILES.includes(f));
   if (allP23CoreAuthorizedFiles) {
     const p23_coreCheck = isP23_CoreAuthorizedUpdate(files[0]);
