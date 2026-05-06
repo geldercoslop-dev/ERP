@@ -166,24 +166,21 @@ if (failed) {
 }
 
 // ============================================================================
-// ETAPA 5: AUDIT LOG FLOW (Context-Aware - Optional in DEV)
+// ETAPA 5: AUDIT LOG FLOW (Official Runtime Validation)
 // ============================================================================
 info('\n' + '='.repeat(60));
-info('ETAPA 5: AUDIT LOG - Fluxo Runtime');
+info('ETAPA 5: AUDIT LOG - Fluxo Runtime Oficial');
 info('='.repeat(60));
 
-// Audit log validation is optional in development
-const auditLogPath = 'scripts/legacy/verify-audit-log.mjs';
-try {
-  require('fs').accessSync(auditLogPath);
-  runStep(
-    'AUDIT_LOG_VALIDATION',
-    `node ${auditLogPath}`,
-    false // Non-blocking in development
-  );
-} catch {
-  warn('⚠️  Audit log validation script not found - skipping');
-  warn('This is acceptable in development mode');
+runStep(
+  'AUDIT_LOG_RUNTIME_VALIDATION',
+  'pnpm tsx scripts/verify-audit-log-runtime.ts',
+  true // Blocking - must pass
+);
+
+if (failed) {
+  error('\n🚨 AUDIT LOG RUNTIME VALIDATION FAILED - Abortando verify:base');
+  process.exit(1);
 }
 
 // ============================================================================
