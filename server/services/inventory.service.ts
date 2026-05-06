@@ -1,5 +1,6 @@
 import { eq, and, desc, asc, sql, or, inArray, lte, gte, ne } from "drizzle-orm";
-import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index.js";
+import { getDb, getInsertId, normalizeNomeSobrenome } from "../db/index.js";
+import { insertAuditLog } from "./audit-service.js";
 import type { NewProduto as InsertProduto, InsertCor } from "../db/index.js";
 import {
   produtos,

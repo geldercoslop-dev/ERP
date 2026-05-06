@@ -1,5 +1,6 @@
 import { eq, and, desc, asc, sql, inArray, ne, getTableColumns } from "drizzle-orm";
-import { getDb, getInsertId, contasReceber, contasPagar, comissoes, pedidos, boletos, clientes, planoContas, contasFixas, insertAuditLog, caixaMensal, clienteVendedores } from "../db/index.js";
+import { getDb, getInsertId, contasReceber, contasPagar, comissoes, pedidos, boletos, clientes, planoContas, contasFixas, caixaMensal, clienteVendedores } from "../db/index.js";
+import { insertAuditLog } from "./audit-service.js";
 import { nanoid } from "nanoid";
 import { auditLog } from "../_core/audit-log.js";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";

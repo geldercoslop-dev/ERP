@@ -1,5 +1,6 @@
 import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
-import { getDb, getInsertId, cargas, pedidosCarga, pedidos, vendedores, insertAuditLog } from "../db/core.js";
+import { getDb, getInsertId, cargas, pedidosCarga, pedidos, vendedores } from "../db/core.js";
+import { insertAuditLog } from "./audit-service.js";
 import { nanoid } from "nanoid";
 import * as financeService from "./finance.service.js";
 import { ADMIN_ACTOR } from "../_core/service-actor.js";
@@ -475,7 +476,7 @@ export async function updatePedidoCarga(tenantId: number, pedidoCargaId: number,
     entityId: String(pedidoCargaId),
     payloadJson: JSON.stringify(data),
     traceId: nanoid(10),
-  }, dbConn);
+  });
 
   return { success: true };
 }

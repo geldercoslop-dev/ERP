@@ -1,5 +1,6 @@
 import { eq, and, desc, asc, sql } from "drizzle-orm";
-import { getDb, promocoes, promocoesItens, insertAuditLog, getInsertId } from "../db/index.js";
+import { getDb, promocoes, promocoesItens, getInsertId } from "../db/index.js";
+import { insertAuditLog } from "./audit-service.js";
 import { DbResult, toDbResult } from '../_core/db-result.js';
 import { nanoid } from "nanoid";
 import { z } from "zod";

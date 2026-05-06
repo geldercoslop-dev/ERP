@@ -1,4 +1,5 @@
-import { getDb, insertAuditLog } from "../db/index.js";
+import { getDb } from "../db/index.js";
+import { insertAuditLog } from "./audit-service.js";
 import type { DiagnosticResult } from "../tools/system-diagnostic.js";
 
 export async function checkDiagnosticDatabaseHealth(

@@ -6,7 +6,8 @@
  */
 
 import { eq, and, desc } from "drizzle-orm";
-import { getDb, insertAuditLog } from "../db/index.js";
+import { getDb } from "../db/index.js";
+import { insertAuditLog } from "./audit-service.js";
 import { leoApprovals } from "../../drizzle/schema.js";
 import { ValidationError, InfrastructureError } from "../_core/errors/typed-errors.js";
 import { getInsertId } from "../db/core.js";
@@ -160,7 +161,7 @@ export async function createPendingApproval(input: CreatePendingApprovalInput): 
     tenantId: input.tenantId,
     action: "create",
     entity: "leo_approval",
-    entityId: approvalId,
+    entityId: String(approvalId),
     payloadJson: JSON.stringify({ actionId, action: input.action, entity: input.entity, riskLevel: input.riskLevel }),
   });
 
@@ -234,7 +235,7 @@ export async function approveAction(
     tenantId,
     action: "update",
     entity: "leo_approval",
-    entityId: approval.id,
+    entityId: String(approval.id),
     actorUserId: approverId,
     payloadJson: JSON.stringify({ actionId, operation: "approve", previousStatus: approval.status }),
   });
@@ -305,7 +306,7 @@ export async function rejectAction(
     tenantId,
     action: "update",
     entity: "leo_approval",
-    entityId: approval.id,
+    entityId: String(approval.id),
     actorUserId: rejectorId,
     payloadJson: JSON.stringify({ actionId, operation: "reject", previousStatus: approval.status }),
   });
@@ -405,7 +406,7 @@ export async function expireOldApprovals(tenantId: number): Promise<number> {
         tenantId,
         action: "update",
         entity: "leo_approval",
-        entityId: approval.id,
+        entityId: String(approval.id),
         payloadJson: JSON.stringify({ actionId: approval.actionId, operation: "expire", expiredAt: now.toISOString() }),
       });
     }
@@ -450,7 +451,7 @@ export async function executeApprovedAction(actionId: string, tenantId: number):
     tenantId,
     action: "create",
     entity: "leo_approval_execution",
-    entityId: approval.id,
+    entityId: String(approval.id),
     payloadJson: JSON.stringify({ actionId, executedAt: new Date().toISOString() }),
   });
 

@@ -1,5 +1,5 @@
 import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
-import { getDb, getInsertId, insertAuditLog, normalizeNomeSobrenome } from "../db/index.js";
+import { getDb, getInsertId, normalizeNomeSobrenome } from "../db/index.js";
 import type { NewUser as InsertUser, NewVendedor as InsertVendedor, Database } from "../db/index.js";
 import type { User, Vendedor } from "../db/index.js";
 import { users, vendedores } from "../../drizzle/schema.js";

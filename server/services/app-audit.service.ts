@@ -21,7 +21,7 @@
  * Delegar diretamente para audit-log.service.ts
  * Remover dependência de db.insertAuditLog
  */
-import { insertAuditLog } from "../db/core.js";
+import { insertAuditLog } from "./audit-service.js";
 
 /**
  * Auditoria para ações sintéticas / LEO (payload em JSON).
