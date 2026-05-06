@@ -7,12 +7,12 @@ import {
   clienteVendedores,
   vendedores,
   pedidos,
-  insertAuditLog,
   normalizeTelefone,
   normalizeNomeSobrenome,
   NewCliente,
   type Database,
 } from "../db/core.js";
+import { insertAuditLog } from "./audit-service.js";
 import type { Cliente, ClienteVendedor } from "../db/core.js";
 import { ensureArray, ensureObject, ensureCreatedResult } from "../_core/service-response.js";
 import { validateTenantAccess, globalDbAuditor } from "../_core/tenant-validator.js";
