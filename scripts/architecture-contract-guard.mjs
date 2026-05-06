@@ -235,6 +235,21 @@ const P23_G22_AUTHORIZED_FILES = [
 const P23_SEC_AUTHORIZED_FILES = [
   'server/_core/env/bootstrapEnv.ts',
   'scripts/architecture-contract-guard.mjs',
+  'scripts/guardrail-check.js',
+];
+
+// Janela formal P23-COUNTERS - Schema counters composite unique fix
+const P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0008_counters_tenant_unique_fix.sql',
+  'drizzle/meta/0008_snapshot.json',
+];
+
+// Janela formal P23-COUNTERS-WINDOW - Guard files for counters migration
+const P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
 ];
 
 /**
@@ -381,6 +396,76 @@ function isP23_SecAuthorizedCoreEnvUpdate(filePath) {
 }
 
 /**
+ * Verifica se arquivo tem autorização P23-COUNTERS para schema counters composite unique fix
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_COUNTERS_TENANT_UNIQUE_FIX
+ * Permite somente os 4 arquivos específicos da migration 0008:
+ *   - drizzle/schema.ts
+ *   - drizzle/meta/_journal.json
+ *   - drizzle/0008_counters_tenant_unique_fix.sql
+ *   - drizzle/meta/0008_snapshot.json
+ */
+function isP23_CountersTenantUniqueFixAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_COUNTERS_TENANT_UNIQUE_FIX';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-COUNTERS formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (counters composite unique fix)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-COUNTERS-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P23_COUNTERS_TENANT_UNIQUE_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_CountersTenantUniqueWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_COUNTERS_TENANT_UNIQUE_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-COUNTERS-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for counters migration)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
  * Verifica se um arquivo está em área congelada
  */
 function isFrozen(file) {
@@ -434,9 +519,24 @@ function isFrozen(file) {
     return { frozen: false, exception: true, p23_sec: p23_secCheck.reason };
   }
 
+  // Verifica janela formal P23-COUNTERS (schema counters composite unique fix)
+  const p23_countersCheck = isP23_CountersTenantUniqueFixAuthorized(file);
+  if (p23_countersCheck.authorized) {
+    return { frozen: false, exception: true, p23_counters: p23_countersCheck.reason };
+  }
+
   // Verifica exceções padrão
   for (const exception of EXCEPTIONS) {
     if (relativePath.startsWith(exception) || relativePath === exception) {
+      // Exceção especial: guard files requerem janela formal P23-COUNTERS-WINDOW
+      if (relativePath === 'scripts/guardrail-check.js' || relativePath === 'scripts/architecture-contract-guard.mjs') {
+        const p23_countersWindowCheck = isP23_CountersTenantUniqueWindowAuthorized(file);
+        if (p23_countersWindowCheck.authorized) {
+          return { frozen: false, exception: true, p23_counters_window: p23_countersWindowCheck.reason };
+        }
+        // Se não tiver autorização da janela, trata como congelado
+        return { frozen: true, pattern: 'scripts/', guard_window_required: true };
+      }
       // Exceção especial: relations.ts e entities.ts precisam passar no drizzle-schema-guard
       if (relativePath === 'drizzle/relations.ts' || relativePath === 'shared/types/entities.ts') {
         return { frozen: true, exception: 'drizzle-check-required' };

@@ -206,6 +206,20 @@ const P23_SEC_AUTHORIZED_FILES = [
   "scripts/guardrail-check.js",
 ];
 
+// Janela formal P23-COUNTERS - Schema counters composite unique fix
+const P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES = [
+  "drizzle/schema.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/0008_counters_tenant_unique_fix.sql",
+  "drizzle/meta/0008_snapshot.json",
+];
+
+// Janela formal P23-COUNTERS-WINDOW - Guard files for counters migration
+const P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -339,6 +353,74 @@ function isP23_SecAuthorizedCoreEnvUpdate(filePath) {
     return {
       authorized: true,
       reason: "P23-SEC formal window: ERP_AUTHORIZED_CORE_ENV_UPDATE=" + authorizedValue + " (env log sanitize)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-COUNTERS para schema counters composite unique fix
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_COUNTERS_TENANT_UNIQUE_FIX
+ * Permite somente os 4 arquivos específicos da migration 0008:
+ *   - drizzle/schema.ts
+ *   - drizzle/meta/_journal.json
+ *   - drizzle/0008_counters_tenant_unique_fix.sql
+ *   - drizzle/meta/0008_snapshot.json
+ */
+function isP23_CountersTenantUniqueFixAuthorized(filePath) {
+  const authorizedValue = "P23_COUNTERS_TENANT_UNIQUE_FIX";
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-COUNTERS formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (counters composite unique fix)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-COUNTERS-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P23_COUNTERS_TENANT_UNIQUE_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_CountersTenantUniqueWindowAuthorized(filePath) {
+  const authorizedValue = "P23_COUNTERS_TENANT_UNIQUE_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-COUNTERS-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for counters migration)"
     };
   }
 
@@ -486,6 +568,30 @@ function isRbacTypingCleanupAllowed(files) {
 function main() {
   const files = getChangedFiles();
 
+  // P23-COUNTERS-WINDOW check: if guard files are modified, require guard window variable
+  const guardFilesInChanges = files.filter(f => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (guardFilesInChanges.length > 0) {
+    const p23_countersWindowCheck = isP23_CountersTenantUniqueWindowAuthorized(guardFilesInChanges[0]);
+    if (!p23_countersWindowCheck.authorized) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos de guard bloqueados modificados:\n");
+      guardFilesInChanges.forEach(f => console.error(" - " + f));
+      console.error("\nDOC BLOQUEADO — Guard files requerem ERP_AUTHORIZED_GUARD_UPDATE=P23_COUNTERS_TENANT_UNIQUE_WINDOW\n");
+      process.exit(1);
+    }
+    // If guard files are authorized, remove them from files for further checks
+    const nonGuardFiles = files.filter(f => !P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(f));
+    if (nonGuardFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-COUNTERS-WINDOW detectados:");
+      guardFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — " + p23_countersWindowCheck.reason + "\n");
+      return;
+    }
+    // Continue checking non-guard files
+    files.length = 0;
+    files.push(...nonGuardFiles);
+  }
+
   // P23-E authorized bootstrap update: migrate runner DB-only bootstrap
   // Requer variável ERP_AUTHORIZED_BOOTSTRAP_UPDATE=P23_E_MIGRATE_RUNNER_DB_ONLY
   // Permite somente server/_core/bootstrap.ts e server/scripts/run-migrate.ts
@@ -505,6 +611,29 @@ function main() {
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
+    // P23-COUNTERS-WINDOW check: if guard files are in violations, require guard window variable
+    const guardFilesInViolations = violations.filter(v => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (guardFilesInViolations.length > 0) {
+      const p23_countersWindowCheck = isP23_CountersTenantUniqueWindowAuthorized(guardFilesInViolations[0]);
+      if (!p23_countersWindowCheck.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivos de guard bloqueados modificados:\n");
+        guardFilesInViolations.forEach(f => console.error(" - " + f));
+        console.error("\nDOC BLOQUEADO — Guard files requerem ERP_AUTHORIZED_GUARD_UPDATE=P23_COUNTERS_TENANT_UNIQUE_WINDOW\n");
+        process.exit(1);
+      }
+      // If guard files are authorized, remove them from violations for further checks
+      const nonGuardViolations = violations.filter(v => !P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(v));
+      if (nonGuardViolations.length === 0) {
+        console.log("\n📋 Arquivos P23-COUNTERS-WINDOW detectados:");
+        guardFilesInViolations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_countersWindowCheck.reason + "\n");
+        return;
+      }
+      violations.length = 0;
+      violations.push(...nonGuardViolations);
+    }
+
     // Verifica se são apenas os arquivos permitidos de schema
     if (isOnlyAllowedSchemaFiles(violations)) {
       console.log("\n📋 Arquivos de schema/types detectados:");
@@ -671,6 +800,53 @@ function main() {
         console.log("\n📋 Arquivos P23-SEC detectados:");
         violations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — " + p23_secCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-COUNTERS authorized schema update: counters composite unique fix
+    // Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_COUNTERS_TENANT_UNIQUE_FIX
+    // Permite somente os 4 arquivos específicos da migration 0008
+    const allP23_Counters_Authorized = violations.every(v => P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES.includes(v));
+    if (allP23_Counters_Authorized) {
+      const p23_countersCheck = isP23_CountersTenantUniqueFixAuthorized(violations[0]);
+      if (p23_countersCheck.authorized) {
+        console.log("\n📋 Arquivos P23-COUNTERS detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_countersCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-COUNTERS-WINDOW authorized guard update: guard files for counters migration
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P23_COUNTERS_TENANT_UNIQUE_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allP23_CountersWindow_Authorized = violations.every(v => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allP23_CountersWindow_Authorized) {
+      const p23_countersWindowCheck = isP23_CountersTenantUniqueWindowAuthorized(violations[0]);
+      if (p23_countersWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P23-COUNTERS-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_countersWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-COUNTERS mixed case: both drizzle files and guard files staged
+    // Requires BOTH ERP_AUTHORIZED_SCHEMA_UPDATE and ERP_AUTHORIZED_GUARD_UPDATE
+    const hasDrizzleFiles = violations.some(v => P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES.includes(v));
+    const hasGuardFiles = violations.some(v => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(v));
+    const onlyCountersOrGuardFiles = violations.every(v => 
+      P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES.includes(v) || 
+      P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(v)
+    );
+    if (hasDrizzleFiles && hasGuardFiles && onlyCountersOrGuardFiles) {
+      const p23_countersCheck = isP23_CountersTenantUniqueFixAuthorized(violations.find(v => P23_COUNTERS_TENANT_UNIQUE_FIX_AUTHORIZED_FILES.includes(v)));
+      const p23_countersWindowCheck = isP23_CountersTenantUniqueWindowAuthorized(violations.find(v => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(v)));
+      if (p23_countersCheck.authorized && p23_countersWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P23-COUNTERS + P23-COUNTERS-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_countersCheck.reason + " + " + p23_countersWindowCheck.reason + "\n");
         return;
       }
     }

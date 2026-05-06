@@ -563,13 +563,14 @@ export const counters = mysqlTable(
   {
     id: int("id").primaryKey().autoincrement(),
     tenantId: int("tenant_id").notNull(),
-    name: varchar("name", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 50 }).notNull(),
     seq: int("seq").notNull().default(0),
     free: text("free"),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
     countersTenantNameIdx: index("counters_tenant_name_idx").on(table.tenantId, table.name),
+    countersTenantNameUnique: unique("counters_tenant_name_unique").on(table.tenantId, table.name),
   }),
 );
 

@@ -43,6 +43,13 @@
       "when": 1777960500000,
       "tag": "0007_add_sku_id_to_pendencias",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1778092800000,
+      "tag": "0008_counters_tenant_unique_fix",
+      "breakpoints": true
     }
   ]
 }
