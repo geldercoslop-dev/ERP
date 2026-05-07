@@ -5,21 +5,17 @@
  * 
  * PAPEL:
  * - Auditoria de ações sintéticas LEO
- * - Delega para db.insertAuditLog (que deve delegar para audit-log.service.ts)
+ * - Delega para audit-service.ts (serviço oficial)
  * 
  * REGRA DE ARQUITETURA:
- * Este é um serviço ESPECÍFICO para LEO, não o serviço oficial.
+ * Este é um serviço ESPECÍFICO para LEO, não o serviço oficial de auditoria.
  * 
  * Fluxo:
- * app-audit.service.ts → db.insertAuditLog → audit-log.service.ts (oficial)
+ * app-audit.service.ts → audit-service.ts (oficial)
  * 
  * Motivo:
  * - Payload específico LEO
  * - Caso de uso específico
- * 
- * TODO (fase futura):
- * Delegar diretamente para audit-log.service.ts
- * Remover dependência de db.insertAuditLog
  */
 import { insertAuditLog } from "./audit-service.js";
 
