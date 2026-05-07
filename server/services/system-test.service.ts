@@ -6,8 +6,10 @@
  */
 
 import { runStockTransaction, runTransaction } from './db-transaction.js';
-import { getPool } from '../db/index.js';
+import { getPool, getDb, idempotencyKeys, pedidos } from '../db/index.js';
+import { auditLogs } from '../../drizzle/schema.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
+import { eq, and, desc } from 'drizzle-orm';
 
 export interface ConcurrencyTestResult {
   success: boolean;
@@ -333,4 +335,86 @@ export async function testDeadlock(
       }
     };
   }
+}
+
+/**
+ * Métodos de infraestrutura para testes de concorrência
+ * APENAS PARA TESTES - NÃO USAR EM PRODUÇÃO
+ */
+
+export interface TestIdempotencyKey {
+  id: number;
+  tenantId: number;
+}
+
+export interface TestPedido {
+  numero: number;
+  clienteNome: string;
+  tenantId: number;
+}
+
+export interface TestAuditLog {
+  entity: string;
+  tenantId: number;
+  createdAt: Date;
+}
+
+/** Limpa todas as chaves de idempotência do banco para o tenant */
+export async function clearConcurrencyTestIdempotencyKeys(tenantId: number): Promise<void> {
+  const db = await getDb();
+  if (db) {
+    await db.delete(idempotencyKeys).where(eq(idempotencyKeys.tenantId, tenantId));
+  }
+}
+
+/** Lista pedidos filtrados por tenant e nome do cliente */
+export async function listConcurrencyTestPedidos(tenantId: number, clienteNome: string): Promise<TestPedido[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const results = await db.select({
+    numero: pedidos.numero,
+    clienteNome: pedidos.clienteNome,
+    tenantId: pedidos.tenantId
+  }).from(pedidos).where(and(eq(pedidos.tenantId, tenantId), eq(pedidos.clienteNome, clienteNome)));
+  
+  // Garantir tipagem correta para o TSC
+  return results.map(r => ({
+    numero: Number(r.numero),
+    clienteNome: String(r.clienteNome),
+    tenantId: Number(r.tenantId)
+  }));
+}
+
+/** Lista registros de idempotência para o tenant */
+export async function listConcurrencyTestIdempotencyKeys(tenantId: number): Promise<TestIdempotencyKey[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const results = await db.select({
+    id: idempotencyKeys.id,
+    tenantId: idempotencyKeys.tenantId
+  }).from(idempotencyKeys).where(eq(idempotencyKeys.tenantId, tenantId));
+  
+  return results.map(r => ({
+    id: Number(r.id),
+    tenantId: Number(r.tenantId)
+  }));
+}
+
+/** Lista registros de auditoria filtrados por tenant e entidade */
+export async function listConcurrencyTestAuditLogs(tenantId: number, entity: string): Promise<TestAuditLog[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const results = await db.select({
+    entity: auditLogs.entity,
+    tenantId: auditLogs.tenantId,
+    createdAt: auditLogs.createdAt
+  }).from(auditLogs)
+    .where(and(eq(auditLogs.tenantId, tenantId), eq(auditLogs.entity, entity)))
+    .orderBy(desc(auditLogs.createdAt));
+  
+  return results.map(r => ({
+    entity: String(r.entity),
+    tenantId: Number(r.tenantId),
+    createdAt: r.createdAt
+  }));
 }

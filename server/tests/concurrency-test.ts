@@ -1,12 +1,25 @@
 import { createPedidoSafe } from '../services/orders.service.js';
-import { getDb, pedidos, idempotencyKeys } from '../db/index.js';
-import { auditLogs } from "../../drizzle/schema.js";
-import { eq } from 'drizzle-orm';
 import { runWithServiceInvocationAsync, buildBootstrapInvocation } from '../_core/service-entry-guard.js';
 import { initEnv } from '../_core/env/bootstrapEnv.js';
+import { type ServiceActor } from '../_core/service-actor.js';
+import { 
+  clearConcurrencyTestIdempotencyKeys, 
+  listConcurrencyTestPedidos, 
+  listConcurrencyTestIdempotencyKeys, 
+  listConcurrencyTestAuditLogs,
+  type TestPedido,
+  type TestAuditLog
+} from '../services/system-test.service.js';
 
 // Load ENV explicitly (NO import-time side effects)
 initEnv();
+
+// Ator padrão para testes de concorrência (ServiceActor completo)
+const TEST_ACTOR: ServiceActor = {
+  role: 'vendedor',
+  userId: 1,
+  vendedorId: 1
+};
 
 // Override env vars after loadEnv to ensure they meet validation requirements
 process.env.APP_SECRET = 'a'.repeat(128);
@@ -65,21 +78,17 @@ async function testConcurrencyReal() {
     };
 
     const startTime = Date.now();
-    let db: any;
 
     try {
-      // Limpar registros de idempotência antes do teste
-      db = await getDb();
-      if (db) {
-        await db.delete(idempotencyKeys);
-        console.log('✅ Tabela de idempotência limpa');
-      }
+      // Limpar registros de idempotência antes do teste via service permitido
+      await clearConcurrencyTestIdempotencyKeys(tenantId);
+      console.log('✅ Tabela de idempotência limpa via service');
 
       // 🔄 SIMULAR 20 REQUESTS SIMULTÂNEOS
       console.log('🚀 Enviando 20 requests simultâneos...');
     
       const promises = Array.from({ length: 20 }, (_, i) => 
-        createPedidoSafe(tenantId, pedidoData, { vendedorId: 1 })
+        createPedidoSafe(tenantId, pedidoData, TEST_ACTOR)
       );
 
       const results = await Promise.allSettled(promises);
@@ -88,17 +97,18 @@ async function testConcurrencyReal() {
       console.log(`⏱️  Tempo total: ${duration}ms`);
       console.log('📊 RESULTADOS:');
       
-      const successfulResults: any[] = [];
-      const failedResults: any[] = [];
+      const successfulResults: unknown[] = [];
+      const failedResults: unknown[] = [];
       
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           successfulResults.push(result.value);
+          const val = result.value as { success: boolean; pedidoId?: number; numero?: string; status?: string };
           console.log(`Request ${index + 1}:`, {
-            success: result.value.success,
-            pedidoId: result.value.pedidoId,
-            numero: result.value.numero,
-            status: result.value.status
+            success: val.success,
+            pedidoId: val.pedidoId,
+            numero: val.numero,
+            status: val.status
           });
         } else {
           failedResults.push(result.reason);
@@ -114,58 +124,47 @@ async function testConcurrencyReal() {
       console.log(`✅ Requests bem-sucedidos: ${successfulCount}`);
       console.log(`❌ Requests falhados: ${failedCount}`);
       
-      // Verificar duplicação no banco
-      const db2 = await getDb();
-      if (db2) {
-        const allPedidos = await db2.select().from(pedidos).where(eq(pedidos.tenantId, tenantId));
-        const testPedidos = allPedidos.filter((p: any) => p.clienteNome === 'Cliente Teste Concorrência');
-        
-        console.log(`📈 Total de pedidos no banco (tenant): ${allPedidos.length}`);
-        console.log(`📈 Pedidos criados no teste: ${testPedidos.length}`);
-        
-        const idempotencyRecords = await db2.select().from(idempotencyKeys);
-        console.log(`🔑 Registros de idempotência: ${idempotencyRecords.length}`);
+      // Verificar duplicação no banco via service permitido
+      const allPedidos = await listConcurrencyTestPedidos(tenantId, 'Cliente Teste Concorrência');
+      const testPedidos = allPedidos; // Já filtrado no service
+      
+      console.log(`📈 Total de pedidos de teste no banco: ${allPedidos.length}`);
+      
+      const idempotencyRecords = await listConcurrencyTestIdempotencyKeys(tenantId);   
+      console.log(`🔑 Registros de idempotência: ${idempotencyRecords.length}`);
 
-        // Verificar duplicação de números
-        const numeros = testPedidos.map((p: any) => p.numero);
-        const uniqueNumeros = new Set(numeros);
-        console.log(`🔢 Números gerados: ${numeros.length}`);
-        console.log(`🔢 Números únicos: ${uniqueNumeros.size}`);
-        
-        if (numeros.length !== uniqueNumeros.size) {
-          console.log('❌ DUPLICAÇÃO DE NÚMEROS DETECTADA!');
-          const duplicates = numeros.filter((n, i) => numeros.indexOf(n) !== i);
-          console.log('Números duplicados:', duplicates);
-        }
-
-        // Verificar audit_log
-        const auditRecords = await db2.select().from(auditLogs)
-          .where(eq(auditLogs.tenantId, tenantId))
-          .orderBy((auditLogs: any) => auditLogs.createdAt);
-        
-        const testAuditRecords = auditRecords.filter((r: any) => 
-          r.entity === 'pedido' || r.module === 'pedidos'
-        );
-        
-        console.log(`📋 Total audit_log (tenant): ${auditRecords.length}`);
-        console.log(`📋 Audit_log do teste: ${testAuditRecords.length}`);
-        
-        return {
-          success: true,
-          successfulCount,
-          failedCount,
-          pedidosCriados: testPedidos.length,
-          numerosUnicos: uniqueNumeros.size,
-          idempotencyRecords: idempotencyRecords.length,
-          auditRecords: testAuditRecords.length,
-          duration,
-          hasDuplication: numeros.length !== uniqueNumeros.size
-        };
+      // Verificar duplicação de números
+      const numeros = testPedidos.map((p: TestPedido) => p.numero);
+      const uniqueNumeros = new Set(numeros);
+      console.log(`🔢 Números gerados: ${numeros.length}`);
+      console.log(`🔢 Números únicos: ${uniqueNumeros.size}`);
+      
+      if (numeros.length !== uniqueNumeros.size) {
+        console.log('❌ DUPLICAÇÃO DE NÚMEROS DETECTADA!');
+        const duplicates = numeros.filter((n: number, i: number) => numeros.indexOf(n) !== i);
+        console.log('Números duplicados:', duplicates);
       }
+
+      // Verificar audit_log via service permitido
+      const auditRecords = await listConcurrencyTestAuditLogs(tenantId, 'pedido');
+      
+      const testAuditRecords = auditRecords.filter((r: TestAuditLog) => 
+        r.entity === 'pedido'
+      );
+      
+      console.log(`📋 Total audit_log do pedido no tenant: ${auditRecords.length}`);
+      console.log(`📋 Audit_log do teste: ${testAuditRecords.length}`);
       
       return {
-        success: false,
-        error: 'DB connection failed'
+        success: true,
+        successfulCount,
+        failedCount,
+        pedidosCriados: testPedidos.length,
+        numerosUnicos: uniqueNumeros.size,
+        idempotencyRecords: idempotencyRecords.length,
+        auditRecords: testAuditRecords.length,
+        duration,
+        hasDuplication: numeros.length !== uniqueNumeros.size
       };
       
     } catch (error) {
@@ -220,7 +219,7 @@ async function testEstoqueLock() {
     };
 
     try {
-      const result = await createPedidoSafe(tenantId, pedidoDataEstoqueBaixo, { vendedorId: 1 });
+      const result = await createPedidoSafe(tenantId, pedidoDataEstoqueBaixo, TEST_ACTOR);
     
       console.log('📊 Resultado com estoque insuficiente:', {
         success: result.success,
