@@ -57,8 +57,9 @@ describe("LEO / pedidos — isolamento e permissões", () => {
     expect(() => resolveVendedorIdForCreate(baseInput, ADMIN_ACTOR)).toThrow();
   });
 
-  it("resolveVendedorIdForCreate: legado servidor sem role usa vendedorId do ator", () => {
-    const id = resolveVendedorIdForCreate(baseInput, { vendedorId: 7 });
-    expect(id).toBe(7);
+  it("resolveVendedorIdForCreate: actor ausente é rejeitado", () => {
+    expect(() => resolveVendedorIdForCreate(baseInput, undefined)).toThrow(
+      /actor obrigatório com role explícito/
+    );
   });
 });

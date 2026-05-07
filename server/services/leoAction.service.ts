@@ -94,7 +94,7 @@ function actorForCreatePedido(actor: LeoActor): ordersService.CreatePedidoActorA
   if (r === "vendedor" && actor.vendedorId != null && actor.vendedorId > 0) {
     return { role: "vendedor", vendedorId: actor.vendedorId, userId: actor.userId };
   }
-  return { userId: actor.userId, vendedorId: actor.vendedorId };
+  throw new Error(`LEO actor inválido para criar pedido: role='${actor.role}', vendedorId=${actor.vendedorId}. Esperado 'admin' ou 'vendedor' com vendedorId válido.`);
 }
 
 function appendLog(entry: LeoActionLogEntry): void {

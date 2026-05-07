@@ -256,38 +256,38 @@ export interface CreatePedidoSafeInput {
   }>;
 }
 
-/** Ator em criação de pedido: papel explícito ou legado `{ userId?, vendedorId? }` do servidor. */
-export type CreatePedidoActorArg =
-  | (ServiceActor & { userId?: number })
-  | { userId?: number; vendedorId?: number };
+/** Ator em criação de pedido: somente ServiceActor com role explícito. */
+export type CreatePedidoActorArg = ServiceActor & { userId?: number };
 
 /**
  * Quem define o vendedor do pedido:
  * - vendedor: sempre actor.vendedorId (ignora payload).
  * - admin: somente `trustedVendedorId` (sessão/API confiável), nunca input externo/LLM.
- * - legado sem role: vendedorId do ator de servidor ou, se ausente, input (testes/scripts internos).
+ * - actor ausente, parcial ou sem role: erro de segurança.
  */
 export function resolveVendedorIdForCreate(
   input: CreatePedidoSafeInput,
   actor?: CreatePedidoActorArg,
   trustedVendedorId?: number
 ): number {
-  if (actor && "role" in actor && actor.role === "vendedor") {
+  if (!actor || !actor.role) {
+    throw new ValidationError("actor obrigatório com role explícito (vendedor ou admin) para criar pedido");
+  }
+
+  if (actor.role === "vendedor") {
     assertVendedorActor(actor);
     return actor.vendedorId;
   }
-  if (actor && "role" in actor && actor.role === "admin") {
+
+  if (actor.role === "admin") {
     const tid = trustedVendedorId;
     if (tid != null && Number.isFinite(tid) && tid > 0) {
       return Math.floor(tid);
     }
     throw new ValidationError("vendedor do pedido (admin): informe trustedVendedorId da sessão; input.vendedorId não é aceito");
   }
-  const legacyVid = (actor as { vendedorId?: number } | undefined)?.vendedorId;
-  if (legacyVid != null && Number(legacyVid) > 0) {
-    return Number(legacyVid);
-  }
-  return Number(input.vendedorId);
+
+  throw new ValidationError(`role de actor inválido: ${actor.role}; esperado 'vendedor' ou 'admin'`);
 }
 
 export async function createPedidoSafe(
