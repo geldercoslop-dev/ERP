@@ -137,7 +137,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
           custo: 50,
         },
       ],
-    });
+    }, actorVendedorA);
     if (!pedidoAResult.success || !pedidoAResult.pedidoId) {
       throw new Error("Falha createPedidoSafe A");
     }
@@ -162,7 +162,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
           custo: 50,
         },
       ],
-    });
+    }, actorVendedorB);
     if (!pedidoBResult.success || !pedidoBResult.pedidoId) {
       throw new Error("Falha createPedidoSafe B");
     }

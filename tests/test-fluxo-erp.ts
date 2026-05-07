@@ -2,6 +2,7 @@
 import { createCliente, getClienteById } from './server/services/clientes.service';
 import { createProduto, getProdutoById } from './server/services/inventory.service';
 import { createPedidoSafe, getPedidoById } from './server/services/orders.service';
+import { ADMIN_ACTOR } from './server/_core/service-actor';
 
 interface FluxoResult {
   cliente: { id: number; nome: string } | null;
@@ -71,7 +72,7 @@ async function testarFluxoCompletoERP(): Promise<FluxoResult> {
           valorUnitario: 99.99
         }
       ]
-    });
+    }, ADMIN_ACTOR, 1);
     
     if (!pedidoResult.success) {
       erros.push(`Falha ao criar pedido: ${JSON.stringify(pedidoResult)}`);
@@ -131,7 +132,7 @@ async function testarErroERollback(): Promise<{ sucesso: boolean; erros: string[
           valorUnitario: 99.99
         }
       ]
-    });
+    }, ADMIN_ACTOR, 1);
     
     if (resultado.success) {
       erros.push('ERRO: Pedido criado com dados inválidos (deveria falhar)');
@@ -185,7 +186,7 @@ async function testarDuploClique(): Promise<{ sucesso: boolean; duplicados: numb
             valorUnitario: 50.00
           }
         ]
-      })
+      }, ADMIN_ACTOR, 1)
     );
     
     const results = await Promise.all(promises);

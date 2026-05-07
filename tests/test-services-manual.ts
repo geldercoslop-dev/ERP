@@ -15,6 +15,7 @@ import {
   createPedidoSafe, 
   getPedidoById 
 } from './server/services/orders.service';
+import { ADMIN_ACTOR } from './server/_core/service-actor';
 
 async function testServices() {
   console.log('🧪 INICIANDO TESTES MANUAIS DOS SERVICES\n');
@@ -80,7 +81,7 @@ async function testServices() {
       itens: [
         { produtoId: 1, quantidade: 1, valorUnitario: 100 }
       ]
-    });
+    }, ADMIN_ACTOR, 1);
     console.log('✅ createPedidoSafe:', pedidoResult); // Deve ter { id: number }
     
     // Test get by ID

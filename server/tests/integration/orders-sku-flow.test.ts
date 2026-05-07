@@ -15,6 +15,7 @@ import {
   createPedidoSafe,
   getPedidoById,
 } from "../../services/orders.service.js";
+import { type ServiceActor } from "../../_core/service-actor.js";
 
 const TENANT_ID = 997;
 
@@ -53,11 +54,18 @@ function buildPedidoInput(s: SkuOrderScenario, item: PedidoItemInput) {
 
 async function createPedidoAndTrack(
   scenario: SkuOrderScenario,
-  item: PedidoItemInput
+  item: PedidoItemInput,
+  actor?: ServiceActor
 ) {
+  const effectiveActor: ServiceActor = actor ?? {
+    role: "vendedor",
+    userId: scenario.userId,
+    vendedorId: scenario.vendedorId,
+  };
   const result = await createPedidoSafe(
     scenario.tenantId,
-    buildPedidoInput(scenario, item)
+    buildPedidoInput(scenario, item),
+    effectiveActor
   );
   if (result.success && result.pedidoId > 0) {
     scenario.createdPedidoIds.push(result.pedidoId);
@@ -241,38 +249,42 @@ describe("SKU/PEDIDO/CANCELAMENTO - INTEGRAÇÃO VIA HELPER OFICIAL", () => {
     const scenario = await createSkuOrderScenario(TENANT_ID, { scenarioLabel: "f10-repetido-agrega" });
     try {
       const estoqueAntes = await getSkuStockForScenario(scenario.tenantId, scenario.skuAtivoId);
-      const result = await createPedidoSafe(scenario.tenantId, {
-        vendedorId: scenario.vendedorId,
-        clienteId: scenario.clienteId,
-        clienteNome: `Cliente SKU ${scenario.scenarioSuffix}`,
-        clienteTelefone: "11996000000",
-        subtotal: "200",
-        desconto: "0",
-        frete: "0",
-        total: "200",
-        itens: [
-          {
-            tipo: "CATALOGO",
-            produtoId: scenario.produtoId,
-            skuId: scenario.skuAtivoId,
-            corId: scenario.corId,
-            descricao: "SKU repetido 1",
-            quantidade: 3,
-            valorUnitario: 110,
-            custo: 10,
-          },
-          {
-            tipo: "CATALOGO",
-            produtoId: scenario.produtoId,
-            skuId: scenario.skuAtivoId,
-            corId: scenario.corId,
-            descricao: "SKU repetido 2",
-            quantidade: 2,
-            valorUnitario: 110,
-            custo: 10,
-          },
-        ],
-      });
+      const result = await createPedidoSafe(
+        scenario.tenantId,
+        {
+          vendedorId: scenario.vendedorId,
+          clienteId: scenario.clienteId,
+          clienteNome: `Cliente SKU ${scenario.scenarioSuffix}`,
+          clienteTelefone: "11996000000",
+          subtotal: "200",
+          desconto: "0",
+          frete: "0",
+          total: "200",
+          itens: [
+            {
+              tipo: "CATALOGO",
+              produtoId: scenario.produtoId,
+              skuId: scenario.skuAtivoId,
+              corId: scenario.corId,
+              descricao: "SKU repetido 1",
+              quantidade: 3,
+              valorUnitario: 110,
+              custo: 10,
+            },
+            {
+              tipo: "CATALOGO",
+              produtoId: scenario.produtoId,
+              skuId: scenario.skuAtivoId,
+              corId: scenario.corId,
+              descricao: "SKU repetido 2",
+              quantidade: 2,
+              valorUnitario: 110,
+              custo: 10,
+            },
+          ],
+        },
+        { role: "vendedor", userId: scenario.userId, vendedorId: scenario.vendedorId }
+      );
       if (result.success && result.pedidoId > 0) {
         scenario.createdPedidoIds.push(result.pedidoId);
         scenario.createdPedidoNumeros.push(result.numero);
