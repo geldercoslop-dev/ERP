@@ -524,16 +524,14 @@ export async function finalizarCarga(tenantId: number, cargaId: number) {
 }
 
 /**
- * Registra histórico de rota executada (TEMPORARIAMENTE DESABILITADO)
+ * Registra histórico de rota executada (BLOQUEADO - aguarda schema/migration historicoRotas)
  */
 export async function insertHistoricoRota(tenantId: number, registro: CreateHistoricoRotaInput) {
-  // TODO: Implementar quando tabela historicoRotas for criada
-  console.log('[logistica.service] insertHistoricoRota temporariamente desabilitado', registro);
-  return { message: "Função temporariamente desabilitada" };
+  throw new ValidationError("Histórico de rotas indisponível: tabela historicoRotas ainda não foi implementada");
 }
 
 /**
- * Lista histórico de rotas
+ * Lista histórico de rotas (BLOQUEADO - aguarda schema/migration historicoRotas)
  */
 export async function listHistoricoRotas(tenantId: number, filtros?: {
   cargaId?: number;
@@ -541,9 +539,7 @@ export async function listHistoricoRotas(tenantId: number, filtros?: {
   dataInicio?: Date;
   dataFim?: Date;
 }) {
-  // TODO: Implementar quando tabela historicoRotas for criada
-  console.log('[logistica.service] listHistoricoRotas temporariamente desabilitado');
-  return []; // Ausência legítima - funcionalidade não implementada
+  throw new ValidationError("Histórico de rotas indisponível: tabela historicoRotas ainda não foi implementada");
 }
 
 /**
