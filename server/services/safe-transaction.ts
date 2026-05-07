@@ -87,22 +87,41 @@ const TRANSACTION_ORDER = {
  */
 class SafeTransactionService {
   private static instance: SafeTransactionService;
+  private static readonly MAX_ACTIVE_TRANSACTIONS = 1000;
+  private static readonly MAX_RESOURCE_LOCKS = 1000;
+  private static readonly CLEANUP_INTERVAL_MS = 300_000; // 5 minutos
+  private static readonly DEFAULT_MAX_AGE_MS = 300_000; // 5 minutos
+
   private activeTransactions: Map<string, SafeTransaction> = new Map();
   private resourceLocks: Map<string, Promise<SafeTransaction>> = new Map();
   private cleanupTimers: Map<string, NodeJS.Timeout> = new Map();
-  
-  // TODO: Implementar cleanup automático para prevenir memory leaks
-  // - Limpar transações concluídas após timeout
-  // - Limitar tamanho máximo do Map
-  // - Adicionar verificação periódica
+  private cleanupInterval?: NodeJS.Timeout;
 
-  private constructor() {}
+  private constructor() {
+    this.startCleanupTimer();
+  }
 
   public static getInstance(): SafeTransactionService {
     if (!SafeTransactionService.instance) {
       SafeTransactionService.instance = new SafeTransactionService();
     }
     return SafeTransactionService.instance;
+  }
+
+  private startCleanupTimer(): void {
+    if (this.cleanupInterval) {
+      return;
+    }
+    this.cleanupInterval = setInterval(() => {
+      try {
+        this.cleanupOldTransactions(SafeTransactionService.DEFAULT_MAX_AGE_MS);
+      } catch (error) {
+        logger.error('Falha no cleanup periódico de transações', error instanceof Error ? error : new Error(String(error)));
+      }
+    }, SafeTransactionService.CLEANUP_INTERVAL_MS);
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
   }
 
   /**
@@ -121,6 +140,9 @@ class SafeTransactionService {
     
     const resourceKey = pedidoOp ? `pedido:${pedidoOp.pedidoId}` : 'global';
     const pending = this.resourceLocks.get(resourceKey);
+    if (!pending && this.resourceLocks.size >= SafeTransactionService.MAX_RESOURCE_LOCKS) {
+      throw new ValidationError("Limite de locks de recursos atingido");
+    }
     const run = (): Promise<SafeTransaction> =>
       this.executeNewTransaction(tenantId, pedidoOp, stockOps, financeiroOps);
     // Serializa: sempre executa após qualquer tx anterior do mesmo recurso (ok ou erro).
@@ -163,6 +185,12 @@ class SafeTransactionService {
         financeiroOpsCount: financeiroOps?.length ?? 0,
       });
 
+      if (this.activeTransactions.size >= SafeTransactionService.MAX_ACTIVE_TRANSACTIONS) {
+        this.cleanupOldTransactions(SafeTransactionService.DEFAULT_MAX_AGE_MS);
+      }
+      if (this.activeTransactions.size >= SafeTransactionService.MAX_ACTIVE_TRANSACTIONS) {
+        throw new ValidationError("Limite de transações ativas atingido");
+      }
       this.activeTransactions.set(transactionId, transaction);
 
       // Montar steps na ordem correta
