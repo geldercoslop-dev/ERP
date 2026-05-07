@@ -6,10 +6,18 @@
  */
 
 import { runStockTransaction, runTransaction } from './db-transaction.js';
-import { getPool, getDb, idempotencyKeys, pedidos } from '../db/index.js';
-import { auditLogs } from '../../drizzle/schema.js';
+import { getPool, getDb, getInsertId, idempotencyKeys, pedidos } from '../db/index.js';
+import {
+  auditLogs,
+  users,
+  vendedores,
+  clientes,
+  clienteVendedores,
+  pendencias,
+  contasReceber,
+} from '../../drizzle/schema.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 
 export interface ConcurrencyTestResult {
   success: boolean;
@@ -411,10 +419,172 @@ export async function listConcurrencyTestAuditLogs(tenantId: number, entity: str
   }).from(auditLogs)
     .where(and(eq(auditLogs.tenantId, tenantId), eq(auditLogs.entity, entity)))
     .orderBy(desc(auditLogs.createdAt));
-  
+
   return results.map(r => ({
     entity: String(r.entity),
     tenantId: Number(r.tenantId),
     createdAt: r.createdAt
   }));
+}
+
+/**
+ * Métodos de infraestrutura para pedidos-heavy.integration.test.ts
+ * APENAS PARA TESTES - NÃO USAR EM PRODUÇÃO
+ */
+
+export interface PedidosHeavyTestUserResult {
+  userId: number;
+}
+
+export interface PedidosHeavyTestVendedorResult {
+  vendedorId: number;
+}
+
+/** Cria um usuário de teste para o heavy test */
+export async function createPedidosHeavyTestUser(
+  tenantId: number,
+  openId: string,
+  name: string
+): Promise<PedidosHeavyTestUserResult> {
+  const db = await getDb();
+  if (!db) throw new Error("Sem conexão DB");
+
+  const insertResult = await db.insert(users).values({
+    tenantId,
+    openId: openId.slice(0, 64),
+    name,
+    role: "user",
+  });
+  const userId = getInsertId(insertResult);
+  if (!userId || userId <= 0) throw new Error("Falha ao criar usuário de teste heavy");
+
+  return { userId };
+}
+
+/** Cria um vendedor de teste para o heavy test */
+export async function createPedidosHeavyTestVendedor(
+  tenantId: number,
+  userId: number,
+  nome: string
+): Promise<PedidosHeavyTestVendedorResult> {
+  const db = await getDb();
+  if (!db) throw new Error("Sem conexão DB");
+
+  const insertResult = await db.insert(vendedores).values({
+    tenantId,
+    userId,
+    nome,
+    ativo: true,
+    admin: false,
+  });
+  const vendedorId = getInsertId(insertResult);
+  if (!vendedorId || vendedorId <= 0) throw new Error("Falha ao criar vendedor de teste heavy");
+
+  return { vendedorId };
+}
+
+export interface PedidosHeavyCleanupIds {
+  pedidoIds: number[];
+  clienteIds: number[];
+  vendedorIds: number[];
+  userIds: number[];
+}
+
+/** Limpa todos os dados de teste criados pelo pedidos-heavy.integration.test.ts */
+export async function cleanupPedidosHeavyTestData(
+  tenantId: number,
+  ids: PedidosHeavyCleanupIds
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Sem conexão DB");
+
+  const { pedidoIds, clienteIds, vendedorIds, userIds } = ids;
+  const errors: string[] = [];
+
+  // Buscar números dos pedidos para cleanup de contasReceber
+  const pids = pedidoIds.filter((id) => id > 0);
+  if (pids.length > 0) {
+    try {
+      const numerosRows = await db
+        .select({ numero: pedidos.numero })
+        .from(pedidos)
+        .where(and(eq(pedidos.tenantId, tenantId), inArray(pedidos.id, pids)));
+      const numeros = numerosRows.map((r) => r.numero).filter((n) => n > 0);
+
+      // Deletar pendencias por tenantId + pedidoIds
+      try {
+        await db
+          .delete(pendencias)
+          .where(and(eq(pendencias.tenantId, tenantId), inArray(pendencias.pedidoId, pids)));
+      } catch (e) {
+        errors.push(`pendencias: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      // Deletar contasReceber por tenantId + pedidoNumero
+      if (numeros.length > 0) {
+        try {
+          await db
+            .delete(contasReceber)
+            .where(and(eq(contasReceber.tenantId, tenantId), inArray(contasReceber.pedidoNumero, numeros)));
+        } catch (e) {
+          errors.push(`contasReceber: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+
+      // Deletar pedidos por tenantId + pedidoIds
+      try {
+        await db.delete(pedidos).where(and(eq(pedidos.tenantId, tenantId), inArray(pedidos.id, pids)));
+      } catch (e) {
+        errors.push(`pedidos: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    } catch (e) {
+      errors.push(`busca pedidos: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // Deletar clienteVendedores por tenantId + clienteIds
+  if (clienteIds.length > 0) {
+    try {
+      await db
+        .delete(clienteVendedores)
+        .where(and(eq(clienteVendedores.tenantId, tenantId), inArray(clienteVendedores.clienteId, clienteIds)));
+    } catch (e) {
+      errors.push(`clienteVendedores: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // Deletar clientes por tenantId + clienteIds
+  if (clienteIds.length > 0) {
+    try {
+      await db
+        .delete(clientes)
+        .where(and(eq(clientes.tenantId, tenantId), inArray(clientes.id, clienteIds)));
+    } catch (e) {
+      errors.push(`clientes: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // Deletar vendedores por tenantId + vendedorIds
+  if (vendedorIds.length > 0) {
+    try {
+      await db
+        .delete(vendedores)
+        .where(and(eq(vendedores.tenantId, tenantId), inArray(vendedores.id, vendedorIds)));
+    } catch (e) {
+      errors.push(`vendedores: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // Deletar users por tenantId + userIds
+  if (userIds.length > 0) {
+    try {
+      await db.delete(users).where(and(eq(users.tenantId, tenantId), inArray(users.id, userIds)));
+    } catch (e) {
+      errors.push(`users: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`cleanupPedidosHeavyTestData falhou: ${errors.join("; ")}`);
+  }
 }

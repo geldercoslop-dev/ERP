@@ -4,16 +4,13 @@
  */
 
 import { describe, expect } from "vitest";
-import { eq, and, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { runAsScriptService } from "../../core/service-context.js";
-import { getDb, getInsertId } from "../../db/index.js";
 import {
   afterAllWithServiceContext,
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./service-context-harness.js";
-import type { ServiceActor } from "../../_core/service-actor.js";
+import { type ServiceActor, ADMIN_ACTOR } from "../../_core/service-actor.js";
 import * as clientesService from "../../services/clientes.service.js";
 import {
   createPedidoSafe,
@@ -26,28 +23,13 @@ import {
   PedidoAccessError,
 } from "../../services/orders.service.js";
 import {
-  users,
-  vendedores,
-  clientes,
-  clienteVendedores,
-  pedidos,
-  pendencias,
-  contasReceber,
-} from "../../../drizzle/schema.js";
+  createPedidosHeavyTestUser,
+  createPedidosHeavyTestVendedor,
+  cleanupPedidosHeavyTestData,
+} from "../../services/system-test.service.js";
 
 const TENANT = 998;
 
-let DB_LIVE = false;
-try {
-  DB_LIVE = !!(await getDb());
-} catch {
-  DB_LIVE = false;
-}
-if (!DB_LIVE) {
-  console.warn("\n[pedidos-heavy] MySQL indisponível — suíte ignorada.\n");
-}
-
-let db!: NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
 let userAId = 0;
 let userBId = 0;
@@ -66,49 +48,19 @@ const pedidosCriados = new Set<number>();
 
 describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segurança + stress", () => {
   beforeAllWithServiceContext(async () => {
-    const conn = await getDb();
-    if (!conn) throw new Error("Sem conexão DB");
-    db = conn;
-
     const sfx = nanoid(8).replace(/[^0-9a-z]/gi, "h");
     phoneA = (`21998${sfx}`).slice(0, 11);
     phoneB = (`21997${sfx}`).slice(0, 11);
 
-    userAId = getInsertId(
-      await db.insert(users).values({
-        tenantId: TENANT,
-        openId: `heavy-a-${sfx}`.slice(0, 64),
-        name: "Heavy A",
-        role: "user",
-      }) as never
-    );
-    userBId = getInsertId(
-      await db.insert(users).values({
-        tenantId: TENANT,
-        openId: `heavy-b-${sfx}`.slice(0, 64),
-        name: "Heavy B",
-        role: "user",
-      }) as never
-    );
+    const userA = await createPedidosHeavyTestUser(TENANT, `heavy-a-${sfx}`, "Heavy A");
+    userAId = userA.userId;
+    const userB = await createPedidosHeavyTestUser(TENANT, `heavy-b-${sfx}`, "Heavy B");
+    userBId = userB.userId;
 
-    vendedorAId = getInsertId(
-      await db.insert(vendedores).values({
-        tenantId: TENANT,
-        userId: userAId,
-        nome: `VHeavyA ${sfx}`,
-        ativo: true,
-        admin: false,
-      }) as never
-    );
-    vendedorBId = getInsertId(
-      await db.insert(vendedores).values({
-        tenantId: TENANT,
-        userId: userBId,
-        nome: `VHeavyB ${sfx}`,
-        ativo: true,
-        admin: false,
-      }) as never
-    );
+    const vendedorA = await createPedidosHeavyTestVendedor(TENANT, userAId, `VHeavyA ${sfx}`);
+    vendedorAId = vendedorA.vendedorId;
+    const vendedorB = await createPedidosHeavyTestVendedor(TENANT, userBId, `VHeavyB ${sfx}`);
+    vendedorBId = vendedorB.vendedorId;
 
     actorA = { role: "vendedor", userId: userAId, vendedorId: vendedorAId };
     actorB = { role: "vendedor", userId: userBId, vendedorId: vendedorBId };
@@ -132,38 +84,12 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
   });
 
   afterAll(async () => {
-    const pids = [...pedidosCriados].filter((id) => id > 0);
-    if (pids.length === 0) return;
-    try {
-      const numerosRows = await db
-        .select({ numero: pedidos.numero })
-        .from(pedidos)
-        .where(and(eq(pedidos.tenantId, TENANT), inArray(pedidos.id, pids)));
-      const numeros = numerosRows.map((r) => r.numero).filter((n) => n > 0);
-
-      await db.delete(pendencias).where(inArray(pendencias.pedidoId, pids));
-      if (numeros.length > 0) {
-        await db
-          .delete(contasReceber)
-          .where(and(eq(contasReceber.tenantId, TENANT), inArray(contasReceber.pedidoNumero, numeros)));
-      }
-      await db.delete(pedidos).where(and(eq(pedidos.tenantId, TENANT), inArray(pedidos.id, pids)));
-    } catch {
-      /* melhor esforço */
-    }
-
-    try {
-      await db.delete(clienteVendedores).where(inArray(clienteVendedores.clienteId, [clienteAId, clienteBId]));
-      await db
-        .delete(clientes)
-        .where(and(eq(clientes.tenantId, TENANT), inArray(clientes.id, [clienteAId, clienteBId])));
-      await db
-        .delete(vendedores)
-        .where(and(eq(vendedores.tenantId, TENANT), inArray(vendedores.id, [vendedorAId, vendedorBId])));
-      await db.delete(users).where(and(eq(users.tenantId, TENANT), inArray(users.id, [userAId, userBId])));
-    } catch {
-      /* melhor esforço */
-    }
+    await cleanupPedidosHeavyTestData(TENANT, {
+      pedidoIds: [...pedidosCriados],
+      clienteIds: [clienteAId, clienteBId],
+      vendedorIds: [vendedorAId, vendedorBId],
+      userIds: [userAId, userBId],
+    });
   });
 
   let pedidosFluxo: number[] = [];
@@ -192,7 +118,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
             custo: 1,
           },
         ],
-      });
+      }, actorA);
       expect(r.success).toBe(true);
       expect(r.pedidoId).toBeGreaterThan(0);
       ids.push(r.pedidoId);
@@ -260,7 +186,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
         frete: "0",
         total: "1",
         itens: [],
-      })
+      }, ADMIN_ACTOR)
     ).rejects.toThrow(/pelo menos um item|item/i);
 
     await expect(
@@ -271,7 +197,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
         frete: "0",
         total: "1",
         itens: [{ tipo: "LIVRE", descricao: "x", quantidade: 1, valorUnitario: 1, custo: 0 }],
-      } as Parameters<typeof createPedidoSafe>[1])
+      } as Parameters<typeof createPedidoSafe>[1], ADMIN_ACTOR)
     ).rejects.toThrow(/clienteId|Cliente não encontrado|obrigatório/i);
 
     await expect(
@@ -293,7 +219,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
             custo: 0,
           },
         ],
-      })
+      }, ADMIN_ACTOR)
     ).rejects.toThrow(/Quantidade|quantidade|inválid/i);
   });
 
@@ -319,7 +245,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
             custo: 1,
           },
         ],
-      });
+      }, actorA);
       expect(cr.success).toBe(true);
       lastId = cr.pedidoId;
       pedidosCriados.add(lastId);
