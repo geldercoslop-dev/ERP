@@ -106,7 +106,18 @@ async function main() {
       id: vendedorId,
       nome: vendedoresRows[0].nome
     });
-    
+
+    // Validar userId e criar actor único
+    const vendedorUserId = Number(vendedoresRows[0].userId);
+    if (!Number.isFinite(vendedorUserId) || vendedorUserId <= 0) {
+      throw new Error("Vendedor sem userId válido para actor de criação de pedido");
+    }
+    const pedidoActor = {
+      role: "vendedor",
+      userId: vendedorUserId,
+      vendedorId,
+    };
+
     // 3. CRIAR PEDIDO
     console.log('\n3. CRIANDO PEDIDO...');
     const pedidoPayload = {
@@ -133,10 +144,7 @@ async function main() {
     
     await logStep('PAYLOAD_PEDIDO', pedidoPayload);
     
-    const resultadoCriacao = await createPedidoSafe(TENANT_ID, pedidoPayload, {
-      userId: vendedoresRows[0].userId || null,
-      vendedorId: vendedorId
-    });
+    const resultadoCriacao = await createPedidoSafe(TENANT_ID, pedidoPayload, pedidoActor);
     
     await logStep('RESPOSTA_CRIAR_PEDIDO', resultadoCriacao);
     
@@ -321,14 +329,8 @@ async function main() {
     };
     
     const resultadosConcorrencia = await Promise.all([
-      createPedidoSafe(TENANT_ID, pedidoConcorrencia, {
-        userId: vendedoresRows[0].userId || null,
-        vendedorId: vendedorId
-      }),
-      createPedidoSafe(TENANT_ID, pedidoConcorrencia, {
-        userId: vendedoresRows[0].userId || null,
-        vendedorId: vendedorId
-      })
+      createPedidoSafe(TENANT_ID, pedidoConcorrencia, pedidoActor),
+      createPedidoSafe(TENANT_ID, pedidoConcorrencia, pedidoActor)
     ]);
     
     await logStep('RESULTADOS_CONCORRENCIA', resultadosConcorrencia);

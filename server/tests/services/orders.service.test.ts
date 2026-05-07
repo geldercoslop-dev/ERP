@@ -46,7 +46,7 @@ describe("OrdersService", () => {
         ],
       };
 
-      await expect(createPedidoSafe(0, pedidoData as never)).rejects.toThrow(/tenantId obrigatório/);
+      await expect(createPedidoSafe(0, pedidoData as never, ADMIN_ACTOR)).rejects.toThrow(/tenantId obrigatório/);
     });
   });
 
