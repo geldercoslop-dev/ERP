@@ -252,6 +252,15 @@ const P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-05B - Drizzle quarantine cleanup
+const P23_R05B_DRIZZLE_QUARANTINE_CLEANUP_AUTHORIZED_FILES = [
+  'drizzle/quarantine-20260330/schema-leo-memory.ts',
+  'drizzle/quarantine-20260330/schema-semantic-memory.ts',
+  'server/leo/memory/leo-long-memory.ts',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -465,6 +474,43 @@ function isP23_CountersTenantUniqueWindowAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-05B para limpeza de drizzle quarantine
+ * Requer variável ERP_AUTHORIZED_DRIZZLE_QUARANTINE_CLEANUP=P23_R05B_REMOVE_QUARANTINE_20260330
+ * Permite somente os 5 arquivos específicos da P23-R-05B:
+ *   - drizzle/quarantine-20260330/schema-leo-memory.ts
+ *   - drizzle/quarantine-20260330/schema-semantic-memory.ts
+ *   - server/leo/memory/leo-long-memory.ts
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_R05BAuthorizedDrizzleQuarantineCleanup(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R05B_REMOVE_QUARANTINE_20260330';
+  const envValue = process.env.ERP_AUTHORIZED_DRIZZLE_QUARANTINE_CLEANUP;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R05B_DRIZZLE_QUARANTINE_CLEANUP_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R-05B formal window: ERP_AUTHORIZED_DRIZZLE_QUARANTINE_CLEANUP=' + authorizedValue + ' (remove drizzle quarantine-20260330)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -583,6 +629,12 @@ function isFrozen(file) {
   const p23_countersCheck = isP23_CountersTenantUniqueFixAuthorized(file);
   if (p23_countersCheck.authorized) {
     return { frozen: false, exception: true, p23_counters: p23_countersCheck.reason };
+  }
+
+  // Verifica janela formal P23-R-05B (drizzle quarantine cleanup)
+  const p23_r05bCheck = isP23_R05BAuthorizedDrizzleQuarantineCleanup(file);
+  if (p23_r05bCheck.authorized) {
+    return { frozen: false, exception: true, p23_r05b: p23_r05bCheck.reason };
   }
 
   // Verifica exceções padrão

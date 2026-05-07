@@ -8,8 +8,7 @@
  * - Insights gerados
  * - Estratégias aprendidas
  *
- * Stub: leoMemory em schema-leo-memory é pg e sem tenantId; backend principal usa MySQL.
- * Usa armazenamento em memória até migração para tabela MySQL compatível.
+ * Stub: Usa armazenamento em memória até migração para tabela MySQL compatível.
  */
 
 import { assertTenantId } from "../../_core/errors/assertions.js";

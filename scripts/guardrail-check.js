@@ -273,6 +273,15 @@ const P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-R-05B - Drizzle quarantine cleanup
+const P23_R05B_DRIZZLE_QUARANTINE_CLEANUP_AUTHORIZED_FILES = [
+  "drizzle/quarantine-20260330/schema-leo-memory.ts",
+  "drizzle/quarantine-20260330/schema-semantic-memory.ts",
+  "server/leo/memory/leo-long-memory.ts",
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -481,6 +490,42 @@ function isP23_CountersTenantUniqueWindowAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-05B para limpeza de drizzle quarantine
+ * Requer variável ERP_AUTHORIZED_DRIZZLE_QUARANTINE_CLEANUP=P23_R05B_REMOVE_QUARANTINE_20260330
+ * Permite somente os 5 arquivos específicos da P23-R-05B:
+ *   - drizzle/quarantine-20260330/schema-leo-memory.ts
+ *   - drizzle/quarantine-20260330/schema-semantic-memory.ts
+ *   - server/leo/memory/leo-long-memory.ts
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_R05BAuthorizedDrizzleQuarantineCleanup(filePath) {
+  const authorizedValue = "P23_R05B_REMOVE_QUARANTINE_20260330";
+  const envValue = process.env.ERP_AUTHORIZED_DRIZZLE_QUARANTINE_CLEANUP;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R05B_DRIZZLE_QUARANTINE_CLEANUP_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-R-05B formal window: ERP_AUTHORIZED_DRIZZLE_QUARANTINE_CLEANUP=" + authorizedValue + " (remove drizzle quarantine-20260330)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -634,6 +679,27 @@ function main() {
     }
   }
 
+  // P23-R-05B check: if guard files are modified with P23-R-05B window active, allow them
+  const p23_r05bGuardFilesInChanges = files.filter(f => 
+    f === "scripts/guardrail-check.js" || f === "scripts/architecture-contract-guard.mjs"
+  );
+  if (p23_r05bGuardFilesInChanges.length > 0) {
+    const p23_r05bCheck = isP23_R05BAuthorizedDrizzleQuarantineCleanup(p23_r05bGuardFilesInChanges[0]);
+    if (p23_r05bCheck.authorized) {
+      // If guard files are authorized by P23-R-05B, remove them from files for further checks
+      const nonGuardFiles = files.filter(f => f !== "scripts/guardrail-check.js" && f !== "scripts/architecture-contract-guard.mjs");
+      if (nonGuardFiles.length === 0) {
+        console.log("\n📋 Arquivos P23-R-05B guard files detectados:");
+        p23_r05bGuardFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_r05bCheck.reason + "\n");
+        return;
+      }
+      // Continue checking non-guard files
+      files.length = 0;
+      files.push(...nonGuardFiles);
+    }
+  }
+
   // P23-COUNTERS-WINDOW check: if guard files are modified, require guard window variable
   const guardFilesInChanges = files.filter(f => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(f));
   if (guardFilesInChanges.length > 0) {
@@ -698,6 +764,26 @@ function main() {
       }
       violations.length = 0;
       violations.push(...nonGuardViolations);
+    }
+
+    // P23-R-05B check: if guard files are in violations with P23-R-05B window active, allow them
+    const p23_r05bGuardFilesInViolations = violations.filter(v => 
+      v === "scripts/guardrail-check.js" || v === "scripts/architecture-contract-guard.mjs"
+    );
+    if (p23_r05bGuardFilesInViolations.length > 0) {
+      const p23_r05bCheck = isP23_R05BAuthorizedDrizzleQuarantineCleanup(p23_r05bGuardFilesInViolations[0]);
+      if (p23_r05bCheck.authorized) {
+        // If guard files are authorized by P23-R-05B, remove them from violations for further checks
+        const nonGuardViolations = violations.filter(v => v !== "scripts/guardrail-check.js" && v !== "scripts/architecture-contract-guard.mjs");
+        if (nonGuardViolations.length === 0) {
+          console.log("\n📋 Arquivos P23-R-05B guard files detectados:");
+          p23_r05bGuardFilesInViolations.forEach(f => console.log(" - " + f));
+          console.log("\n✔ Guardrail OK — " + p23_r05bCheck.reason + "\n");
+          return;
+        }
+        violations.length = 0;
+        violations.push(...nonGuardViolations);
+      }
     }
 
     // Verifica se são apenas os arquivos permitidos de schema
@@ -893,6 +979,20 @@ function main() {
         console.log("\n📋 Arquivos P23-COUNTERS-WINDOW detectados:");
         violations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — " + p23_countersWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-R-05B authorized drizzle quarantine cleanup: remove quarantine-20260330
+    // Requer variável ERP_AUTHORIZED_DRIZZLE_QUARANTINE_CLEANUP=P23_R05B_REMOVE_QUARANTINE_20260330
+    // Permite somente os 5 arquivos específicos da P23-R-05B
+    const allP23_R05B_Authorized = violations.every(v => P23_R05B_DRIZZLE_QUARANTINE_CLEANUP_AUTHORIZED_FILES.includes(v));
+    if (allP23_R05B_Authorized) {
+      const p23_r05bCheck = isP23_R05BAuthorizedDrizzleQuarantineCleanup(violations[0]);
+      if (p23_r05bCheck.authorized) {
+        console.log("\n📋 Arquivos P23-R-05B detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_r05bCheck.reason + "\n");
         return;
       }
     }
