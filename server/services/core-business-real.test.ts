@@ -151,7 +151,7 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
     const input = buildPedidoInput(clienteBaseId, `551199999${nanoid(4)}`);
 
     const results = await Promise.all(
-      Array.from({ length: 10 }, () => createPedidoSafe(TENANT_ID, input))
+      Array.from({ length: 10 }, () => createPedidoSafe(TENANT_ID, input, ADMIN_ACTOR))
     );
 
     const ok = results.filter((r) => r.success && r.pedidoId > 0);
@@ -216,9 +216,9 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
       });
       clientesIds.push(c.id);
     }
-
+    
     const inputs = clientesIds.map((cid) => buildPedidoInput(cid, `55${nanoid(11)}`));
-    const results = await Promise.all(inputs.map((inp) => createPedidoSafe(TENANT_ID, inp)));
+    const results = await Promise.all(inputs.map((inp) => createPedidoSafe(TENANT_ID, inp, ADMIN_ACTOR)));
 
     const success = results.filter((r) => r.success);
     expect(success.length).toBe(10);
@@ -321,7 +321,7 @@ const validatedRecord = bIns;<string, unknown>);
       telefone: `55119${String(Date.now()).slice(-8)}${nanoid(3)}`,
     });
 
-    const created = await createPedidoSafe(TENANT_ID, buildPedidoInput(c.id, `55${nanoid(11)}`));
+    const created = await createPedidoSafe(TENANT_ID, buildPedidoInput(c.id, `55${nanoid(11)}`), ADMIN_ACTOR);
     expect(created.success).toBe(true);
     const pid = created.pedidoId;
 
@@ -350,7 +350,7 @@ const validatedRecord = bIns;<string, unknown>);
         frete: "0",
         total: "0",
         itens: [],
-      })
+      }, ADMIN_ACTOR)
     ).rejects.toThrow();
   });
 
@@ -358,7 +358,8 @@ const validatedRecord = bIns;<string, unknown>);
     if (!dbAvailable) return;
     const created = await createPedidoSafe(
       TENANT_ID,
-      buildPedidoInput(clienteBaseId, `55119${nanoid(10)}`, "77.50")
+      buildPedidoInput(clienteBaseId, `55119${nanoid(10)}`, "77.50"),
+      ADMIN_ACTOR
     );
     expect(created.success).toBe(true);
 
