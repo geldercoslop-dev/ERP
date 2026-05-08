@@ -9,9 +9,23 @@ import { initEnv } from "../server/_core/env/bootstrapEnv.js";
 import { existsSync, rmSync, mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { leoLogManager } from '../server/leo/utils/leo-log-manager.js';
+import type { LogConfig, LogEntry } from '../server/leo/utils/leo-log-manager.js';
 
 // Bootstrap ENV
 initEnv();
+
+/**
+ * Interface para acesso a membros privados do LeoLogManager em testes
+ * Permite testar comportamento interno de rotação de logs
+ */
+interface LeoLogManagerTestAccess {
+  config: LogConfig;
+  currentLogFile?: string;
+  currentFileSize: number;
+  setupCurrentLogFile(): void;
+  rotateLogFile(forceDaily?: boolean): void;
+  writeLog(entry: LogEntry): void;
+}
 
 const TEST_LOG_DIR = join(process.cwd(), 'logs-test-rotation');
 
@@ -36,7 +50,7 @@ async function runTests() {
   console.log('╚════════════════════════════════════════════════════════════╝\n');
 
   // Access the singleton instance
-  const manager = leoLogManager as any;
+  const manager = leoLogManager as LeoLogManagerTestAccess;
   const originalConfig = { ...manager.config };
   const originalLogFile = manager.currentLogFile;
 

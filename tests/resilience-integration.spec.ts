@@ -11,6 +11,22 @@ import { describe, it, beforeEach, afterEach, expect } from 'vitest';
 import { executeWithResilience, getQueryBreakerStats, resetQueryBreakerStats } from '../server/resilience/query-wrapper';
 import { CircuitBreakerManager, CircuitBreakerStatus } from '../server/infra/circuit-breaker';
 
+/**
+ * Interface para stats de Circuit Breaker usados em testes
+ * Permite acesso tipado a propriedades de métricas
+ */
+interface CircuitBreakerStats {
+  service: string;
+  status: CircuitBreakerStatus;
+  totalRequests: number;
+  totalFailures: number;
+  totalSuccesses: number;
+  failureRate: number;
+  averageResponseTime: number;
+  lastFailureTime?: number;
+  nextAttemptTime?: number;
+}
+
 describe('Resilience Integration', () => {
   beforeEach(() => {
     resetQueryBreakerStats();
@@ -336,8 +352,8 @@ describe('Resilience Integration', () => {
 
       const stats = getQueryBreakerStats();
       expect(Object.keys(stats).length).toBeGreaterThan(0);
-      
-      const metricsTest = stats['metrics-test'] as any;
+
+      const metricsTest = stats['metrics-test'] as CircuitBreakerStats;
       expect(metricsTest.totalFailures).toBeGreaterThanOrEqual(1);
     });
   });
