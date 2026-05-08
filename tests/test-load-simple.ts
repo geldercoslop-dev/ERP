@@ -39,9 +39,9 @@ async function testHealthCheck() {
     console.log(`   URL: ${BASE_URL}`);
     console.log(`   Status: ${response.status}`);
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log(`❌ Server NÃO responde`);
-    console.log(`   Erro: ${error.message}`);
+    console.log(`   Erro: ${axios.isAxiosError(error) ? error.message : error instanceof Error ? error.message : String(error)}`);
     console.log(`   Dica: npm run dev`);
     return false;
   }
@@ -78,16 +78,19 @@ async function testSequentialLoad() {
       });
 
       console.log(`[${i + 1}/10] ✅ ${endpoint.name} (${(performance.now() - start).toFixed(2)}ms)`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const statusCode = axios.isAxiosError(error) ? error.response?.status : undefined;
+      const errorMessage = axios.isAxiosError(error) ? error.message : error instanceof Error ? error.message : String(error);
+
       results.push({
         timestamp: Date.now(),
         duration: performance.now() - start,
         successful: false,
-        statusCode: error.response?.status,
-        error: error.message,
+        statusCode,
+        error: errorMessage,
       });
 
-      console.log(`[${i + 1}/10] ❌ ${endpoint.name} - ${error.message}`);
+      console.log(`[${i + 1}/10] ❌ ${endpoint.name} - ${errorMessage}`);
     }
   }
 
@@ -131,18 +134,20 @@ async function testParallelLoad() {
           });
 
           console.log(`[${i + 1}/10] ✅ (${duration.toFixed(2)}ms)`);
-        } catch (error: any) {
+        } catch (error: unknown) {
           const duration = performance.now() - start;
+          const statusCode = axios.isAxiosError(error) ? error.response?.status : undefined;
+          const errorMessage = axios.isAxiosError(error) ? error.message : error instanceof Error ? error.message : String(error);
 
           results.push({
             timestamp: Date.now(),
             duration,
             successful: false,
-            statusCode: error.response?.status,
-            error: error.message,
+            statusCode,
+            error: errorMessage,
           });
 
-          console.log(`[${i + 1}/10] ❌ ${error.message}`);
+          console.log(`[${i + 1}/10] ❌ ${errorMessage}`);
         }
       })()
     );
@@ -190,15 +195,17 @@ async function testHeavyLoad() {
             successful: response.status === 200,
             statusCode: response.status,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           const duration = performance.now() - start;
+          const statusCode = axios.isAxiosError(error) ? error.response?.status : undefined;
+          const errorMessage = axios.isAxiosError(error) ? error.message : error instanceof Error ? error.message : String(error);
 
           results.push({
             timestamp: Date.now(),
             duration,
             successful: false,
-            statusCode: error.response?.status,
-            error: error.message,
+            statusCode,
+            error: errorMessage,
           });
         }
       })()
