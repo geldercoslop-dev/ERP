@@ -65,6 +65,18 @@ interface LoadTestReport {
   };
 }
 
+type LoadTestPedidoItem = Record<string, unknown>;
+
+interface LoadTestPedidoPayload {
+  cliente: {
+    nome: string;
+    [key: string]: unknown;
+  };
+  observacoes: string;
+  itens: LoadTestPedidoItem[];
+  [key: string]: unknown;
+}
+
 // Payload base para pedido
 const basePedido = {
   tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
@@ -97,7 +109,7 @@ const basePedido = {
   ]
 };
 
-function generateVariation(base: any, index: number): any {
+function generateVariation(base: LoadTestPedidoPayload, index: number): LoadTestPedidoPayload {
   return {
     ...base,
     cliente: {
@@ -105,7 +117,7 @@ function generateVariation(base: any, index: number): any {
       nome: `${base.cliente.nome} ${Date.now()}-${index}`
     },
     observacoes: `${base.observacoes} - ${Date.now()}-${index}`,
-    itens: base.itens.map((item: any) => ({
+    itens: base.itens.map((item: LoadTestPedidoItem) => ({
       ...item,
       valorUnitario: (100 + Math.random() * 50).toFixed(2)
     }))

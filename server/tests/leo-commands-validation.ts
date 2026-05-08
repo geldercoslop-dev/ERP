@@ -23,7 +23,7 @@ const COMANDOS: { nome: string; pergunta: string; esperado: "resposta_ok" | "res
   { nome: "dar baixa em pedido", pergunta: "dar baixa no pedido 1", esperado: "resposta_ou_erro" },
 ];
 
-async function main(): Promise<any> {
+async function main(): Promise<void> {
   console.log("[LEO] Validação de comandos (simulação)...\n");
   let ok = 0;
   let falha = 0;
@@ -45,7 +45,7 @@ async function main(): Promise<any> {
       }
     } catch (e) {
       falha++;
-      console.log(`  [ERRO] ${cmd.nome}:`, (e as Error)?.message ?? e);
+      console.log(`  [ERRO] ${cmd.nome}:`, e instanceof Error ? e.message : String(e));
     }
   }
   console.log(`\n[LEO] Total: ${ok} ok, ${falha} falha/indefinido.`);

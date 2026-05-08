@@ -5,17 +5,27 @@
 
 import { createServer } from 'http';
 import { handler } from '../server/server';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname } from 'path';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+interface SecurityTestResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+
 interface SecurityTest {
   name: string;
   description: string;
-  execute: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  execute: () => Promise<SecurityTestResult>;
+}
+
+interface SecurityTestWithResult extends SecurityTest {
+  result: SecurityTestResult;
 }
 
 class LocalSecurityAuditor {
@@ -55,7 +65,7 @@ class LocalSecurityAuditor {
     ];
   }
 
-  private async testTenantIsolation(): Promise<{ success: boolean; data?: any; error?: string }> {
+  private async testTenantIsolation(): Promise<SecurityTestResult> {
     try {
       // Simular chamada direta ao service com tenantId diferente
       const { clientesService } = await import('../server/services/clientes.service');
@@ -83,7 +93,7 @@ class LocalSecurityAuditor {
     }
   }
 
-  private async testVendorIsolation(): Promise<{ success: boolean; data?: any; error?: string }> {
+  private async testVendorIsolation(): Promise<SecurityTestResult> {
     try {
       const { clientesService } = await import('../server/services/clientes.service');
       
@@ -113,7 +123,7 @@ class LocalSecurityAuditor {
     }
   }
 
-  private async testLeoContextRequired(): Promise<{ success: boolean; data?: any; error?: string }> {
+  private async testLeoContextRequired(): Promise<SecurityTestResult> {
     try {
       const { perguntar } = await import('../server/services/ai/erp-ai.service');
       
@@ -137,7 +147,7 @@ class LocalSecurityAuditor {
     }
   }
 
-  private async testCacheIsolation(): Promise<{ success: boolean; data?: any; error?: string }> {
+  private async testCacheIsolation(): Promise<SecurityTestResult> {
     try {
       // Importar função correta de cache invalidation
       const { invalidateInventoryCachesForTenant } = await import('../server/_core/cache-invalidation');
@@ -157,7 +167,7 @@ class LocalSecurityAuditor {
     }
   }
 
-  private async testDbQueryIsolation(): Promise<{ success: boolean; data?: any; error?: string }> {
+  private async testDbQueryIsolation(): Promise<SecurityTestResult> {
     try {
       // Importar validador de segurança
       const { validateTenantAccess, globalDbAuditor } = await import('../server/_core/tenant-validator');
@@ -256,7 +266,7 @@ class LocalSecurityAuditor {
     this.showSummary(results);
   }
 
-  private showSummary(results: any[]): void {
+  private showSummary(results: SecurityTestWithResult[]): void {
     console.log('\n' + '='.repeat(60));
     console.log('🎯 RESUMO DA AUDITORIA');
     console.log('='.repeat(60));
@@ -284,6 +294,19 @@ class LocalSecurityAuditor {
   }
 }
 
-// Executar auditoria
-const auditor = new LocalSecurityAuditor();
-auditor.runAudit().catch(console.error);
+async function main(): Promise<void> {
+  const auditor = new LocalSecurityAuditor();
+  await auditor.runAudit();
+}
+
+// Executar auditoria somente quando o arquivo for chamado diretamente
+const isMainModule = process.argv[1]
+  ? import.meta.url === pathToFileURL(process.argv[1]).href
+  : false;
+
+if (isMainModule) {
+  main().catch((error: unknown) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

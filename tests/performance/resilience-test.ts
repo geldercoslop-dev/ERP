@@ -67,6 +67,18 @@ interface ResilienceTestReport {
   };
 }
 
+type ResiliencePedidoItem = Record<string, unknown>;
+
+interface ResiliencePedidoPayload {
+  cliente: {
+    nome: string;
+    [key: string]: unknown;
+  };
+  observacoes: string;
+  itens: ResiliencePedidoItem[];
+  [key: string]: unknown;
+}
+
 // Payload base para pedido
 const basePedido = {
   tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
@@ -99,7 +111,7 @@ const basePedido = {
   ]
 };
 
-function generateVariation(base: any, index: number): any {
+function generateVariation(base: ResiliencePedidoPayload, index: number): ResiliencePedidoPayload {
   return {
     ...base,
     cliente: {
@@ -107,7 +119,7 @@ function generateVariation(base: any, index: number): any {
       nome: `${base.cliente.nome} ${index}`
     },
     observacoes: `${base.observacoes} - Test ${index}`,
-    itens: base.itens.map((item: any) => ({
+    itens: base.itens.map((item: ResiliencePedidoItem) => ({
       ...item,
       valorUnitario: (100 + Math.random() * 20).toFixed(2)
     }))

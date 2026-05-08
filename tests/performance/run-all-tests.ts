@@ -30,11 +30,11 @@ interface FullTestReport {
     };
   };
   results: {
-    concurrency?: any;
-    load?: any;
-    monitoring?: any;
-    tracing?: any;
-    resilience?: any;
+    concurrency?: unknown;
+    load?: unknown;
+    monitoring?: unknown;
+    tracing?: unknown;
+    resilience?: unknown;
   };
   typescriptValidation: {
     success: boolean;
@@ -75,16 +75,23 @@ async function validateTypeScript(): Promise<{ success: boolean; errors?: string
       success: true,
       output: '✅ TypeScript validation passed'
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return {
+        success: false,
+        errors: (error as { stdout?: string }).stdout || error.message,
+        output: (error as { stderr?: string }).stderr || 'TypeScript validation failed'
+      };
+    }
     return {
       success: false,
-      errors: error.stdout || error.message,
-      output: error.stderr || 'TypeScript validation failed'
+      errors: String(error),
+      output: 'TypeScript validation failed'
     };
   }
 }
 
-function calculateSystemGrade(results: FullTestReport['results'], tsValidation: any): 'A' | 'B' | 'C' | 'D' | 'F' {
+function calculateSystemGrade(results: FullTestReport['results'], tsValidation: { success: boolean; errors?: string; output?: string }): 'A' | 'B' | 'C' | 'D' | 'F' {
   let score = 100;
   
   // Concurrency test penalties
@@ -96,9 +103,11 @@ function calculateSystemGrade(results: FullTestReport['results'], tsValidation: 
   
   // Load test penalties
   if (results.load) {
-    const loadIssues = Object.values(results.load.results).filter((result: any) => {
-      const summary = result.summary;
-      return summary.successRate < 90 || summary.averageResponseTime > 5000;
+    const loadIssues = Object.values((results.load as { results: Record<string, unknown> }).results).filter((result: unknown) => {
+      if (typeof result !== 'object' || result === null) return false;
+      const summary = (result as { summary?: { successRate?: number; averageResponseTime?: number } }).summary;
+      if (!summary) return false;
+      return (summary.successRate ?? 100) < 90 || (summary.averageResponseTime ?? 0) > 5000;
     });
     score -= loadIssues.length * 10;
   }
@@ -134,7 +143,7 @@ function calculateSystemGrade(results: FullTestReport['results'], tsValidation: 
   return 'F';
 }
 
-function generateRecommendations(results: FullTestReport['results'], tsValidation: any): string[] {
+function generateRecommendations(results: FullTestReport['results'], tsValidation: { success: boolean; errors?: string; output?: string }): string[] {
   const recommendations: string[] = [];
   
   // Concurrency recommendations
@@ -149,11 +158,14 @@ function generateRecommendations(results: FullTestReport['results'], tsValidatio
   
   // Load test recommendations
   if (results.load) {
-    Object.entries(results.load.results).forEach(([level, result]: [string, any]) => {
-      if (result.summary.successRate < 90) {
+    Object.entries((results.load as { results: Record<string, unknown> }).results).forEach(([level, result]: [string, unknown]) => {
+      if (typeof result !== 'object' || result === null) return;
+      const summary = (result as { summary?: { successRate?: number; averageResponseTime?: number } }).summary;
+      if (!summary) return;
+      if ((summary.successRate ?? 100) < 90) {
         recommendations.push(`Otimizar performance para carga de ${level} req/s`);
       }
-      if (result.summary.averageResponseTime > 5000) {
+      if ((summary.averageResponseTime ?? 0) > 5000) {
         recommendations.push(`Reducir tempo de resposta para carga de ${level} req/s`);
       }
     });
@@ -255,7 +267,11 @@ async function runFullTestSuite(): Promise<FullTestReport> {
   
   // Calculate overall summary
   const totalTests = Object.keys(results).length + 1; // +1 for TypeScript
-  const passedTests = Object.values(results).filter(r => !r || !(r as any).failed).length + (tsValidation.success ? 1 : 0);
+  const passedTests = Object.values(results).filter(r => {
+    if (!r) return true;
+    if (typeof r !== 'object' || r === null) return true;
+    return !(r as { failed?: boolean }).failed;
+  }).length + (tsValidation.success ? 1 : 0);
   const failedTests = totalTests - passedTests;
   
   // Collect critical issues
@@ -285,8 +301,11 @@ async function runFullTestSuite(): Promise<FullTestReport> {
   const warnings: string[] = [];
   
   if (results.load) {
-    Object.entries(results.load.results).forEach(([level, result]: [string, any]) => {
-      if (result.summary.successRate < 95) {
+    Object.entries((results.load as { results: Record<string, unknown> }).results).forEach(([level, result]: [string, unknown]) => {
+      if (typeof result !== 'object' || result === null) return;
+      const summary = (result as { summary?: { successRate?: number } }).summary;
+      if (!summary) return;
+      if ((summary.successRate ?? 100) < 95) {
         warnings.push(`Taxa de sucesso abaixo de 95% para carga de ${level} req/s`);
       }
     });
@@ -358,9 +377,12 @@ function printFullReport(report: FullTestReport): void {
   }
   
   if (report.results.load) {
-    const loadResults = Object.entries(report.results.load.results);
-    const avgSuccessRate = loadResults.reduce((sum, [_, result]: [string, any]) => 
-      sum + result.summary.successRate, 0) / loadResults.length;
+    const loadResults = Object.entries((report.results.load as { results: Record<string, unknown> }).results);
+    const avgSuccessRate = loadResults.reduce((sum, [_, result]: [string, unknown]) => {
+      if (typeof result !== 'object' || result === null) return sum;
+      const summary = (result as { summary?: { successRate?: number } }).summary;
+      return sum + (summary?.successRate ?? 0);
+    }, 0) / loadResults.length;
     console.log(`🔥 Carga: ✅ ${avgSuccessRate.toFixed(2)}% sucesso médio`);
   }
   

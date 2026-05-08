@@ -3,19 +3,24 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { executeCommand } from '../../server/_core/command';
+import { executeCommand, type CommandResult } from '../../server/_core/command';
+
+interface TestCommandResult extends CommandResult {
+  data: string;
+  timestamp?: number;
+}
 
 // Mock do banco de dados
 let storedResultJson: string | null = null;
 vi.mock('../../server/db', () => ({
   getDb: vi.fn().mockResolvedValue({
-    transaction: async (fn: any) => fn({}),
+    transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({}),
   }),
   reserveIdempotencyKey: vi.fn().mockImplementation(async () => {
     if (!storedResultJson) return { reserved: true };
     return { reserved: false, resultJson: storedResultJson, traceId: 'trace_test' };
   }),
-  updateIdempotencyResult: vi.fn().mockImplementation(async (_tx: any, _commandName: string, _key: string, resultJson: string) => {
+  updateIdempotencyResult: vi.fn().mockImplementation(async (_tx: unknown, _commandName: string, _key: string, resultJson: string) => {
     storedResultJson = resultJson;
   }),
 }));
@@ -34,8 +39,8 @@ describe('Core Command', () => {
       );
 
       expect(result).toBeDefined();
-      expect((result as any).ok).toBe(true);
-      expect((result as any).data).toBe('success');
+      expect((result as TestCommandResult).ok).toBe(true);
+      expect((result as TestCommandResult).data).toBe('success');
     });
 
     it('deve lidar com erros na execução', async () => {
@@ -65,7 +70,7 @@ describe('Core Command', () => {
       );
 
       // Ambos devem ter o mesmo resultado (cache)
-      expect((result1 as any).data).toBe((result2 as any).data);
+      expect((result1 as TestCommandResult).data).toBe((result2 as TestCommandResult).data);
     });
   });
 });

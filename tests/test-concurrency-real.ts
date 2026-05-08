@@ -96,9 +96,22 @@ async function testConcurrency() {
           numero: data?.numero,
           isDuplicate: data?.isDuplicate ?? data?.fromMemoryCache ?? false,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         const responseTime = Date.now() - reqStart;
-        const errorMsg = error.response?.data?.error?.message ?? error.message;
+        
+        // Type guard for HTTP error structure
+        const isHttpError = (err: unknown): err is { response: { data: { error: { message: string } } } } => {
+          return typeof err === 'object' && err !== null && 'response' in err;
+        };
+        
+        let errorMsg: string;
+        if (isHttpError(error) && error.response?.data?.error?.message) {
+          errorMsg = error.response.data.error.message;
+        } else if (error instanceof Error) {
+          errorMsg = error.message;
+        } else {
+          errorMsg = String(error);
+        }
         
         console.log(`  [REQ ${i + 1}] ❌ ERRO (${responseTime}ms): ${errorMsg}`);
         
@@ -199,4 +212,4 @@ testConcurrency()
     process.exit(1);
   });
 
-var erros: any;
+var erros: TestResult[];

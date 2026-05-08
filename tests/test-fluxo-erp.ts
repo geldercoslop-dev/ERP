@@ -154,7 +154,12 @@ async function testarDuploClique(): Promise<{ sucesso: boolean; duplicados: numb
   
   const erros: string[] = [];
   const tenantId = Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99);
-  const resultados: any[] = [];
+  
+  interface PedidoSafeResult {
+    success: boolean;
+    id: number;
+  }
+  const resultados: PedidoSafeResult[] = [];
   
   try {
     // Criar cliente base para o teste

@@ -41,22 +41,27 @@ async function testDirectConnection() {
     
   } catch (error) {
     console.error('\n❌ ERRO:', error);
-    const err = error as any;
     
-    if (err.code === 'ECONNREFUSED') {
+    function isMysqlErrorLike(error: unknown): error is { code?: string } {
+      return error !== null && typeof error === 'object' && 'code' in error;
+    }
+    
+    const errorCode = isMysqlErrorLike(error) ? error.code : undefined;
+    
+    if (errorCode === 'ECONNREFUSED') {
       console.error('\n🔧 SOLUÇÃO POSSÍVEL:');
       console.error('- MySQL não está rodando');
       console.error('- Porta errada (verifique se não é 3005/3006)');
       console.error('- Execute: netstat -an | findstr :3306');
     }
     
-    if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+    if (errorCode === 'ER_ACCESS_DENIED_ERROR') {
       console.error('\n🔧 SOLUÇÃO POSSÍVEL:');
       console.error('- Usuário/senha incorretos');
       console.error('- Verifique credenciais no .env');
     }
     
-    if (err.code === 'ER_BAD_DB_ERROR') {
+    if (errorCode === 'ER_BAD_DB_ERROR') {
       console.error('\n🔧 SOLUÇÃO POSSÍVEL:');
       console.error('- Banco "vendas_app" não existe');
       console.error('- Execute: CREATE DATABASE vendas_app;');

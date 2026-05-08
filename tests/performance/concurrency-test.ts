@@ -49,6 +49,18 @@ interface TestResult {
   idempotencyKey?: string;
 }
 
+type PerformancePedidoItem = Record<string, unknown>;
+
+interface PerformancePedidoPayload {
+  cliente: {
+    nome: string;
+    [key: string]: unknown;
+  };
+  observacoes: string;
+  itens: PerformancePedidoItem[];
+  [key: string]: unknown;
+}
+
 interface ConcurrencyTestReport {
   timestamp: string;
   config: {
@@ -73,11 +85,11 @@ interface ConcurrencyTestReport {
   traceIdCollisions: Array<{ traceId: string; count: number }>;
 }
 
-function generateIdempotencyKey(data: any): string {
+function generateIdempotencyKey(data: unknown): string {
   return createHash('sha256').update(JSON.stringify(data)).digest('hex').substring(0, 32);
 }
 
-function generateVariation(base: any, index: number): any {
+function generateVariation(base: PerformancePedidoPayload, index: number): PerformancePedidoPayload {
   // Gera variação única para cada request para testar idempotência real
   return {
     ...base,
@@ -86,7 +98,7 @@ function generateVariation(base: any, index: number): any {
       nome: `${base.cliente.nome} #${index}`
     },
     observacoes: `${base.observacoes} - Request ${index}`,
-    itens: base.itens.map((item: any, i: number) => ({
+    itens: base.itens.map((item: PerformancePedidoItem, i: number) => ({
       ...item,
       quantidade: 1 + (index % 3), // Varia quantidade entre 1-3
       valorUnitario: (100 + (index % 5) * 10).toString() // Varia preço

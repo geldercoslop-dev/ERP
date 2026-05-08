@@ -57,6 +57,18 @@ interface TracingTestReport {
   };
 }
 
+type TracingPedidoItem = Record<string, unknown>;
+
+interface TracingPedidoPayload {
+  cliente: {
+    nome: string;
+    [key: string]: unknown;
+  };
+  observacoes: string;
+  itens: TracingPedidoItem[];
+  [key: string]: unknown;
+}
+
 // Payload base para pedido
 const basePedido = {
   tenantId: Number(process.env.TEST_TENANT_ID || process.env.DEFAULT_TENANT_ID || 99),
@@ -93,7 +105,7 @@ function generateTraceId(): string {
   return randomUUID().replace(/-/g, '');
 }
 
-function generateVariation(base: any, index: number): any {
+function generateVariation(base: TracingPedidoPayload, index: number): TracingPedidoPayload {
   return {
     ...base,
     cliente: {
@@ -101,7 +113,7 @@ function generateVariation(base: any, index: number): any {
       nome: `${base.cliente.nome} Tracing ${index}`
     },
     observacoes: `${base.observacoes} - Request ${index}`,
-    itens: base.itens.map((item: any) => ({
+    itens: base.itens.map((item: TracingPedidoItem) => ({
       ...item,
       valorUnitario: (100 + Math.random() * 20).toFixed(2)
     }))
