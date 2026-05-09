@@ -277,7 +277,14 @@ class QueueManager {
       }
 
       const payload = data.payload as QueuePayload;
-      const tenantId = typeof payload.tenantId === 'number' ? payload.tenantId : 1;
+      
+      // Validar tenantId obrigatório
+      if (typeof payload.tenantId !== 'number' || !Number.isFinite(payload.tenantId) || payload.tenantId <= 0) {
+        throw new InfrastructureError('tenantId ausente, inválido, zero ou negativo no payload do job');
+      }
+      
+      const tenantId = payload.tenantId;
+      
       // Verificar rate limit antes de adicionar
       const canExecute = await executeJobWithLimits(
         data.type,
@@ -312,7 +319,7 @@ class QueueManager {
       }
 
       // Verificar se job já foi executado
-      const alreadyExecuted = await wasJobExecuted(idempotencyKey);
+      const alreadyExecuted = await wasJobExecuted({ tenantId, idempotencyKey });
       if (alreadyExecuted) {
         logInfo(`Job já executado, ignorando`, {
           queueName,
