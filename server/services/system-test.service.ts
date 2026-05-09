@@ -15,9 +15,13 @@ import {
   clienteVendedores,
   pendencias,
   contasReceber,
+  produtos,
 } from '../../drizzle/schema.js';
 import { ValidationError } from '../_core/errors/typed-errors.js';
 import { eq, and, desc, inArray } from 'drizzle-orm';
+import pino from 'pino';
+
+const logger = pino();
 
 export interface ConcurrencyTestResult {
   success: boolean;
@@ -586,5 +590,176 @@ export async function cleanupPedidosHeavyTestData(
 
   if (errors.length > 0) {
     throw new Error(`cleanupPedidosHeavyTestData falhou: ${errors.join("; ")}`);
+  }
+}
+
+/**
+ * Métodos de infraestrutura para testes de consistência do banco
+ * APENAS PARA TESTES - NÃO USAR EM PRODUÇÃO
+ */
+
+export interface ConsistencyTestDataSetup {
+  produtoId: number;
+  clienteId: number;
+  vendedorId: number;
+  estoque: number;
+  createdProduto: boolean;
+  createdCliente: boolean;
+  createdVendedor: boolean;
+}
+
+/**
+ * Configura dados de teste para testes de consistência
+ * Cria produto, cliente e vendedor necessários para os testes
+ */
+export async function setupConsistencyTestData(tenantId: number): Promise<ConsistencyTestDataSetup> {
+  const db = await getDb();
+  if (!db) throw new Error('Database não disponível');
+
+  logger.info('🔧 Configurando dados de teste de consistência...');
+
+  let createdProduto = false;
+  let produtoId = 1;
+  const produtoExists = await db
+    .select()
+    .from(produtos)
+    .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, produtoId)))
+    .limit(1);
+
+  if (!produtoExists.length) {
+    logger.info(`📦 Criando produto teste...`);
+    const result = await db.insert(produtos).values({
+      tenantId,
+      descricao: 'Produto Teste Consistência',
+      valorVenda: '100',
+      estoque: 100,
+    });
+    produtoId = getInsertId(result) || 1;
+    createdProduto = true;
+    logger.info(`✅ Produto criado: ID ${produtoId}`);
+  } else {
+    await db
+      .update(produtos)
+      .set({ estoque: 100 })
+      .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, produtoId)));
+    logger.info(`✅ Estoque do produto resetado para 100`);
+  }
+
+  let createdCliente = false;
+  let clienteId = 1;
+
+  const telefoneNorm = '1199999999';
+  const nomeNorm = 'cliente teste';
+  const sobrenomeNorm = 'teste';
+
+  const existingCliente = await db
+    .select({ id: clientes.id })
+    .from(clientes)
+    .where(
+      and(
+        eq(clientes.tenantId, tenantId),
+        eq(clientes.telefoneNorm, telefoneNorm),
+        eq(clientes.nomeNorm, nomeNorm),
+        eq(clientes.sobrenomeNorm, sobrenomeNorm)
+      )
+    )
+    .limit(1);
+
+  if (existingCliente.length > 0) {
+    clienteId = existingCliente[0].id;
+    logger.info(`✅ Cliente teste existente reutilizado: ID ${clienteId}`);
+  } else {
+    logger.info(`👤 Criando cliente teste...`);
+    const result = await db.insert(clientes).values({
+      tenantId,
+      nome: 'Cliente Teste',
+      telefone: '1199999999',
+      telefoneNorm,
+      nomeNorm,
+      sobrenomeNorm,
+    });
+    clienteId = getInsertId(result) || 1;
+    createdCliente = true;
+    logger.info(`✅ Cliente criado: ID ${clienteId}`);
+  }
+
+  let createdVendedor = false;
+  let vendedorId = 1;
+  const vendedorExists = await db
+    .select()
+    .from(vendedores)
+    .where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, vendedorId)))
+    .limit(1);
+
+  if (!vendedorExists.length) {
+    logger.info(`🧑 Criando vendedor teste...`);
+    try {
+      const result = await db.insert(vendedores).values({
+        tenantId,
+        nome: 'Vendedor Teste',
+        email: `vendedor-${Date.now()}@test.local`,
+        ativo: true,
+      });
+      vendedorId = getInsertId(result) || 1;
+      createdVendedor = true;
+      logger.info(`✅ Vendedor criado: ID ${vendedorId}`);
+    } catch (e) {
+      logger.warn(`⚠️ Não foi possível criar vendedor, usando existente`);
+    }
+  }
+
+  const setup: ConsistencyTestDataSetup = {
+    produtoId,
+    clienteId,
+    vendedorId,
+    estoque: 100,
+    createdProduto,
+    createdCliente,
+    createdVendedor,
+  };
+
+  logger.info('✅ Dados de teste de consistência configurados');
+  return setup;
+}
+
+/**
+ * Limpa dados de teste de consistência
+ * Remove pedidos e outros dados criados durante os testes
+ * Somente deleta registros que foram criados pelo setup
+ */
+export async function cleanupConsistencyTestData(tenantId: number, setup: ConsistencyTestDataSetup): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  logger.info('🧹 Limpando dados de teste de consistência...');
+
+  try {
+    // Deletar produto se foi criado pelo setup
+    if (setup.createdProduto) {
+      await db
+        .delete(produtos)
+        .where(and(eq(produtos.tenantId, tenantId), eq(produtos.id, setup.produtoId)));
+      logger.info(`✅ Produto ${setup.produtoId} removido`);
+    }
+
+    // Deletar cliente se foi criado pelo setup
+    if (setup.createdCliente) {
+      await db
+        .delete(clientes)
+        .where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, setup.clienteId)));
+      logger.info(`✅ Cliente ${setup.clienteId} removido`);
+    }
+
+    // Deletar vendedor se foi criado pelo setup
+    if (setup.createdVendedor) {
+      await db
+        .delete(vendedores)
+        .where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, setup.vendedorId)));
+      logger.info(`✅ Vendedor ${setup.vendedorId} removido`);
+    }
+
+    logger.info('✅ Dados de teste de consistência limpos');
+  } catch (e) {
+    logger.warn(`⚠️ Não foi possível limpar todos os dados: ${e instanceof Error ? e.message : String(e)}`);
   }
 }

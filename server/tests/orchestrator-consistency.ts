@@ -11,8 +11,9 @@
  */
 
 import { initEnv } from '../_core/env/bootstrapEnv.js';
+import { bootstrapServer } from '../_core/bootstrap.js';
 import { setupTestData, cleanupTestData } from './setup-test-data.js';
-import { DatabaseConsistencyTester } from './database-consistency.test.js';
+import { DatabaseConsistencyTester } from './database-consistency-tester.js';
 import pino from 'pino';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -25,7 +26,7 @@ const logger = pino();
 interface FinalReport {
   timestamp: Date;
   duration: number;
-  testResults: any[];
+  testResults: TestResult[];
   summary: {
     totalTests: number;
     passed: number;
@@ -36,6 +37,14 @@ interface FinalReport {
 }
 
 async function main() {
+  const TEST_TENANT_ID = Number(process.env.TEST_TENANT_ID);
+  if (!Number.isFinite(TEST_TENANT_ID) || TEST_TENANT_ID <= 0) {
+    throw new Error("TEST_TENANT_ID não fornecido ou inválido. Defina TEST_TENANT_ID como variável de ambiente.");
+  }
+
+  // Bootstrap server before any DB access
+  await bootstrapServer();
+
   const startTime = Date.now();
   let report: FinalReport = {
     timestamp: new Date(),
@@ -59,10 +68,10 @@ async function main() {
 
     let testDataSetup;
     try {
-      testDataSetup = await setupTestData();
+      testDataSetup = await setupTestData(TEST_TENANT_ID);
       logger.info('✅ Setup de dados completado');
-    } catch (e: any) {
-      console.error('❌ Erro no setup:', e.message);
+    } catch (e: unknown) {
+      console.error('❌ Erro no setup:', e instanceof Error ? e.message : String(e));
       throw e;
     }
 
@@ -74,15 +83,28 @@ async function main() {
     console.log('');
 
     const tester = new DatabaseConsistencyTester();
-    let testResults;
+    let testResults: TestResult[];
     try {
       const response = await tester.runAllTests();
       testResults = response.results;
       report.testResults = response.results;
       report.summary = response.summary;
-    } catch (e: any) {
-      console.error('❌ Erro ao executar testes:', e.message);
-      throw e;
+    } catch (e: unknown) {
+      // Testes não implementados - não é um erro de sistema, mas não podemos aprovar
+      console.error('⚠️ Testes de consistência não implementados');
+      console.error('   Erro:', e instanceof Error ? e.message : String(e));
+      console.error('');
+      console.error('╔════════════════════════════════════════════════════════════════════════════╗');
+      console.error('║   ⚠️ TESTES DE CONSISTÊNCIA PENDENTES DE IMPLEMENTAÇÃO                ⚠️   ║');
+      console.error('╚════════════════════════════════════════════════════════════════════════════╝');
+      console.error('');
+      
+      // Limpar dados de teste mesmo que os testes não rodaram
+      if (testDataSetup) {
+        await cleanupTestData(TEST_TENANT_ID, testDataSetup);
+      }
+      
+      process.exit(1);
     }
 
     console.log('');
@@ -93,7 +115,7 @@ async function main() {
     console.log('');
 
     // Identificar pontos frágeis
-    const failedTests = testResults.filter((r: any) => !r.passed);
+    const failedTests = testResults.filter((r) => !r.passed);
 
     if (failedTests.length === 0) {
       console.log('✅ TODOS OS TESTES PASSARAM!');
@@ -114,14 +136,14 @@ async function main() {
       console.log(`❌ ${failedTests.length} TESTE(S) FALHARAM!`);
       console.log('');
 
-      failedTests.forEach((test: any, i: number) => {
+      failedTests.forEach((test, i: number) => {
         console.log(`   [${i + 1}] ${test.name}`);
         console.log(`       Erro: ${test.details.error || 'Validação falhou'}`);
       });
       console.log('');
 
       // Mapear para pontos frágeis
-      failedTests.forEach((test: any) => {
+      failedTests.forEach((test) => {
         if (test.name.includes('ERROR_IN_MIDDLE')) {
           report.fragilePoints.push('❌ Transações NÃO fazem rollback completo');
           report.recommendations.push('Revisar safe-transaction.ts para lógica de rollback');
@@ -153,11 +175,11 @@ async function main() {
 
     try {
       if (testDataSetup) {
-        await cleanupTestData(testDataSetup);
+        await cleanupTestData(TEST_TENANT_ID, testDataSetup);
       }
       console.log('✅ Dados de teste removidos');
-    } catch (e: any) {
-      console.warn('⚠️ Aviso ao limpar:', e.message);
+    } catch (e: unknown) {
+      console.warn('⚠️ Aviso ao limpar:', e instanceof Error ? e.message : String(e));
     }
 
     console.log('');
@@ -193,9 +215,10 @@ async function main() {
     }
 
     // ==================== SALVAR RELATÓRIO ====================
-    const reportPath = path.join(process.cwd(), 'DATABASE_CONSISTENCY_REPORT.json');
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-    console.log(`📁 Relatório salvo em: ${reportPath}`);
+    // Comentado para evitar arquivo gerado no working tree
+    // const reportPath = path.join(process.cwd(), 'DATABASE_CONSISTENCY_REPORT.json');
+    // fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+    // console.log(`📁 Relatório salvo em: ${reportPath}`);
     console.log('');
 
     // ==================== STATUS FINAL ====================
@@ -213,14 +236,16 @@ async function main() {
     console.log('');
 
     process.exit(success ? 0 : 1);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('\n');
     console.error('╔════════════════════════════════════════════════════════════════════════════╗');
     console.error('║         💥 ERRO CRÍTICO NA EXECUÇÃO DOS TESTES                        💥   ║');
     console.error('╚════════════════════════════════════════════════════════════════════════════╝');
     console.error('');
-    console.error('Erro:', error.message);
-    console.error('Stack:', error.stack);
+    console.error('Erro:', error instanceof Error ? error.message : String(error));
+    if (error instanceof Error) {
+      console.error('Stack:', error.stack);
+    }
     console.error('');
 
     process.exit(1);
