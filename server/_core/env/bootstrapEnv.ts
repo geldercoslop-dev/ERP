@@ -53,18 +53,13 @@ function sanitizeSecret(secret: string | undefined): string {
  * @throws Error se .env existir em produção ou se houver erro ao carregar
  */
 export function initEnv(): void {
-  console.log("🔥 INIT ENV FOI CHAMADO");
-
   // Fail-fast se já foi carregado (evita dupla injeção)
   if (_loaded) {
-    console.log("🔥 ENV JÁ FOI CARREGADO ANTES");
     return;
   }
 
   const envPath = path.resolve(process.cwd(), ".env");
-  console.log("🔥 ENV PATH:", envPath);
   const envExists = fs.existsSync(envPath);
-  console.log("🔥 ENV EXISTS:", envExists);
 
   // Production block: if NODE_ENV=production and .env exists, fail hard
   if (process.env.NODE_ENV === "production" && envExists) {
@@ -75,20 +70,14 @@ export function initEnv(): void {
   }
 
   // Load .env only in non-production with explicit path
-  // NOTA: dotenv v17 tem logging automático "injected env" (não é possível desativar)
-  // Este arquivo garante que initEnv() é a fonte autoritativa de configuração
   if (process.env.NODE_ENV !== "production") {
     if (envExists) {
       const result = dotenv.config({ path: envPath });
-      console.log("🔥 DOTENV carregado, variáveis:", result.parsed ? Object.keys(result.parsed).join(", ") : "(nenhuma)");
       if (result.error) {
         console.error("❌ [ENV] Erro ao carregar .env:", result.error.message);
         process.exit(1);
       }
       console.log("✅ [ENV] carregado de arquivo .env (ambiente local)");
-      console.log("[ENV] dotenv carregado (log 'injected env' é da biblioteca, ignorar)");
-      console.log("🔥 DATABASE_URL após load:", sanitizeDatabaseUrl(process.env.DATABASE_URL));
-      console.log("🔥 APP_SECRET após load:", sanitizeSecret(process.env.APP_SECRET));
     } else {
       console.log("ℹ️  [ENV] usando variáveis do runtime (sem .env)");
     }

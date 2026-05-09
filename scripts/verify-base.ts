@@ -120,7 +120,7 @@ info('='.repeat(60));
 
 runStep(
   'TYPESCRIPT',
-  'pnpm tsc --noEmit',
+  'pnpm exec tsc -p tsconfig.server.json --noEmit',
   true
 );
 

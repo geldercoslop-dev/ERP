@@ -235,8 +235,15 @@ class RedisManager {
       throw new InfrastructureError("Redis client not initialized");
     }
 
-    if (this.client.status !== "ready") {
-      throw new InfrastructureError(`Redis not ready (status: ${this.client.status})`);
+    const status = this.client.status;
+    
+    // Tratar estados transitórios como erro específico (não genérico)
+    if (status === "connecting" || status === "reconnecting") {
+      throw new InfrastructureError(`Redis connecting (status: ${status}) - transient state`);
+    }
+    
+    if (status !== "ready") {
+      throw new InfrastructureError(`Redis not ready (status: ${status})`);
     }
 
     return this.client;
@@ -285,6 +292,21 @@ class RedisManager {
       this.lastHealthCheck = now;
       
       recordRedis(duration, false);
+      
+      // Verificar se erro é de estado transitório (connecting/reconnecting)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isTransientState = errorMessage.includes('connecting') && errorMessage.includes('transient state');
+      
+      if (isTransientState) {
+        // Estado transitório: log WARN em vez de ERROR
+        logger.warn('Redis em estado transitório (connecting/reconnecting)', {
+          duration,
+          status: this.client?.status,
+        });
+        return false;
+      }
+      
+      // Erro real: log ERROR
       logger.error('Redis health check failed', error instanceof Error ? error : new Error(String(error)), {
         duration,
       });
