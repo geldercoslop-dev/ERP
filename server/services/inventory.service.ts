@@ -162,33 +162,30 @@ export async function getAllProdutosComPrecoVigente(tenantId: number, refDate: D
   assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  const sqlRunner = dbConn as {
-    execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
-  };
 
   // Otimização: Buscar produtos com JOIN para evitar N+1
   // Nota: produto_variacoes removido - SKU nao integrado nesta missao
-  const query = `
+  const query = sql`
     SELECT 
       p.*,
-      MIN(pi.precoPromocional) as precoPromo,
-      SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT pr.nome ORDER BY pi.precoPromocional ASC SEPARATOR ' | '), ' | ', 1) as promoNome
+      MIN(pi.preco_promocional) as precoPromo,
+      SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT pr.nome ORDER BY pi.preco_promocional ASC SEPARATOR ' | '), ' | ', 1) as promoNome
     FROM produtos p
-    LEFT JOIN promocoes_itens pi ON p.id = pi.produtoId
-    LEFT JOIN promocoes pr ON pi.promocaoId = pr.id 
-      AND pr.tenantId = ? 
+    LEFT JOIN promocoes_itens pi ON p.id = pi.produto_id
+    LEFT JOIN promocoes pr ON pi.promocao_id = pr.id 
+      AND pr.tenant_id = ${tenantId} 
       AND pr.ativo = 1 
-      AND pr.inicio <= ? 
-      AND pr.fim >= ?
-    WHERE p.tenantId = ? AND p.ativo = 1
+      AND pr.inicio <= ${refDate} 
+      AND pr.fim >= ${refDate}
+    WHERE p.tenant_id = ${tenantId} AND p.ativo = 1
     GROUP BY p.id
     ORDER BY p.descricao ASC
   `;
 
-  const [rows] = await sqlRunner.execute(query, [tenantId, refDate, refDate, tenantId]);
+  const execResult = await dbConn.execute(query);
   
   // Garantir que rows seja um array
-  const safeRows = ensureArray(rows as unknown[]);
+  const safeRows = ensureArray((Array.isArray(execResult) && Array.isArray(execResult[0]) ? execResult[0] : execResult) as unknown[]);
   
   // Processar os resultados
   // Nota: produto_variacoes removido - SKU nao integrado, retornando valores placeholder
@@ -242,40 +239,35 @@ export async function getProdutosComPrecoVigentePaged(
   assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  const sqlRunner = dbConn as {
-    execute: (query: string, params?: ReadonlyArray<unknown>) => Promise<[unknown, unknown]>;
-  };
   
   const refDate = opts.refDate ?? new Date();
   const page = opts.page || 1;
   const pageSize = opts.pageSize || 20;
   const offset = (page - 1) * pageSize;
   
-  // Construir condições de filtro
-  const conditions = [`p.tenantId = ?`, `p.ativo = 1`];
-  const params: Array<string | number> = [tenantId];
+  // Construir condições de filtro usando Drizzle sql
+  const conditions = [
+    sql`p.tenant_id = ${tenantId}`,
+    sql`p.ativo = 1`
+  ];
   
   const q = (opts.query ?? "").trim();
   if (q) {
-    conditions.push(`p.descricao LIKE ?`);
-    params.push(`%${q}%`);
+    conditions.push(sql`p.descricao LIKE ${`%${q}%`}`);
   }
   
   if (opts.categoria) {
-    conditions.push(`p.categoria = ?`);
-    params.push(opts.categoria);
+    conditions.push(sql`p.categoria = ${opts.categoria}`);
   }
   
   if (opts.marca) {
-    conditions.push(`p.marca = ?`);
-    params.push(opts.marca);
+    conditions.push(sql`p.marca = ${opts.marca}`);
   }
   
-  // Consulta paginada com JOIN para evitar N+1
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
   
   // Consulta de contagem total
-  const countQuery = `
+  const countQuery = sql`
     SELECT COUNT(DISTINCT p.id) as total
     FROM produtos p
     ${whereClause}
@@ -283,37 +275,34 @@ export async function getProdutosComPrecoVigentePaged(
   
   // Consulta principal com paginação
   // Nota: produto_variacoes removido - SKU nao integrado nesta missao
-  const query = `
+  const query = sql`
     SELECT 
       p.*,
-      MIN(pi.precoPromocional) as precoPromo,
-      SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT pr.nome ORDER BY pi.precoPromocional ASC SEPARATOR ' | '), ' | ', 1) as promoNome
+      MIN(pi.preco_promocional) as precoPromo,
+      SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT pr.nome ORDER BY pi.preco_promocional ASC SEPARATOR ' | '), ' | ', 1) as promoNome
     FROM produtos p
-    LEFT JOIN promocoes_itens pi ON p.id = pi.produtoId
-    LEFT JOIN promocoes pr ON pi.promocaoId = pr.id 
-      AND pr.tenantId = ? 
+    LEFT JOIN promocoes_itens pi ON p.id = pi.produto_id
+    LEFT JOIN promocoes pr ON pi.promocao_id = pr.id 
+      AND pr.tenant_id = ${tenantId} 
       AND pr.ativo = 1 
-      AND pr.inicio <= ? 
-      AND pr.fim >= ?
+      AND pr.inicio <= ${refDate} 
+      AND pr.fim >= ${refDate}
     ${whereClause}
     GROUP BY p.id
     ORDER BY p.descricao ASC
-    LIMIT ? OFFSET ?
+    LIMIT ${pageSize} OFFSET ${offset}
   `;
   
-  // Adicionar parâmetros para JOIN de promoções e paginação
-  const queryParams = [tenantId, refDate, refDate, ...params, pageSize, offset];
-  
   // Executar consultas em paralelo para melhor performance
-  const [countResult, rows] = await Promise.all([
-    sqlRunner.execute(countQuery, params),
-    sqlRunner.execute(query, queryParams)
+  const [countExecResult, rowsExecResult] = await Promise.all([
+    dbConn.execute(countQuery),
+    dbConn.execute(query)
   ]);
   
-  const countRows = ensureArray(countResult[0] as unknown[]);
+  const countRows = ensureArray((Array.isArray(countExecResult) && Array.isArray(countExecResult[0]) ? countExecResult[0] : countExecResult) as unknown[]);
   const firstCount = (countRows[0] ?? {}) as Record<string, unknown>;
   const total = Number(firstCount.total ?? 0);
-  const safeRows = ensureArray(rows[0] as unknown[]);
+  const safeRows = ensureArray((Array.isArray(rowsExecResult) && Array.isArray(rowsExecResult[0]) ? rowsExecResult[0] : rowsExecResult) as unknown[]);
   
   // Processar os resultados
   // Nota: produto_variacoes removido - SKU nao integrado, retornando valores placeholder
