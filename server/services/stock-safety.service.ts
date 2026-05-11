@@ -6,8 +6,8 @@
 
 import { runStockTransaction } from './db-transaction.js';
 import * as db from '../db/index.js';
-import { eq, sql, and } from 'drizzle-orm';
-import { produtos, itensPedido } from "../../drizzle/schema.js";
+import { eq, sql, SQL } from 'drizzle-orm';
+import { produtos, itensPedido, stockMovements } from "../../drizzle/schema.js";
 import { executeQuery } from '../config/database.js';
 import { isRecord } from '../_core/type-guards.js';
 import { assertTenantId } from '../_core/errors/assertions.js';
@@ -93,7 +93,7 @@ export async function updateStockSafe(
 
       // 1. Bloquear o produto para leitura (SELECT FOR UPDATE) com tenantId
       const [produto] = await tx.execute(
-        `SELECT id, descricao, estoque, ativo, bloquear_estoque_negativo FROM produtos WHERE tenantId = ? AND id = ? FOR UPDATE`,
+        `SELECT id, descricao, estoque, ativo, bloquear_estoque_negativo FROM produtos WHERE tenant_id = ? AND id = ? FOR UPDATE`,
         [tenantId, produtoId]
       );
 
@@ -137,7 +137,7 @@ export async function updateStockSafe(
 
       // 6. Atualizar estoque com verificação adicional de concorrência
       const updateResult = await tx.execute(
-        `UPDATE produtos SET estoque = ?, updatedAt = NOW() WHERE tenantId = ? AND id = ? AND estoque = ?`,
+        `UPDATE produtos SET estoque = ?, updated_at = NOW() WHERE tenant_id = ? AND id = ? AND estoque = ?`,
         [novoEstoque, tenantId, produtoId, estoqueAtual]
       );
 
@@ -164,7 +164,7 @@ export async function updateStockSafe(
       // Inserir movimento na tabela de auditoria (se existir)
       try {
         await tx.execute(
-          `INSERT INTO stock_movements (produtoId, descricao, quantidade, tipo, estoqueAnterior, estoqueNovo, motivo, usuario, timestamp, tenantId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO stock_movements (produto_id, descricao, quantidade, tipo, estoque_anterior, estoque_novo, motivo, usuario, timestamp, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [produtoId, produtoData.descricao, quantidade, operacao.tipo, estoqueAtual, novoEstoque, operacao.motivo, movement.usuario, movement.timestamp, tenantId]
         );
       } catch (auditError) {
@@ -204,7 +204,7 @@ export async function validateStockAvailability(
 
     try {
       const [produto] = await dbConnection.execute(
-        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenantId = ${tenantId} AND id = ${produtoId}`
+        sql`SELECT id, descricao, estoque, ativo FROM produtos WHERE tenant_id = ${tenantId} AND id = ${produtoId}`
       );
 
       if (!produto || !Array.isArray(produto) || produto.length === 0) {
@@ -275,8 +275,9 @@ export async function updateMultipleStockSafe(
       
       // 1. Bloquear todos os produtos para leitura
       const produtoIds = operacoes.map(op => op.produtoId);
+      const placeholders = produtoIds.map(() => '?').join(',');
       const produtosQuery = await tx.execute(
-        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenantId = ? AND id IN (${produtoIds.map(() => '?').join(',')}) FOR UPDATE`,
+        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenant_id = ? AND id IN (${placeholders}) FOR UPDATE`,
         [tenantId, ...produtoIds]
       );
 
@@ -304,7 +305,7 @@ export async function updateMultipleStockSafe(
 
         // Atualizar estoque
         await tx.execute(
-          `UPDATE produtos SET estoque = ?, updatedAt = NOW() WHERE tenantId = ? AND id = ? AND estoque = ?`,
+          `UPDATE produtos SET estoque = ?, updated_at = NOW() WHERE tenant_id = ? AND id = ? AND estoque = ?`,
           [novoEstoque, tenantId, operacao.produtoId, estoqueAtual]
         );
 
@@ -351,8 +352,9 @@ export async function reserveStockForOrder(
       
       // 1. Bloquear todos os produtos para leitura
       const produtoIds = itens.map(item => item.produtoId);
+      const placeholders = produtoIds.map(() => '?').join(',');
       const produtosQuery = await tx.execute(
-        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenantId = ? AND id IN (${produtoIds.map(() => '?').join(',')}) FOR UPDATE`,
+        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenant_id = ? AND id IN (${placeholders}) FOR UPDATE`,
         [tenantId, ...produtoIds]
       );
 
@@ -385,7 +387,7 @@ export async function reserveStockForOrder(
 
         // Atualizar estoque
         await tx.execute(
-          `UPDATE produtos SET estoque = ?, updatedAt = NOW() WHERE tenantId = ? AND id = ? AND estoque = ?`,
+          `UPDATE produtos SET estoque = ?, updated_at = NOW() WHERE tenant_id = ? AND id = ? AND estoque = ?`,
           [novoEstoque, tenantId, item.produtoId, estoqueAtual]
         );
 
@@ -432,8 +434,9 @@ export async function releaseStockForOrder(
       
       // 1. Bloquear todos os produtos para leitura
       const produtoIds = itens.map(item => item.produtoId);
+      const placeholders = produtoIds.map(() => '?').join(',');
       const produtosQuery = await tx.execute(
-        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenantId = ? AND id IN (${produtoIds.map(() => '?').join(',')}) FOR UPDATE`,
+        `SELECT id, descricao, estoque, ativo FROM produtos WHERE tenant_id = ? AND id IN (${placeholders}) FOR UPDATE`,
         [tenantId, ...produtoIds]
       );
 
@@ -457,7 +460,7 @@ export async function releaseStockForOrder(
 
         // Atualizar estoque
         await tx.execute(
-          `UPDATE produtos SET estoque = ?, updatedAt = NOW() WHERE tenantId = ? AND id = ? AND estoque = ?`,
+          `UPDATE produtos SET estoque = ?, updated_at = NOW() WHERE tenant_id = ? AND id = ? AND estoque = ?`,
           [novoEstoque, tenantId, item.produtoId, estoqueAtual]
         );
 
@@ -501,51 +504,55 @@ export async function getStockMovements(
   } = {}
 ): Promise<{ success: boolean; data?: StockMovement[]; error?: string }> {
   try {
+    assertTenantId(tenantId);
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+  
+  try {
     const dbConnection = await db.getDb();
     if (!dbConnection) {
       return { success: false, error: "Database connection not available" };
     }
 
-    let query = `
-      SELECT id, produtoId, descricao, quantidade, tipo, estoqueAnterior, estoqueNovo, motivo, usuario, timestamp 
-      FROM stock_movements 
-      WHERE tenantId = ?
-    `;
-    const params: Array<number | Date | string> = [tenantId];
+    const conditions: SQL[] = [sql`tenant_id = ${tenantId}`];
 
     if (filters.produtoId) {
-      query += ` AND produtoId = ?`;
-      params.push(filters.produtoId);
+      conditions.push(sql`produto_id = ${filters.produtoId}`);
     }
 
     if (filters.tipo) {
-      query += ` AND tipo = ?`;
-      params.push(filters.tipo);
+      conditions.push(sql`tipo = ${filters.tipo}`);
     }
 
     if (filters.dataInicio) {
-      query += ` AND timestamp >= ?`;
-      params.push(filters.dataInicio);
+      conditions.push(sql`timestamp >= ${filters.dataInicio}`);
     }
 
     if (filters.dataFim) {
-      query += ` AND timestamp <= ?`;
-      params.push(filters.dataFim);
+      conditions.push(sql`timestamp <= ${filters.dataFim}`);
     }
 
-    query += ` ORDER BY timestamp DESC`;
+    const whereClause = conditions.length === 1 ? conditions[0] : sql.join(conditions, sql` AND `);
+
+    let query = sql`
+      SELECT id, produto_id as produtoId, descricao, quantidade, tipo,
+             estoque_anterior as estoqueAnterior, estoque_novo as estoqueNovo,
+             motivo, usuario, timestamp
+      FROM stock_movements
+      WHERE ${whereClause}
+      ORDER BY timestamp DESC
+    `;
 
     if (filters.limit) {
-      query += ` LIMIT ?`;
-      params.push(filters.limit);
+      query = sql`${query} LIMIT ${filters.limit}`;
     }
 
     if (filters.offset) {
-      query += ` OFFSET ?`;
-      params.push(filters.offset);
+      query = sql`${query} OFFSET ${filters.offset}`;
     }
 
-    const [result] = await dbConnection.execute(query);
+    const [rows] = await dbConnection.execute(query);
     type MovementRow = {
       id: number;
       produtoId: number;
@@ -558,7 +565,7 @@ export async function getStockMovements(
       usuario: string;
       timestamp: string | Date;
     };
-    const movements = Array.isArray(result) ? (result as MovementRow[]).map((row) => ({
+    const movements = Array.isArray(rows) ? (rows as MovementRow[]).map((row) => ({
       id: row.id,
       produtoId: row.produtoId,
       descricao: row.descricao,
@@ -592,16 +599,14 @@ export async function reconstituteStockFromMovements(
       return { success: false, error: "Database connection not available" };
     }
 
-    let query = `
-      SELECT SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE -quantidade END) as saldo 
-      FROM stock_movements 
-      WHERE tenantId = ? AND produtoId = ?
+    let query = sql`
+      SELECT SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE -quantidade END) as saldo
+      FROM stock_movements
+      WHERE tenant_id = ${tenantId} AND produto_id = ${produtoId}
     `;
-    const params: Array<number | Date> = [tenantId, produtoId];
 
     if (dataReferencia) {
-      query += ` AND timestamp <= ?`;
-      params.push(dataReferencia);
+      query = sql`${query} AND timestamp <= ${dataReferencia}`;
     }
 
     const [result] = await dbConnection.execute(query);
@@ -629,26 +634,22 @@ export async function validateStockIntegrity(
       return { success: false, error: "Database connection not available" };
     }
 
-    let produtoFilter = "";
-    const params: number[] = [tenantId];
-    
-    if (produtoId) {
-      produtoFilter = " AND p.id = ?";
-      params.push(produtoId);
-    }
-
-    const query = `
-      SELECT 
+    let query = sql`
+      SELECT
         p.id as produtoId,
         p.descricao,
         p.estoque as estoqueAtual,
         COALESCE(SUM(CASE WHEN sm.tipo = 'entrada' THEN sm.quantidade ELSE -sm.quantidade END), 0) as saldoMovimentos
       FROM produtos p
-      LEFT JOIN stock_movements sm ON p.id = sm.produtoId AND sm.tenantId = p.tenantId
-      WHERE p.tenantId = ?${produtoFilter}
-      GROUP BY p.id, p.descricao, p.estoque
-      ORDER BY p.descricao
+      LEFT JOIN stock_movements sm ON p.id = sm.produto_id AND sm.tenant_id = p.tenant_id
+      WHERE p.tenant_id = ${tenantId}
     `;
+
+    if (produtoId) {
+      query = sql`${query} AND p.id = ${produtoId}`;
+    }
+
+    query = sql`${query} GROUP BY p.id, p.descricao, p.estoque ORDER BY p.descricao`;
 
     const [result] = await dbConnection.execute(query);
     type IntegrityRow = {
@@ -686,17 +687,7 @@ export async function recoverStockMovementsFromAudit(
     }
 
     // Buscar entradas de audit log relacionadas a estoque
-    const auditQuery = `
-      SELECT id, entity, entityId, action, payloadJson, createdAt
-      FROM audit_logs 
-      WHERE tenantId = ? 
-        AND entity IN ('produtos', 'stock_movements')
-        AND action IN ('create', 'update', 'stock_entry', 'stock_exit')
-      ORDER BY createdAt DESC
-      LIMIT ?
-    `;
-
-    const [auditResult] = await dbConnection.execute(`SELECT id, payloadJson FROM audit_logs WHERE tenantId = ${tenantId} ORDER BY createdAt DESC LIMIT ${limit}`);
+    const [auditResult] = await dbConnection.execute(sql`SELECT id, payload_json as payloadJson FROM audit_logs WHERE tenant_id = ${tenantId} ORDER BY created_at DESC LIMIT ${limit}`);
     const movements: StockMovement[] = [];
 
     if (Array.isArray(auditResult)) {

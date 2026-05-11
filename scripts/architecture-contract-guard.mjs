@@ -261,6 +261,19 @@ const P23_R05B_DRIZZLE_QUARANTINE_CLEANUP_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R08E - Stock movements schema
+const P23_R08E_STOCK_MOVEMENTS_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0009_create_stock_movements.sql',
+];
+
+// Janela formal P23-R08E-WINDOW - Guard files for stock movements
+const P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -511,6 +524,75 @@ function isP23_R05BAuthorizedDrizzleQuarantineCleanup(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R08E para schema stock_movements
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_R08E_STOCK_MOVEMENTS_SCHEMA
+ * Permite somente os 3 arquivos específicos da P23-R08E:
+ *   - drizzle/schema.ts
+ *   - drizzle/meta/_journal.json
+ *   - drizzle/0009_create_stock_movements.sql
+ */
+function isP23_R08EAuthorizedStockMovementsSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R08E_STOCK_MOVEMENTS_SCHEMA';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R08E_STOCK_MOVEMENTS_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R08E formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (stock movements schema)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-R08E-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P23_R08E_STOCK_MOVEMENTS_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_R08EStockMovementsWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R08E_STOCK_MOVEMENTS_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R08E-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for stock movements)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -635,6 +717,18 @@ function isFrozen(file) {
   const p23_r05bCheck = isP23_R05BAuthorizedDrizzleQuarantineCleanup(file);
   if (p23_r05bCheck.authorized) {
     return { frozen: false, exception: true, p23_r05b: p23_r05bCheck.reason };
+  }
+
+  // Verifica janela formal P23-R08E (stock movements schema)
+  const p23_r08eCheck = isP23_R08EAuthorizedStockMovementsSchemaUpdate(file);
+  if (p23_r08eCheck.authorized) {
+    return { frozen: false, exception: true, p23_r08e: p23_r08eCheck.reason };
+  }
+
+  // Verifica janela formal P23-R08E-WINDOW (guard update for stock movements)
+  const p23_r08eWindowCheck = isP23_R08EStockMovementsWindowAuthorized(file);
+  if (p23_r08eWindowCheck.authorized) {
+    return { frozen: false, exception: true, p23_r08e_window: p23_r08eWindowCheck.reason };
   }
 
   // Verifica exceções padrão

@@ -282,6 +282,19 @@ const P23_R05B_DRIZZLE_QUARANTINE_CLEANUP_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-R08E - Stock movements schema
+const P23_R08E_STOCK_MOVEMENTS_AUTHORIZED_FILES = [
+  "drizzle/schema.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/0009_create_stock_movements.sql",
+];
+
+// Janela formal P23-R08E-WINDOW - Guard files for stock movements
+const P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -526,6 +539,73 @@ function isP23_R05BAuthorizedDrizzleQuarantineCleanup(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R08E para schema stock_movements
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_R08E_STOCK_MOVEMENTS_SCHEMA
+ * Permite somente os 3 arquivos específicos da P23-R08E:
+ *   - drizzle/schema.ts
+ *   - drizzle/meta/_journal.json
+ *   - drizzle/0009_create_stock_movements.sql
+ */
+function isP23_R08EAuthorizedStockMovementsSchemaUpdate(filePath) {
+  const authorizedValue = "P23_R08E_STOCK_MOVEMENTS_SCHEMA";
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R08E_STOCK_MOVEMENTS_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-R08E formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (stock movements schema)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-R08E-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P23_R08E_STOCK_MOVEMENTS_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_R08EStockMovementsWindowAuthorized(filePath) {
+  const authorizedValue = "P23_R08E_STOCK_MOVEMENTS_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-R08E-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for stock movements)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -700,6 +780,30 @@ function main() {
     }
   }
 
+  // P23-R08E-WINDOW check: if guard files are modified, require guard window variable
+  const p23_r08eGuardFilesInChanges = files.filter(f => P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p23_r08eGuardFilesInChanges.length > 0) {
+    const p23_r08eWindowCheck = isP23_R08EStockMovementsWindowAuthorized(p23_r08eGuardFilesInChanges[0]);
+    if (!p23_r08eWindowCheck.authorized) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos de guard bloqueados modificados:\n");
+      p23_r08eGuardFilesInChanges.forEach(f => console.error(" - " + f));
+      console.error("\nDOC BLOQUEADO — Guard files requerem ERP_AUTHORIZED_GUARD_UPDATE=P23_R08E_STOCK_MOVEMENTS_WINDOW\n");
+      process.exit(1);
+    }
+    // If guard files are authorized, remove them from files for further checks
+    const nonGuardFiles = files.filter(f => !P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES.includes(f));
+    if (nonGuardFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R08E-WINDOW detectados:");
+      p23_r08eGuardFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — " + p23_r08eWindowCheck.reason + "\n");
+      return;
+    }
+    // Continue checking non-guard files
+    files.length = 0;
+    files.push(...nonGuardFiles);
+  }
+
   // P23-COUNTERS-WINDOW check: if guard files are modified, require guard window variable
   const guardFilesInChanges = files.filter(f => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(f));
   if (guardFilesInChanges.length > 0) {
@@ -767,7 +871,7 @@ function main() {
     }
 
     // P23-R-05B check: if guard files are in violations with P23-R-05B window active, allow them
-    const p23_r05bGuardFilesInViolations = violations.filter(v => 
+    const p23_r05bGuardFilesInViolations = violations.filter(v =>
       v === "scripts/guardrail-check.js" || v === "scripts/architecture-contract-guard.mjs"
     );
     if (p23_r05bGuardFilesInViolations.length > 0) {
@@ -784,6 +888,43 @@ function main() {
         violations.length = 0;
         violations.push(...nonGuardViolations);
       }
+    }
+
+    // P23-R08E authorized schema update: stock movements schema only
+    // Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P23_R08E_STOCK_MOVEMENTS_SCHEMA
+    // Permite somente drizzle/schema.ts, drizzle/meta/_journal.json, drizzle/0009_create_stock_movements.sql
+    const allP23_R08E_Authorized = violations.every(v => P23_R08E_STOCK_MOVEMENTS_AUTHORIZED_FILES.includes(v));
+    if (allP23_R08E_Authorized) {
+      const p23_r08eCheck = isP23_R08EAuthorizedStockMovementsSchemaUpdate(violations[0]);
+      if (p23_r08eCheck.authorized) {
+        console.log("\n📋 Arquivos P23-R08E detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_r08eCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P23-R08E-WINDOW check: if guard files are in violations, require guard window variable
+    const p23_r08eGuardFilesInViolations = violations.filter(v => P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (p23_r08eGuardFilesInViolations.length > 0) {
+      const p23_r08eWindowCheck = isP23_R08EStockMovementsWindowAuthorized(p23_r08eGuardFilesInViolations[0]);
+      if (!p23_r08eWindowCheck.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivos de guard bloqueados modificados:\n");
+        p23_r08eGuardFilesInViolations.forEach(f => console.error(" - " + f));
+        console.error("\nDOC BLOQUEADO — Guard files requerem ERP_AUTHORIZED_GUARD_UPDATE=P23_R08E_STOCK_MOVEMENTS_WINDOW\n");
+        process.exit(1);
+      }
+      // If guard files are authorized, remove them from violations for further checks
+      const nonGuardViolations = violations.filter(v => !P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES.includes(v));
+      if (nonGuardViolations.length === 0) {
+        console.log("\n📋 Arquivos P23-R08E-WINDOW detectados:");
+        p23_r08eGuardFilesInViolations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_r08eWindowCheck.reason + "\n");
+        return;
+      }
+      violations.length = 0;
+      violations.push(...nonGuardViolations);
     }
 
     // Verifica se são apenas os arquivos permitidos de schema

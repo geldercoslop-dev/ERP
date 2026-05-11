@@ -50,6 +50,13 @@
       "when": 1778092800000,
       "tag": "0008_counters_tenant_unique_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1778380000000,
+      "tag": "0009_create_stock_movements",
+      "breakpoints": true
     }
   ]
 }

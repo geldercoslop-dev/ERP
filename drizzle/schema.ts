@@ -722,3 +722,26 @@ export const leoApprovals = mysqlTable(
     tenantStatusIdx: index("leo_approvals_tenant_status_idx").on(table.tenantId, table.status),
   }),
 );
+
+export const stockMovements = mysqlTable(
+  "stock_movements",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    tenantId: int("tenant_id").notNull(),
+    produtoId: int("produto_id").notNull().references(() => produtos.id),
+    descricao: text("descricao").notNull(),
+    quantidade: int("quantidade").notNull(),
+    tipo: mysqlEnum("tipo", ["entrada", "saida"]).notNull(),
+    estoqueAnterior: int("estoque_anterior").notNull(),
+    estoqueNovo: int("estoque_novo").notNull(),
+    motivo: text("motivo").notNull(),
+    usuario: varchar("usuario", { length: 255 }).notNull(),
+    timestamp: timestamp("timestamp").defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index("stock_movements_tenant_id_idx").on(table.tenantId),
+    produtoIdIdx: index("stock_movements_produto_id_idx").on(table.produtoId),
+    timestampIdx: index("stock_movements_timestamp_idx").on(table.timestamp),
+    tenantProdutoIdx: index("stock_movements_tenant_produto_idx").on(table.tenantId, table.produtoId),
+  }),
+);
