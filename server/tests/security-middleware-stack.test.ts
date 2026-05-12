@@ -6,6 +6,7 @@
  * - CSRF token endpoint
  * - CSRF invalid block
  * - Malicious header block
+ * - Directory Traversal block
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -242,5 +243,58 @@ describe('Security Middleware Stack', () => {
 
     // Body parser limit is 5MB, so should return 413 Payload Too Large
     expect(response.status).toBe(413);
+  });
+
+  it('POST with valid CSRF and Directory Traversal in body returns 400', async () => {
+    // First, get CSRF token
+    const tokenResponse = await fetch(`${base}/api/csrf-token`, { method: 'GET' });
+    const setCookie = tokenResponse.headers.get('set-cookie');
+    const csrfToken = extractCookieValue(setCookie, 'csrf-token');
+    const body = await tokenResponse.json() as { csrfToken?: string };
+    const tokenFromBody = body?.csrfToken;
+    const tokenUsed = csrfToken ?? tokenFromBody ?? '';
+
+    expect(tokenUsed).toBeTruthy();
+
+    const cookieHeader = setCookie?.split(';')[0] ?? '';
+
+    const response = await fetch(`${base}/api/test/failure/configure`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-csrf-token': tokenUsed,
+        cookie: cookieHeader,
+      },
+      body: JSON.stringify({ enabled: true, path: '../../etc/passwd' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('POST with valid CSRF and Directory Traversal in header returns 400', async () => {
+    // First, get CSRF token
+    const tokenResponse = await fetch(`${base}/api/csrf-token`, { method: 'GET' });
+    const setCookie = tokenResponse.headers.get('set-cookie');
+    const csrfToken = extractCookieValue(setCookie, 'csrf-token');
+    const body = await tokenResponse.json() as { csrfToken?: string };
+    const tokenFromBody = body?.csrfToken;
+    const tokenUsed = csrfToken ?? tokenFromBody ?? '';
+
+    expect(tokenUsed).toBeTruthy();
+
+    const cookieHeader = setCookie?.split(';')[0] ?? '';
+
+    const response = await fetch(`${base}/api/test/failure/configure`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-csrf-token': tokenUsed,
+        cookie: cookieHeader,
+        'x-test-path': '../../etc/passwd',
+      },
+      body: JSON.stringify({ enabled: true, failureRate: 0.0, failureType: '500' }),
+    });
+
+    expect(response.status).toBe(400);
   });
 });
