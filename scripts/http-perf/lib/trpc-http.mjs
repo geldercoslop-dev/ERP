@@ -1,6 +1,5 @@
 /**
  * Helpers tRPC HTTP (Express) — formato batch=1 usado pelo cliente/runtime.
- * @see scripts/runtime-attack-suite.ts
  */
 
 /** @param {string} baseUrl ex: http://localhost:3001 */
