@@ -9,9 +9,7 @@
    - `ensureUpdateResult()`: Garante que o retorno de operações de atualização tenha success
    - `ensureDeleteResult()`: Garante que o retorno de operações de exclusão tenha success
 
-2. **`scripts/test-service-responses.ts`**: Script para testar os retornos padronizados dos serviços
-
-3. **`RELATORIO_PADRONIZACAO_SERVICES.md`**: Relatório detalhado das alterações realizadas
+2. **`RELATORIO_PADRONIZACAO_SERVICES.md`**: Relatório detalhado das alterações realizadas
 
 ## Arquivos Modificados
 

@@ -75,7 +75,7 @@ As seguintes correções foram aplicadas:
 
 ## Validação Final
 
-Foi criado um script de teste `scripts/test-service-responses-expanded.ts` para validar os retornos padronizados dos serviços. Este script testa:
+O script de teste foi removido na rodada P23-R-08E por obsolescência. A validação dos retornos padronizados deve ser feita através dos testes de integração em `tests/integration/`.
 
 1. **Serviço de Clientes**: Verifica se `listClientes` retorna um objeto com `items` como array e se o método `find` funciona nesse array.
 2. **Serviço de Inventário**: Verifica se `getAllProdutos` retorna um array e se o método `find` funciona nesse array.

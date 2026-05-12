@@ -75,7 +75,6 @@ server/
 scripts/
 ├── test-*.ts ⚠️ (misturado)
 ├── backup-db.ps1 ✅
-├── simular-operacao.ts ✅
 └── outros scripts ✅
 ```
 
@@ -137,9 +136,6 @@ docs/
 
 ### **🔧 Scripts de Manutenção**
 - `scripts/backup-db.ps1`
-- `scripts/simular-operacao.ts`
-- `server/scripts/ensure-database.ts`
-
 ---
 
 ## 🗑️ **ARQUIVOS A REMOVER**

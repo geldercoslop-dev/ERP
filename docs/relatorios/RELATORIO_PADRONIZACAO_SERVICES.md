@@ -59,7 +59,7 @@ Foi criado um módulo utilitário `service-response.ts` que define funções par
 ## Integração no Sistema
 
 - As funções de padronização foram exportadas no `server/_core/index.ts` para facilitar o uso em todo o sistema
-- Foi criado um script de teste `scripts/test-service-responses.ts` para validar que os retornos estão padronizados
+- O script de teste foi removido na rodada P23-R-08E por obsolescência
 
 ## Erros Eliminados
 

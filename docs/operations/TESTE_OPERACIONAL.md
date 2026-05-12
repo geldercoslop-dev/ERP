@@ -18,17 +18,7 @@ A simulação exercita o fluxo completo: **pedidos → conferência → cargas �
 
 ### Comando
 
-Na raiz do projeto:
-
-```bash
-npm run simular-operacao
-```
-
-Ou diretamente:
-
-```bash
-npx tsx scripts/simular-operacao.ts
-```
+> **Nota:** O script de simulação operacional foi removido na rodada P23-R-08E por obsolescência. Para testes operacionais, utilize os testes de integração em `tests/integration/`.
 
 ### O que o script faz
 
@@ -121,7 +111,7 @@ Uso: chamar esses procedimentos a partir do cliente (Relatórios ou outra tela f
 ## 6. Checklist rápido
 
 - [ ] Banco configurado e acessível.
-- [ ] `npm run simular-operacao` executa sem erro.
+- [ ] Testes de integração em `tests/integration/` executam sem erro.
 - [ ] Dashboard mostra pedidos hoje, cargas abertas, entregas hoje, pendências e recebido hoje.
 - [ ] Fluxo GERADO → CONFERIDO → EM_ROTA → ENTREGUE preservado.
 - [ ] Audit log registra criação de pedido, conferência, criação/fechamento de carga e baixa (com traceId quando aplicável).
