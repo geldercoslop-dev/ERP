@@ -274,6 +274,19 @@ const P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-APP-SECRET-WINDOW - App Secret middleware extraction
+const P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES = [
+  'server/_core/index.ts',
+  'server/security/app-secret-middleware.ts',
+  'server/tests/security-app-secret.test.ts',
+];
+
+// Janela formal P23-APP-SECRET-WINDOW - Guard files for app secret middleware
+const P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -593,6 +606,75 @@ function isP23_R08EStockMovementsWindowAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-APP-SECRET para extração do middleware
+ * Requer variável ERP_AUTHORIZED_CORE_SECURITY_UPDATE=P23_APP_SECRET_MIDDLEWARE_EXTRACTION
+ * Permite somente os 3 arquivos específicos da extração:
+ *   - server/_core/index.ts
+ *   - server/security/app-secret-middleware.ts
+ *   - server/tests/security-app-secret.test.ts
+ */
+function isP23_AppSecretMiddlewareExtractionAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_APP_SECRET_MIDDLEWARE_EXTRACTION';
+  const envValue = process.env.ERP_AUTHORIZED_CORE_SECURITY_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-APP-SECRET formal window: ERP_AUTHORIZED_CORE_SECURITY_UPDATE=' + authorizedValue + ' (app secret middleware extraction)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-APP-SECRET-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P23_APP_SECRET_MIDDLEWARE_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_AppSecretMiddlewareWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_APP_SECRET_MIDDLEWARE_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-APP-SECRET-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for app secret middleware)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -731,14 +813,30 @@ function isFrozen(file) {
     return { frozen: false, exception: true, p23_r08e_window: p23_r08eWindowCheck.reason };
   }
 
+  // Verifica janela formal P23-APP-SECRET (app secret middleware extraction)
+  const p23_appSecretCheck = isP23_AppSecretMiddlewareExtractionAuthorized(file);
+  if (p23_appSecretCheck.authorized) {
+    return { frozen: false, exception: true, p23_app_secret: p23_appSecretCheck.reason };
+  }
+
+  // Verifica janela formal P23-APP-SECRET-WINDOW (guard update for app secret middleware)
+  const p23_appSecretWindowCheck = isP23_AppSecretMiddlewareWindowAuthorized(file);
+  if (p23_appSecretWindowCheck.authorized) {
+    return { frozen: false, exception: true, p23_app_secret_window: p23_appSecretWindowCheck.reason };
+  }
+
   // Verifica exceções padrão
   for (const exception of EXCEPTIONS) {
     if (relativePath.startsWith(exception) || relativePath === exception) {
-      // Exceção especial: guard files requerem janela formal P23-COUNTERS-WINDOW
+      // Exceção especial: guard files requerem janela formal P23-COUNTERS-WINDOW ou P23-APP-SECRET-WINDOW
       if (relativePath === 'scripts/guardrail-check.js' || relativePath === 'scripts/architecture-contract-guard.mjs') {
         const p23_countersWindowCheck = isP23_CountersTenantUniqueWindowAuthorized(file);
         if (p23_countersWindowCheck.authorized) {
           return { frozen: false, exception: true, p23_counters_window: p23_countersWindowCheck.reason };
+        }
+        const p23_appSecretWindowCheck = isP23_AppSecretMiddlewareWindowAuthorized(file);
+        if (p23_appSecretWindowCheck.authorized) {
+          return { frozen: false, exception: true, p23_app_secret_window: p23_appSecretWindowCheck.reason };
         }
         // Se não tiver autorização da janela, trata como congelado
         return { frozen: true, pattern: 'scripts/', guard_window_required: true };

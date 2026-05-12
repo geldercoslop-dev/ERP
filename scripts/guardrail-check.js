@@ -295,6 +295,19 @@ const P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-APP-SECRET-WINDOW - App Secret middleware extraction
+const P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES = [
+  "server/_core/index.ts",
+  "server/security/app-secret-middleware.ts",
+  "server/tests/security-app-secret.test.ts",
+];
+
+// Janela formal P23-APP-SECRET-WINDOW - Guard files for app secret middleware
+const P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -606,6 +619,73 @@ function isP23_R08EStockMovementsWindowAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-APP-SECRET para extração do middleware
+ * Requer variável ERP_AUTHORIZED_CORE_SECURITY_UPDATE=P23_APP_SECRET_MIDDLEWARE_EXTRACTION
+ * Permite somente os 3 arquivos específicos da extração:
+ *   - server/_core/index.ts
+ *   - server/security/app-secret-middleware.ts
+ *   - server/tests/security-app-secret.test.ts
+ */
+function isP23_AppSecretMiddlewareExtractionAuthorized(filePath) {
+  const authorizedValue = "P23_APP_SECRET_MIDDLEWARE_EXTRACTION";
+  const envValue = process.env.ERP_AUTHORIZED_CORE_SECURITY_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-APP-SECRET formal window: ERP_AUTHORIZED_CORE_SECURITY_UPDATE=" + authorizedValue + " (app secret middleware extraction)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P23-APP-SECRET-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P23_APP_SECRET_MIDDLEWARE_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP23_AppSecretMiddlewareWindowAuthorized(filePath) {
+  const authorizedValue = "P23_APP_SECRET_MIDDLEWARE_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-APP-SECRET-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for app secret middleware)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -780,6 +860,54 @@ function main() {
     }
   }
 
+  // P23-APP-SECRET check: if app secret middleware extraction files are modified, require authorization variable
+  const p23_appSecretFilesInChanges = files.filter(f => P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES.includes(f));
+  if (p23_appSecretFilesInChanges.length > 0) {
+    const p23_appSecretCheck = isP23_AppSecretMiddlewareExtractionAuthorized(p23_appSecretFilesInChanges[0]);
+    if (!p23_appSecretCheck.authorized) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos de área congelada modificados:\n");
+      p23_appSecretFilesInChanges.forEach(f => console.error(" - " + f));
+      console.error("\nDOC BLOQUEADO — App Secret middleware extraction requer ERP_AUTHORIZED_CORE_SECURITY_UPDATE=P23_APP_SECRET_MIDDLEWARE_EXTRACTION\n");
+      process.exit(1);
+    }
+    // If all changed files are authorized by P23-APP-SECRET, allow them
+    const nonAppSecretFiles = files.filter(f => !P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES.includes(f));
+    if (nonAppSecretFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-APP-SECRET detectados:");
+      p23_appSecretFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — " + p23_appSecretCheck.reason + "\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    files.length = 0;
+    files.push(...nonAppSecretFiles);
+  }
+
+  // P23-APP-SECRET-WINDOW check: if guard files are modified for app secret window, require guard window variable
+  const p23_appSecretWindowGuardFilesInChanges = files.filter(f => P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p23_appSecretWindowGuardFilesInChanges.length > 0) {
+    const p23_appSecretWindowCheck = isP23_AppSecretMiddlewareWindowAuthorized(p23_appSecretWindowGuardFilesInChanges[0]);
+    if (!p23_appSecretWindowCheck.authorized) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos de guard bloqueados modificados:\n");
+      p23_appSecretWindowGuardFilesInChanges.forEach(f => console.error(" - " + f));
+      console.error("\nDOC BLOQUEADO — Guard files requerem ERP_AUTHORIZED_GUARD_UPDATE=P23_APP_SECRET_MIDDLEWARE_WINDOW\n");
+      process.exit(1);
+    }
+    // If guard files are authorized, remove them from files for further checks
+    const nonGuardFiles = files.filter(f => !P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES.includes(f));
+    if (nonGuardFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-APP-SECRET-WINDOW detectados:");
+      p23_appSecretWindowGuardFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — " + p23_appSecretWindowCheck.reason + "\n");
+      return;
+    }
+    // Continue checking non-guard files
+    files.length = 0;
+    files.push(...nonGuardFiles);
+  }
+
   // P23-R08E-WINDOW check: if guard files are modified, require guard window variable
   const p23_r08eGuardFilesInChanges = files.filter(f => P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES.includes(f));
   if (p23_r08eGuardFilesInChanges.length > 0) {
@@ -902,6 +1030,52 @@ function main() {
         console.log("\n✔ Guardrail OK — " + p23_r08eCheck.reason + "\n");
         return;
       }
+    }
+
+    // P23-APP-SECRET check: if app secret middleware files are in violations, require authorization variable
+    const p23_appSecretFilesInViolations = violations.filter(v => P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES.includes(v));
+    if (p23_appSecretFilesInViolations.length > 0) {
+      const p23_appSecretCheck = isP23_AppSecretMiddlewareExtractionAuthorized(p23_appSecretFilesInViolations[0]);
+      if (!p23_appSecretCheck.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivos de área congelada modificados:\n");
+        p23_appSecretFilesInViolations.forEach(f => console.error(" - " + f));
+        console.error("\nDOC BLOQUEADO — App Secret middleware extraction requer ERP_AUTHORIZED_CORE_SECURITY_UPDATE=P23_APP_SECRET_MIDDLEWARE_EXTRACTION\n");
+        process.exit(1);
+      }
+      // If all violations are authorized by P23-APP-SECRET, allow them
+      const nonAppSecretViolations = violations.filter(v => !P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES.includes(v));
+      if (nonAppSecretViolations.length === 0) {
+        console.log("\n📋 Arquivos P23-APP-SECRET detectados:");
+        p23_appSecretFilesInViolations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_appSecretCheck.reason + "\n");
+        return;
+      }
+      violations.length = 0;
+      violations.push(...nonAppSecretViolations);
+    }
+
+    // P23-APP-SECRET-WINDOW check: if guard files are in violations with P23-APP-SECRET-WINDOW active, allow them
+    const p23_appSecretWindowGuardFilesInViolations = violations.filter(v => P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (p23_appSecretWindowGuardFilesInViolations.length > 0) {
+      const p23_appSecretWindowCheck = isP23_AppSecretMiddlewareWindowAuthorized(p23_appSecretWindowGuardFilesInViolations[0]);
+      if (!p23_appSecretWindowCheck.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivos de guard bloqueados modificados:\n");
+        p23_appSecretWindowGuardFilesInViolations.forEach(f => console.error(" - " + f));
+        console.error("\nDOC BLOQUEADO — Guard files requerem ERP_AUTHORIZED_GUARD_UPDATE=P23_APP_SECRET_MIDDLEWARE_WINDOW\n");
+        process.exit(1);
+      }
+      // If guard files are authorized by P23-APP-SECRET-WINDOW, remove them from violations for further checks
+      const nonGuardViolations = violations.filter(v => !P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES.includes(v));
+      if (nonGuardViolations.length === 0) {
+        console.log("\n📋 Arquivos P23-APP-SECRET-WINDOW detectados:");
+        p23_appSecretWindowGuardFilesInViolations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p23_appSecretWindowCheck.reason + "\n");
+        return;
+      }
+      violations.length = 0;
+      violations.push(...nonGuardViolations);
     }
 
     // P23-R08E-WINDOW check: if guard files are in violations, require guard window variable
