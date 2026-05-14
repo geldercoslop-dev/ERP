@@ -287,6 +287,13 @@ const P23_APP_SECRET_MIDDLEWARE_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-08E-07C-PACKAGE - Remove obsolete test:login script from package.json
+const P23_REMOVE_OBSOLETE_TEST_LOGIN_SCRIPT_AUTHORIZED_FILES = [
+  'package.json',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -675,6 +682,82 @@ function isP23_AppSecretMiddlewareWindowAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-08E-07C-PACKAGE para remover test:login script
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P23_REMOVE_OBSOLETE_TEST_LOGIN_SCRIPT
+ * Permite somente:
+ *   - package.json (apenas para remover "test:login": "tsx scripts/test-login.js")
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_RemoveObsoleteTestLoginScriptAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_REMOVE_OBSOLETE_TEST_LOGIN_SCRIPT';
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_REMOVE_OBSOLETE_TEST_LOGIN_SCRIPT_AUTHORIZED_FILES.includes(relativePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a remoção de test:login
+    if (relativePath === 'package.json') {
+      try {
+        const diff = execSync('git diff --cached package.json', { 
+          encoding: 'utf-8', 
+          cwd: ROOT 
+        });
+        
+        const lines = diff.split('\n');
+        let hasTestLoginRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a remoção exata de test:login
+            if (line === '-    "test:login": "tsx scripts/test-login.js",') {
+              hasTestLoginRemoval = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain removal of test:login script. Found: ' + line };
+            }
+          }
+        }
+        
+        if (!hasTestLoginRemoval) {
+          return { authorized: false, reason: 'package.json diff must contain removal of test:login script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+    
+    return {
+      authorized: true,
+      reason: 'P23-R-08E-07C-PACKAGE formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=' + authorizedValue + ' (remove obsolete test:login script)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -823,6 +906,12 @@ function isFrozen(file) {
   const p23_appSecretWindowCheck = isP23_AppSecretMiddlewareWindowAuthorized(file);
   if (p23_appSecretWindowCheck.authorized) {
     return { frozen: false, exception: true, p23_app_secret_window: p23_appSecretWindowCheck.reason };
+  }
+
+  // Verifica janela formal P23-R-08E-07C-PACKAGE (remove obsolete test:login script)
+  const p23_removeTestLoginCheck = isP23_RemoveObsoleteTestLoginScriptAuthorized(file);
+  if (p23_removeTestLoginCheck.authorized) {
+    return { frozen: false, exception: true, p23_remove_test_login: p23_removeTestLoginCheck.reason };
   }
 
   // Verifica exceções padrão
