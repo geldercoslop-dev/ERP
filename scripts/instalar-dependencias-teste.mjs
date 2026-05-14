@@ -38,5 +38,3 @@ if (depsToInstall.length === 0) {
 }
 
 console.log('\n=== INSTALAÇÃO CONCLUÍDA ===');
-console.log('Você pode executar os testes com:');
-console.log('  node scripts/teste-guerra-erp.mjs');

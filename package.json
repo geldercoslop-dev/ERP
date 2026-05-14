@@ -76,7 +76,6 @@
     "test:http-perf": "node scripts/http-perf/run-http-perf.mjs",
     "audit:perf-logs": "node scripts/http-perf/audit-logs.mjs",
     "fix:vendedor": "node server/scripts/fix-vendedor.js",
-    "test:login": "tsx scripts/test-login.js",
     "pm2:start": "pm2 start deployment/ecosystem.config.js --env production --update-env",
     "pm2:restart": "pm2 restart erp-server --update-env",
     "pm2:logs": "pm2 logs erp-server --lines 200",
