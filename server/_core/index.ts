@@ -43,6 +43,7 @@ import { validateShutdownAuthPayload } from "../services/system/payload-validati
 import { systemLogger } from "./logger.js";
 import { createFailureSimulationRoutes } from "../resilience/failure-simulator.js";
 import { exitProcessInProductionUnlessDevelopment } from "./dev-process-exit.js";
+import { createAppSecretMiddleware, createInternalEndpointProtectionMiddleware } from "../security/app-secret-middleware.js";
 import { createLogger } from "../infra/structured-logger.js";
 import { requestIdMiddleware, getRequestId } from "../middleware/request-id.middleware.js";
 import { globalErrorHandler } from "../middleware/global-error-handler.middleware.js";
@@ -413,93 +414,26 @@ export async function startServer() {
   const appSecret = env.APP_SECRET;
   const internalEndpointSecret =
     process.env.HARD_TEST_SHUTDOWN_SECRET?.trim() || appSecret || "";
-  app.use((req, res, next) => {
-    if (!req.path.startsWith("/api")) return next();
-    
-    // Liberar rotas públicas (health, login, csrf)
-    if (req.path === "/api/health" || req.path === "/api/health/") return next();
-    if (req.path.includes("/api/trpc/auth.login")) return next();
-    if (req.path.includes("/api/csrf-token")) return next();
-
-    const userAgent = req.get("user-agent")?.trim();
-    if (!userAgent) {
-      logSecurity("user-agent ausente", req);
-      return sendStandardError(req, res, 400, "MISSING_USER_AGENT", "user-agent obrigatório");
-    }
-
-    // Check for x-app-secret
-    const secret = req.get("x-app-secret")?.trim();
-    const hasSecret = secret && appSecret && secret === appSecret;
-    const authorizationHeader = req.get("authorization")?.trim();
-    const hasBearerAuth = Boolean(authorizationHeader && /^Bearer\s+\S+$/i.test(authorizationHeader));
-
-    // If no valid x-app-secret, check if we have valid JWT + CSRF
-    // This allows authenticated requests from browser to proceed
-    if (!hasSecret) {
-      const hasJwtToken = hasBearerAuth;
-      const hasCsrfToken = req.cookies?.["csrf-token"] &&
-                           req.get("x-csrf-token");
-
-      // For browser requests: CSRF + JWT can substitute for x-app-secret
-      // GET requests don't need x-app-secret if they have JWT
-      const isSafeMethod = ["GET", "HEAD", "OPTIONS"].includes(req.method);
-      const isMutationWithProtection = hasCsrfToken && (hasJwtToken || isSafeMethod);
-
-      if (!isMutationWithProtection && !hasBearerAuth) {
-        console.log('>>> BLOCKED BEFORE ROUTES', {
-          method: req.method,
-          path: req.path,
-          hasSecret: Boolean(secret),
-          hasJwtToken: Boolean(hasJwtToken),
-          hasCsrfToken: Boolean(hasCsrfToken),
-          hasBearerAuth,
-        });
-        logSecurity("x-app-secret inválido/ausente", req, {
-          hasSecret: Boolean(secret),
-          hasJwtToken: Boolean(hasJwtToken),
-          hasCsrfToken: Boolean(hasCsrfToken),
-          hasBearerAuth,
-        });
-        return sendStandardError(req, res, 401, "UNAUTHORIZED", "unauthorized");
-      }
-    }
-
-    const inspectionTargets = [
-      req.originalUrl || req.url,
-      typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {}),
-      JSON.stringify(req.query ?? {}),
-    ].join(" ");
-
-    for (const pattern of MALICIOUS_PATTERNS) {
-      if (pattern.test(inspectionTargets)) {
-        logSecurity("payload malicioso bloqueado", req, {
-          pattern: String(pattern),
-        });
-        return sendStandardError(
-          req,
-          res,
-          400,
-          "SUSPICIOUS_PAYLOAD",
-          "suspicious payload blocked"
-        );
-      }
-    }
-    
-    next();
-  });
   
-  app.use((req, res, next) => {
-    if (!req.path.startsWith("/api/__")) return next();
-    const localhostIps = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
-    const ip = getClientIp(req);
-    const hasLocalhost = localhostIps.has(ip);
-    const internalSecret = req.get("x-shutdown-secret") || req.get("x-app-secret");
-    if (!hasLocalhost && (!internalEndpointSecret || internalSecret !== internalEndpointSecret)) {
-      logSecurity("acesso a endpoint interno bloqueado", req);
-      return sendStandardError(req, res, 403, "FORBIDDEN_INTERNAL", "forbidden");
-    }
-    next();
-  });
+  // X-App-Secret validation middleware
+  app.use(createAppSecretMiddleware({
+    appSecret,
+    internalEndpointSecret,
+    logger: (event: string, req: Request, metadata?: Record<string, unknown>) => {
+      logSecurity(event, req, metadata);
+    },
+    getRequestId: (req) => getRequestId(req),
+  }));
+  
+  // Internal endpoint protection middleware
+  app.use(createInternalEndpointProtectionMiddleware({
+    appSecret,
+    internalEndpointSecret,
+    logger: (event: string, req: Request, metadata?: Record<string, unknown>) => {
+      logSecurity(event, req, metadata);
+    },
+    getRequestId: (req) => getRequestId(req),
+  }));
 
   /** Automação: shutdown completo sem depender de SIGINT no subprocesso (Windows). */
   if (process.env.HARD_TEST_HTTP_SHUTDOWN === "1") {
