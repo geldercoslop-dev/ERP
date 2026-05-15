@@ -30,7 +30,7 @@ c:\ERP\
 
 ### **2. Scripts de Teste Duplicados**
 - **8 arquivos test-*.ts** (misturados entre scripts úteis e temporários)
-- Scripts úteis: `test-infrastructure.ts`, `test-error-handling.ts`, `test-frontend-stability.ts`
+- Scripts úteis: `test-infrastructure.ts`, `test-frontend-stability.ts`
 - Scripts temporários: `test-auth-detection.ts`, `test-leo-operator.ts`, etc.
 
 ### **3. Documentação Desorganizada**
@@ -130,7 +130,6 @@ docs/
 
 ### **🧪 Scripts de Teste Úteis**
 - `scripts/test-infrastructure.ts`
-- `scripts/test-error-handling.ts`
 - `scripts/test-frontend-stability.ts`
 - `server/scripts/test-db-connection.ts`
 

@@ -41,7 +41,6 @@
 âœ… scripts/analyze-dead-code.ts - Sintaxe OK
 âœ… scripts/standardize-imports.ts - Criado e funcional
 âœ… scripts/test-infrastructure.ts - Existente
-âœ… scripts/test-error-handling.ts - Existente
 âœ… scripts/test-frontend-stability.ts - Criado
 ```
 

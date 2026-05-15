@@ -40,19 +40,13 @@
 - ✅ **Middleware chaining** - Combinação de múltiplos middlewares
 
 ### **6. Testes Automatizados**
-- ✅ **`scripts/test-error-handling.ts`** - Suite completa de testes
+- ✅ **`server/tests/core/error-handling.test.ts`** - Suite completa de testes Vitest
 - ✅ **5 áreas testadas**: Error Handler, API Response, Custom Errors, Middleware, Audit
-- ✅ **Script `npm run test:error-handling`** adicionado
 - ✅ **Simulação real** de erros e validação do tratamento
 
 ---
 
 ## 📋 **COMO USAR**
-
-### **Executar Testes de Erro**
-```bash
-npm run test:error-handling
-```
 
 ### **Usar Middleware de Erro**
 ```typescript

@@ -104,7 +104,6 @@ c:\ERP\
 ### **🔍 Scripts de Análise**
 ```
 ✅ scripts/test-infrastructure.ts     - Testa infraestrutura
-✅ scripts/test-error-handling.ts    - Testa tratamento de erros
 ✅ scripts/test-frontend-stability.ts - Testa estabilidade frontend
 ```
 
@@ -135,7 +134,6 @@ c:\ERP\
 ```bash
 # Verificar saúde do sistema
 npm run test:infrastructure
-npm run test:error-handling
 npm run test:frontend-stability
 ```
 

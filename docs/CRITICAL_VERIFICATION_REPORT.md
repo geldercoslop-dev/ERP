@@ -54,7 +54,6 @@ c:\ERP\
 ✅ scripts/analyze-dead-code.ts (10.8KB - Criado)
 ✅ scripts/standardize-imports.ts (8.1KB - Criado)
 ✅ scripts/test-infrastructure.ts (9.2KB - Já existia)
-✅ scripts/test-error-handling.ts (12.5KB - Já existia)
 ✅ scripts/test-frontend-stability.ts (15.2KB - Criado)
 ```
 
