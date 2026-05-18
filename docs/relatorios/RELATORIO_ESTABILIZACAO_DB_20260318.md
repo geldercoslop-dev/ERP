@@ -242,13 +242,6 @@ node test-db-connection-direct.cjs
 - Validação de servidor MySQL
 - **Resultado**: ✅ Conectado, todas as queries OK
 
-### [test-api-endpoints-stable.cjs](test-api-endpoints-stable.cjs)
-```bash
-node test-api-endpoints-stable.cjs
-```
-- Valida endpoints /produtos e /clientes
-- 5 requisições sequenciais para estabilidade
-
 ---
 
 ## 9️⃣ RECOMENDAÇÕES FUTURAS

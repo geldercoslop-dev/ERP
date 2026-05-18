@@ -53,7 +53,6 @@ TOTAL: 70/70 conexões (100% sucesso) ✅
 | [so pra ver/server/config/database.ts](so%20pra%20ver/server/config/database.ts) | TypeScript | ✏️ Modificado (pool 10→50, logging melhorado) |
 | [test-db-stress.cjs](test-db-stress.cjs) | Teste | 🆕 Criado (20 e 50 conn simultâneas) |
 | [test-db-connection-direct.cjs](test-db-connection-direct.cjs) | Teste | 🆕 Criado (validação básica) |
-| [test-api-endpoints-stable.cjs](test-api-endpoints-stable.cjs) | Teste | 🆕 Criado (endpoints API) |
 | [RELATORIO_ESTABILIZACAO_DB_20260318.md](RELATORIO_ESTABILIZACAO_DB_20260318.md) | Doc | 📄 Gerado (relatório completo) |
 
 ---
@@ -91,9 +90,7 @@ Para testar de novo:
 ```bash
 node test-db-stress.cjs           # Stress test completo
 node test-db-connection-direct.cjs # Conexão simples
-node test-api-endpoints-stable.cjs # Endpoints API
 ```
-
 ---
 
 **Data**: 18 de Março de 2026  

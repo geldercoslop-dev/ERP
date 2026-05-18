@@ -256,7 +256,6 @@ _pool.on?.("error", (err) => {
 ### Criado
 - 🆕 [test-db-stress.cjs](test-db-stress.cjs) - 250 linhas
 - 🆕 [test-db-connection-direct.cjs](test-db-connection-direct.cjs) - 200 linhas
-- 🆕 [test-api-endpoints-stable.cjs](test-api-endpoints-stable.cjs) - 150 linhas
 - 📄 [RELATORIO_ESTABILIZACAO_DB_20260318.md](RELATORIO_ESTABILIZACAO_DB_20260318.md)
 - 📄 [SUMARIO_ESTABILIZACAO_EXECUTIVO.md](SUMARIO_ESTABILIZACAO_EXECUTIVO.md)
 
