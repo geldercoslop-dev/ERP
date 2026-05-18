@@ -131,7 +131,7 @@ O sistema de monitoramento foi implementado como uma camada transversal que inte
 
 ### 3.4 Scripts de Teste
 
-- **scripts/test-monitoring.mjs**: Script para testar o sistema de monitoramento
+(removido script de teste manual obsoleto)
 
 ## 4. Exemplos de Uso
 

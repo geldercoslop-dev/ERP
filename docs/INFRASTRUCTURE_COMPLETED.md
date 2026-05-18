@@ -53,9 +53,7 @@
 - ✅ **Monitoramento** de: banco, memória, CPU
 
 ### **8. Testes Automatizados**
-- ✅ Suite de testes em `scripts/test-infrastructure.ts`
 - ✅ **5 áreas testadas**: Logger, Validação, Database, Retry, Health
-- ✅ Script `npm run test:infrastructure` adicionado
 - ✅ Relatório detalhado dos resultados
 
 ---

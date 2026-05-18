@@ -103,8 +103,7 @@ c:\ERP\
 
 ### **🔍 Scripts de Análise**
 ```
-✅ scripts/test-infrastructure.ts     - Testa infraestrutura
-✅ scripts/test-frontend-stability.ts - Testa estabilidade frontend
+(removidos scripts de teste manuais obsoletos)
 ```
 
 ---

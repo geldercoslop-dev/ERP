@@ -56,7 +56,7 @@ Os serviços com cache foram atualizados para usar o novo cache seguro:
 
 ## Testes e Validação
 
-Foi criado um script de teste específico (`test-safe-cache.ts`) para validar a integração do cache com o sistema de proteção:
+Validação da integração do cache com o sistema de proteção:
 
 1. **Teste de Hit/Miss**: Verifica se o cache está funcionando corretamente (hit na segunda chamada)
 2. **Teste de Invalidação**: Verifica se o cache é invalidado após operações de escrita

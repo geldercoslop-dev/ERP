@@ -53,8 +53,6 @@ c:\ERP\
 ✅ scripts/cleanup-temp-files.ts (6.8KB - Criado)
 ✅ scripts/analyze-dead-code.ts (10.8KB - Criado)
 ✅ scripts/standardize-imports.ts (8.1KB - Criado)
-✅ scripts/test-infrastructure.ts (9.2KB - Já existia)
-✅ scripts/test-frontend-stability.ts (15.2KB - Criado)
 ```
 
 ---
