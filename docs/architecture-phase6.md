@@ -29,12 +29,11 @@
 ### **2. Architecture Violation Detector (FASE 4)**
 
 #### Detector Scripts
-| Script | Arquivo | Padrões Detectados | Exit |
-|--------|---------|----------|------|
-| Architecture Check | `scripts/check-architecture.mjs` | DEFAULT_TENANT_ID, TEST_TENANT_ID (fora de /test), SEED_TENANT_ID (fora de seed) | 1 if violation |
-| Bad Patterns Check | `scripts/check-bad-patterns.mjs` | @ts-ignore, fallback tenant (\\||), explicit any | 1 if violation |
-
-**Integração:** Ambos rodam em `.husky/pre-commit` como validação HARD BLOCK.
+**Nota:** Scripts check-*.mjs duplicados removidos. Funcionalidade migrada para scripts oficiais:
+- `scripts/verify-architecture.ts` — Detecta DEFAULT_TENANT_ID, TEST_TENANT_ID, SEED_TENANT_ID
+- `scripts/verify-leo-boundary.ts` — Valida isolamento de LEO
+- `scripts/verify-any-baseline.ts` — Detecta uso de "as any"
+- `scripts/guards/phase0-guard.ts` — Guard de arquitetura crítico
 
 ---
 
@@ -47,7 +46,7 @@
    → EXIT 1 se falhar
 
 2️⃣  Architecture check (tenant violations)
-   → node scripts/check-architecture.mjs
+   → pnpm tsx scripts/verify-architecture.ts
    → EXIT 1 se violar
 
 3️⃣  Lint-staged (staged files only)
@@ -161,9 +160,8 @@ class ClientService {
 - **FASE 1:** `eslint.config.mjs`
 - **FASE 2:** `tsconfig.server.json`
 - **FASE 3:** `server/utils/tenant-guard.ts` + `server/services/client.*` + `server/tools/client.*`
-- **FASE 4:** `scripts/check-architecture.mjs` + `scripts/check-bad-patterns.mjs`
-- **FASE 5:** `.husky/pre-commit`
-- **FASE 6:** `.lintstagedrc.json`
+- **FASE 4:** `scripts/verify-architecture.ts` + `scripts/verify-leo-boundary.ts`
+- **FASE 5:** `.lintstagedrc.json`
 
 ---
 

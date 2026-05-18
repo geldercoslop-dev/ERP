@@ -8,41 +8,20 @@
 
 ## 🔧 Scripts de Detecção
 
-| Script | Propósito | Quando Roda | Exit |
-|--------|----------|-------------|------|
-| `check-architecture.mjs` | Detecta DEFAULT_TENANT_ID, TEST_TENANT_ID, SEED_TENANT_ID | pre-commit (global) | 1 if violation |
-| `check-architecture-hardened.mjs` | v2 com padrões indiretos (fallback, LEO dB, context) | pre-push (full) | 1 if violation |
-| `check-bad-patterns.mjs` | Detecta @ts-ignore, any, fallback | lint-staged (staged only) | 0 (report) |
-| `check-bad-patterns-hardened.mjs` | v2 com "as any", casts perigosos, unknown | pre-push (full) | 1 if violation |
-| `check-leo-imports.mjs` | LEO deve usar facade, não db/ direto | pre-push (full) | 1 if violation |
+**Nota:** Scripts check-*.mjs duplicados removidos. Funcionalidade migrada para scripts oficiais:
+- `scripts/verify-architecture.ts`
+- `scripts/verify-leo-boundary.ts`
+- `scripts/guards/phase0-guard.ts`
 
 ---
 
-## ⚡ Hook Strategy (PRE-COMMIT vs PRE-PUSH)
+## ⚡ Estratégia de Validação
 
-### **PRE-COMMIT** (RÁPIDO — deve passar em <5s)
-```sh
-1. pnpm exec tsc --noEmit          # Type safety (global)
-2. node scripts/check-architecture.mjs  # Tenant violations CRITICAL
-3. pnpm exec lint-staged           # ESLint staged files only (rápido)
-```
-
-**Objetivo:** Block obvious errors + quick feedback  
-**Garantia:** Commit falha se houver CRITICAL architecture violation
-
----
-
-### **PRE-PUSH** (COMPLETO — valida antes do push)
-```sh
-1. pnpm exec tsc --noEmit          # Type safety (global)
-2. node scripts/check-architecture.mjs  # Tenant violations
-3. node scripts/check-bad-patterns-hardened.mjs  # Type bypass checks
-4. node scripts/check-leo-imports.mjs     # LEO db isolation
-5. pnpm run full-eslint            # ESLint ALL files (slow)
-```
-
-**Objetivo:** Full validation antes de publicar  
-**Garantia:** Push falha se houver CRITICAL bad patterns ou imports
+As validações oficiais atuais são executadas pelos scripts oficiais de verificação quando configurados nos fluxos de CI/CD ou hooks de Git:
+- `scripts/verify-architecture.ts` — Detecta violações de arquitetura de tenant
+- `scripts/verify-leo-boundary.ts` — Valida isolamento de LEO
+- `scripts/verify-any-baseline.ts` — Detecta uso de "as any"
+- `scripts/guards/phase0-guard.ts` — Guard de arquitetura crítico
 
 ---
 
@@ -84,63 +63,36 @@ assertTenantsArray(tenantIds[])
 | Regra | Enforcement | Bypass? |
 |------|-----------|---------|
 | TenantId obrigatório | assertTenant() throw | ❌ NO |
-| Sem fallback (\\|\\|, ??) | check-architecture detects | ❌ NO |
-| LEO não importa /db/ | check-leo-imports detects | ❌ NO |
-| Sem "as any" casts | check-bad-patterns-hardened detects | ❌ NO  (legado só reporta) |
-| DEFAULT_TENANT_ID proibido | check-architecture detects | ❌ NO |
+| Sem fallback (\\|\\|, ??) | verify-architecture.ts detects | ❌ NO |
+| LEO não importa /db/ | verify-leo-boundary.ts detects | ❌ NO |
+| Sem "as any" casts | verify-any-baseline.ts / verify-architecture.ts detects | ❌ NO |
+| DEFAULT_TENANT_ID proibido | verify-architecture.ts detects | ❌ NO |
 | Tenant de contexto | assertTenantSource() enforces | ❌ NO |
 
 ---
 
-## 🎯 Fluxo de Validação Integrado
+## 🎯 Fluxo de Validação
 
-```
-Developer edits code
-    ↓
-git commit --no-verify (com --no-verify, skip é permitido)
-    ↓
-.husky/pre-commit
-    ├─ ✅ tsc (type check global)
-    ├─ ✅ check-architecture.mjs (tenant critical)
-    └─ ✅ lint-staged (eslint staged files ONLY)
-    ↓ [Se falhar: commit abort, dev fixa]
-    ↓
-git push
-    ↓
-.husky/pre-push
-    ├─ ✅ tsc (revalidate types)
-    ├─ ✅ check-architecture.mjs (revalidate architecture)
-    ├─ ⚠️  check-bad-patterns-hardened.mjs (report legado)
-    ├─ ✅ check-leo-imports.mjs (LEO isolation)
-    └─ ⚠️  pnpm run full-eslint (ALL files)
-    ↓ [Se CRITICAL falhar: push abort]
-    ↓
-✅ Push approved
-```
+Os scripts oficiais de verificação podem ser executados manualmente ou integrados aos fluxos oficiais quando configurados.
 
 ---
 
 ## 🛡️ Anti-Bypass Checklist
 
 - ✅ assertTenant() é função, não macro — **impossível skippar**
-- ✅ check-architecture roda automaticamente — **sem CLI flag para desabilitar**
-- ✅ check-leo-imports específico para LEO — **não sai do escopo**
-- ✅ pre-commit + pre-push — **dupla camada de validação**
+- ✅ Scripts oficiais de verificação — executados pelos fluxos oficiais quando configurados
 - ✅ Tenant source validado — **contexto forçado via middleware**
-- ✅ Scripts em .mjs — **executáveis sem build**
+- ✅ Scripts em TypeScript — **executáveis via tsx**
 
 ---
 
 ## 📝 Próximos Passos
 
-1. ✅ criar check-architecture-hardened.mjs (padrões indiretos)
-2. ✅ criar check-bad-patterns-hardened.mjs ("as any", casts)
-3. ✅ criar check-leo-imports.mjs (db isolation)
-4. ✅ criar tenant-guard-hardened.ts (validações 3-camadas)
-5. ⏳ atualizar .husky/pre-push com check-leo-imports + bad-patterns
-6. ⏳ criar teste integrado (simular violações, validar detecção)
-
----
+**Nota:** Scripts check-*.mjs foram substituídos por validações oficiais:
+- `scripts/verify-architecture.ts` — Detecta violações de arquitetura de tenant
+- `scripts/verify-leo-boundary.ts` — Valida isolamento de LEO
+- `scripts/verify-any-baseline.ts` — Detecta uso de "as any"
+- `scripts/guards/phase0-guard.ts` — Guard de arquitetura crítico
 
 **STATUS:** Reforço Arquitetural Em Andamento  
 **CRÍTICO:** Sem bypass possível — regras encode d em código
