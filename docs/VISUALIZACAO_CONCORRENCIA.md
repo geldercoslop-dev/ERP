@@ -391,7 +391,6 @@ UX do usuário:
 IMPLEMENTAÇÃO COMPLETA:
 ├─ ✅ pedido-control.ts (camada de proteção)
 ├─ ✅ pedido-db.ts (camada de banco)
-├─ ✅ test-concurrency-pedidos.cjs (teste)
 ├─ ✅ IMPLEMENTACAO_CONTROLE_CONCORRENCIA.md
 ├─ ✅ SUMARIO_CONTROLE_CONCORRENCIA.md
 └─ ✅ select FOR UPDATE + idempotency

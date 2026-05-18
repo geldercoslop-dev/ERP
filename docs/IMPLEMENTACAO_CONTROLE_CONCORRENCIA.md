@@ -295,12 +295,6 @@ RESULTADO:
 
 ## 🧪 TESTE DE CONCORRÊNCIA
 
-### Arquivo: `test-concurrency-pedidos.cjs`
-
-```bash
-node test-concurrency-pedidos.cjs
-```
-
 **O que testa**:
 1. Envia 10 requisições POST simultaneamente (não sequencial)
 2. Todas com MESMO idempotencyKey
@@ -322,18 +316,11 @@ ESTATÍSTICAS:
 
 RESULTADOS:
   • Pedidos criados: 1/10
-    Detalhes:
-      - Requisição 7: Pedido #1001 (ID: 12345)
   • Conflitos (já existe): 9/10
-    Detalhes:
-      - Requisição 1: Tentou, mas pedido #1001 já existia
-      - Requisição 2: Tentou, mas pedido #1001 já existia
-      ... (7 mais)
   • Erros: 0/10
 
 🎯 CRITÉRIO DE ACEITAÇÃO:
   ✅ APENAS 1 PEDIDO CRIADO (protegido contra duplicação)
-     Pedido número: 1001
   ✅ TODAS 10 REQUISIÇÕES RESPONDERAM
   ✅ PADRÃO ESPERADO: 1 sucesso + 9 conflitos
 
@@ -415,11 +402,6 @@ IMPLEMENTAÇÃO CONCLUÍDA:
 │  ├─ createPedidoSafe()
 │  └─ getAndIncrementPedidoCounter()
 │
-├─ ✅ test-concurrency-pedidos.cjs (350 linhas)
-│  ├─ 10 requisições simultâneas
-│  ├─ Medição de latência
-│  ├─ Validação de apenas 1 pedido criado
-│  └─ Relatório visual
 │
 ├─ ✅ routers.ts (já tem executeCommand)
 │  ├─ createVenda usa idempotencyKey
@@ -428,11 +410,6 @@ IMPLEMENTAÇÃO CONCLUÍDA:
 │
 └─ ✅ schema.ts
    ├─ idempotencyKeys table
-   ├─ Índices apropriados
-   └─ Tamanho otimizado
-
-PRÓXIMA FASE (INTEGRAÇÃO):
-├─ [ ] Importar pedido-control.ts no routers.ts
 ├─ [ ] Chamar checkRequestIdMemory antes de executeCommand
 ├─ [ ] Chamar registerSuccessfulCreation após sucesso
 ├─ [ ] Chamar logDuplicationAttempt em conflitos

@@ -91,23 +91,17 @@ storeRequestInMemory(idempotencyKey, result);
 
 ## 🧪 TESTE DESENVOLVIDO
 
-### Arquivo: `test-concurrency-with-auth.cjs`
-
 Estrutura:
 1. **Fase 1:** Login (admin/admin123)
 2. **Fases 2-3:** Aguarda servidor na porta 3004
 3. **Fases 4-10:** Envia 10 requisições simultâneas com mesmo `idempotencyKey`
 4. **Fases 11-12:** Valida resultado e gera relatório
 
-### Execução Teste:
-```bash
-$ node test-concurrency-with-auth.cjs
-
+**Resultado esperado**:
 ✅ Login bem-sucedido
 📊 10 requisições simultâneas enviadas
 ⏱️  Tempo total: < 1s
 🔐 Proteção: Ativada
-```
 
 ---
 
@@ -172,12 +166,10 @@ Quando o teste rodar com sucesso:
 
 ### Criados:
 - ✅ `server/concurrency/pedido-control.ts` - Control layer
-- ✅ `test-concurrency-with-auth.cjs` - Teste completo
 - ✅ `test-createvenda-debug.cjs` - Debug
 
 ### Modificados:
 - ✅ `server/routers.ts` - Integração de cache check
-- ✅ `test-concurrency-real.cjs` - Adaptado para porta 3004
 
 ---
 
@@ -204,9 +196,7 @@ Quando o teste rodar com sucesso:
    ```
 
 2. **Reexecutar teste:**
-   ```bash
-   node test-concurrency-with-auth.cjs
-   ```
+   Executar testes de concorrência para validação final.
 
 3. **Validar resultado:**
    - Esperado: 1 pedido criado, 9 do cache

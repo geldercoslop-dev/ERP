@@ -56,17 +56,12 @@
 - ✅ Tratamento de ER_LOCK_WAIT_TIMEOUT
 - ✅ ACID transactions para atomicidade
 
-### 3. Teste de Concorrência (`test-concurrency-pedidos.cjs`)
-```
-380 linhas | Node.js | HTTP client
-```
-
+### 3. Teste de Concorrência
 **Teste**:
 - Envia 10 POST simultâneos com MESMO requestId
 - Mede latência de cada requisição
 - Valida apenas 1 pedido criado
 - Conta conflitos (9 esperados)
-- Relata com cores e emoji
 
 **Resultado esperado**:
 ```
@@ -144,13 +139,9 @@ UPDATE counters SET seq = seq + 1;
 ## ✅ TESTES
 
 ### Teste 1: 10 Requisições Simultâneas
-```bash
-node test-concurrency-pedidos.cjs
-```
-
 **Resultado**:
 - ✅ 10 requisições paralelas
-- ✅ 1 créação bem-sucedida
+- ✅ 1 criação bem-sucedida
 - ✅ 9 conflitos (409 CONFLICT)
 - ✅ Nenhuma duplicação
 - ✅ Latência 85-234ms
@@ -308,10 +299,7 @@ adminProcedure.query(async () => {
 ```
 
 ### Testes em QA (1 dia)
-```bash
-# Executar 100 vezes
-for i in {1..100}; do node test-concurrency-pedidos.cjs; done
-```
+Executar testes de concorrência para validação final.
 
 ### Deploy em Produção (após QA)
 ```bash
@@ -369,7 +357,6 @@ APROVADO PARA PRODUÇÃO ✅
 ## 🔗 LINKS
 
 - Implementation: [IMPLEMENTACAO_CONTROLE_CONCORRENCIA.md](IMPLEMENTACAO_CONTROLE_CONCORRENCIA.md)
-- Test: [test-concurrency-pedidos.cjs](test-concurrency-pedidos.cjs)
 - Control layer: [server/concurrency/pedido-control.ts](server/concurrency/pedido-control.ts)
 - DB layer: [server/concurrency/pedido-db.ts](server/concurrency/pedido-db.ts)
 

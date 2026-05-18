@@ -152,8 +152,6 @@ export function checkRequestIdMemory(idempotencyKey) {
 
 ### Resultado Execução:
 
-**Teste:** test-concurrency-with-auth.cjs
-
 ```
 ✅ Login: SUCCESS (session_token = u:3)
 ✅ Autenticação: Ativa
@@ -230,7 +228,7 @@ logDuplicationAttempt(idempotencyKey, clienteId, "IDEMPOTENCY_KEY_DUPLICATE", nu
 ### Próximos Passos:
 1. Executar migration: `npm run db:push`
 2. Validar schema de `contas_receber`
-3. Reexecutar test-concurrency-with-auth.cjs
+3. Reexecutar testes de concorrência
 
 ---
 
