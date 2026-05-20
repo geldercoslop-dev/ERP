@@ -29,10 +29,10 @@ npm run test:consistency
 
 ---
 
-### 2. Testes de Performance (Existem em `/tests/performance/`)
+### 2. Ferramenta de Monitoramento (Ferramenta manual em `/util/tools/monitoring/`)
 
 ```
-tests/performance/
+util/tools/monitoring/
 └── monitor.ts               (CPU, memória, GC)
 ```
 
@@ -73,7 +73,7 @@ npm run test:consistency
 - Duplicação (10x mesmo pedido)
 - Integridade (tabelas relacionadas)
 
-### PASSO 4: Executar Testes de Performance
+### PASSO 4: Executar Ferramenta de Monitoramento
 
 **Depois que servidor está rodando:**
 
@@ -81,7 +81,7 @@ npm run test:consistency
 npm run dev  # Terminal 1 - inicia servidor
 
 # Terminal 2:
-npx tsx tests/performance/monitor.ts
+npx tsx util/tools/monitoring/monitor.ts
 ```
 
 ---
