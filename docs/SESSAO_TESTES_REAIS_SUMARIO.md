@@ -129,7 +129,6 @@ npm run check  # deve passar depois
 | [BD_BLOQUEADOR.txt](BD_BLOQUEADOR.txt) | Quick summary |
 | [TESTES_REAL_DIAGNOSTICO.md](TESTES_REAL_DIAGNOSTICO.md) | Guia de testes disponíveis |
 | [run-real-tests.ts](run-real-tests.ts) | Orquestrador de testes reais |
-| [test-load-simple.ts](test-load-simple.ts) | Teste simples de carga |
 | [diagnose-mysql.ps1](diagnose-mysql.ps1) | Script diagnostic MySQL |
 
 ---

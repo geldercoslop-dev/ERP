@@ -33,12 +33,7 @@ npm run test:consistency
 
 ```
 tests/performance/
-├── concurrency-test.ts      (10+ requisições paralelas)
-├── load-test.ts             (500 req/s)
-├── monitor.ts               (CPU, memória, GC)
-├── resilience-test.ts       (Falhas + recovery)
-├── tracing-test.ts          (Jaeger spans)
-└── run-all-tests.ts         (Orquestra tudo)
+└── monitor.ts               (CPU, memória, GC)
 ```
 
 ---
@@ -86,10 +81,7 @@ npm run test:consistency
 npm run dev  # Terminal 1 - inicia servidor
 
 # Terminal 2:
-npx tsx tests/performance/concurrency-test.ts
-npx tsx tests/performance/load-test.ts
-npx tsx tests/performance/tracing-test.ts
-npx tsx tests/performance/resilience-test.ts
+npx tsx tests/performance/monitor.ts
 ```
 
 ---
