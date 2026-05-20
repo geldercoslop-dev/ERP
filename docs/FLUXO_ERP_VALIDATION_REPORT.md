@@ -23,7 +23,6 @@ Validar que o ERP funciona ponta a ponta com dados reais, garantindo:
 
 ### 1️⃣ FLUXO COMPLETO (Cliente → Produto → Pedido)
 
-**Arquivo:** `test-fluxo-erp.ts`  
 **Função:** `testarFluxoCompletoERP()`
 
 **Etapas:**
@@ -42,7 +41,6 @@ Validar que o ERP funciona ponta a ponta com dados reais, garantindo:
 
 ### 2️⃣ TESTE DE ERRO E ROLLBACK
 
-**Arquivo:** `test-fluxo-erp.ts`  
 **Função:** `testarErroERollback()`
 
 **Cenário:** Tentativa de criar pedido com dados inválidos
@@ -58,7 +56,6 @@ Validar que o ERP funciona ponta a ponta com dados reais, garantindo:
 
 ### 3️⃣ TESTE DE DUPLO CLIQUE (Idempotência)
 
-**Arquivo:** `test-fluxo-erp.ts`  
 **Função:** `testarDuploClique()`
 
 **Cenário:** 10 requests simultâneos para mesmo pedido
@@ -135,7 +132,6 @@ Validar que o ERP funciona ponta a ponta com dados reais, garantindo:
 ## 🎯 STATUS ATUAL
 
 ### 📋 TESTES CRIADOS
-- ✅ `test-fluxo-erp.ts` - Fluxo completo + erro + duplo clique
 - ✅ `test-banco-validation.ts` - Validação banco
 - ✅ Estrutura completa de validação
 

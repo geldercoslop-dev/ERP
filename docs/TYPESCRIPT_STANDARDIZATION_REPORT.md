@@ -213,14 +213,7 @@ export async function updateX(): Promise<{ success: boolean }> {
 
 ## 🧪 TESTES MANUAIS
 
-### Teste Criado: `test-services-manual.ts`
-- ✅ Testa creates → deve retornar `{ id: number }`
-- ✅ Testa gets → deve retornar `object | null`  
-- ✅ Testa lists → deve retornar `array`
-- ✅ Valida ausência de `undefined`
-- ✅ Verifica tipos em runtime
-
-**Status:** Pronto para execução (precisa de ambiente DB configurado)
+**Status:** Testes manuais removidos (cobertura oficial existente)
 
 ---
 
