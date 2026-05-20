@@ -44,7 +44,6 @@
 - `tests/database.spec.ts` - 3 ocorrências
 - `tests/core/` - 15 ocorrências
 - `tests/client/` - 10 ocorrências
-- `tests/load/` - 10 ocorrências
 
 #### Test Scripts (56)
 - `scripts/teste-*.js` - 20 ocorrências

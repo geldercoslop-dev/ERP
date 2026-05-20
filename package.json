@@ -37,7 +37,6 @@
     "verify:base": "tsx scripts/verify-base.ts",
     "verify:redis": "tsx scripts/verify-redis.ts",
     "verify:mysql": "tsx scripts/verify-mysql.ts",
-    "get-token": "tsx scripts/get-token.ts",
     "verify:system": "node scripts/verify-system.mjs",
     "verify:system:lite": "cross-env VERIFY_SKIP_DB=1 VERIFY_SKIP_REDIS=1 VERIFY_SKIP_HTTP=1 node scripts/verify-system.mjs",
     "validate:production": "node scripts/validate-production.mjs",

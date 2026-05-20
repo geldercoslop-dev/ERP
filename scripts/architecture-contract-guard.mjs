@@ -294,6 +294,16 @@ const P23_REMOVE_OBSOLETE_TEST_LOGIN_SCRIPT_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-08I-04E - Remove obsolete load token script from package.json
+const P23_R08I_LOAD_TOKEN_SCRIPT_REMOVAL_AUTHORIZED_FILES = [
+  'package.json',
+  'scripts/get-token.ts',
+  'tests/load/access_token.txt',
+  'THROW_GENERIC_MAPPING_REPORT.md',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -758,6 +768,161 @@ function isP23_RemoveObsoleteTestLoginScriptAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-08I-04E para remover load token script
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R08I_LOAD_TOKEN_SCRIPT_REMOVAL
+ * Permite somente:
+ *   - package.json (apenas para remover "get-token": "tsx scripts/get-token.ts")
+ *   - scripts/get-token.ts (remoção)
+ *   - tests/load/access_token.txt (remoção)
+ *   - THROW_GENERIC_MAPPING_REPORT.md (apenas para remover referência a tests/load)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R08ILoadTokenScriptRemovalAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R08I_LOAD_TOKEN_SCRIPT_REMOVAL';
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R08I_LOAD_TOKEN_SCRIPT_REMOVAL_AUTHORIZED_FILES.includes(relativePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a remoção de get-token
+    if (relativePath === 'package.json') {
+      try {
+        const diff = execSync('git diff --cached package.json', { 
+          encoding: 'utf-8', 
+          cwd: ROOT 
+        });
+        
+        const lines = diff.split('\n');
+        let hasGetTokenRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a remoção exata de get-token
+            if (line === '-    "get-token": "tsx scripts/get-token.ts",') {
+              hasGetTokenRemoval = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain removal of get-token script. Found: ' + line };
+            }
+          }
+        }
+        
+        if (!hasGetTokenRemoval) {
+          return { authorized: false, reason: 'package.json diff must contain removal of get-token script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+    
+    // Se for THROW_GENERIC_MAPPING_REPORT.md, precisa verificar que o diff contém apenas a remoção da referência a tests/load
+    if (relativePath === 'THROW_GENERIC_MAPPING_REPORT.md') {
+      try {
+        const diff = execSync('git diff --cached THROW_GENERIC_MAPPING_REPORT.md', { 
+          encoding: 'utf-8', 
+          cwd: ROOT 
+        });
+        
+        const lines = diff.split('\n');
+        let hasTestsLoadRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Bloquear qualquer adição
+            if (line.startsWith('+')) {
+              return { authorized: false, reason: 'THROW_GENERIC_MAPPING_REPORT.md diff can only contain removal of tests/load reference. Found addition: ' + line };
+            }
+            // Permitir apenas a remoção exata da referência a tests/load
+            // Git diff mostra deletions com prefixo '-' ou '--' (contexto)
+            if (line === '-`tests/load/` - 10 ocorrências' || line === '-- `tests/load/` - 10 ocorrências' || line === '- `tests/load/` - 10 ocorrências' || line === '-- `tests/load/` - 10 ocorrências') {
+              hasTestsLoadRemoval = true;
+            } else {
+              // Bloquear qualquer outra remoção
+              return { authorized: false, reason: 'THROW_GENERIC_MAPPING_REPORT.md diff can only contain removal of tests/load reference. Found unexpected removal: ' + line };
+            }
+          }
+        }
+        
+        if (!hasTestsLoadRemoval) {
+          return { authorized: false, reason: 'THROW_GENERIC_MAPPING_REPORT.md diff must contain removal of tests/load reference' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check THROW_GENERIC_MAPPING_REPORT.md diff' };
+      }
+    }
+    
+    // Se for scripts/get-token.ts, precisa verificar que o status é D (deleted)
+    if (relativePath === 'scripts/get-token.ts') {
+      try {
+        const status = execSync('git diff --cached --name-status -- scripts/get-token.ts', {
+          encoding: 'utf-8',
+          cwd: ROOT
+        }).trim();
+        if (!status.startsWith('D')) {
+          return { authorized: false, reason: 'scripts/get-token.ts must have status D (deleted). Found: ' + status };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check scripts/get-token.ts status' };
+      }
+    }
+    
+    // Se for tests/load/access_token.txt, precisa verificar que o status é D (deleted)
+    if (relativePath === 'tests/load/access_token.txt') {
+      try {
+        const status = execSync('git diff --cached --name-status -- tests/load/access_token.txt', {
+          encoding: 'utf-8',
+          cwd: ROOT
+        }).trim();
+        if (!status.startsWith('D')) {
+          return { authorized: false, reason: 'tests/load/access_token.txt must have status D (deleted). Found: ' + status };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check tests/load/access_token.txt status' };
+      }
+    }
+    
+    return {
+      authorized: true,
+      reason: 'P23-R-08I-04E formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=' + authorizedValue + ' (remove obsolete load token script)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -912,6 +1077,12 @@ function isFrozen(file) {
   const p23_removeTestLoginCheck = isP23_RemoveObsoleteTestLoginScriptAuthorized(file);
   if (p23_removeTestLoginCheck.authorized) {
     return { frozen: false, exception: true, p23_remove_test_login: p23_removeTestLoginCheck.reason };
+  }
+
+  // Verifica janela formal P23-R-08I-04E (remove obsolete load token script)
+  const p23_r08iLoadTokenCheck = isP23_R08ILoadTokenScriptRemovalAuthorized(file);
+  if (p23_r08iLoadTokenCheck.authorized) {
+    return { frozen: false, exception: true, p23_r08i_load_token: p23_r08iLoadTokenCheck.reason };
   }
 
   // Verifica exceções padrão
