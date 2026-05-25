@@ -1,15 +1,27 @@
 /**
  * Load test leve via tRPC caller (sem HTTP) — pedidos + financeiro + auth.
- * Requer DATABASE_URL e dados de dev (admin/admin123).
+ * Requer DATABASE_URL e credenciais via variáveis de ambiente.
  *
  * Uso: pnpm exec tsx util/test/load-test.ts
  * Env: LOAD_CONCURRENCY=30 (default 25), LOAD_TENANT_ID=1
+ *      LOAD_TEST_USERNAME (obrigatório)
+ *      LOAD_TEST_PASSWORD (obrigatório)
  */
 import { appRouter } from "../../server/routers";
 import type { TrpcContext } from "../../server/_core/context";
 
 const CONCURRENCY = Math.min(50, Math.max(20, Number(process.env.LOAD_CONCURRENCY || 25)));
 const TENANT_ID = Number(process.env.LOAD_TENANT_ID || 1);
+
+// Validar credenciais obrigatórias
+const LOAD_TEST_USERNAME = process.env.LOAD_TEST_USERNAME;
+const LOAD_TEST_PASSWORD = process.env.LOAD_TEST_PASSWORD;
+
+if (!LOAD_TEST_USERNAME || !LOAD_TEST_PASSWORD) {
+  console.error("❌ Erro: LOAD_TEST_USERNAME e LOAD_TEST_PASSWORD são obrigatórios");
+  console.error("   Exemplo: LOAD_TEST_USERNAME=admin LOAD_TEST_PASSWORD=admin123 pnpm exec tsx util/test/load-test.ts");
+  process.exit(1);
+}
 
 const defaultSession: TrpcContext["session"] = {
   origin: "none",
@@ -61,7 +73,7 @@ async function main(): Promise<void> {
     try {
       if (i % 3 === 0) {
         const c = appRouter.createCaller(anonCtx());
-        await c.auth.login({ username: "admin", password: "admin123" });
+        await c.auth.login({ username: LOAD_TEST_USERNAME, password: LOAD_TEST_PASSWORD });
       } else if (i % 3 === 1) {
         const c = appRouter.createCaller(adminCtx());
         await c.pedidos.list({ status: "TODOS", page: 1, pageSize: 5 });

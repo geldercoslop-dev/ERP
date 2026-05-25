@@ -1,9 +1,19 @@
 /**
  * TESTE REAL DE CONCORRÊNCIA VIA HTTP - 20 EXECUÇÕES SIMULTÂNEAS
- * 
+ *
+ * ⚠️ ATENÇÃO: Este teste cria dados reais no banco de dados via HTTP
+ *
  * Este teste simula 20 requests simultâneos via HTTP para criar pedidos
  * com potencial de conflito (mesmo produto, mesmo cliente)
  * e verifica se o sistema mantém consistência
+ *
+ * Uso: LOAD_TEST_CONFIRM=yes node util/test/concurrency-http-test.mjs
+ *      LOAD_TEST_CONFIRM=yes TEST_TENANT_ID=1 node util/test/concurrency-http-test.mjs
+ *
+ * Requisitos:
+ * - LOAD_TEST_CONFIRM=yes (obrigatório - flag de segurança)
+ * - NODE_ENV deve ser "development" ou "test" (bloqueado em produção)
+ * - API_URL deve apontar para ambiente de desenvolvimento
  */
 
 import axios from 'axios';
@@ -11,6 +21,28 @@ import dotenv from 'dotenv';
 
 // Carregar .env
 dotenv.config();
+
+// ⚠️ VALIDAÇÕES DE SEGURANÇA
+const LOAD_TEST_CONFIRM = process.env.LOAD_TEST_CONFIRM;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Exigir confirmação explícita
+if (!LOAD_TEST_CONFIRM || !['yes', 'true', '1'].includes(LOAD_TEST_CONFIRM.toLowerCase())) {
+  console.error('❌ ERRO DE SEGURANÇA: Este teste cria dados reais no banco de dados.');
+  console.error('   Para executar, defina LOAD_TEST_CONFIRM=yes');
+  console.error('   Exemplo: LOAD_TEST_CONFIRM=yes node util/test/concurrency-http-test.mjs');
+  process.exit(1);
+}
+
+// Bloquear execução em produção
+if (NODE_ENV === 'production') {
+  console.error('❌ ERRO: Este teste não pode ser executado em produção. Use apenas ambiente local/dev/test isolado.');
+  process.exit(1);
+}
+
+console.log('✅ Validações de segurança passadas');
+console.log(`   Ambiente: ${NODE_ENV}`);
+console.log(`   Confirmação: ${LOAD_TEST_CONFIRM}`);
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3001';
 const TENANT_ID = process.env.TEST_TENANT_ID || process.argv[2] || 1;
