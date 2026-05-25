@@ -44,7 +44,7 @@ export function ConnectionDebugger() {
           Sem conexão com o servidor. {errorDetails}
         </span>
         <span className="text-white/70">
-          Inicie o servidor: <kbd className="px-1 bg-white/10 rounded">.\start-system.ps1</kbd> ou <kbd className="px-1 bg-white/10 rounded">pnpm run dev:windows</kbd>
+          Inicie o servidor: <kbd className="px-1 bg-white/10 rounded">pnpm run dev:windows</kbd>
         </span>
       </div>
     </div>
