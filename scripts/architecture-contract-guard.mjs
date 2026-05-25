@@ -304,6 +304,13 @@ const P23_R08I_LOAD_TOKEN_SCRIPT_REMOVAL_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-09B-FIX - Remove dead fix:vendedor script from package.json
+const P23_R09B_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT_AUTHORIZED_FILES = [
+  'package.json',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -923,6 +930,82 @@ function isP23_R08ILoadTokenScriptRemovalAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09B-FIX para remover fix:vendedor script
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT
+ * Permite somente:
+ *   - package.json (apenas para remover "fix:vendedor": "node server/scripts/fix-vendedor.js")
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09BRemoveDeadFixVendedorScriptAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT';
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09B_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT_AUTHORIZED_FILES.includes(relativePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a remoção de fix:vendedor
+    if (relativePath === 'package.json') {
+      try {
+        const diff = execSync('git diff --cached package.json', { 
+          encoding: 'utf-8', 
+          cwd: ROOT 
+        });
+        
+        const lines = diff.split('\n');
+        let hasFixVendedorRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a remoção exata de fix:vendedor
+            if (line === '-    "fix:vendedor": "node server/scripts/fix-vendedor.js",') {
+              hasFixVendedorRemoval = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain removal of fix:vendedor script. Found: ' + line };
+            }
+          }
+        }
+        
+        if (!hasFixVendedorRemoval) {
+          return { authorized: false, reason: 'package.json diff must contain removal of fix:vendedor script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+    
+    return {
+      authorized: true,
+      reason: 'P23-R-09B-FIX formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=' + authorizedValue + ' (remove dead fix:vendedor script)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1077,6 +1160,12 @@ function isFrozen(file) {
   const p23_removeTestLoginCheck = isP23_RemoveObsoleteTestLoginScriptAuthorized(file);
   if (p23_removeTestLoginCheck.authorized) {
     return { frozen: false, exception: true, p23_remove_test_login: p23_removeTestLoginCheck.reason };
+  }
+
+  // Verifica janela formal P23-R-09B-FIX (remove dead fix:vendedor script)
+  const p23_r09bFixVendedorCheck = isP23_R09BRemoveDeadFixVendedorScriptAuthorized(file);
+  if (p23_r09bFixVendedorCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09b_fix_vendedor: p23_r09bFixVendedorCheck.reason };
   }
 
   // Verifica janela formal P23-R-08I-04E (remove obsolete load token script)

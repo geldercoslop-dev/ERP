@@ -325,6 +325,13 @@ const P23_R08I_LOAD_TOKEN_SCRIPT_REMOVAL_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-R-09B-FIX - Remove dead fix:vendedor script from package.json
+const P23_R09B_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT_AUTHORIZED_FILES = [
+  "package.json",
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -917,6 +924,78 @@ function isP23_R08ILoadTokenScriptRemovalAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09B-FIX para remover fix:vendedor script
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT
+ * Permite somente:
+ *   - package.json (apenas para remover "fix:vendedor": "node server/scripts/fix-vendedor.js")
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09BRemoveDeadFixVendedorScriptAuthorized(filePath) {
+  const authorizedValue = "P23_R09_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT";
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09B_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT_AUTHORIZED_FILES.includes(filePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a remoção de fix:vendedor
+    if (filePath === "package.json") {
+      try {
+        const diff = execSync('git diff --cached package.json').toString();
+        
+        const lines = diff.split('\n');
+        let hasFixVendedorRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a remoção exata de fix:vendedor
+            if (line === '-    "fix:vendedor": "node server/scripts/fix-vendedor.js",') {
+              hasFixVendedorRemoval = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain removal of fix:vendedor script. Found: ' + line };
+            }
+          }
+        }
+        
+        if (!hasFixVendedorRemoval) {
+          return { authorized: false, reason: 'package.json diff must contain removal of fix:vendedor script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+    
+    return {
+      authorized: true,
+      reason: "P23-R-09B-FIX formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=" + authorizedValue + " (remove dead fix:vendedor script)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -1089,6 +1168,36 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-09B-FIX check: if package.json or guard files are modified for fix:vendedor removal, require authorization variable
+  const p23_r09bFixVendedorFilesInChanges = files.filter(f => P23_R09B_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT_AUTHORIZED_FILES.includes(f));
+  if (p23_r09bFixVendedorFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r09bFixVendedorFilesInChanges) {
+      const check = isP23_R09BRemoveDeadFixVendedorScriptAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("DOC BLOQUEADO — Fix vendedor script removal requer ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-09B-FIX, allow them
+    const nonFixVendedorFiles = files.filter(f => !P23_R09B_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT_AUTHORIZED_FILES.includes(f));
+    if (nonFixVendedorFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-09B-FIX detectados:");
+      p23_r09bFixVendedorFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-09B-FIX formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_FIX_VENDEDOR_SCRIPT (remove dead fix:vendedor script)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the guard files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonFixVendedorFiles);
   }
 
   // P23-R-08I-04E check: if package.json, scripts/get-token.ts, tests/load/access_token.txt, or guard files are modified for load token removal, require authorization variable
