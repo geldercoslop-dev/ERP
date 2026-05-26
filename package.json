@@ -56,7 +56,6 @@
     "test:schema": "vitest run server/tests/schema-consistency.test.ts",
     "db:push": "node scripts/db/drizzle-wrapper.mjs push",
     "db:push:dev": "cross-env NODE_ENV=development node scripts/db/drizzle-wrapper.mjs push",
-    "db:push:prod": "node server/scripts/db-push-prod.js",
     "db:generate": "node scripts/db/drizzle-wrapper.mjs generate",
     "db:introspect:deterministic": "echo '❌ INTROSPECT DESATIVADO - schema.ts é contrato de domínio, não reflexo do DB. Use db:generate para migrations controladas.' && exit 1",
     "db:migrate": "tsx server/scripts/run-migrate.ts",
