@@ -17,6 +17,21 @@ import { writeFileSync } from 'fs';
 
 const execAsync = promisify(exec);
 
+// SAFETY GUARD: Manual/controlled script
+const W_TEST_CONFIRM = process.env.W_TEST_CONFIRM;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+if (!W_TEST_CONFIRM || !['yes', 'true', '1'].includes(W_TEST_CONFIRM.toLowerCase())) {
+  console.error('❌ ERRO DE SEGURANÇA: Este script é manual/controlado e pode executar fluxo real contra localhost:3001.');
+  console.error('   Para executar, defina W_TEST_CONFIRM=yes.');
+  process.exit(1);
+}
+
+if (NODE_ENV === 'production') {
+  console.error('❌ ERRO: Este script não pode ser executado em produção. Use apenas ambiente local/dev/test isolado.');
+  process.exit(1);
+}
+
 const TESTS = [
   { name: 'W1-MULTITENANT', cmd: 'node server/scripts/W1-test-multitenant.mjs', timeout: 30000 },
   { name: 'W2-E2E', cmd: 'node server/scripts/W2-test-e2e.mjs', timeout: 30000 },
