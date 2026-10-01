@@ -318,6 +318,14 @@ const P23_R09F_REMOVE_DEAD_DB_PUSH_PROD_SCRIPT_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-09G-AUTH - Harden hard test shutdown endpoint and script
+const P23_R09G_HARD_TEST_SHUTDOWN_HARDENING_AUTHORIZED_FILES = [
+  'server/_core/index.ts',
+  'server/scripts/hard-test-shutdown.mjs',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1089,6 +1097,42 @@ function isP23_R09FRemoveDeadDbPushProdScriptAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09G-AUTH para hardening do hard test shutdown
+ * Requer variável ERP_AUTHORIZED_CORE_UPDATE=P23_R09_HARD_TEST_SHUTDOWN_HARDENING
+ * Permite somente:
+ *   - server/_core/index.ts (hardening do endpoint /api/__hard-test/shutdown)
+ *   - server/scripts/hard-test-shutdown.mjs (hardening do script)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09GHardTestShutdownHardeningAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09_HARD_TEST_SHUTDOWN_HARDENING';
+  const envValue = process.env.ERP_AUTHORIZED_CORE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09G_HARD_TEST_SHUTDOWN_HARDENING_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R-09G-AUTH formal window: ERP_AUTHORIZED_CORE_UPDATE=' + authorizedValue + ' (harden hard test shutdown)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1255,6 +1299,12 @@ function isFrozen(file) {
   const p23_r09fDbPushProdCheck = isP23_R09FRemoveDeadDbPushProdScriptAuthorized(file);
   if (p23_r09fDbPushProdCheck.authorized) {
     return { frozen: false, exception: true, p23_r09f_db_push_prod: p23_r09fDbPushProdCheck.reason };
+  }
+
+  // Verifica janela formal P23-R-09G-AUTH (harden hard test shutdown)
+  const p23_r09gHardTestShutdownCheck = isP23_R09GHardTestShutdownHardeningAuthorized(file);
+  if (p23_r09gHardTestShutdownCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09g_hard_test_shutdown: p23_r09gHardTestShutdownCheck.reason };
   }
 
   // Verifica janela formal P23-R-08I-04E (remove obsolete load token script)
