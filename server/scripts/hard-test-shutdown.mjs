@@ -6,8 +6,12 @@
  *
  * Requer: .env com DATABASE_URL (e demais vars do boot). Define porta isolada via TEST_SERVER_PORT (default 30997).
  *
- * Shutdown: por padrão usa GET /api/__hard-test/shutdown (HARD_TEST_HTTP_SHUTDOWN=1), porque no Windows
- * `child.kill(SIGINT/SIGTERM)` pode matar o subprocesso antes do encerramento assíncrono completar.
+ * Requer obrigatoriamente:
+ * - HARD_TEST_SHUTDOWN_SECRET (segredo para autenticar shutdown)
+ * - HARD_TEST_SHUTDOWN_ENABLED=1 (para habilitar endpoint no servidor)
+ *
+ * Shutdown: por padrão usa GET /api/__hard-test/shutdown com header x-shutdown-secret,
+ * porque no Windows `child.kill(SIGINT/SIGTERM)` pode matar o subprocesso antes do encerramento assíncrono completar.
  * Para forçar só sinal POSIX: HARD_TEST_USE_OS_SIGNAL=1.
  *
  * Não usa `tsx watch` — um único processo Node para o sinal fechar HTTP/DB de forma determinística.
@@ -99,16 +103,21 @@ async function main() {
   console.log("[hard-test] TEST_SERVER_PORT:", testPort);
   console.log("[hard-test] ENABLE_GRACEFUL_SHUTDOWN=true (obrigatório em dev)");
 
-  const shutdownSecret =
-    process.env.HARD_TEST_SHUTDOWN_SECRET || "erp-hard-test-local-secret";
+  const shutdownSecret = process.env.HARD_TEST_SHUTDOWN_SECRET?.trim();
+  
+  // Exigir HARD_TEST_SHUTDOWN_SECRET real
+  if (!shutdownSecret) {
+    console.error("[hard-test] ERRO: HARD_TEST_SHUTDOWN_SECRET não definido");
+    console.error("[hard-test] Este script requer HARD_TEST_SHUTDOWN_SECRET para funcionar");
+    process.exit(1);
+  }
 
   const env = {
     ...process.env,
     NODE_ENV: "development",
     ENABLE_GRACEFUL_SHUTDOWN: "true",
     PORT: testPort,
-    HARD_TEST_HTTP_SHUTDOWN:
-      process.env.HARD_TEST_USE_OS_SIGNAL === "1" ? "0" : "1",
+    HARD_TEST_SHUTDOWN_ENABLED: "1",
     HARD_TEST_SHUTDOWN_SECRET: shutdownSecret,
     RATE_LIMIT_MAX: process.env.RATE_LIMIT_MAX || "50000",
     RATE_LIMIT_WINDOW_MS: process.env.RATE_LIMIT_WINDOW_MS || "60000",
@@ -201,9 +210,13 @@ async function main() {
     child.kill(stopSignal);
   } else {
     const u = new URL("/api/__hard-test/shutdown", baseUrl);
-    u.searchParams.set("secret", shutdownSecret);
     console.log("\n[hard-test] disparando shutdown via HTTP (recomendado no Windows)…");
-    const sr = await fetch(u, { signal: AbortSignal.timeout(15000) });
+    const sr = await fetch(u, {
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        "x-shutdown-secret": shutdownSecret,
+      },
+    });
     console.log("[hard-test] resposta shutdown HTTP:", sr.status);
     if (!sr.ok) {
       console.warn("[hard-test] fallback: SIGTERM no filho");

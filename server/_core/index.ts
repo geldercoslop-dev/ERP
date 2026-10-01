@@ -50,6 +50,7 @@ import { globalErrorHandler } from "../middleware/global-error-handler.middlewar
 import { requestLoggerMiddleware } from "../middleware/request-logger.js";
 import { metrics } from "../infra/metrics.js";
 import { waitForDatabaseReady } from "./db-bootstrap.js";
+import { pingDatabase } from "../services/database-health.service.js";
 import { rateLimitMiddleware } from "../middlewares/rate-limit.js";
 import { securityMiddleware } from "../middlewares/security.js";
 import { timeoutMiddleware, timingMiddleware } from "../middlewares/timeout.js";
@@ -159,13 +160,8 @@ async function sendUnifiedHealthResponse(req: Request, res: Response): Promise<v
     let redisUp = false;
 
     try {
-      // Use direct pool connection for health check (bypasses SERVICE_ENTRY_GUARD)
-      const { getConnectionPool } = await import("../config/database.js");
-      const pool = await getConnectionPool();
-      if (pool) {
-        await pool.query("SELECT 1");
-        dbUp = true;
-      }
+      const dbHealth = await pingDatabase("HEALTH_CHECK_ENDPOINT");
+      dbUp = dbHealth.ok;
     } catch {
       dbUp = false;
     }
@@ -436,102 +432,107 @@ export async function startServer() {
   }));
 
   /** Automação: shutdown completo sem depender de SIGINT no subprocesso (Windows). */
-  if (process.env.HARD_TEST_HTTP_SHUTDOWN === "1") {
-    const shutdownSecret =
-      process.env.HARD_TEST_SHUTDOWN_SECRET?.trim() || "erp-hard-test-local-secret";
+  if (process.env.HARD_TEST_SHUTDOWN_ENABLED === "1") {
+    const shutdownSecret = process.env.HARD_TEST_SHUTDOWN_SECRET?.trim();
     
-    const shutdownRateLimit = createRedisRateLimitMiddleware({
-      name: "internal-shutdown",
-      windowMs: 60 * 1000,
-      max: 3,
-      code: "INTERNAL_SHUTDOWN_RATE_LIMITED",
-      message: "Too many shutdown requests",
-      shouldApply: (req) => (req.originalUrl || req.url).startsWith("/api/__hard-test/shutdown"),
-    });
+    // Se secret não estiver definido, não registrar endpoint por segurança
+    if (!shutdownSecret) {
+      console.error(
+        "[HARD_TEST] HARD_TEST_SHUTDOWN_SECRET não definido - endpoint /api/__hard-test/shutdown NÃO será registrado"
+      );
+    } else {
+      const shutdownRateLimit = createRedisRateLimitMiddleware({
+        name: "internal-shutdown",
+        windowMs: 60 * 1000,
+        max: 3,
+        code: "INTERNAL_SHUTDOWN_RATE_LIMITED",
+        message: "Too many shutdown requests",
+        shouldApply: (req) => (req.originalUrl || req.url).startsWith("/api/__hard-test/shutdown"),
+      });
 
-    app.get("/api/__hard-test/shutdown", shutdownRateLimit, (req, res) => {
-      // 1. Validar origem (apenas localhost ou rede interna)
-      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
-      const allowedOrigins = ['::1', '::ffff:127.0.0.1', '127.0.0.1', 'localhost'];
-      
-      if (!allowedOrigins.includes(clientIP as string) && !clientIP?.startsWith('192.168.') && !clientIP?.startsWith('10.')) {
-        securityLogger.warn("[SECURITY] shutdown ip bloqueado", {
-          requestId: getRequestId(req),
-          path: req.originalUrl || req.url,
-          method: req.method,
-          metadata: {
-          ip: clientIP,
-          timestamp: new Date().toISOString(),
-          motivo: 'origem_nao_permitida'
-          },
-        });
-        sendStandardError(req, res, 403, "FORBIDDEN", "Forbidden");
-        return;
-      }
-      
-      // 2. Validar secret via header (mais seguro que query param)
-      const { secretHeader, secretQuery } = validateShutdownAuthPayload({
-        secretHeader: req.headers["x-shutdown-secret"],
-        secretQuery: req.query.secret,
-      });
-      const providedSecret = secretHeader || secretQuery;
-      
-      if (providedSecret !== shutdownSecret) {
-        // Log de auditoria - secret incorreto
-        securityLogger.warn("[SECURITY] shutdown secret inválido", {
-          requestId: getRequestId(req),
-          path: req.originalUrl || req.url,
-          method: req.method,
-          metadata: {
-          ip: clientIP,
-          timestamp: new Date().toISOString(),
-          motivo: 'secret_invalido',
-          header: !!secretHeader,
-          query: !!secretQuery
-          },
-        });
-        sendStandardError(req, res, 404, "NOT_FOUND", "Not Found");
-        return;
-      }
-      
-      // 3. Log de auditoria - shutdown autorizado
-      securityLogger.info("[SECURITY] shutdown autorizado", {
-        requestId: getRequestId(req),
-        path: req.originalUrl || req.url,
-        method: req.method,
-        metadata: {
-        ip: clientIP,
-        timestamp: new Date().toISOString(),
-        motivo: 'http_endpoint',
-        method: secretHeader ? 'header' : 'query'
-        },
-      });
-      
-      // Responde imediatamente com 202 Accepted
-      res.status(202).json({ ok: true, shuttingDown: true });
-      
-      // Garante que shutdown SEMPRE executa (mesmo se promise rejeitar)
-      setImmediate(async () => {
-        try {
-          // Usa nova função centralizada que GARANTE process.exit()
-          const { initiateGracefulShutdown } = await import("../services/system/shutdown.service.js");
-          await initiateGracefulShutdown("HTTP_ENDPOINT", 0);
-          // Nunca chega aqui - process.exit() mata o processo
-        } catch (err) {
-          securityLogger.error("[SECURITY] shutdown endpoint error", err as Error, {
+      app.get("/api/__hard-test/shutdown", shutdownRateLimit, (req, res) => {
+        // 1. Validar origem (apenas localhost ou rede interna)
+        const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+        const allowedOrigins = ['::1', '::ffff:127.0.0.1', '127.0.0.1', 'localhost'];
+        
+        if (!allowedOrigins.includes(clientIP as string) && !clientIP?.startsWith('192.168.') && !clientIP?.startsWith('10.')) {
+          securityLogger.warn("[SECURITY] shutdown ip bloqueado", {
             requestId: getRequestId(req),
             path: req.originalUrl || req.url,
             method: req.method,
             metadata: {
-      timestamp: new Date().toISOString(),
+            ip: clientIP,
+            timestamp: new Date().toISOString(),
+            motivo: 'origem_nao_permitida'
             },
           });
-          process.exit(1);
+          sendStandardError(req, res, 403, "FORBIDDEN", "Forbidden");
+          return;
         }
+        
+        // 2. Validar secret somente via header x-shutdown-secret (rejeitar query param)
+        const secretHeader = req.headers["x-shutdown-secret"];
+        
+        if (!secretHeader || secretHeader !== shutdownSecret) {
+          // Log de auditoria - secret incorreto ou ausente
+          securityLogger.warn("[SECURITY] shutdown secret inválido", {
+            requestId: getRequestId(req),
+            path: req.originalUrl || req.url,
+            method: req.method,
+            metadata: {
+            ip: clientIP,
+            timestamp: new Date().toISOString(),
+            motivo: 'secret_invalido',
+            header: !!secretHeader
+            },
+          });
+          sendStandardError(req, res, 404, "NOT_FOUND", "Not Found");
+          return;
+        }
+        
+        // 3. Log de auditoria - shutdown autorizado
+        securityLogger.info("[SECURITY] shutdown autorizado", {
+          requestId: getRequestId(req),
+          path: req.originalUrl || req.url,
+          method: req.method,
+          metadata: {
+          ip: clientIP,
+          timestamp: new Date().toISOString(),
+          motivo: 'http_endpoint',
+          method: 'header'
+          },
+        });
+        
+        // Responde imediatamente com 202 Accepted
+        res.status(202).json({ ok: true, shuttingDown: true });
+        
+        // Garante que shutdown SEMPRE executa (mesmo se promise rejeitar)
+        setImmediate(async () => {
+          try {
+            // Usa nova função centralizada que GARANTE process.exit()
+            const { initiateGracefulShutdown } = await import("../services/system/shutdown.service.js");
+            await initiateGracefulShutdown("HTTP_ENDPOINT", 0);
+            // Nunca chega aqui - process.exit() mata o processo
+          } catch (err) {
+            securityLogger.error("[SECURITY] shutdown endpoint error", err as Error, {
+              requestId: getRequestId(req),
+              path: req.originalUrl || req.url,
+              method: req.method,
+              metadata: {
+        timestamp: new Date().toISOString(),
+              },
+            });
+            process.exit(1);
+          }
+        });
       });
-    });
-    console.warn(
-      "[HARD_TEST] GET /api/__hard-test/shutdown habilitado com proteções (defina HARD_TEST_SHUTDOWN_SECRET forte em CI)"
+      console.warn(
+        "[HARD_TEST] GET /api/__hard-test/shutdown habilitado com proteções (requer HARD_TEST_SHUTDOWN_SECRET forte)"
+      );
+    }
+  } else {
+    console.info(
+      "[HARD_TEST] Endpoint /api/__hard-test/shutdown desabilitado (defina HARD_TEST_SHUTDOWN_ENABLED=1 para habilitar)"
     );
   }
 
