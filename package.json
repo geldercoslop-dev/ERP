@@ -70,7 +70,6 @@
     "test:leo-gate": "tsx util/test/leo-test.ts",
     "test:load": "tsx util/test/load-test.ts",
     "test:db-stress": "tsx util/test/db-stress-test.ts",
-    "test:hard-shutdown": "node server/scripts/hard-test-shutdown.mjs",
     "test:http-perf": "node scripts/http-perf/run-http-perf.mjs",
     "audit:perf-logs": "node scripts/http-perf/audit-logs.mjs",
     "pm2:start": "pm2 start deployment/ecosystem.config.js --env production --update-env",

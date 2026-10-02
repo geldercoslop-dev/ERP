@@ -2,7 +2,7 @@
  * HARD TEST: carga concorrente + SIGINT (equivale a CTRL+C) com servidor ouvindo.
  *
  * Uso (na raiz do repo):
- *   pnpm run test:hard-shutdown
+ *   node server/scripts/hard-test-shutdown.mjs
  *
  * Requer: .env com DATABASE_URL (e demais vars do boot). Define porta isolada via TEST_SERVER_PORT (default 30997).
  *
