@@ -342,6 +342,13 @@ const P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-09K2 - Harden db push env gate in drizzle-wrapper
+const P23_R09K2_DB_WRAPPER_HARDENING_AUTHORIZED_FILES = [
+  'scripts/db/drizzle-wrapper.mjs',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1302,6 +1309,41 @@ function isP23_R09JRemoveDeadValidateFinalScriptAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09K2 para hardening do db push env gate
+ * Requer variável ERP_AUTHORIZED_DB_WRAPPER_HARDENING=P23_R09K_DB_PUSH_ENV_GATE
+ * Permite somente:
+ *   - scripts/db/drizzle-wrapper.mjs (hardening)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09K2DbWrapperHardeningAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09K_DB_PUSH_ENV_GATE';
+  const envValue = process.env.ERP_AUTHORIZED_DB_WRAPPER_HARDENING;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09K2_DB_WRAPPER_HARDENING_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R-09K2-AUTH formal window: ERP_AUTHORIZED_DB_WRAPPER_HARDENING=' + authorizedValue + ' (harden db push env gate)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1486,6 +1528,17 @@ function isFrozen(file) {
   const p23_r09jValidateFinalCheck = isP23_R09JRemoveDeadValidateFinalScriptAuthorized(file);
   if (p23_r09jValidateFinalCheck.authorized) {
     return { frozen: false, exception: true, p23_r09j_validate_final: p23_r09jValidateFinalCheck.reason };
+  }
+
+  // Verifica janela formal P23-R-09K2-AUTH (harden db push env gate)
+  const p23_r09k2DbWrapperCheck = isP23_R09K2DbWrapperHardeningAuthorized(file);
+  if (p23_r09k2DbWrapperCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09k2_db_wrapper: p23_r09k2DbWrapperCheck.reason };
+  }
+
+  // scripts/db/drizzle-wrapper.mjs requer janela formal P23-R-09K2 para qualquer alteração
+  if (relativePath === 'scripts/db/drizzle-wrapper.mjs') {
+    return { frozen: true, pattern: 'scripts/db/drizzle-wrapper.mjs', p23_r09k2_required: true };
   }
 
   // Verifica janela formal P23-R-08I-04E (remove obsolete load token script)

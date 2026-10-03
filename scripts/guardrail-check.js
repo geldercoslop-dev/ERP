@@ -362,6 +362,13 @@ const P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-R-09K2 - Harden db push env gate in drizzle-wrapper
+const P23_R09K2_DB_WRAPPER_HARDENING_AUTHORIZED_FILES = [
+  "scripts/db/drizzle-wrapper.mjs",
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1278,6 +1285,40 @@ function isP23_R09JRemoveDeadValidateFinalScriptAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09K2 para hardening do db push env gate
+ * Requer variável ERP_AUTHORIZED_DB_WRAPPER_HARDENING=P23_R09K_DB_PUSH_ENV_GATE
+ * Permite somente:
+ *   - scripts/db/drizzle-wrapper.mjs (hardening)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09K2DbWrapperHardeningAuthorized(filePath) {
+  const authorizedValue = "P23_R09K_DB_PUSH_ENV_GATE";
+  const envValue = process.env.ERP_AUTHORIZED_DB_WRAPPER_HARDENING;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09K2_DB_WRAPPER_HARDENING_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-R-09K2-AUTH formal window: ERP_AUTHORIZED_DB_WRAPPER_HARDENING=" + authorizedValue + " (harden db push env gate)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -1450,6 +1491,36 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-09K2 check: if drizzle-wrapper or guard files are modified for db push env gate hardening, require authorization variable
+  const p23_r09k2DbWrapperFilesInChanges = files.filter(f => P23_R09K2_DB_WRAPPER_HARDENING_AUTHORIZED_FILES.includes(f));
+  if (p23_r09k2DbWrapperFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r09k2DbWrapperFilesInChanges) {
+      const check = isP23_R09K2DbWrapperHardeningAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("DOC BLOQUEADO — DB wrapper hardening requer ERP_AUTHORIZED_DB_WRAPPER_HARDENING=P23_R09K_DB_PUSH_ENV_GATE\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-09K2, allow them
+    const nonDbWrapperFiles = files.filter(f => !P23_R09K2_DB_WRAPPER_HARDENING_AUTHORIZED_FILES.includes(f));
+    if (nonDbWrapperFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-09K2 detectados:");
+      p23_r09k2DbWrapperFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-09K2-AUTH formal window: ERP_AUTHORIZED_DB_WRAPPER_HARDENING=P23_R09K_DB_PUSH_ENV_GATE (harden db push env gate)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the wrapper/guard files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonDbWrapperFiles);
   }
 
   // P23-R-09J check: if package.json or guard files are modified for validate:final removal, require authorization variable
