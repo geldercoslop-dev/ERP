@@ -370,6 +370,48 @@ const P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-09Q - Clean dead references to seed:admin (docs + dead text only)
+const P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES_AUTHORIZED_FILES = [
+  'docs/AUTH-DB.md',
+  'docs/RELATORIO_HARDENING.md',
+  'docs/operations/CHECKLIST_TESTE_OPERACIONAL.md',
+  'docs/operations/CONFIGURAR_BANCO_2MIN.md',
+  'docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md',
+  'docs/BRIEFING_PARA_ROADMAP.md',
+  'client/src/INTEGRATION_README.md',
+  'server/scripts/seed-massa-teste.ts',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
+// Padrões de lógica proibidos em diffs de seed-massa-teste.ts (janela R09Q permite só texto morto)
+const P23_R09Q_SEED_MASSA_FORBIDDEN_PATTERNS = [
+  'import',
+  'getDb',
+  'DEFAULT_TENANT_ID',
+  'getAllVendedores',
+  'vendedorId',
+  'createCliente',
+  'createProduto',
+  'await',
+  'bootstrap',
+  'tenant',
+  'process.env',
+  'db.',
+];
+
+// Padrões proibidos em linhas ADICIONADAS nos arquivos autorizados R09Q (sem novo comando/credencial)
+const P23_R09Q_FORBIDDEN_ADDITION_PATTERNS = [
+  'seed:admin',
+  'seed-admin',
+  'npm run seed',
+  'pnpm run seed',
+  'npx tsx',
+  'admin123',
+  'admin/admin',
+  'vendedor123',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1558,6 +1600,82 @@ function isP23_R09ORemoveLegacySeedAdminScriptAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09Q para limpeza de referências mortas a seed:admin
+ * Requer variável ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES
+ * Permite somente:
+ *   - docs listados (apenas limpeza textual — sem novo comando/credencial em linhas adicionadas)
+ *   - client/src/INTEGRATION_README.md (idem)
+ *   - server/scripts/seed-massa-teste.ts (apenas comentário/warning morto — sem tocar lógica)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09QCleanDeadSeedAdminReferencesAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES';
+  const envValue = process.env.ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES_AUTHORIZED_FILES.includes(relativePath)) {
+    // Guard files: não exigem checagem de diff (janela formal referencia a si mesma)
+    if (relativePath === 'scripts/guardrail-check.js' || relativePath === 'scripts/architecture-contract-guard.mjs') {
+      return {
+        authorized: true,
+        reason: 'P23-R-09Q-AUTH formal window: ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=' + authorizedValue + ' (clean dead seed-admin references)'
+      };
+    }
+
+    try {
+      const diff = execSync('git diff --cached ' + relativePath).toString();
+      const lines = diff.split('\n');
+
+      for (const line of lines) {
+        const isAdded = line.startsWith('+') && !line.startsWith('+++');
+        const isRemoved = line.startsWith('-') && !line.startsWith('---');
+        if (!isAdded && !isRemoved) continue;
+
+        // Para seed-massa-teste.ts: linhas alteradas NÃO podem tocar lógica
+        if (relativePath === 'server/scripts/seed-massa-teste.ts') {
+          for (const pattern of P23_R09Q_SEED_MASSA_FORBIDDEN_PATTERNS) {
+            if (line.includes(pattern)) {
+              return { authorized: false, reason: "seed-massa-teste.ts diff can only touch dead text (comment/warning). Logic lines forbidden. Found pattern '" + pattern + "' in line: " + line };
+            }
+          }
+        }
+
+        // Linhas adicionadas não podem conter novo comando seed ou nova credencial
+        if (isAdded) {
+          for (const pattern of P23_R09Q_FORBIDDEN_ADDITION_PATTERNS) {
+            if (line.includes(pattern)) {
+              return { authorized: false, reason: 'P23-R-09Q allows only cleanup of dead references. New seed command or credential forbidden in added line: ' + line };
+            }
+          }
+        }
+      }
+    } catch (error) {
+      return { authorized: false, reason: 'Failed to check staged diff for ' + relativePath };
+    }
+
+    return {
+      authorized: true,
+      reason: 'P23-R-09Q-AUTH formal window: ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=' + authorizedValue + ' (clean dead seed-admin references)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1771,6 +1889,18 @@ function isFrozen(file) {
   // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
   if (relativePath === 'server/scripts/seed-admin.ts') {
     return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
+  }
+
+  // Verifica janela formal P23-R-09Q-AUTH (clean dead seed-admin references)
+  const p23_r09qDeadRefCheck = isP23_R09QCleanDeadSeedAdminReferencesAuthorized(file);
+  if (p23_r09qDeadRefCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09q_dead_refs: p23_r09qDeadRefCheck.reason };
+  }
+
+  // Arquivos não-guard da janela P23-R-09Q requerem autorização formal para qualquer alteração
+  if (P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES_AUTHORIZED_FILES.includes(relativePath)
+      && !relativePath.startsWith('scripts/')) {
+    return { frozen: true, pattern: relativePath, p23_r09q_required: true };
   }
 
   // scripts/db/drizzle-wrapper.mjs requer janela formal P23-R-09K2 para qualquer alteração

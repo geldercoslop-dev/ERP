@@ -390,6 +390,48 @@ const P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-R-09Q - Clean dead references to seed:admin (docs + dead text only)
+const P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES_AUTHORIZED_FILES = [
+  "docs/AUTH-DB.md",
+  "docs/RELATORIO_HARDENING.md",
+  "docs/operations/CHECKLIST_TESTE_OPERACIONAL.md",
+  "docs/operations/CONFIGURAR_BANCO_2MIN.md",
+  "docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md",
+  "docs/BRIEFING_PARA_ROADMAP.md",
+  "client/src/INTEGRATION_README.md",
+  "server/scripts/seed-massa-teste.ts",
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
+// Padrões de lógica proibidos em diffs de seed-massa-teste.ts (janela R09Q permite só texto morto)
+const P23_R09Q_SEED_MASSA_FORBIDDEN_PATTERNS = [
+  "import",
+  "getDb",
+  "DEFAULT_TENANT_ID",
+  "getAllVendedores",
+  "vendedorId",
+  "createCliente",
+  "createProduto",
+  "await",
+  "bootstrap",
+  "tenant",
+  "process.env",
+  "db.",
+];
+
+// Padrões proibidos em linhas ADICIONADAS nos arquivos autorizados R09Q (sem novo comando/credencial)
+const P23_R09Q_FORBIDDEN_ADDITION_PATTERNS = [
+  "seed:admin",
+  "seed-admin",
+  "npm run seed",
+  "pnpm run seed",
+  "npx tsx",
+  "admin123",
+  "admin/admin",
+  "vendedor123",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1530,6 +1572,81 @@ function isP23_R09ORemoveLegacySeedAdminScriptAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09Q para limpeza de referências mortas a seed:admin
+ * Requer variável ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES
+ * Permite somente:
+ *   - docs listados (apenas limpeza textual — sem novo comando/credencial em linhas adicionadas)
+ *   - client/src/INTEGRATION_README.md (idem)
+ *   - server/scripts/seed-massa-teste.ts (apenas comentário/warning morto — sem tocar lógica)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09QCleanDeadSeedAdminReferencesAuthorized(filePath) {
+  const authorizedValue = "P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES";
+  const envValue = process.env.ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES_AUTHORIZED_FILES.includes(filePath)) {
+    // Guard files: não exigem checagem de diff (janela formal referencia a si mesma)
+    if (filePath === "scripts/guardrail-check.js" || filePath === "scripts/architecture-contract-guard.mjs") {
+      return {
+        authorized: true,
+        reason: "P23-R-09Q-AUTH formal window: ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=" + authorizedValue + " (clean dead seed-admin references)"
+      };
+    }
+
+    try {
+      const diff = execSync('git diff --cached ' + filePath).toString();
+      const lines = diff.split("\n");
+
+      for (const line of lines) {
+        const isAdded = line.startsWith("+") && !line.startsWith("+++");
+        const isRemoved = line.startsWith("-") && !line.startsWith("---");
+        if (!isAdded && !isRemoved) continue;
+
+        // Para seed-massa-teste.ts: linhas alteradas NÃO podem tocar lógica
+        if (filePath === "server/scripts/seed-massa-teste.ts") {
+          for (const pattern of P23_R09Q_SEED_MASSA_FORBIDDEN_PATTERNS) {
+            if (line.includes(pattern)) {
+              return { authorized: false, reason: "seed-massa-teste.ts diff can only touch dead text (comment/warning). Logic lines forbidden. Found pattern '" + pattern + "' in line: " + line };
+            }
+          }
+        }
+
+        // Linhas adicionadas não podem conter novo comando seed ou nova credencial
+        if (isAdded) {
+          for (const pattern of P23_R09Q_FORBIDDEN_ADDITION_PATTERNS) {
+            if (line.includes(pattern)) {
+              return { authorized: false, reason: "P23-R-09Q allows only cleanup of dead references. New seed command or credential forbidden in added line: " + line };
+            }
+          }
+        }
+      }
+    } catch (error) {
+      return { authorized: false, reason: "Failed to check staged diff for " + filePath };
+    }
+
+    return {
+      authorized: true,
+      reason: "P23-R-09Q-AUTH formal window: ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=" + authorizedValue + " (clean dead seed-admin references)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -1702,6 +1819,36 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-09Q check: if authorized dead-reference files or guard files are modified for cleanup, require authorization variable
+  const p23_r09qDeadRefFilesInChanges = files.filter(f => P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES_AUTHORIZED_FILES.includes(f));
+  if (p23_r09qDeadRefFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r09qDeadRefFilesInChanges) {
+      const check = isP23_R09QCleanDeadSeedAdminReferencesAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("DOC BLOQUEADO — Dead seed-admin references cleanup requer ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-09Q, allow them
+    const nonR09QFiles = files.filter(f => !P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES_AUTHORIZED_FILES.includes(f));
+    if (nonR09QFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-09Q detectados:");
+      p23_r09qDeadRefFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-09Q-AUTH formal window: ERP_AUTHORIZED_DOC_SEED_ADMIN_CLEANUP=P23_R09Q_CLEAN_DEAD_SEED_ADMIN_REFERENCES (clean dead seed-admin references)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the authorized files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonR09QFiles);
   }
 
   // P23-R-09O check: if legacy seed-admin.ts or guard files are modified for script removal, require authorization variable
