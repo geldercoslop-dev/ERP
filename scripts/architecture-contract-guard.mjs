@@ -412,6 +412,95 @@ const P23_R09Q_FORBIDDEN_ADDITION_PATTERNS = [
   'vendedor123',
 ];
 
+// Janela formal P23-R-09R - Weak credential cleanup (auth-detection/reset/bats/load-test)
+const P23_R09R_WEAK_CREDENTIAL_CLEANUP_AUTHORIZED_FILES = [
+  'server/_core/auth-detection.ts',
+  'server/scripts/reset-admin-password.ts',
+  'INSTALAR_CORRIGIDO.bat',
+  'INSTALAR_CORRIGIDO - Copia.bat',
+  'util/test/load-test.ts',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
+// Padrões proibidos em linhas ADICIONADAS em TODOS os arquivos R09R (sem nova credencial/comando perigoso)
+const P23_R09R_FORBIDDEN_ADDITION_PATTERNS = [
+  'admin123',
+  'vendedor123',
+  'admin/admin',
+  '123456',
+  'smart-auth',
+  'smartAuth',
+  'seed:admin',
+  'seed-admin',
+  'npm run seed',
+  'pnpm run seed',
+  'npx tsx',
+];
+
+// Padrões extras proibidos em linhas ADICIONADAS por arquivo R09R (mecânica de credencial insegura)
+const P23_R09R_FILE_SPECIFIC_FORBIDDEN_PATTERNS = {
+  'server/_core/auth-detection.ts': [
+    'INSERT INTO',
+    'bcrypt.hash',
+    'Password = "',
+    "Password = '",
+    'password = "',
+    "password = '",
+  ],
+  'server/scripts/reset-admin-password.ts': [
+    'INSERT INTO',
+    'LIKE',
+    'Senha:',
+    '[1,',
+    'tenantId: 1',
+    'Password = "',
+    "Password = '",
+    'password = "',
+    "password = '",
+  ],
+  'INSTALAR_CORRIGIDO.bat': [
+    'admin123',
+    'admin/',
+    'admin@',
+    ' admin',
+    'admin ',
+    'senha',
+    'password',
+    'PASSWORD',
+    'seed',
+    'reset',
+    'tsx',
+  ],
+  'INSTALAR_CORRIGIDO - Copia.bat': [
+    'admin123',
+    'admin/',
+    'admin@',
+    ' admin',
+    'admin ',
+    'senha',
+    'password',
+    'PASSWORD',
+    'seed',
+    'reset',
+    'tsx',
+  ],
+  'util/test/load-test.ts': [
+    'PASSWORD=admin',
+    'PASSWORD=123',
+    'PASSWORD=test',
+    'PASSWORD=senha',
+    'password=admin',
+  ],
+};
+
+// Padrões de mount do router smart-auth — bloqueio permanente em qualquer arquivo (router dormente com credencial fraca)
+const P23_R09R_SMART_AUTH_MOUNT_PATTERNS = [
+  'smart-auth',
+  'smartAuth',
+  'smartAuthRouter',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1676,6 +1765,79 @@ function isP23_R09QCleanDeadSeedAdminReferencesAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09R para remoção/gate de credenciais fracas vivas
+ * Requer variável ERP_AUTHORIZED_WEAK_CREDENTIAL_CLEANUP=P23_R09R_WEAK_CREDENTIAL_CLEANUP
+ * Permite somente:
+ *   - server/_core/auth-detection.ts (remover/gatear hardcode admin123 — sem nova mecânica de credencial)
+ *   - server/scripts/reset-admin-password.ts (remover ou gate forte — ENV/tenant explícito, sem plaintext)
+ *   - INSTALAR_CORRIGIDO*.bat (apenas remover anúncio de credencial fraca — sem novas credenciais/comandos)
+ *   - util/test/load-test.ts (apenas trocar exemplo de credencial por placeholder seguro)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09RWeakCredentialCleanupAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09R_WEAK_CREDENTIAL_CLEANUP';
+  const envValue = process.env.ERP_AUTHORIZED_WEAK_CREDENTIAL_CLEANUP;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09R_WEAK_CREDENTIAL_CLEANUP_AUTHORIZED_FILES.includes(relativePath)) {
+    // Guard files: não exigem checagem de diff (janela formal referencia a si mesma)
+    if (relativePath === 'scripts/guardrail-check.js' || relativePath === 'scripts/architecture-contract-guard.mjs') {
+      return {
+        authorized: true,
+        reason: 'P23-R-09R-AUTH formal window: ERP_AUTHORIZED_WEAK_CREDENTIAL_CLEANUP=' + authorizedValue + ' (weak credential cleanup)'
+      };
+    }
+
+    try {
+      const diff = execSync('git diff --cached -- "' + relativePath + '"').toString();
+      const lines = diff.split('\n');
+      const fileSpecificPatterns = P23_R09R_FILE_SPECIFIC_FORBIDDEN_PATTERNS[relativePath] || [];
+
+      for (const line of lines) {
+        const isAdded = line.startsWith('+') && !line.startsWith('+++');
+        if (!isAdded) continue;
+
+        // Linhas adicionadas não podem conter nova credencial/comando perigoso/mount smart-auth
+        for (const pattern of P23_R09R_FORBIDDEN_ADDITION_PATTERNS) {
+          if (line.includes(pattern)) {
+            return { authorized: false, reason: 'P23-R-09R allows only weak credential cleanup. New credential/dangerous reference forbidden in added line: ' + line };
+          }
+        }
+
+        // Regras específicas por arquivo (mecânica de credencial insegura)
+        for (const pattern of fileSpecificPatterns) {
+          if (line.includes(pattern)) {
+            return { authorized: false, reason: "P23-R-09R file rule violation for " + relativePath + ". Forbidden pattern '" + pattern + "' in added line: " + line };
+          }
+        }
+      }
+    } catch (error) {
+      return { authorized: false, reason: 'Failed to check staged diff for ' + relativePath };
+    }
+
+    return {
+      authorized: true,
+      reason: 'P23-R-09R-AUTH formal window: ERP_AUTHORIZED_WEAK_CREDENTIAL_CLEANUP=' + authorizedValue + ' (weak credential cleanup)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1889,6 +2051,37 @@ function isFrozen(file) {
   // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
   if (relativePath === 'server/scripts/seed-admin.ts') {
     return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
+  }
+
+  // Verifica janela formal P23-R-09R-AUTH (weak credential cleanup)
+  const p23_r09rWeakCredCheck = isP23_R09RWeakCredentialCleanupAuthorized(file);
+  if (p23_r09rWeakCredCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09r_weak_cred: p23_r09rWeakCredCheck.reason };
+  }
+
+  // Arquivos não-guard da janela P23-R-09R requerem autorização formal para qualquer alteração
+  if (P23_R09R_WEAK_CREDENTIAL_CLEANUP_AUTHORIZED_FILES.includes(relativePath)
+      && !relativePath.startsWith('scripts/')) {
+    return { frozen: true, pattern: relativePath, p23_r09r_required: true };
+  }
+
+  // P23-R-09R: bloqueio permanente de mount do router smart-auth em qualquer arquivo não-guard
+  // (router dormente que invoca credencial fraca hardcoded — montagem exige fase própria futura)
+  if (!relativePath.startsWith('scripts/')) {
+    try {
+      const mountDiff = execSync('git diff --cached -- "' + relativePath + '"').toString();
+      for (const mountLine of mountDiff.split('\n')) {
+        if (mountLine.startsWith('+') && !mountLine.startsWith('+++')) {
+          for (const mountPattern of P23_R09R_SMART_AUTH_MOUNT_PATTERNS) {
+            if (mountLine.includes(mountPattern)) {
+              return { frozen: true, pattern: 'smart-auth-mount', p23_r09r_mount_forbidden: true };
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Ignore diff errors here; other checks handle file-level failures
+    }
   }
 
   // Verifica janela formal P23-R-09Q-AUTH (clean dead seed-admin references)
