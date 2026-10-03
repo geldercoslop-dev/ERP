@@ -40,7 +40,8 @@ if %ERRORLEVEL% EQU 0 (
     echo.
     echo Depois acesse:
     echo http://localhost:3000/login
-    echo admin/admin123
+    echo Configure o acesso inicial pelo fluxo oficial do sistema.
+    echo Nao use credenciais padrao.
 ) else (
     echo [ERRO] Falha na instalacao!
     echo Tente executar manualmente:

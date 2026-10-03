@@ -184,99 +184,10 @@ function detectVendedorAuthFields(columns: string[]): Partial<AuthConfig> | null
 }
 
 /**
- * Cria admin automaticamente se não existir
+ * Criação automática de admin com senha fixa removida por segurança (P23-R-09R).
+ * Hardcoded admin creation is disabled.
+ * Initial admin creation must use the official bootstrap/admin-init flow.
  */
-async function createAdminIfNeeded(connection: mysql.Connection, config: AuthConfig): Promise<void> {
-  try {
-    console.log(`[Auth Detection] Verificando admin na tabela ${config.table}...`);
-    
-    // Verificar se admin já existe
-    const [existingRows] = await connection.execute(
-      `SELECT * FROM ${mysql.escapeId(config.table)} WHERE ${mysql.escapeId(config.usernameField)} = ? LIMIT 1`,
-      ["admin"]
-    );
-    
-    const existingRowsArray = existingRows as unknown[];
-    const existing = Array.isArray(existingRowsArray) && existingRowsArray.length > 0 ? existingRowsArray[0] : null;
-    
-    if (existing && typeof existing === 'object' && 'length' in existing) {
-      console.log("[Auth Detection] ✅ Admin já existe");
-      return;
-    }
-    
-    console.log("[Auth Detection] Criando admin automaticamente...");
-    
-    // Criar hash da senha
-    const adminPassword = "admin123";
-    const hashedPassword = await bcrypt.hash(adminPassword, 12);
-    
-    // Determinar campos para inserção
-    const fields = [config.usernameField, config.passwordField];
-    const values = ["admin", hashedPassword];
-    
-    // Adicionar tenantId se existir na tabela
-    const tableColumns = await getTableStructure(connection, config.table);
-    if (tableColumns.includes("tenantId")) {
-      fields.push("tenantId");
-      values.push("1");
-    }
-    
-    // Adicionar campos adicionais se existirem
-    if (config.emailField) {
-      fields.push(config.emailField);
-      values.push("admin@local.com");
-    }
-    
-    if (config.table === "users" && config.roleField) {
-      fields.push(config.roleField);
-      values.push("admin");
-    }
-    
-    if (config.table === "vendedores") {
-      // Campos específicos de vendedores
-      fields.push("admin", "ativo");
-      values.push("1", "1");
-    }
-    
-    // Adicionar timestamps se existirem
-    if (tableColumns.includes("createdAt")) {
-      fields.push("createdAt");
-      values.push("NOW()");
-    }
-    if (tableColumns.includes("updatedAt")) {
-      fields.push("updatedAt");
-      values.push("NOW()");
-    }
-    
-    // Construir query - se tiver timestamps, usar SQL direto
-    let query: string;
-    let finalValues: any[] = [];
-    
-    if (values.includes("NOW()")) {
-      // Query com timestamps SQL
-      const sqlValues = values.map(v => v === "NOW()" ? "NOW()" : "?").join(", ");
-      query = `INSERT INTO ${mysql.escapeId(config.table)} (${fields.map(f => mysql.escapeId(f)).join(", ")}) VALUES (${sqlValues})`;
-      finalValues = values.filter(v => v !== "NOW()");
-    } else {
-      // Query normal
-      const placeholders = values.map(() => "?").join(", ");
-      query = `INSERT INTO ${mysql.escapeId(config.table)} (${fields.map(f => mysql.escapeId(f)).join(", ")}) VALUES (${placeholders})`;
-      finalValues = values;
-    }
-    
-    await connection.execute(query, finalValues);
-    
-    console.log("[Auth Detection] ✅ Admin criado com sucesso");
-    console.log("[Auth Detection] 📝 Credenciais:");
-    console.log("[Auth Detection]    Usuário: admin");
-    console.log("[Auth Detection]    Senha: [REDACTED]");
-    console.log("[Auth Detection]    AVISO: Senha padrão detectada - altere imediatamente!");
-    
-  } catch (error) {
-    console.error("[Auth Detection] Erro ao criar admin:", error);
-    throw error;
-  }
-}
 
 /**
  * Função principal de detecção
@@ -374,9 +285,12 @@ export async function detectAuthConfig(): Promise<AuthConfig> {
       console.log(`[Auth Detection]    Campo role: ${authConfig.roleField}`);
     }
     
-    // FASE 6: Criar admin automaticamente
-    await createAdminIfNeeded(connection, authConfig);
-    
+    // FASE 6: Criacao automatica de admin removida por seguranca (P23-R-09R)
+    // Hardcoded admin creation is disabled.
+    // Initial admin creation must use the official bootstrap/admin-init flow.
+    console.log("[Auth Detection] Criacao automatica de admin desabilitada por seguranca.");
+    console.log("[Auth Detection] Initial admin creation must use the official bootstrap/admin-init flow.");
+
     detectionCompleted = true;
     
     // Salvar configuração para uso posterior

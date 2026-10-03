@@ -19,7 +19,7 @@ const LOAD_TEST_PASSWORD = process.env.LOAD_TEST_PASSWORD;
 
 if (!LOAD_TEST_USERNAME || !LOAD_TEST_PASSWORD) {
   console.error("❌ Erro: LOAD_TEST_USERNAME e LOAD_TEST_PASSWORD são obrigatórios");
-  console.error("   Exemplo: LOAD_TEST_USERNAME=admin LOAD_TEST_PASSWORD=admin123 pnpm exec tsx util/test/load-test.ts");
+  console.error("   Exemplo: LOAD_TEST_USERNAME=<usuario_de_teste> LOAD_TEST_PASSWORD=<senha_de_teste_configurada_no_ambiente> pnpm exec tsx util/test/load-test.ts");
   process.exit(1);
 }
 
