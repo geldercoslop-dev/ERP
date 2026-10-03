@@ -174,6 +174,18 @@ function checkOutputForPrompts(output) {
   }
 }
 
+// Bloquear db push fora de ambiente development real
+function assertPushAllowed(command) {
+  if (command !== "push") return;
+
+  const nodeEnv = String(process.env.NODE_ENV || "").trim();
+
+  if (nodeEnv !== "development") {
+    error("db push bloqueado: NODE_ENV precisa ser development");
+    process.exit(1);
+  }
+}
+
 // Main
 async function main() {
   const args = process.argv.slice(2);
@@ -197,7 +209,10 @@ async function main() {
   if (!allowedCommands.includes(command)) {
     error(`Comando não permitido: ${command}. Comandos permitidos: ${allowedCommands.join(', ')}`);
   }
-  
+
+  // Bloquear db push fora de ambiente development real
+  assertPushAllowed(command);
+
   // Para comando generate, adicionar flags para evitar prompts
   if (command === 'generate') {
     // Adicionar --custom para forçar geração sem prompts interativos
