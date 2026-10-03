@@ -12,7 +12,7 @@ Executar um roteiro de teste operacional ponta a ponta para validar que o ERP fu
 ## Premissas
 
 1. Ambiente de teste com banco MySQL configurado (DATABASE_URL ou DB_*).
-2. Ao menos um vendedor admin existente (ex.: `npm run seed:admin`).
+2. Ao menos um vendedor admin existente (crie pelo fluxo oficial de bootstrap/admin-init).
 3. Massa de teste pode ser criada via UI ou via script `server/scripts/seed-massa-teste.ts` (opcional).
 4. Correções permitidas apenas: frontend, mensagens de erro, estados de tela, fluxo visual, integração entre telas, documentação, scripts de teste.
 
@@ -29,7 +29,7 @@ Massa mínima desejada para executar o roteiro:
 | Cargas          | Criadas no teste  | 3 cargas de teste |
 | Pedidos         | Criados no teste  | 10 pedidos (4 simples, 3 múltiplos itens, 2 com desconto/frete, 1 completo) |
 
-Se faltar massa: usar cadastro via UI (Clientes, Produtos, Vendedores) ou executar o script de seed: `npx tsx server/scripts/seed-massa-teste.ts` (apenas em ambiente de desenvolvimento/teste). Pré-requisito: ao menos um vendedor (ex.: `npm run seed:admin`).
+Se faltar massa: usar cadastro via UI (Clientes, Produtos, Vendedores) ou executar o script de massa de teste (apenas em ambiente de desenvolvimento/teste). Pré-requisito: ao menos um vendedor válido criado pelo fluxo oficial de bootstrap/admin-init.
 
 ## Fluxos a validar
 

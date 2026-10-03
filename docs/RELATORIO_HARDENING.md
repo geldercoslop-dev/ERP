@@ -142,7 +142,7 @@ Nada disso quebra o dia a dia; sÃ£o pontos de atenÃ§Ã£o documentados.
 7. Rodar `npm run db:push:dev` (ou, se jÃ¡ houver migraÃ§Ãµes, `npm run db:migrate`) para alinhar o banco ao schema.
 8. Rodar `npm run dev` e abrir no navegador a URL indicada (ex.: http://localhost:3000).
 9. Abrir /api/health e conferir db.status ok e schemaMatch true.
-10. Fazer login (criar um admin antes com seed:admin se necessÃ¡rio) e seguir o TESTE_RAPIDO.md.
+10. Fazer login (garantir um admin criado pelo fluxo oficial de bootstrap/admin-init, se necessário) e seguir o TESTE_RAPIDO.md.
 
 A partir daÃ­ o sistema estÃ¡ replicado e estÃ¡vel naquela mÃ¡quina.
 

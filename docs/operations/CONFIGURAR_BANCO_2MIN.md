@@ -55,11 +55,8 @@ DB_NAME
    npm run db:push:dev
    ```
 
-6. Crie o usuário admin (primeira vez):
-   ```bash
-   npm run seed:admin
-   ```
-   (Use a senha que definir em `ADMIN_INITIAL_PASSWORD` no `.env`.)
+6. Crie o usuário admin (primeira vez) pelo fluxo oficial de bootstrap/admin-init
+   (`ensureInitialAdmin`), com a senha definida em `ADMIN_INITIAL_PASSWORD` no `.env`.
 
 7. Reinicie o servidor e tente o login de novo.
 

@@ -2,7 +2,7 @@
  * Massa de teste mínima para roteiro operacional (clientes + produtos).
  * Usar apenas em ambiente de desenvolvimento/teste. Não altera regras de negócio.
  *
- * Pré-requisito: ao menos um vendedor existente (ex.: npm run seed:admin).
+ * Pré-requisito: ao menos um vendedor válido criado pelo fluxo oficial.
  * Uso: npx tsx server/scripts/seed-massa-teste.ts
  */
 import { initEnv } from "../_core/env/bootstrapEnv.js";
@@ -29,7 +29,7 @@ async function main(): Promise<any> {
   const vendedores = await db.getAllVendedores();
   const vendedorId = vendedores.length > 0 ? vendedores[0].id : undefined;
   if (!vendedorId) {
-    console.warn(`${PREFIX} Nenhum vendedor encontrado. Rode npm run seed:admin antes. Clientes serão criados sem vínculo.`);
+    console.warn(`${PREFIX} Nenhum vendedor encontrado. Crie um vendedor pelo fluxo oficial antes de executar a massa de teste. Clientes serão criados sem vínculo.`);
   }
 
   // Clientes de teste (telefones únicos)

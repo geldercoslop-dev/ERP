@@ -42,7 +42,7 @@ GRS ATUAL/
 │   ├── routes/             # Rotas HTTP legadas (produtos, etc.)
 │   ├── routers.ts          # Todas as rotas tRPC (auth, vendedores, pedidos, produtos, cargas, financeiro, diagnóstico, etc.)
 │   ├── db.ts               # Acesso a dados (Drizzle), transações, audit_log, diagnóstico
-│   ├── scripts/            # test-db, check-database, run-migrate, db-push-prod, seed-admin
+│   ├── scripts/            # test-db, check-database, run-migrate, db-push-prod
 │   └── tests/              # run-core-tests.ts (estoque negativo, rollback, diagnóstico)
 ├── drizzle/
 │   ├── schema.ts           # Definição das tabelas

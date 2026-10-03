@@ -7,7 +7,7 @@ Use este checklist para repetir o teste operacional ponta a ponta. Marque cada i
 ## Pré-requisitos
 
 - [ ] Banco configurado (DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)
-- [ ] Ao menos um vendedor existente (`npm run seed:admin` se necessário)
+- [ ] Ao menos um vendedor existente (crie pelo fluxo oficial de bootstrap/admin-init se necessário)
 - [ ] (Opcional) Massa de teste: `npx tsx server/scripts/seed-massa-teste.ts`
 
 ---

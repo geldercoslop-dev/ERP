@@ -208,7 +208,7 @@ cd client && npm run dev
 # 3. Testar login
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}' \
+  -d '{"username":"<usuario_admin>","password":"<senha_configurada_no_ambiente>"}' \
   --cookie-jar cookies.txt
 
 # 4. Teste listagem
