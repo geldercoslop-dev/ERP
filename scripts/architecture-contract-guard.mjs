@@ -349,6 +349,13 @@ const P23_R09K2_DB_WRAPPER_HARDENING_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-09K3 - Remove raw db:push alias from package.json
+const P23_R09K3_REMOVE_DB_PUSH_ALIAS_AUTHORIZED_FILES = [
+  'package.json',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1344,6 +1351,79 @@ function isP23_R09K2DbWrapperHardeningAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09K3 para remover o alias cru db:push
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09K_REMOVE_DB_PUSH_ALIAS
+ * Permite somente:
+ *   - package.json (apenas para remover "db:push": "node scripts/db/drizzle-wrapper.mjs push")
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09K3RemoveRawDbPushAliasAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09K_REMOVE_DB_PUSH_ALIAS';
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09K3_REMOVE_DB_PUSH_ALIAS_AUTHORIZED_FILES.includes(relativePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a remoção do alias db:push
+    if (relativePath === 'package.json') {
+      try {
+        const diff = execSync('git diff --cached package.json').toString();
+        
+        const lines = diff.split('\n');
+        let hasDbPushRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a remoção exata do alias db:push
+            if (line === '-    "db:push": "node scripts/db/drizzle-wrapper.mjs push",') {
+              hasDbPushRemoval = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain removal of db:push alias. Found: ' + line };
+            }
+          }
+        }
+        
+        if (!hasDbPushRemoval) {
+          return { authorized: false, reason: 'package.json diff must contain removal of db:push alias' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+    
+    return {
+      authorized: true,
+      reason: 'P23-R-09K3-AUTH formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=' + authorizedValue + ' (remove raw db push alias)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1536,6 +1616,12 @@ function isFrozen(file) {
     return { frozen: false, exception: true, p23_r09k2_db_wrapper: p23_r09k2DbWrapperCheck.reason };
   }
 
+  // Verifica janela formal P23-R-09K3-AUTH (remove raw db push alias)
+  const p23_r09k3DbPushAliasCheck = isP23_R09K3RemoveRawDbPushAliasAuthorized(file);
+  if (p23_r09k3DbPushAliasCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09k3_db_push_alias: p23_r09k3DbPushAliasCheck.reason };
+  }
+
   // scripts/db/drizzle-wrapper.mjs requer janela formal P23-R-09K2 para qualquer alteração
   if (relativePath === 'scripts/db/drizzle-wrapper.mjs') {
     return { frozen: true, pattern: 'scripts/db/drizzle-wrapper.mjs', p23_r09k2_required: true };
@@ -1572,6 +1658,10 @@ function isFrozen(file) {
         const p23_r09jCheck = isP23_R09JRemoveDeadValidateFinalScriptAuthorized(file);
         if (p23_r09jCheck.authorized) {
           return { frozen: false, exception: true, p23_r09j_validate_final: p23_r09jCheck.reason };
+        }
+        const p23_r09k3Check = isP23_R09K3RemoveRawDbPushAliasAuthorized(file);
+        if (p23_r09k3Check.authorized) {
+          return { frozen: false, exception: true, p23_r09k3_db_push_alias: p23_r09k3Check.reason };
         }
         // Se não tiver autorização da janela, trata como congelado
         return { frozen: true, pattern: 'package.json', p23_r09h_required: true };
