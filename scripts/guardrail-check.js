@@ -383,6 +383,13 @@ const P23_R09M_REMOVE_SEED_ADMIN_ALIAS_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-R-09O - Remove legacy seed-admin.ts script (deletion only)
+const P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES = [
+  "server/scripts/seed-admin.ts",
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1477,6 +1484,52 @@ function isP23_R09MRemoveSeedAdminAliasAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09O para remover o script legado seed-admin.ts
+ * Requer variável ERP_AUTHORIZED_SCRIPT_REMOVAL=P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT
+ * Permite somente:
+ *   - server/scripts/seed-admin.ts (apenas deleção total do arquivo — status D)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09ORemoveLegacySeedAdminScriptAuthorized(filePath) {
+  const authorizedValue = "P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT";
+  const envValue = process.env.ERP_AUTHORIZED_SCRIPT_REMOVAL;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES.includes(filePath)) {
+    // Para seed-admin.ts: permitir somente deleção total (status D no staged)
+    if (filePath === "server/scripts/seed-admin.ts") {
+      try {
+        const status = execSync('git diff --cached --name-status -- server/scripts/seed-admin.ts').toString().trim();
+        if (!status.startsWith('D')) {
+          return { authorized: false, reason: 'server/scripts/seed-admin.ts must be fully deleted (staged status D). Modifications, partial edits or new content are forbidden. Found: ' + status };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check seed-admin.ts staged status' };
+      }
+    }
+
+    return {
+      authorized: true,
+      reason: "P23-R-09O-AUTH formal window: ERP_AUTHORIZED_SCRIPT_REMOVAL=" + authorizedValue + " (remove legacy seed-admin script)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -1649,6 +1702,36 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-09O check: if legacy seed-admin.ts or guard files are modified for script removal, require authorization variable
+  const p23_r09oSeedAdminFilesInChanges = files.filter(f => P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES.includes(f));
+  if (p23_r09oSeedAdminFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r09oSeedAdminFilesInChanges) {
+      const check = isP23_R09ORemoveLegacySeedAdminScriptAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("DOC BLOQUEADO — Legacy seed-admin script removal requer ERP_AUTHORIZED_SCRIPT_REMOVAL=P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-09O, allow them
+    const nonR09OFiles = files.filter(f => !P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES.includes(f));
+    if (nonR09OFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-09O detectados:");
+      p23_r09oSeedAdminFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-09O-AUTH formal window: ERP_AUTHORIZED_SCRIPT_REMOVAL=P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT (remove legacy seed-admin script)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the authorized files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonR09OFiles);
   }
 
   // P23-R-09M check: if package.json or guard files are modified for seed:admin alias removal, require authorization variable

@@ -363,6 +363,13 @@ const P23_R09M_REMOVE_SEED_ADMIN_ALIAS_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-09O - Remove legacy seed-admin.ts script (deletion only)
+const P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES = [
+  'server/scripts/seed-admin.ts',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1504,6 +1511,53 @@ function isP23_R09MRemoveSeedAdminAliasAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09O para remover o script legado seed-admin.ts
+ * Requer variável ERP_AUTHORIZED_SCRIPT_REMOVAL=P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT
+ * Permite somente:
+ *   - server/scripts/seed-admin.ts (apenas deleção total do arquivo — status D)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09ORemoveLegacySeedAdminScriptAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT';
+  const envValue = process.env.ERP_AUTHORIZED_SCRIPT_REMOVAL;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09O_REMOVE_LEGACY_SEED_ADMIN_SCRIPT_AUTHORIZED_FILES.includes(relativePath)) {
+    // Para seed-admin.ts: permitir somente deleção total (status D no staged)
+    if (relativePath === 'server/scripts/seed-admin.ts') {
+      try {
+        const status = execSync('git diff --cached --name-status -- server/scripts/seed-admin.ts').toString().trim();
+        if (!status.startsWith('D')) {
+          return { authorized: false, reason: 'server/scripts/seed-admin.ts must be fully deleted (staged status D). Modifications, partial edits or new content are forbidden. Found: ' + status };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check seed-admin.ts staged status' };
+      }
+    }
+
+    return {
+      authorized: true,
+      reason: 'P23-R-09O-AUTH formal window: ERP_AUTHORIZED_SCRIPT_REMOVAL=' + authorizedValue + ' (remove legacy seed-admin script)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1706,6 +1760,17 @@ function isFrozen(file) {
   const p23_r09mSeedAdminCheck = isP23_R09MRemoveSeedAdminAliasAuthorized(file);
   if (p23_r09mSeedAdminCheck.authorized) {
     return { frozen: false, exception: true, p23_r09m_seed_admin: p23_r09mSeedAdminCheck.reason };
+  }
+
+  // Verifica janela formal P23-R-09O-AUTH (remove legacy seed-admin script)
+  const p23_r09oSeedAdminCheck = isP23_R09ORemoveLegacySeedAdminScriptAuthorized(file);
+  if (p23_r09oSeedAdminCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09o_seed_admin: p23_r09oSeedAdminCheck.reason };
+  }
+
+  // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
+  if (relativePath === 'server/scripts/seed-admin.ts') {
+    return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
   }
 
   // scripts/db/drizzle-wrapper.mjs requer janela formal P23-R-09K2 para qualquer alteração
@@ -2034,7 +2099,19 @@ function runGuard() {
   const staged = !args.includes('--all');
   
   const changedFiles = getChangedFiles(staged);
-  
+
+  // P23-R-09O: deleções não aparecem em --diff-filter=ACM — detectar staged deletion de seed-admin.ts
+  if (staged) {
+    try {
+      const status = execSync('git diff --cached --name-status -- server/scripts/seed-admin.ts', { encoding: 'utf-8', cwd: ROOT }).toString().trim();
+      if (status.startsWith('D') && !changedFiles.includes('server/scripts/seed-admin.ts')) {
+        changedFiles.push('server/scripts/seed-admin.ts');
+      }
+    } catch (error) {
+      // Sem repo git ou sem mudanças staged: ignora
+    }
+  }
+
   if (changedFiles.length === 0) {
     console.log('✅ Nenhum arquivo alterado para verificar.');
     process.exit(0);
