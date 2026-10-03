@@ -335,6 +335,13 @@ const P23_R09H_REMOVE_HARD_TEST_SHUTDOWN_SCRIPT_ALIAS_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P23-R-09J - Remove dead validate final script from package.json
+const P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES = [
+  'package.json',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1219,6 +1226,82 @@ function isP23_R09HRemoveHardTestShutdownScriptAliasAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09J para remover validate:final script morto
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT
+ * Permite somente:
+ *   - package.json (apenas para remover "validate:final": "node FINAL-VALIDATION-REAL.mjs")
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09JRemoveDeadValidateFinalScriptAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT';
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES.includes(relativePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a remoção de validate:final
+    if (relativePath === 'package.json') {
+      try {
+        const diff = execSync('git diff --cached package.json', { 
+          encoding: 'utf-8', 
+          cwd: ROOT 
+        });
+        
+        const lines = diff.split('\n');
+        let hasValidateFinalRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a remoção exata de validate:final
+            if (line === '-    "validate:final": "node FINAL-VALIDATION-REAL.mjs",') {
+              hasValidateFinalRemoval = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain removal of validate:final script. Found: ' + line };
+            }
+          }
+        }
+        
+        if (!hasValidateFinalRemoval) {
+          return { authorized: false, reason: 'package.json diff must contain removal of validate:final script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+    
+    return {
+      authorized: true,
+      reason: 'P23-R-09J-AUTH formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=' + authorizedValue + ' (remove dead validate final script)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -1399,6 +1482,12 @@ function isFrozen(file) {
     return { frozen: false, exception: true, p23_r09h_hard_test_shutdown: p23_r09hHardTestShutdownCheck.reason };
   }
 
+  // Verifica janela formal P23-R-09J-AUTH (remove dead validate final script)
+  const p23_r09jValidateFinalCheck = isP23_R09JRemoveDeadValidateFinalScriptAuthorized(file);
+  if (p23_r09jValidateFinalCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09j_validate_final: p23_r09jValidateFinalCheck.reason };
+  }
+
   // Verifica janela formal P23-R-08I-04E (remove obsolete load token script)
   const p23_r08iLoadTokenCheck = isP23_R08ILoadTokenScriptRemovalAuthorized(file);
   if (p23_r08iLoadTokenCheck.authorized) {
@@ -1426,6 +1515,10 @@ function isFrozen(file) {
         const p23_r09hCheck = isP23_R09HRemoveHardTestShutdownScriptAliasAuthorized(file);
         if (p23_r09hCheck.authorized) {
           return { frozen: false, exception: true, p23_r09h_hard_test_shutdown: p23_r09hCheck.reason };
+        }
+        const p23_r09jCheck = isP23_R09JRemoveDeadValidateFinalScriptAuthorized(file);
+        if (p23_r09jCheck.authorized) {
+          return { frozen: false, exception: true, p23_r09j_validate_final: p23_r09jCheck.reason };
         }
         // Se não tiver autorização da janela, trata como congelado
         return { frozen: true, pattern: 'package.json', p23_r09h_required: true };

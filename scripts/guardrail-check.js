@@ -355,6 +355,13 @@ const P23_R09H_REMOVE_HARD_TEST_SHUTDOWN_SCRIPT_ALIAS_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P23-R-09J - Remove dead validate final script from package.json
+const P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES = [
+  "package.json",
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1199,6 +1206,78 @@ function isP23_R09HRemoveHardTestShutdownScriptAliasAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09J para remover validate:final script morto
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT
+ * Permite somente:
+ *   - package.json (apenas para remover "validate:final": "node FINAL-VALIDATION-REAL.mjs")
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ */
+function isP23_R09JRemoveDeadValidateFinalScriptAuthorized(filePath) {
+  const authorizedValue = "P23_R09_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT";
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES.includes(filePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a remoção de validate:final
+    if (filePath === "package.json") {
+      try {
+        const diff = execSync('git diff --cached package.json').toString();
+        
+        const lines = diff.split('\n');
+        let hasValidateFinalRemoval = false;
+        
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') || 
+              line.startsWith('index ') || 
+              line.startsWith('---') || 
+              line.startsWith('+++') || 
+              line.startsWith('@@')) {
+            continue;
+          }
+          
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a remoção exata de validate:final
+            if (line === '-    "validate:final": "node FINAL-VALIDATION-REAL.mjs",') {
+              hasValidateFinalRemoval = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain removal of validate:final script. Found: ' + line };
+            }
+          }
+        }
+        
+        if (!hasValidateFinalRemoval) {
+          return { authorized: false, reason: 'package.json diff must contain removal of validate:final script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+    
+    return {
+      authorized: true,
+      reason: "P23-R-09J-AUTH formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=" + authorizedValue + " (remove dead validate final script)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -1371,6 +1450,36 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-09J check: if package.json or guard files are modified for validate:final removal, require authorization variable
+  const p23_r09jValidateFinalFilesInChanges = files.filter(f => P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES.includes(f));
+  if (p23_r09jValidateFinalFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r09jValidateFinalFilesInChanges) {
+      const check = isP23_R09JRemoveDeadValidateFinalScriptAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("DOC BLOQUEADO — Validate final script removal requer ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-09J, allow them
+    const nonValidateFinalFiles = files.filter(f => !P23_R09J_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT_AUTHORIZED_FILES.includes(f));
+    if (nonValidateFinalFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-09J detectados:");
+      p23_r09jValidateFinalFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-09J-AUTH formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=P23_R09_REMOVE_DEAD_VALIDATE_FINAL_SCRIPT (remove dead validate final script)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the guard files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonValidateFinalFiles);
   }
 
   // P23-R-09H check: if package.json, server/scripts/hard-test-shutdown.mjs, or guard files are modified for test:hard-shutdown removal, require authorization variable
