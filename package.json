@@ -46,7 +46,6 @@
     "test:w4": "node server/scripts/W4-test-load.mjs",
     "test:w5": "node server/scripts/W5-test-final.mjs",
     "test:windsurf": "node server/scripts/windsurf-full-test.mjs",
-    "validate:final": "node FINAL-VALIDATION-REAL.mjs",
     "audit:anti-regression": "node scripts/audit-anti-regression.cjs",
     "check:hardening": "pnpm run typecheck && pnpm run audit:anti-regression",
     "format": "prettier --write .",
