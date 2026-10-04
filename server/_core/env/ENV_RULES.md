@@ -91,7 +91,6 @@ O Phase 0 Guard deve validar:
 - ✅ `server/scripts/health-check.ts`
 - ✅ `server/scripts/run-migrate.ts`
 - ✅ `server/scripts/check-infra.ts`
-- ✅ `server/scripts/seed-massa-teste.ts`
 - ✅ `server/scripts/validate-idempotency-table.ts`
 - ✅ `server/scripts/verify-system-checks.ts`
 - ✅ `server/scripts/backup-db.ts`
