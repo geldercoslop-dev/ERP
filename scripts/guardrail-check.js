@@ -521,6 +521,55 @@ const P23_R09R_SMART_AUTH_MOUNT_PATTERNS = [
   "smartAuthRouter",
 ];
 
+// Janela formal P23-R-09S - Seed massa lockdown (gate forte em seed-massa-teste.ts + correção de docs operacionais)
+const P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES = [
+  "server/scripts/seed-massa-teste.ts",
+  "docs/operations/CHECKLIST_TESTE_OPERACIONAL.md",
+  "docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md",
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
+// Padrões proibidos em linhas ADICIONADAS em TODOS os arquivos R09S não-guard (sem nova credencial/seed legado/reset perigoso)
+const P23_R09S_FORBIDDEN_ADDITION_PATTERNS = [
+  "admin123",
+  "admin/admin",
+  "vendedor123",
+  "seed:admin",
+  "seed-admin",
+  "reset-admin-password",
+];
+
+// Padrões proibidos em linhas ADICIONADAS de seed-massa-teste.ts (lockdown não pode reintroduzir lógica insegura)
+const P23_R09S_SEED_MASSA_FORBIDDEN_PATTERNS = [
+  "DEFAULT_TENANT_ID",
+  "getAllVendedores",
+  "tenantId ?? 1",
+  "tenantId || 1",
+  "tenantId = 1",
+  "tenantId: 1",
+  "vendedorId ?? 1",
+  "vendedorId || 1",
+  "vendedorId = 1",
+  "vendedorId: 1",
+];
+
+// Padrões proibidos em linhas ADICIONADAS dos docs operacionais R09S (sem nova instrução de execução direta/legado)
+const P23_R09S_DOCS_FORBIDDEN_PATTERNS = [
+  "npx tsx",
+  "pnpm exec tsx",
+  "pnpm run seed",
+  "npm run seed",
+  "DEFAULT_TENANT_ID",
+];
+
+// Mapa de padrões específicos por arquivo R09S
+const P23_R09S_FILE_SPECIFIC_FORBIDDEN_PATTERNS = {
+  "server/scripts/seed-massa-teste.ts": P23_R09S_SEED_MASSA_FORBIDDEN_PATTERNS,
+  "docs/operations/CHECKLIST_TESTE_OPERACIONAL.md": P23_R09S_DOCS_FORBIDDEN_PATTERNS,
+  "docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md": P23_R09S_DOCS_FORBIDDEN_PATTERNS,
+};
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1808,6 +1857,78 @@ function isP23_R09RWeakCredentialCleanupAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09S para lockdown do seed-massa-teste.ts
+ * Requer variável ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=P23_R09S_SEED_MASSA_LOCKDOWN
+ * Permite somente:
+ *   - server/scripts/seed-massa-teste.ts (gate forte: falha por padrão, sem DEFAULT_TENANT_ID/getAllVendedores/ids hardcoded)
+ *   - docs/operations/CHECKLIST_TESTE_OPERACIONAL.md (corrigir/remover orientação de execução direta)
+ *   - docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md (corrigir/remover orientação de execução direta)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ * Janela fail-closed: com a variável correta definida, qualquer arquivo fora da lista é bloqueado.
+ */
+function isP23_R09SSeedMassaLockdownAuthorized(filePath) {
+  const authorizedValue = "P23_R09S_SEED_MASSA_LOCKDOWN";
+  const envValue = process.env.ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.includes(filePath)) {
+    // Guard files: não exigem checagem de diff (janela formal referencia a si mesma)
+    if (filePath === "scripts/guardrail-check.js" || filePath === "scripts/architecture-contract-guard.mjs") {
+      return {
+        authorized: true,
+        reason: "P23-R-09S-AUTH formal window: ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=" + authorizedValue + " (seed massa lockdown)"
+      };
+    }
+
+    try {
+      const diff = execSync('git diff --cached -- "' + filePath + '"').toString();
+      const lines = diff.split("\n");
+      const fileSpecificPatterns = P23_R09S_FILE_SPECIFIC_FORBIDDEN_PATTERNS[filePath] || [];
+
+      for (const line of lines) {
+        const isAdded = line.startsWith("+") && !line.startsWith("+++");
+        if (!isAdded) continue;
+
+        // Linhas adicionadas não podem conter nova credencial/seed legado/reset perigoso
+        for (const pattern of P23_R09S_FORBIDDEN_ADDITION_PATTERNS) {
+          if (line.includes(pattern)) {
+            return { authorized: false, reason: "P23-R-09S allows only seed-massa lockdown. New dangerous reference forbidden in added line: " + line };
+          }
+        }
+
+        // Regras específicas por arquivo (lógica insegura no seed / instrução de execução direta nos docs)
+        for (const pattern of fileSpecificPatterns) {
+          if (line.includes(pattern)) {
+            return { authorized: false, reason: "P23-R-09S file rule violation for " + filePath + ". Forbidden pattern '" + pattern + "' in added line: " + line };
+          }
+        }
+      }
+    } catch (error) {
+      return { authorized: false, reason: "Failed to check staged diff for " + filePath };
+    }
+
+    return {
+      authorized: true,
+      reason: "P23-R-09S-AUTH formal window: ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=" + authorizedValue + " (seed massa lockdown)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -1980,6 +2101,50 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-09S check: if seed-massa lockdown scope files or guard files are modified, require authorization variable
+  // IMPORTANTE: R09S vem antes de R09R/R09Q — reivindica seed-massa-teste.ts, docs operacionais e guards primeiro
+  const p23_r09sLockdownFilesInChanges = files.filter(f => P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.includes(f));
+
+  // Janela R09S é fail-closed: com a variável correta definida, somente arquivos da lista são permitidos
+  if (process.env.ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN === "P23_R09S_SEED_MASSA_LOCKDOWN") {
+    const p23_r09sOutsideFiles = files.filter(f => !P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.includes(f));
+    if (p23_r09sOutsideFiles.length > 0) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos fora do escopo da janela P23-R-09S:\n");
+      p23_r09sOutsideFiles.forEach(f => console.error(" - " + f));
+      console.error("\nP23-R-09S permite somente: " + P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.join(", ") + "\n");
+      process.exit(1);
+    }
+  }
+
+  if (p23_r09sLockdownFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r09sLockdownFilesInChanges) {
+      const check = isP23_R09SSeedMassaLockdownAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("BLOQUEADO — Seed massa lockdown requer ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=P23_R09S_SEED_MASSA_LOCKDOWN\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-09S, allow them
+    const nonR09SFiles = files.filter(f => !P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.includes(f));
+    if (nonR09SFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-09S detectados:");
+      p23_r09sLockdownFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-09S-AUTH formal window: ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=P23_R09S_SEED_MASSA_LOCKDOWN (seed massa lockdown)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the authorized files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonR09SFiles);
   }
 
   // P23-R-09R check: if weak-credential scope files or guard files are modified for cleanup, require authorization variable

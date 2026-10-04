@@ -501,6 +501,55 @@ const P23_R09R_SMART_AUTH_MOUNT_PATTERNS = [
   'smartAuthRouter',
 ];
 
+// Janela formal P23-R-09S - Seed massa lockdown (gate forte em seed-massa-teste.ts + correção de docs operacionais)
+const P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES = [
+  'server/scripts/seed-massa-teste.ts',
+  'docs/operations/CHECKLIST_TESTE_OPERACIONAL.md',
+  'docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md',
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
+// Padrões proibidos em linhas ADICIONADAS em TODOS os arquivos R09S não-guard (sem nova credencial/seed legado/reset perigoso)
+const P23_R09S_FORBIDDEN_ADDITION_PATTERNS = [
+  'admin123',
+  'admin/admin',
+  'vendedor123',
+  'seed:admin',
+  'seed-admin',
+  'reset-admin-password',
+];
+
+// Padrões proibidos em linhas ADICIONADAS de seed-massa-teste.ts (lockdown não pode reintroduzir lógica insegura)
+const P23_R09S_SEED_MASSA_FORBIDDEN_PATTERNS = [
+  'DEFAULT_TENANT_ID',
+  'getAllVendedores',
+  'tenantId ?? 1',
+  'tenantId || 1',
+  'tenantId = 1',
+  'tenantId: 1',
+  'vendedorId ?? 1',
+  'vendedorId || 1',
+  'vendedorId = 1',
+  'vendedorId: 1',
+];
+
+// Padrões proibidos em linhas ADICIONADAS dos docs operacionais R09S (sem nova instrução de execução direta/legado)
+const P23_R09S_DOCS_FORBIDDEN_PATTERNS = [
+  'npx tsx',
+  'pnpm exec tsx',
+  'pnpm run seed',
+  'npm run seed',
+  'DEFAULT_TENANT_ID',
+];
+
+// Mapa de padrões específicos por arquivo R09S
+const P23_R09S_FILE_SPECIFIC_FORBIDDEN_PATTERNS = {
+  'server/scripts/seed-massa-teste.ts': P23_R09S_SEED_MASSA_FORBIDDEN_PATTERNS,
+  'docs/operations/CHECKLIST_TESTE_OPERACIONAL.md': P23_R09S_DOCS_FORBIDDEN_PATTERNS,
+  'docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md': P23_R09S_DOCS_FORBIDDEN_PATTERNS,
+};
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1838,6 +1887,79 @@ function isP23_R09RWeakCredentialCleanupAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09S para lockdown do seed-massa-teste.ts
+ * Requer variável ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=P23_R09S_SEED_MASSA_LOCKDOWN
+ * Permite somente:
+ *   - server/scripts/seed-massa-teste.ts (gate forte: falha por padrão, sem DEFAULT_TENANT_ID/getAllVendedores/ids hardcoded)
+ *   - docs/operations/CHECKLIST_TESTE_OPERACIONAL.md (corrigir/remover orientação de execução direta)
+ *   - docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md (corrigir/remover orientação de execução direta)
+ *   - scripts/guardrail-check.js (janela formal)
+ *   - scripts/architecture-contract-guard.mjs (janela formal)
+ * Janela fail-closed: com a variável correta definida, qualquer arquivo fora da lista é bloqueado.
+ */
+function isP23_R09SSeedMassaLockdownAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P23_R09S_SEED_MASSA_LOCKDOWN';
+  const envValue = process.env.ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.includes(relativePath)) {
+    // Guard files: não exigem checagem de diff (janela formal referencia a si mesma)
+    if (relativePath === 'scripts/guardrail-check.js' || relativePath === 'scripts/architecture-contract-guard.mjs') {
+      return {
+        authorized: true,
+        reason: 'P23-R-09S-AUTH formal window: ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=' + authorizedValue + ' (seed massa lockdown)'
+      };
+    }
+
+    try {
+      const diff = execSync('git diff --cached -- "' + relativePath + '"').toString();
+      const lines = diff.split('\n');
+      const fileSpecificPatterns = P23_R09S_FILE_SPECIFIC_FORBIDDEN_PATTERNS[relativePath] || [];
+
+      for (const line of lines) {
+        const isAdded = line.startsWith('+') && !line.startsWith('+++');
+        if (!isAdded) continue;
+
+        // Linhas adicionadas não podem conter nova credencial/seed legado/reset perigoso
+        for (const pattern of P23_R09S_FORBIDDEN_ADDITION_PATTERNS) {
+          if (line.includes(pattern)) {
+            return { authorized: false, reason: 'P23-R-09S allows only seed-massa lockdown. New dangerous reference forbidden in added line: ' + line };
+          }
+        }
+
+        // Regras específicas por arquivo (lógica insegura no seed / instrução de execução direta nos docs)
+        for (const pattern of fileSpecificPatterns) {
+          if (line.includes(pattern)) {
+            return { authorized: false, reason: 'P23-R-09S file rule violation for ' + relativePath + ". Forbidden pattern '" + pattern + "' in added line: " + line };
+          }
+        }
+      }
+    } catch (error) {
+      return { authorized: false, reason: 'Failed to check staged diff for ' + relativePath };
+    }
+
+    return {
+      authorized: true,
+      reason: 'P23-R-09S-AUTH formal window: ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN=' + authorizedValue + ' (seed massa lockdown)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -2051,6 +2173,25 @@ function isFrozen(file) {
   // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
   if (relativePath === 'server/scripts/seed-admin.ts') {
     return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
+  }
+
+  // Verifica janela formal P23-R-09S-AUTH (seed massa lockdown)
+  // IMPORTANTE: R09S vem antes de R09R/R09Q — reivindica seed-massa-teste.ts, docs operacionais e guards primeiro
+  const p23_r09sLockdownCheck = isP23_R09SSeedMassaLockdownAuthorized(file);
+  if (p23_r09sLockdownCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09s_seed_massa_lockdown: p23_r09sLockdownCheck.reason };
+  }
+
+  // Janela R09S é fail-closed: com a variável correta definida, qualquer arquivo fora da lista é congelado
+  if (process.env.ERP_AUTHORIZED_SEED_MASSA_LOCKDOWN === 'P23_R09S_SEED_MASSA_LOCKDOWN'
+      && !P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r09s_out_of_scope: true };
+  }
+
+  // Arquivos não-guard da janela P23-R-09S requerem autorização formal para qualquer alteração
+  if (P23_R09S_SEED_MASSA_LOCKDOWN_AUTHORIZED_FILES.includes(relativePath)
+      && !relativePath.startsWith('scripts/')) {
+    return { frozen: true, pattern: relativePath, p23_r09s_required: true };
   }
 
   // Verifica janela formal P23-R-09R-AUTH (weak credential cleanup)
