@@ -594,6 +594,30 @@ const P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP_AUTHORIZED_FILES = P23_R09T_CLEANUP_
 // Único conteúdo permitido em linhas REMOVIDAS do diff de ENV_RULES.md sob R09T (dead ref do seed massa)
 const P23_R09T_ALLOWED_REMOVAL_PATTERN = "server/scripts/seed-massa-teste.ts";
 
+// Janela formal P23-R-09U - vendedores.list multi-tenant isolation fix
+// Dois valores distintos na mesma variável ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX:
+//   AUTH (P23_R09U_VENDEDORES_LIST_TENANT_AUTH) → fase AUTH: permite SOMENTE os 2 guards
+//   FIX  (P23_R09U_VENDEDORES_LIST_TENANT_FIX)  → fase FIX: permite SOMENTE service + router + teste autorizado
+const P23_R09U_VENDEDORES_LIST_TENANT_AUTH_VALUE = "P23_R09U_VENDEDORES_LIST_TENANT_AUTH";
+const P23_R09U_VENDEDORES_LIST_TENANT_FIX_VALUE = "P23_R09U_VENDEDORES_LIST_TENANT_FIX";
+
+// Fase AUTH: somente os guards podem ser alterados
+const P23_R09U_AUTH_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
+// Fase FIX: alvo do fluxo ativo — service + router + teste de isolamento autorizado
+// (guards, server/db/*, baseline, schema e package.json ficam BLOQUEADOS sob o valor FIX)
+const P23_R09U_FIX_AUTHORIZED_FILES = [
+  "server/services/users.service.ts",
+  "server/routers.ts",
+  "server/tests/vendedores-list-tenant-isolation.test.ts",
+];
+
+// União (claiming): arquivos sob tutela da janela R09U em qualquer valor
+const P23_R09U_VENDEDORES_LIST_TENANT_FIX_AUTHORIZED_FILES = P23_R09U_FIX_AUTHORIZED_FILES.concat(P23_R09U_AUTH_AUTHORIZED_FILES);
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -2028,6 +2052,50 @@ function isP23_R09TEnvRulesSeedMassaCleanupAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09U para o fix de isolamento multi-tenant do vendedores.list
+ * Variável ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX com 2 valores distintos:
+ *   =P23_R09U_VENDEDORES_LIST_TENANT_AUTH → fase AUTH: permite SOMENTE os 2 guards
+ *   =P23_R09U_VENDEDORES_LIST_TENANT_FIX  → fase FIX: permite SOMENTE users.service.ts + routers.ts + teste autorizado
+ * Guards NÃO são autorizados sob o valor FIX — escopos mutuamente exclusivos.
+ * Janela fail-closed: com qualquer valor válido definido, arquivo fora do escopo é bloqueado.
+ */
+function isP23_R09UVendedoresListTenantFixAuthorized(filePath) {
+  const envValue = process.env.ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Valor AUTH: permite SOMENTE os 2 guards (service/router/teste bloqueados na fase AUTH)
+  if (envValue === P23_R09U_VENDEDORES_LIST_TENANT_AUTH_VALUE) {
+    if (P23_R09U_AUTH_AUTHORIZED_FILES.includes(filePath)) {
+      return {
+        authorized: true,
+        reason: "P23-R-09U-AUTH formal window: ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX=" + P23_R09U_VENDEDORES_LIST_TENANT_AUTH_VALUE + " (guards only — fix targets locked)"
+      };
+    }
+    return { authorized: false };
+  }
+
+  // Valor diferente de AUTH e de FIX: bloqueia
+  if (envValue !== P23_R09U_VENDEDORES_LIST_TENANT_FIX_VALUE) {
+    return { authorized: false };
+  }
+
+  // Valor FIX: permite SOMENTE service + router + teste autorizado (guards bloqueados sob FIX)
+  if (P23_R09U_FIX_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-R-09U-FIX formal window: ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX=" + P23_R09U_VENDEDORES_LIST_TENANT_FIX_VALUE + " (vendedores.list tenant isolation fix)"
+    };
+  }
+
+  // Arquivo fora do escopo do valor ativo: bloqueia
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -2200,6 +2268,63 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-09U check: if vendedores.list fix scope files or guard files are modified, require authorization variable
+  // IMPORTANTE: R09U vem antes de R09T/R09S/R09R/R09Q — reivindica guards e arquivos do fix primeiro
+  const p23_r09uVendedoresFilesInChanges = files.filter(f => P23_R09U_VENDEDORES_LIST_TENANT_FIX_AUTHORIZED_FILES.includes(f));
+
+  // Janela R09U é fail-closed POR VALOR:
+  //   AUTH → somente os 2 guards (qualquer outro arquivo bloqueado)
+  //   FIX  → somente service + router + teste autorizado (guards, db/core, baseline, schema, package.json bloqueados)
+  const p23_r09uEnvValue = process.env.ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX;
+  if (p23_r09uEnvValue === P23_R09U_VENDEDORES_LIST_TENANT_AUTH_VALUE) {
+    const p23_r09uOutsideFiles = files.filter(f => !P23_R09U_AUTH_AUTHORIZED_FILES.includes(f));
+    if (p23_r09uOutsideFiles.length > 0) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos fora do escopo da janela P23-R-09U AUTH:\n");
+      p23_r09uOutsideFiles.forEach(f => console.error(" - " + f));
+      console.error("\nP23-R-09U AUTH permite somente: " + P23_R09U_AUTH_AUTHORIZED_FILES.join(", ") + "\n");
+      process.exit(1);
+    }
+  }
+  if (p23_r09uEnvValue === P23_R09U_VENDEDORES_LIST_TENANT_FIX_VALUE) {
+    const p23_r09uOutsideFiles = files.filter(f => !P23_R09U_FIX_AUTHORIZED_FILES.includes(f));
+    if (p23_r09uOutsideFiles.length > 0) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos fora do escopo da janela P23-R-09U FIX:\n");
+      p23_r09uOutsideFiles.forEach(f => console.error(" - " + f));
+      console.error("\nP23-R-09U FIX permite somente: " + P23_R09U_FIX_AUTHORIZED_FILES.join(", ") + "\n");
+      process.exit(1);
+    }
+  }
+
+  if (p23_r09uVendedoresFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r09uVendedoresFilesInChanges) {
+      const check = isP23_R09UVendedoresListTenantFixAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("BLOQUEADO — vendedores.list tenant fix requer ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX=P23_R09U_VENDEDORES_LIST_TENANT_FIX\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-09U, allow them
+    const nonR09UFiles = files.filter(f => !P23_R09U_VENDEDORES_LIST_TENANT_FIX_AUTHORIZED_FILES.includes(f));
+    if (nonR09UFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-09U detectados:");
+      p23_r09uVendedoresFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-09U formal window: ERP_AUTHORIZED_VENDEDORES_LIST_TENANT_FIX=" + p23_r09uEnvValue + " (vendedores.list tenant isolation fix)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the authorized files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonR09UFiles);
   }
 
   // P23-R-09T check: if ENV_RULES.md or guard files are modified, require authorization variable
