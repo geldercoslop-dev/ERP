@@ -490,8 +490,10 @@ export const appRouter = router({
 
   // ===== VENDEDORES =====
   vendedores: router({
-    list: adminProcedure.query(async () => {
-      return await usersService.getAllVendedores();
+    list: adminProcedure.query(async ({ ctx }) => {
+      const tenantId = ctx.user.tenantId ?? ctx.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Tenant inválido" });
+      return await usersService.getAllVendedores(tenantId);
     }),
     create: adminProcedure
       .input(z.object({

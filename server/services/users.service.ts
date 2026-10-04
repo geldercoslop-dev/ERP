@@ -446,12 +446,14 @@ export async function getVendedorByUserId(userId: number): Promise<Vendedor | nu
 }
 
 /**
- * Lista todos os vendedores (admin)
+ * Lista todos os vendedores do tenant (admin)
+ * P23-R-09U: isolamento multi-tenant — tenantId obrigatório, sem fallback
  */
-export async function getAllVendedores(): Promise<Vendedor[]> {
+export async function getAllVendedores(tenantId: number): Promise<Vendedor[]> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  return await dbConn.select().from(vendedores).orderBy(asc(vendedores.nome));
+  return await dbConn.select().from(vendedores).where(eq(vendedores.tenantId, tenantId)).orderBy(asc(vendedores.nome));
 }
 
 /**
