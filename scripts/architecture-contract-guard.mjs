@@ -550,6 +550,30 @@ const P23_R09S_FILE_SPECIFIC_FORBIDDEN_PATTERNS = {
   'docs/operations/PLANO_TESTE_OPERACIONAL_EMPRESA.md': P23_R09S_DOCS_FORBIDDEN_PATTERNS,
 };
 
+// Janela formal P23-R-09T - ENV_RULES seed-massa dead ref cleanup
+// Dois valores distintos na mesma variável ERP_AUTHORIZED_ENV_RULES_SEED_MASSA_CLEANUP:
+//   AUTH  (P23_R09T_ENV_RULES_SEED_MASSA_AUTH)    → fase AUTH: permite SOMENTE os 2 guards
+//   CLEAN (P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP) → fase CLEAN: permite SOMENTE ENV_RULES.md
+const P23_R09T_ENV_RULES_SEED_MASSA_AUTH_VALUE = 'P23_R09T_ENV_RULES_SEED_MASSA_AUTH';
+const P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP_VALUE = 'P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP';
+
+// Fase AUTH: somente os guards podem ser alterados
+const P23_R09T_AUTH_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
+// Fase CLEAN: alvo único — ENV_RULES.md (guards ficam BLOQUEADOS sob o valor CLEAN)
+const P23_R09T_CLEANUP_AUTHORIZED_FILES = [
+  'server/_core/env/ENV_RULES.md',
+];
+
+// União (claiming): arquivos sob tutela da janela R09T em qualquer valor
+const P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP_AUTHORIZED_FILES = P23_R09T_CLEANUP_AUTHORIZED_FILES.concat(P23_R09T_AUTH_AUTHORIZED_FILES);
+
+// Único conteúdo permitido em linhas REMOVIDAS do diff de ENV_RULES.md sob R09T (dead ref do seed massa)
+const P23_R09T_ALLOWED_REMOVAL_PATTERN = 'server/scripts/seed-massa-teste.ts';
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -1960,6 +1984,82 @@ function isP23_R09SSeedMassaLockdownAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09T para cleanup da dead ref em ENV_RULES.md
+ * Variável ERP_AUTHORIZED_ENV_RULES_SEED_MASSA_CLEANUP com 2 valores distintos:
+ *   =P23_R09T_ENV_RULES_SEED_MASSA_AUTH    → fase AUTH: permite SOMENTE os 2 guards
+ *   =P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP → fase CLEAN: permite SOMENTE ENV_RULES.md
+ *     (gate forte: zero adições; EXATAMENTE 1 remoção contendo a referência a seed-massa-teste.ts)
+ * Guards NÃO são autorizados sob o valor CLEAN — a janela CLEAN é de alvo único.
+ * Janela fail-closed: com qualquer valor válido definido, arquivo fora do escopo é bloqueado.
+ */
+function isP23_R09TEnvRulesSeedMassaCleanupAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const envValue = process.env.ERP_AUTHORIZED_ENV_RULES_SEED_MASSA_CLEANUP;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Valor AUTH: permite SOMENTE os 2 guards (ENV_RULES.md permanece bloqueado na fase AUTH)
+  if (envValue === P23_R09T_ENV_RULES_SEED_MASSA_AUTH_VALUE) {
+    if (P23_R09T_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+      return {
+        authorized: true,
+        reason: 'P23-R-09T-AUTH formal window: ERP_AUTHORIZED_ENV_RULES_SEED_MASSA_CLEANUP=' + P23_R09T_ENV_RULES_SEED_MASSA_AUTH_VALUE + ' (guards only — ENV_RULES.md locked)'
+      };
+    }
+    return { authorized: false };
+  }
+
+  // Valor diferente de AUTH e de CLEAN: bloqueia
+  if (envValue !== P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP_VALUE) {
+    return { authorized: false };
+  }
+
+  // Valor CLEAN: permite SOMENTE ENV_RULES.md (guards ficam bloqueados sob o valor CLEAN)
+  if (P23_R09T_CLEANUP_AUTHORIZED_FILES.includes(relativePath)) {
+    try {
+      const diff = execSync('git diff --cached -- "' + relativePath + '"').toString();
+      const lines = diff.split('\n');
+      let deadRefRemovals = 0;
+
+      for (const line of lines) {
+        const isAdded = line.startsWith('+') && !line.startsWith('+++');
+        const isRemoved = line.startsWith('-') && !line.startsWith('---');
+
+        // R09T: nenhuma linha adicionada é permitida em ENV_RULES.md
+        if (isAdded) {
+          return { authorized: false, reason: 'P23-R-09T permite somente remoção da dead ref em ENV_RULES.md. Linha adicionada proibida: ' + line };
+        }
+
+        if (isRemoved) {
+          // Única remoção permitida: a linha que referencia server/scripts/seed-massa-teste.ts
+          if (!line.includes(P23_R09T_ALLOWED_REMOVAL_PATTERN)) {
+            return { authorized: false, reason: 'P23-R-09T permite remover somente a referência a ' + P23_R09T_ALLOWED_REMOVAL_PATTERN + ' em ENV_RULES.md. Remoção proibida: ' + line };
+          }
+          deadRefRemovals++;
+        }
+      }
+
+      if (deadRefRemovals !== 1) {
+        return { authorized: false, reason: 'P23-R-09T exige exatamente 1 remoção da referência a ' + P23_R09T_ALLOWED_REMOVAL_PATTERN + ' em ENV_RULES.md. Remoções da dead ref detectadas: ' + deadRefRemovals };
+      }
+    } catch (error) {
+      return { authorized: false, reason: 'Failed to check staged diff for ' + relativePath };
+    }
+
+    return {
+      authorized: true,
+      reason: 'P23-R-09T-CLEAN formal window: ERP_AUTHORIZED_ENV_RULES_SEED_MASSA_CLEANUP=' + P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP_VALUE + ' (ENV_RULES seed-massa dead ref cleanup)'
+    };
+  }
+
+  // Arquivo fora do escopo do valor ativo (inclui guards sob CLEAN e ENV_RULES sob AUTH): bloqueia
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -2173,6 +2273,31 @@ function isFrozen(file) {
   // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
   if (relativePath === 'server/scripts/seed-admin.ts') {
     return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
+  }
+
+  // Verifica janela formal P23-R-09T-AUTH (ENV_RULES seed-massa dead ref cleanup)
+  // IMPORTANTE: R09T vem antes de R09S/R09R/R09Q — reivindica ENV_RULES.md e guards primeiro
+  const p23_r09tEnvRulesCheck = isP23_R09TEnvRulesSeedMassaCleanupAuthorized(file);
+  if (p23_r09tEnvRulesCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09t_env_rules_seed_massa_cleanup: p23_r09tEnvRulesCheck.reason };
+  }
+
+  // Janela R09T é fail-closed POR VALOR:
+  //   AUTH  → somente os 2 guards (ENV_RULES.md e qualquer outro arquivo congelados)
+  //   CLEAN → somente ENV_RULES.md (guards e qualquer outro arquivo congelados)
+  if (process.env.ERP_AUTHORIZED_ENV_RULES_SEED_MASSA_CLEANUP === P23_R09T_ENV_RULES_SEED_MASSA_AUTH_VALUE
+      && !P23_R09T_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r09t_out_of_scope: true };
+  }
+  if (process.env.ERP_AUTHORIZED_ENV_RULES_SEED_MASSA_CLEANUP === P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP_VALUE
+      && !P23_R09T_CLEANUP_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r09t_out_of_scope: true };
+  }
+
+  // Arquivos não-guard da janela P23-R-09T requerem autorização formal para qualquer alteração
+  if (P23_R09T_ENV_RULES_SEED_MASSA_CLEANUP_AUTHORIZED_FILES.includes(relativePath)
+      && !relativePath.startsWith('scripts/')) {
+    return { frozen: true, pattern: relativePath, p23_r09t_required: true };
   }
 
   // Verifica janela formal P23-R-09S-AUTH (seed massa lockdown)
