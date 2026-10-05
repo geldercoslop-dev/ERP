@@ -650,8 +650,9 @@ export const appRouter = router({
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "bcrypt indisponível (obrigatório)" });
           }
         }
-        const out = await usersService.updateVendedor(id, data);
+        // P23-R-09W: resolver tenant ANTES da mutação — escopo obrigatório
         const tenantId = await requireTenant(ctx);
+        const out = await usersService.updateVendedor(tenantId, id, data);
         await logAuditAction(
           "update",
           "vendedor",
@@ -668,8 +669,9 @@ export const appRouter = router({
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        const out = await usersService.deleteVendedor(input.id);
+        // P23-R-09W: resolver tenant ANTES da deleção — escopo obrigatório
         const tenantId = await requireTenant(ctx);
+        const out = await usersService.deleteVendedor(tenantId, input.id);
         await logAuditAction(
           "delete",
           "vendedor",
@@ -691,17 +693,18 @@ export const appRouter = router({
         password: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const vendedor = await usersService.getVendedorById(input.vendedorId);
-        if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
+        // P23-R-09W: tenant ANTES de qualquer lookup/mutação — escopo obrigatório
         const tenantId = await requireTenant(ctx);
+        const vendedor = await usersService.getVendedorById(input.vendedorId, tenantId);
+        if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
         const user = await usersService.findOrCreateUserByOpenId(tenantId, input.openId.trim().toLowerCase(), vendedor.nome);
         if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao criar/buscar usuário" });
-        await usersService.updateVendedor(input.vendedorId, { userId: user.id });
+        await usersService.updateVendedor(tenantId, input.vendedorId, { userId: user.id });
         if (input.password != null && input.password !== "") {
           const bcrypt = await getBcrypt();
           if (!bcrypt) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "bcrypt indisponível (obrigatório)" });
           const hashed = await bcrypt.hash(input.password, 10);
-          await usersService.updateVendedorSenha(input.vendedorId, hashed);
+          await usersService.updateVendedorSenha(tenantId, input.vendedorId, hashed);
         }
         await logAuditAction(
           "update",

@@ -480,29 +480,35 @@ export async function createVendedor(data: InsertVendedor): Promise<{ id: number
 
 /**
  * Atualiza vendedor por id
+ * P23-R-09W: isolamento multi-tenant — tenantId obrigatório, sem fallback
  */
-export async function updateVendedor(id: number, patch: Partial<InsertVendedor>): Promise<void> {
+export async function updateVendedor(tenantId: number, id: number, patch: Partial<InsertVendedor>): Promise<void> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  await dbConn.update(vendedores).set(patch).where(eq(vendedores.id, id));
+  await dbConn.update(vendedores).set(patch).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, id)));
 }
 
 /**
  * Deleta vendedor por id
+ * P23-R-09W: isolamento multi-tenant — tenantId obrigatório, sem fallback
  */
-export async function deleteVendedor(id: number): Promise<void> {
+export async function deleteVendedor(tenantId: number, id: number): Promise<void> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  await dbConn.delete(vendedores).where(eq(vendedores.id, id));
+  await dbConn.delete(vendedores).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, id)));
 }
 
 /**
  * Atualiza senha do vendedor (hash bcrypt)
+ * P23-R-09W: isolamento multi-tenant — tenantId obrigatório, sem fallback
  */
-export async function updateVendedorSenha(vendedorId: number, hashedPassword: string): Promise<void> {
+export async function updateVendedorSenha(tenantId: number, vendedorId: number, hashedPassword: string): Promise<void> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  await dbConn.update(vendedores).set({ senha: hashedPassword }).where(eq(vendedores.id, vendedorId));
+  await dbConn.update(vendedores).set({ senha: hashedPassword }).where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, vendedorId)));
 }
 
 /**
