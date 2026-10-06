@@ -67,6 +67,7 @@ export {
 } from "../../drizzle/schema.js";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { assertServiceEntryIfEnabled } from "../_core/service-entry-guard.js";
+import { assertTenantId } from "../_core/errors/assertions.js";
 
 export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -295,14 +296,18 @@ export async function getAllVendedores(): Promise<Vendedor[]> {
   return await database.select().from(vendedores).orderBy(asc(vendedores.nome));
 }
 
-/** Busca vendedor por nome (exact, case-insensitive via LOWER). */
-export async function getVendedorByNome(nome: string): Promise<Vendedor | null> {
+/**
+ * Busca vendedor por nome dentro do tenant (exact, case-insensitive via LOWER).
+ * P23-R-09Y: tenantId obrigatório — sem fallback global; homônimo de outro tenant nunca é retornado.
+ */
+export async function getVendedorByNome(tenantId: number, nome: string): Promise<Vendedor | null> {
+  assertTenantId(tenantId);
   const database = await getDb();
   const term = nome.trim().toLowerCase();
   const row = await database
     .select()
     .from(vendedores)
-    .where(sql`LOWER(${vendedores.nome}) = ${term}`)
+    .where(and(eq(vendedores.tenantId, tenantId), sql`LOWER(${vendedores.nome}) = ${term}`))
     .limit(1);
   return row[0] ?? null;
 }

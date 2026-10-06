@@ -514,8 +514,12 @@ export const appRouter = router({
             admin: input.admin
           });
           
-          // Verificar se já existe um vendedor com o mesmo nome
-          const existingVendedor = await usersService.getVendedorByNome(input.nome);
+          // P23-R-09Y: resolver tenant ANTES da verificação de duplicidade
+          const tenantId = await requireTenant(ctx);
+
+          // Verificar se já existe um vendedor com o mesmo nome NO MESMO TENANT
+          // (homônimo em outro tenant NÃO gera CONFLICT)
+          const existingVendedor = await usersService.getVendedorByNome(tenantId, input.nome);
           if (existingVendedor) {
             console.error(`[vendedores.create] Já existe um vendedor com o nome: ${input.nome}`);
             throw new TRPCError({
@@ -547,7 +551,7 @@ export const appRouter = router({
           const email = (input.email != null && typeof input.email === "string") ? input.email.trim() || null : null;
           const cidade = (input.cidade != null && typeof input.cidade === "string") ? input.cidade.trim() || null : null;
 
-          const tenantId = await requireTenant(ctx);
+          // tenantId já resolvido acima (antes da verificação de duplicidade)
           const now = new Date();
           
           // Create user first
@@ -603,6 +607,8 @@ export const appRouter = router({
         }
         return result;
         } catch (e) {
+          // P23-R-09Y: TRPCError (ex.: CONFLICT de duplicidade no mesmo tenant) propaga sem rewrap
+          if (e instanceof TRPCError) throw e;
           const err = e as Error & { code?: string; errno?: number; sqlMessage?: string };
           const msg = err?.message ?? "Erro ao criar vendedor";
           const dbCode = err?.code ?? "";

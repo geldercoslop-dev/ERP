@@ -498,12 +498,13 @@ export function isHighRiskAction(action: string, entity: string): boolean {
  * Verifica se um usuário tem permissão para executar uma ação (legado)
  */
 export async function checkLeoPermission(
+  tenantId: number,
   usuario: string,
   tipoAcao: string,
   entidade: string
 ): Promise<boolean> {
   try {
-    const permissao = await getUserPermission(usuario);
+    const permissao = await getUserPermission(tenantId, usuario);
     
     if (!permissao) {
       console.warn(`[LeoPermissions] Usuário não encontrado: ${usuario}`);
@@ -545,9 +546,9 @@ export async function checkLeoPermission(
 /**
  * Obtém o nível de permissão de um usuário
  */
-async function getUserPermission(usuario: string): Promise<LeoPermission | null> {
+async function getUserPermission(tenantId: number, usuario: string): Promise<LeoPermission | null> {
   try {
-    const v = await usersTool.getVendedorByNome({ nome: usuario });
+    const v = await usersTool.getVendedorByNome({ tenantId, nome: usuario });
     if (v) {
       return {
         usuario: v.nome,
@@ -556,7 +557,7 @@ async function getUserPermission(usuario: string): Promise<LeoPermission | null>
       };
     }
 
-    const u = await usersTool.getUserByDisplayName({ displayName: usuario });
+    const u = await usersTool.getUserByDisplayName({ tenantId, displayName: usuario });
     if (u) {
       return {
         usuario: u.name ?? usuario,
@@ -565,11 +566,9 @@ async function getUserPermission(usuario: string): Promise<LeoPermission | null>
       };
     }
 
-    return {
-      usuario,
-      nivel: 'consulta',
-      permissoes: getPermissoesPorNivel('consulta'),
-    };
+    // P23-R-09Y default deny: identidade inexistente no tenant não recebe
+    // nenhum nível — null propaga para checkLeoPermission → false.
+    return null;
   } catch (error) {
     console.error('[LeoPermissions] Erro ao buscar permissão do usuário:', error);
     return null;
@@ -682,13 +681,14 @@ export function getNivelMinimoParaAcao(tipoAcao: string, entidade: string): Perm
  * Promove um usuário para um nível superior (apenas admins podem fazer isso)
  */
 export async function promoverUsuario(
+  tenantId: number,
   solicitante: string,
   usuarioAlvo: string,
   novoNivel: PermissionLevel
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Verificar se solicitante é admin
-    const permissaoSolicitante = await getUserPermission(solicitante);
+    const permissaoSolicitante = await getUserPermission(tenantId, solicitante);
     if (!permissaoSolicitante || permissaoSolicitante.nivel !== 'admin') {
       return {
         success: false,

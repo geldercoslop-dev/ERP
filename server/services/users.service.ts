@@ -1,5 +1,5 @@
 import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
-import { getDb, getInsertId, normalizeNomeSobrenome } from "../db/index.js";
+import { getDb, getInsertId, normalizeNomeSobrenome, getVendedorByNome as getVendedorByNomeCore } from "../db/index.js";
 import type { NewUser as InsertUser, NewVendedor as InsertVendedor, Database } from "../db/index.js";
 import type { User, Vendedor } from "../db/index.js";
 import { users, vendedores } from "../../drizzle/schema.js";
@@ -423,16 +423,29 @@ export async function removeVendedor(tenantId: number, id: number): Promise<{ su
   return { success: true, message: "Vendedor removido com sucesso" };
 }
 
-export { getVendedorByNome } from "../db/core.js";
+/**
+ * Busca vendedor por nome dentro do tenant.
+ * P23-R-09Y: assinatura tenant-first delegando ao core — sem overload global,
+ * sem re-export da assinatura antiga.
+ */
+export async function getVendedorByNome(tenantId: number, nome: string): Promise<Vendedor | null> {
+  assertTenantId(tenantId);
+  return getVendedorByNomeCore(tenantId, nome);
+}
 
-export async function getUserByDisplayName(displayName: string): Promise<User | null> {
+/**
+ * Busca usuário por displayName (users.name, case-insensitive via LOWER) dentro do tenant.
+ * P23-R-09Y: tenantId obrigatório — sem fallback global; homônimo de outro tenant nunca é retornado.
+ */
+export async function getUserByDisplayName(tenantId: number, displayName: string): Promise<User | null> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
   const term = displayName.trim().toLowerCase();
   const result = await dbConn
     .select()
     .from(users)
-    .where(sql`LOWER(${users.name}) = ${term}`)
+    .where(and(eq(users.tenantId, tenantId), sql`LOWER(${users.name}) = ${term}`))
     .limit(1);
   return result[0] ?? null;
 }
