@@ -286,12 +286,14 @@ export async function upsertVendedor(tenantId: number, vendedor: InsertVendedor)
 /**
  * Busca vendedor pelo ID
  */
-export async function getVendedorById(id: number, tenantId?: number): Promise<Vendedor | null> {
+export async function getVendedorById(id: number, tenantId: number): Promise<Vendedor | null> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  
-  const conditions = tenantId ? [eq(vendedores.tenantId, tenantId), eq(vendedores.id, id)] : [eq(vendedores.id, id)];
-  const result = await dbConn.select().from(vendedores).where(and(...conditions)).limit(1);
+
+  const result = await dbConn.select().from(vendedores)
+    .where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, id)))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 

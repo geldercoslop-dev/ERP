@@ -43,7 +43,7 @@ export async function resolveOwnerUserId(ctx: Pick<TrpcContext, "user" | "vended
   if (!tenantId || tenantId <= 0) {
     throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto." });
   }
-  const vByPk = await getVendedorById(ctx.user.id);
+  const vByPk = await getVendedorById(ctx.user.id, tenantId);
   if (vByPk?.userId != null && vByPk.userId > 0) {
     return vByPk.userId;
   }

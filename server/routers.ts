@@ -396,7 +396,10 @@ export const appRouter = router({
     impersonateVendedor: adminProcedure
       .input(z.object({ vendedorId: z.number().int().positive() }))
       .mutation(async ({ input, ctx }) => {
-        const vendedor = await usersService.getVendedorById(input.vendedorId);
+        // P23-R-09X: tenant do contexto autenticado ANTES do lookup — vendedor deve existir no tenant do admin
+        const tenantId = ctx.user.tenantId ?? ctx.tenantId ?? 0;
+        if (!tenantId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Tenant inválido para impersonation" });
+        const vendedor = await usersService.getVendedorById(input.vendedorId, tenantId);
         if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
         const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
         const currentToken = typeof ctx.req.headers.cookie === "string"
@@ -406,8 +409,6 @@ export const appRouter = router({
           const adminOpts = { ...getSessionCookieOptions(ctx.req), maxAge: ADMIN_SESSION_MAX_AGE_MS, path: "/" };
           ctx.res.cookie(ADMIN_SESSION_COOKIE, currentToken, adminOpts);
         }
-        const tenantId = ctx.user.tenantId ?? ctx.tenantId ?? 0;
-        if (!tenantId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Tenant inválido para impersonation" });
         const sessionValue = `v:${tenantId}:${vendedor.id}`;
         ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
         ctx.res.cookie("session", sessionValue, cookieOptions);
@@ -579,7 +580,7 @@ export const appRouter = router({
           
           // Verificar se o vendedor foi realmente criado
           if (result.id) {
-            const createdVendedor = await usersService.getVendedorById(result.id);
+            const createdVendedor = await usersService.getVendedorById(result.id, tenantId);
             console.log("[vendedores.create] Verificação pós-criação:", createdVendedor ? {
               id: createdVendedor.id,
               nome: createdVendedor.nome,
@@ -1732,7 +1733,9 @@ export const appRouter = router({
               const isAdmin = ctx.user?.role === "admin";
               let vendedor: Vendedor | null = ctx.vendedor ?? null;
               if (!vendedor && isAdmin && input.vendedorId) {
-                vendedor = await usersService.getVendedorById(input.vendedorId);
+                // P23-R-09X: autoridade do tenant vem do contexto autenticado — nunca de vendedor.tenantId
+                const tenantId = await requireTenant(ctx);
+                vendedor = await usersService.getVendedorById(input.vendedorId, tenantId);
               }
               if (!vendedor && !isAdmin) {
                 vendedor = await getVendedorFromContext(ctx);

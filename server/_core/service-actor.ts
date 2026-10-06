@@ -43,7 +43,7 @@ export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vende
   const v =
     ctx.vendedor ??
     (await getVendedorByUserId(ctx.user.id)) ??
-    (await getVendedorById(ctx.user.id));
+    (await getVendedorById(ctx.user.id, tenantId));
   if (!v) {
     throw new InfrastructureError("Não foi possível resolver o vendedor para este usuário");
   }
