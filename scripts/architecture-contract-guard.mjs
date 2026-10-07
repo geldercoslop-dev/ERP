@@ -731,6 +731,8 @@ const P23_R10B_AUTH_AUTHORIZED_FILES = [
 // Fase FIX: alvo do fluxo de sessão JWT — router + jwt-auth + context + smart-auth + client auth + teste autorizado
 // (guards, session.service.ts, jwt-hardening.ts, jwt-auth-middleware.ts, sdk.ts, oauth.ts, service-actor.ts,
 //  tenant-ownership.ts, server/db/**, users.service.ts, schema, migrations, baseline e package.json ficam BLOQUEADOS sob o valor FIX)
+// P23-R-10B-AUTH2: extensão mínima — AppShell.tsx (caller vivo de impersonateVendedor)
+// e teste R09Z congelado (L1/L4/L6/L7 precisam de expectativa JWT).
 const P23_R10B_FIX_AUTHORIZED_FILES = [
   'server/routers.ts',
   'server/security/jwt-auth.ts',
@@ -739,6 +741,8 @@ const P23_R10B_FIX_AUTHORIZED_FILES = [
   'client/src/store/authStore.ts',
   'client/src/services/auth.service.ts',
   'server/tests/jwt-session-auth-flow.test.ts',
+  'client/src/components/layout/AppShell.tsx',
+  'server/tests/vendedor-by-user-id-tenant-isolation.test.ts',
 ];
 
 // União (claiming): arquivos sob tutela da janela R10B em qualquer valor
