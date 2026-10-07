@@ -679,6 +679,37 @@ const P23_R09Y_FIX_AUTHORIZED_FILES = [
 // União (claiming): arquivos sob tutela da janela R09Y em qualquer valor
 const P23_R09Y_NAME_PERMISSION_TENANT_HARDENING_AUTHORIZED_FILES = P23_R09Y_FIX_AUTHORIZED_FILES.concat(P23_R09Y_AUTH_AUTHORIZED_FILES);
 
+// Janela formal P23-R-09Z - hardening de vendedor por userId + cadeia de login/identidade
+// Dois valores distintos na mesma variável ERP_AUTHORIZED_VENDEDOR_USER_TENANT_HARDENING:
+//   AUTH (P23_R09Z_VENDEDOR_USER_TENANT_AUTH) → fase AUTH: permite SOMENTE os 2 guards
+//   FIX  (P23_R09Z_VENDEDOR_USER_TENANT_FIX)  → fase FIX: permite SOMENTE service + router + service-actor + tenant-ownership + core-bootstrap + db/core + db/index + teste autorizado
+// FORA DO ESCOPO R09Z: financeiro.router.ts, server/tools/**, server/leo/**, drizzle/schema.ts, drizzle/migrations/**,
+//   package.json, frontend/**, tenant-validation.service.ts, check-tenant-baseline.json
+const P23_R09Z_VENDEDOR_USER_TENANT_AUTH_VALUE = 'P23_R09Z_VENDEDOR_USER_TENANT_AUTH';
+const P23_R09Z_VENDEDOR_USER_TENANT_FIX_VALUE = 'P23_R09Z_VENDEDOR_USER_TENANT_FIX';
+
+// Fase AUTH: somente os guards podem ser alterados
+const P23_R09Z_AUTH_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
+// Fase FIX: alvo da cadeia de vendedor por userId — service + router + service-actor + tenant-ownership + core-bootstrap + db/core + db/index + teste autorizado
+// (guards, financeiro.router.ts, tools/**, leo/**, schema, migrations, package.json, frontend/**, tenant-validation.service.ts e baseline ficam BLOQUEADOS sob o valor FIX)
+const P23_R09Z_FIX_AUTHORIZED_FILES = [
+  'server/services/users.service.ts',
+  'server/routers.ts',
+  'server/_core/service-actor.ts',
+  'server/_core/tenant-ownership.ts',
+  'server/services/core-bootstrap.service.ts',
+  'server/db/core.ts',
+  'server/db/index.ts',
+  'server/tests/vendedor-by-user-id-tenant-isolation.test.ts',
+];
+
+// União (claiming): arquivos sob tutela da janela R09Z em qualquer valor
+const P23_R09Z_VENDEDOR_USER_TENANT_HARDENING_AUTHORIZED_FILES = P23_R09Z_FIX_AUTHORIZED_FILES.concat(P23_R09Z_AUTH_AUTHORIZED_FILES);
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -2345,6 +2376,51 @@ function isP23_R09YNamePermissionTenantHardeningAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-09Z para o hardening de vendedor por userId + cadeia de login/identidade
+ * Variável ERP_AUTHORIZED_VENDEDOR_USER_TENANT_HARDENING com 2 valores distintos:
+ *   =P23_R09Z_VENDEDOR_USER_TENANT_AUTH → fase AUTH: permite SOMENTE os 2 guards
+ *   =P23_R09Z_VENDEDOR_USER_TENANT_FIX  → fase FIX: permite SOMENTE service + router + service-actor + tenant-ownership + core-bootstrap + db/core + db/index + teste autorizado
+ * Guards NÃO são autorizados sob o valor FIX — escopos mutuamente exclusivos.
+ * Janela fail-closed: com qualquer valor válido definido, arquivo fora do escopo é bloqueado.
+ */
+function isP23_R09ZVendedorUserTenantHardeningAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const envValue = process.env.ERP_AUTHORIZED_VENDEDOR_USER_TENANT_HARDENING;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Valor AUTH: permite SOMENTE os 2 guards (service/router/_core/db e teste bloqueados na fase AUTH)
+  if (envValue === P23_R09Z_VENDEDOR_USER_TENANT_AUTH_VALUE) {
+    if (P23_R09Z_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+      return {
+        authorized: true,
+        reason: 'P23-R-09Z-AUTH formal window: ERP_AUTHORIZED_VENDEDOR_USER_TENANT_HARDENING=' + P23_R09Z_VENDEDOR_USER_TENANT_AUTH_VALUE + ' (guards only — fix targets locked)'
+      };
+    }
+    return { authorized: false };
+  }
+
+  // Valor diferente de AUTH e de FIX: bloqueia
+  if (envValue !== P23_R09Z_VENDEDOR_USER_TENANT_FIX_VALUE) {
+    return { authorized: false };
+  }
+
+  // Valor FIX: permite SOMENTE service + router + service-actor + tenant-ownership + core-bootstrap + db/core + db/index + teste autorizado (guards bloqueados sob FIX)
+  if (P23_R09Z_FIX_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R-09Z-FIX formal window: ERP_AUTHORIZED_VENDEDOR_USER_TENANT_HARDENING=' + P23_R09Z_VENDEDOR_USER_TENANT_FIX_VALUE + ' (vendedor-by-userid/login/identity tenant hardening)'
+    };
+  }
+
+  // Arquivo fora do escopo do valor ativo: bloqueia
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -2558,6 +2634,32 @@ function isFrozen(file) {
   // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
   if (relativePath === 'server/scripts/seed-admin.ts') {
     return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
+  }
+
+  // Verifica janela formal P23-R-09Z (vendedor-by-userId/login/identity tenant hardening)
+  // IMPORTANTE: R09Z vem antes de R09Y/R09X/R09W/R09U — reivindica guards e arquivos do fix primeiro
+  // (users.service.ts, routers.ts, service-actor.ts, tenant-ownership.ts e db/core.ts estão também no claim de janelas anteriores: a janela mais nova reivindica primeiro)
+  const p23_r09zVendedorUserCheck = isP23_R09ZVendedorUserTenantHardeningAuthorized(file);
+  if (p23_r09zVendedorUserCheck.authorized) {
+    return { frozen: false, exception: true, p23_r09z_vendedor_user_tenant_hardening: p23_r09zVendedorUserCheck.reason };
+  }
+
+  // Janela R09Z é fail-closed POR VALOR:
+  //   AUTH → somente os 2 guards (qualquer outro arquivo congelado)
+  //   FIX  → somente service + router + service-actor + tenant-ownership + core-bootstrap + db/core + db/index + teste autorizado (guards e qualquer outro arquivo congelados)
+  if (process.env.ERP_AUTHORIZED_VENDEDOR_USER_TENANT_HARDENING === P23_R09Z_VENDEDOR_USER_TENANT_AUTH_VALUE
+      && !P23_R09Z_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r09z_out_of_scope: true };
+  }
+  if (process.env.ERP_AUTHORIZED_VENDEDOR_USER_TENANT_HARDENING === P23_R09Z_VENDEDOR_USER_TENANT_FIX_VALUE
+      && !P23_R09Z_FIX_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r09z_out_of_scope: true };
+  }
+
+  // Arquivos não-guard da janela P23-R-09Z requerem autorização formal para qualquer alteração
+  if (P23_R09Z_VENDEDOR_USER_TENANT_HARDENING_AUTHORIZED_FILES.includes(relativePath)
+      && !relativePath.startsWith('scripts/')) {
+    return { frozen: true, pattern: relativePath, p23_r09z_required: true };
   }
 
   // Verifica janela formal P23-R-09Y (name/permission tenant hardening)
