@@ -187,11 +187,27 @@ async function getBcrypt(): Promise<{
   }
 }
 
-/** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca por user). */
-async function getVendedorFromContext(ctx: { user: { id: number; role: string } | null; vendedor?: Vendedor | null }) {
-  if (ctx.vendedor) return ctx.vendedor;
+/** Retorna o vendedor do contexto (ctx.vendedor quando token "v:", senão busca tenant-first por user). */
+async function getVendedorFromContext(ctx: { user: { id: number; role: string; tenantId?: number | null } | null; vendedor?: Vendedor | null; tenantId?: number | null }) {
+  const tenantId = ctx.tenantId ?? ctx.user?.tenantId ?? null;
+  if (ctx.vendedor) {
+    // P23-R-09Z: ctx.vendedor só pode ser confiado dentro do tenant autoritativo — fail closed
+    if (tenantId == null || !Number.isInteger(tenantId) || tenantId <= 0) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto para validar vendedor" });
+    }
+    if (ctx.vendedor.tenantId == null) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Vendedor do contexto sem tenantId" });
+    }
+    if (ctx.vendedor.tenantId !== tenantId) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Vendedor do contexto não pertence ao tenant autenticado" });
+    }
+    return ctx.vendedor;
+  }
   if (!ctx.user || ctx.user.role === "admin") return null;
-  return (await usersService.getVendedorByUserId(ctx.user.id)) ?? null;
+  if (!tenantId || tenantId <= 0) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "tenantId ausente no contexto para resolver vendedor" });
+  }
+  return (await usersService.getVendedorByUserId(tenantId, ctx.user.id)) ?? null;
 }
 
 function mapPedidoAccessError(e: unknown): never {
@@ -344,13 +360,24 @@ export const appRouter = router({
           };
         }
 
-        const vendedor = await usersService.getVendedorByUserId(user.id);
+        // P23-R-09Z: lookup de vendedor é tenant-first — tenant autoritativo vem do user resolvido
+        const loginTenantId = user.tenantId;
+        if (!loginTenantId || loginTenantId <= 0) {
+          audit(false);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Tenant inválido para autenticação" });
+        }
+        const vendedor = await usersService.getVendedorByUserId(loginTenantId, user.id);
         if (!vendedor) {
           audit(false);
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Usuário sem vendedor vinculado. Peça ao admin para vincular.",
           });
+        }
+        // P23-R-09Z: invariante defensivo — vendedor retornado deve pertencer ao tenant do user (fail closed)
+        if (vendedor.tenantId !== loginTenantId) {
+          audit(false);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Identidade inconsistente: vendedor fora do tenant do usuário" });
         }
         if (vendedor.senha) {
           const bcrypt = await getBcrypt();

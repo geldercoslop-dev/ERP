@@ -65,7 +65,7 @@ export {
   promocoesItens,
   pendencias,
 } from "../../drizzle/schema.js";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { assertServiceEntryIfEnabled } from "../_core/service-entry-guard.js";
 import { assertTenantId } from "../_core/errors/assertions.js";
 
@@ -269,17 +269,19 @@ export async function touchLastSignedIn(userId: number): Promise<void> {
   await database.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
 
-/** Vendedor por userId (compat). */
-export async function getVendedorByUserId(userId: number): Promise<Vendedor | null> {
+/**
+ * Vendedor por userId dentro do tenant.
+ * P23-R-09Z: tenantId obrigatório — sem fallback global; caller real: ensureAdminUser.
+ * Demais lookups/mutações de vendedor passaram para users.service (tenant-safe).
+ */
+export async function getVendedorByUserId(tenantId: number, userId: number): Promise<Vendedor | null> {
+  assertTenantId(tenantId);
   const database = await getDb();
-  const row = await database.select().from(vendedores).where(eq(vendedores.userId, userId)).limit(1);
-  return row[0] ?? null;
-}
-
-/** Vendedor por id. */
-export async function getVendedorById(id: number): Promise<Vendedor | null> {
-  const database = await getDb();
-  const row = await database.select().from(vendedores).where(eq(vendedores.id, id)).limit(1);
+  const row = await database
+    .select()
+    .from(vendedores)
+    .where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.userId, userId)))
+    .limit(1);
   return row[0] ?? null;
 }
 
@@ -288,12 +290,6 @@ export async function getPedidoById(id: number): Promise<Pedido | null> {
   const database = await getDb();
   const row = await database.select().from(pedidos).where(eq(pedidos.id, id)).limit(1);
   return row[0] ?? null;
-}
-
-/** Lista todos os vendedores (admin). */
-export async function getAllVendedores(): Promise<Vendedor[]> {
-  const database = await getDb();
-  return await database.select().from(vendedores).orderBy(asc(vendedores.nome));
 }
 
 /**
@@ -318,24 +314,6 @@ export async function createVendedor(data: NewVendedor): Promise<{ id: number }>
   const result = await database.insert(vendedores).values(data);
   const dbResult = toDbResult(result);
   return { id: dbResult.insertId ?? 0 };
-}
-
-/** Atualiza vendedor por id. */
-export async function updateVendedor(id: number, patch: Partial<NewVendedor>): Promise<void> {
-  const database = await getDb();
-  await database.update(vendedores).set(patch).where(eq(vendedores.id, id));
-}
-
-/** Deleta vendedor por id. */
-export async function deleteVendedor(id: number): Promise<void> {
-  const database = await getDb();
-  await database.delete(vendedores).where(eq(vendedores.id, id));
-}
-
-/** Atualiza senha do vendedor (hash bcrypt). */
-export async function updateVendedorSenha(vendedorId: number, hashedPassword: string): Promise<void> {
-  const database = await getDb();
-  await database.update(vendedores).set({ senha: hashedPassword }).where(eq(vendedores.id, vendedorId));
 }
 
 /** Compat: cria/retorna usuário por openId e opcionalmente nome. */
@@ -370,7 +348,7 @@ export async function ensureAdminUser(tenantId: number): Promise<void> {
     const adminUser = await findOrCreateUserByOpenId(tenantId, "admin", "Administrador");
     // Promove role no users (se ainda não for)
     await upsertUser(tenantId, { ...adminUser, role: "admin", updatedAt: new Date() });
-    const existingVendedor = await getVendedorByUserId(adminUser.id);
+    const existingVendedor = await getVendedorByUserId(tenantId, adminUser.id);
     if (existingVendedor) return;
     const now = new Date().toISOString();
     await createVendedor({

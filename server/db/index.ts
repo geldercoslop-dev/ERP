@@ -15,7 +15,7 @@ export { gerarBackupCompleto } from "../services/backup.service.js";
 /** Alias para compatibilidade */
 export type { NewUser as InsertUser, NewVendedor as InsertVendedor } from "./core.js";
 
-/** Wrappers/compat para APIs antigas de db.ts (fonte única via core). */
+/** Wrappers/compat para APIs antigas do db legado (fonte única via core). */
 export {
   getUserById,
   getUserByOpenId,
@@ -23,16 +23,13 @@ export {
   upsertUser,
   touchLastSignedIn,
   getVendedorByUserId,
-  getVendedorById,
-  getAllVendedores,
   getVendedorByNome,
   createVendedor,
-  updateVendedor,
-  deleteVendedor,
-  updateVendedorSenha,
   findOrCreateUserByOpenId,
   ensureAdminUser,
 } from "./core.js";
+// P23-R-09Z: helpers globais de vendedor (getVendedorById/getAllVendedores/updateVendedor/
+// deleteVendedor/updateVendedorSenha sem tenant) foram removidos do core — usar users.service.
 
 /** Wrapper: delega para logistica.getCargaById(tenantId, id). */
 export async function getCargaById(

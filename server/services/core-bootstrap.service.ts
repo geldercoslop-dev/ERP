@@ -6,11 +6,11 @@ import bcrypt from 'bcryptjs';
 import {
   ensureAdminUser,
   findOrCreateUserByOpenId,
-  getVendedorByUserId,
   createVendedor,
-  updateVendedorSenha,
   upsertUser,
 } from '../db/index.js';
+// P23-R-09Z: vendedor por userId e senha são tenant-first — nunca global
+import { getVendedorByUserId, updateVendedorSenha } from './users.service.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
 
 /**
@@ -48,7 +48,7 @@ export async function ensureBootstrapK6User(tenantId: number = 1): Promise<void>
     updatedAt: new Date(),
   });
 
-  let vendedor = await getVendedorByUserId(user.id);
+  let vendedor = await getVendedorByUserId(tenantId, user.id);
   if (!vendedor) {
     const now = new Date();
     const created = await createVendedor({
@@ -63,14 +63,14 @@ export async function ensureBootstrapK6User(tenantId: number = 1): Promise<void>
       createdAt: now,
       updatedAt: now,
     });
-    vendedor = await getVendedorByUserId(user.id);
+    vendedor = await getVendedorByUserId(tenantId, user.id);
     if (!vendedor) {
       throw new InfrastructureError(`K6_USER_CREATE_FAILED:${created.id}`);
     }
   }
 
   const hashed = await bcrypt.hash(senha, 10);
-  await updateVendedorSenha(vendedor.id, hashed);
+  await updateVendedorSenha(tenantId, vendedor.id, hashed);
 }
 
 /**

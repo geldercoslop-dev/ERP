@@ -11,7 +11,8 @@ import { InfrastructureError } from "./errors/typed-errors.js";
 const SECURITY_PREFIX = "SECURITY:";
 
 /** Chaves que nunca podem ser definidas pelo input da tool (spoofing / injection). */
-export const FORBIDDEN_TOOL_INPUT_KEYS = new Set([
+// P23-R-09Z: literal puro — nenhuma execução (call/new) no import-time do módulo
+export const FORBIDDEN_TOOL_INPUT_KEYS: readonly string[] = [
   "tenantId",
   "tenant_id",
   "userId",
@@ -27,7 +28,7 @@ export const FORBIDDEN_TOOL_INPUT_KEYS = new Set([
   "admin_override",
   "__proto__",
   "constructor",
-]);
+] as const;
 
 export type ResolvedLeoToolIdentity = {
   tenantId: number;
@@ -58,12 +59,16 @@ function normalizePermissionUserRole(raw: string | undefined): string {
  * Garante que o tenant existe no vínculo usuário↔tenant (via linha users ou vendedores).
  * Não aceita tenantId que não seja o do registro no banco.
  */
+export type ValidateTenantOwnershipOptions = { claimedVendedorId?: number };
+
 export async function validateTenantOwnership(
   userId: number,
   claimedTenantId: number,
-  options?: { claimedVendedorId?: number }
+  options?: ValidateTenantOwnershipOptions
 ): Promise<ResolvedLeoToolIdentity> {
-  const { getUserById, getVendedorById, getVendedorByUserId } = await import("../db/core.js");
+  const { getUserById } = await import("../db/core.js");
+  // P23-R-09Z: vendedor nunca é resolvido por lookup global — sempre via service tenant-safe
+  const { getVendedorById, getVendedorByUserId } = await import("../services/users.service.js");
   if (!Number.isInteger(userId) || userId <= 0) {
     logInvalidAttempt("userId inválido", { userId, claimedTenantId });
     throw new InfrastructureError(`${SECURITY_PREFIX} userId inválido`);
@@ -87,7 +92,7 @@ export async function validateTenantOwnership(
 
     if (user.role === "admin") {
       if (options?.claimedVendedorId != null) {
-        const v = await getVendedorById(options.claimedVendedorId);
+        const v = await getVendedorById(options.claimedVendedorId, userTenantId);
         const vTenantId = v ? (v as VendedorWithTenant).tenantId : undefined;
         if (!v || vTenantId == null || vTenantId !== userTenantId) {
           logInvalidAttempt("vendedorId inconsistente para admin", {
@@ -105,7 +110,7 @@ export async function validateTenantOwnership(
       };
     }
 
-    const vByUser = await getVendedorByUserId(user.id);
+    const vByUser = await getVendedorByUserId(userTenantId, user.id);
     const vByUserTenantId = vByUser ? (vByUser as VendedorWithTenant).tenantId : undefined;
     if (vByUser && vByUserTenantId != null && vByUserTenantId === userTenantId) {
       if (options?.claimedVendedorId != null && options.claimedVendedorId !== vByUser.id) {
@@ -133,7 +138,7 @@ export async function validateTenantOwnership(
     };
   }
 
-  const vById = await getVendedorById(userId);
+  const vById = await getVendedorById(userId, claimedTenantId);
   const vByIdTenantId = vById ? (vById as VendedorWithTenant).tenantId : undefined;
   if (vById && vByIdTenantId != null && vByIdTenantId === claimedTenantId) {
     if (options?.claimedVendedorId != null && options.claimedVendedorId !== vById.id) {

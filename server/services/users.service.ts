@@ -451,12 +451,16 @@ export async function getUserByDisplayName(tenantId: number, displayName: string
 }
 
 /**
- * Busca vendedor por userId
+ * Busca vendedor por userId dentro do tenant
+ * P23-R-09Z: isolamento multi-tenant — tenantId obrigatório, sem fallback global
  */
-export async function getVendedorByUserId(userId: number): Promise<Vendedor | null> {
+export async function getVendedorByUserId(tenantId: number, userId: number): Promise<Vendedor | null> {
+  assertTenantId(tenantId);
   const dbConn = await getDb();
   assertDbConnection(dbConn);
-  const result = await dbConn.select().from(vendedores).where(eq(vendedores.userId, userId)).limit(1);
+  const result = await dbConn.select().from(vendedores)
+    .where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.userId, userId)))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 

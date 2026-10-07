@@ -40,9 +40,13 @@ export async function resolveServiceActor(ctx: Pick<TrpcContext, "user" | "vende
     throw new ValidationError("tenantId obrigatório para resolver actor de serviço");
   }
   const tenantId = ctx.tenantId;
+  // P23-R-09Z: ctx.vendedor só é confiável se pertencer ao tenant do contexto — fail closed
+  if (ctx.vendedor && ctx.vendedor.tenantId != null && ctx.vendedor.tenantId !== tenantId) {
+    throw new InfrastructureError("Vendedor do contexto não pertence ao tenant autenticado");
+  }
   const v =
     ctx.vendedor ??
-    (await getVendedorByUserId(ctx.user.id)) ??
+    (await getVendedorByUserId(tenantId, ctx.user.id)) ??
     (await getVendedorById(ctx.user.id, tenantId));
   if (!v) {
     throw new InfrastructureError("Não foi possível resolver o vendedor para este usuário");
