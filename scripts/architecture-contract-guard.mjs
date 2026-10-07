@@ -710,6 +710,40 @@ const P23_R09Z_FIX_AUTHORIZED_FILES = [
 // União (claiming): arquivos sob tutela da janela R09Z em qualquer valor
 const P23_R09Z_VENDEDOR_USER_TENANT_HARDENING_AUTHORIZED_FILES = P23_R09Z_FIX_AUTHORIZED_FILES.concat(P23_R09Z_AUTH_AUTHORIZED_FILES);
 
+// Janela formal P23-R-10B - Arquitetura JWT de sessão (auth.login → JWT → client → createContext → revalidação DB)
+// Dois valores distintos na mesma variável ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE:
+//   AUTH (P23_R10B_JWT_SESSION_AUTH) → fase AUTH: permite SOMENTE os 2 guards
+//   FIX  (P23_R10B_JWT_SESSION_FIX)  → fase FIX: permite SOMENTE routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado
+// FORA DO ESCOPO R10B: drizzle/schema.ts, drizzle/migrations/**, session.service.ts, jwt-hardening.ts,
+//   jwt-auth-middleware.ts, sdk.ts, oauth.ts, service-actor.ts, tenant-ownership.ts, server/db/**,
+//   users.service.ts, check-tenant-baseline.json, package.json
+// Formatos de sessão u:<id>, v:<id>, v:<tenant>:<id>, "admin-session" e "vendedor-session" permanecem
+// inválidos como autenticação — esta janela NÃO autoriza reintroduzi-los em nenhum arquivo.
+const P23_R10B_JWT_SESSION_AUTH_VALUE = 'P23_R10B_JWT_SESSION_AUTH';
+const P23_R10B_JWT_SESSION_FIX_VALUE = 'P23_R10B_JWT_SESSION_FIX';
+
+// Fase AUTH: somente os guards podem ser alterados
+const P23_R10B_AUTH_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
+// Fase FIX: alvo do fluxo de sessão JWT — router + jwt-auth + context + smart-auth + client auth + teste autorizado
+// (guards, session.service.ts, jwt-hardening.ts, jwt-auth-middleware.ts, sdk.ts, oauth.ts, service-actor.ts,
+//  tenant-ownership.ts, server/db/**, users.service.ts, schema, migrations, baseline e package.json ficam BLOQUEADOS sob o valor FIX)
+const P23_R10B_FIX_AUTHORIZED_FILES = [
+  'server/routers.ts',
+  'server/security/jwt-auth.ts',
+  'server/_core/context.ts',
+  'server/routers/smart-auth.ts',
+  'client/src/store/authStore.ts',
+  'client/src/services/auth.service.ts',
+  'server/tests/jwt-session-auth-flow.test.ts',
+];
+
+// União (claiming): arquivos sob tutela da janela R10B em qualquer valor
+const P23_R10B_JWT_SESSION_ARCHITECTURE_AUTHORIZED_FILES = P23_R10B_FIX_AUTHORIZED_FILES.concat(P23_R10B_AUTH_AUTHORIZED_FILES);
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -2421,6 +2455,51 @@ function isP23_R09ZVendedorUserTenantHardeningAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-10B para a arquitetura JWT de sessão
+ * Variável ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE com 2 valores distintos:
+ *   =P23_R10B_JWT_SESSION_AUTH → fase AUTH: permite SOMENTE os 2 guards
+ *   =P23_R10B_JWT_SESSION_FIX  → fase FIX: permite SOMENTE routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado
+ * Guards NÃO são autorizados sob o valor FIX — escopos mutuamente exclusivos.
+ * Janela fail-closed: com qualquer valor válido definido, arquivo fora do escopo é bloqueado.
+ */
+function isP23_R10BJwtSessionArchitectureAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const envValue = process.env.ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Valor AUTH: permite SOMENTE os 2 guards (router/jwt/context/smart-auth/client e teste bloqueados na fase AUTH)
+  if (envValue === P23_R10B_JWT_SESSION_AUTH_VALUE) {
+    if (P23_R10B_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+      return {
+        authorized: true,
+        reason: 'P23-R-10B-AUTH formal window: ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE=' + P23_R10B_JWT_SESSION_AUTH_VALUE + ' (guards only — fix targets locked)'
+      };
+    }
+    return { authorized: false };
+  }
+
+  // Valor diferente de AUTH e de FIX: bloqueia
+  if (envValue !== P23_R10B_JWT_SESSION_FIX_VALUE) {
+    return { authorized: false };
+  }
+
+  // Valor FIX: permite SOMENTE routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado (guards bloqueados sob FIX)
+  if (P23_R10B_FIX_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R-10B-FIX formal window: ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE=' + P23_R10B_JWT_SESSION_FIX_VALUE + ' (JWT session architecture — login/context/impersonation fix)'
+    };
+  }
+
+  // Arquivo fora do escopo do valor ativo: bloqueia
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -2634,6 +2713,32 @@ function isFrozen(file) {
   // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
   if (relativePath === 'server/scripts/seed-admin.ts') {
     return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
+  }
+
+  // Verifica janela formal P23-R-10B (JWT session architecture — login/context/impersonation fix)
+  // IMPORTANTE: R10B vem antes de R09Z/R09Y/R09X/R09W/R09U — reivindica guards e arquivos do fix primeiro
+  // (routers.ts está também no claim de janelas anteriores: a janela mais nova reivindica primeiro)
+  const p23_r10bJwtSessionCheck = isP23_R10BJwtSessionArchitectureAuthorized(file);
+  if (p23_r10bJwtSessionCheck.authorized) {
+    return { frozen: false, exception: true, p23_r10b_jwt_session_architecture: p23_r10bJwtSessionCheck.reason };
+  }
+
+  // Janela R10B é fail-closed POR VALOR:
+  //   AUTH → somente os 2 guards (qualquer outro arquivo congelado)
+  //   FIX  → somente routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado (guards e qualquer outro arquivo congelados)
+  if (process.env.ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE === P23_R10B_JWT_SESSION_AUTH_VALUE
+      && !P23_R10B_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r10b_out_of_scope: true };
+  }
+  if (process.env.ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE === P23_R10B_JWT_SESSION_FIX_VALUE
+      && !P23_R10B_FIX_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r10b_out_of_scope: true };
+  }
+
+  // Arquivos não-guard da janela P23-R-10B requerem autorização formal para qualquer alteração
+  if (P23_R10B_JWT_SESSION_ARCHITECTURE_AUTHORIZED_FILES.includes(relativePath)
+      && !relativePath.startsWith('scripts/')) {
+    return { frozen: true, pattern: relativePath, p23_r10b_required: true };
   }
 
   // Verifica janela formal P23-R-09Z (vendedor-by-userId/login/identity tenant hardening)

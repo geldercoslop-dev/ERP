@@ -730,6 +730,40 @@ const P23_R09Z_FIX_AUTHORIZED_FILES = [
 // União (claiming): arquivos sob tutela da janela R09Z em qualquer valor
 const P23_R09Z_VENDEDOR_USER_TENANT_HARDENING_AUTHORIZED_FILES = P23_R09Z_FIX_AUTHORIZED_FILES.concat(P23_R09Z_AUTH_AUTHORIZED_FILES);
 
+// Janela formal P23-R-10B - Arquitetura JWT de sessão (auth.login → JWT → client → createContext → revalidação DB)
+// Dois valores distintos na mesma variável ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE:
+//   AUTH (P23_R10B_JWT_SESSION_AUTH) → fase AUTH: permite SOMENTE os 2 guards
+//   FIX  (P23_R10B_JWT_SESSION_FIX)  → fase FIX: permite SOMENTE routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado
+// FORA DO ESCOPO R10B: drizzle/schema.ts, drizzle/migrations/**, session.service.ts, jwt-hardening.ts,
+//   jwt-auth-middleware.ts, sdk.ts, oauth.ts, service-actor.ts, tenant-ownership.ts, server/db/**,
+//   users.service.ts, check-tenant-baseline.json, package.json
+// Formatos de sessão u:<id>, v:<id>, v:<tenant>:<id>, "admin-session" e "vendedor-session" permanecem
+// inválidos como autenticação — esta janela NÃO autoriza reintroduzi-los em nenhum arquivo.
+const P23_R10B_JWT_SESSION_AUTH_VALUE = "P23_R10B_JWT_SESSION_AUTH";
+const P23_R10B_JWT_SESSION_FIX_VALUE = "P23_R10B_JWT_SESSION_FIX";
+
+// Fase AUTH: somente os guards podem ser alterados
+const P23_R10B_AUTH_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
+// Fase FIX: alvo do fluxo de sessão JWT — router + jwt-auth + context + smart-auth + client auth + teste autorizado
+// (guards, session.service.ts, jwt-hardening.ts, jwt-auth-middleware.ts, sdk.ts, oauth.ts, service-actor.ts,
+//  tenant-ownership.ts, server/db/**, users.service.ts, schema, migrations, baseline e package.json ficam BLOQUEADOS sob o valor FIX)
+const P23_R10B_FIX_AUTHORIZED_FILES = [
+  "server/routers.ts",
+  "server/security/jwt-auth.ts",
+  "server/_core/context.ts",
+  "server/routers/smart-auth.ts",
+  "client/src/store/authStore.ts",
+  "client/src/services/auth.service.ts",
+  "server/tests/jwt-session-auth-flow.test.ts",
+];
+
+// União (claiming): arquivos sob tutela da janela R10B em qualquer valor
+const P23_R10B_JWT_SESSION_ARCHITECTURE_AUTHORIZED_FILES = P23_R10B_FIX_AUTHORIZED_FILES.concat(P23_R10B_AUTH_AUTHORIZED_FILES);
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -2384,6 +2418,50 @@ function isP23_R09ZVendedorUserTenantHardeningAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-10B para a arquitetura JWT de sessão
+ * Variável ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE com 2 valores distintos:
+ *   =P23_R10B_JWT_SESSION_AUTH → fase AUTH: permite SOMENTE os 2 guards
+ *   =P23_R10B_JWT_SESSION_FIX  → fase FIX: permite SOMENTE routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado
+ * Guards NÃO são autorizados sob o valor FIX — escopos mutuamente exclusivos.
+ * Janela fail-closed: com qualquer valor válido definido, arquivo fora do escopo é bloqueado.
+ */
+function isP23_R10BJwtSessionArchitectureAuthorized(filePath) {
+  const envValue = process.env.ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Valor AUTH: permite SOMENTE os 2 guards (router/jwt/context/smart-auth/client e teste bloqueados na fase AUTH)
+  if (envValue === P23_R10B_JWT_SESSION_AUTH_VALUE) {
+    if (P23_R10B_AUTH_AUTHORIZED_FILES.includes(filePath)) {
+      return {
+        authorized: true,
+        reason: "P23-R-10B-AUTH formal window: ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE=" + P23_R10B_JWT_SESSION_AUTH_VALUE + " (guards only — fix targets locked)"
+      };
+    }
+    return { authorized: false };
+  }
+
+  // Valor diferente de AUTH e de FIX: bloqueia
+  if (envValue !== P23_R10B_JWT_SESSION_FIX_VALUE) {
+    return { authorized: false };
+  }
+
+  // Valor FIX: permite SOMENTE routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado (guards bloqueados sob FIX)
+  if (P23_R10B_FIX_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P23-R-10B-FIX formal window: ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE=" + P23_R10B_JWT_SESSION_FIX_VALUE + " (JWT session architecture — login/context/impersonation fix)"
+    };
+  }
+
+  // Arquivo fora do escopo do valor ativo: bloqueia
+  return { authorized: false };
+}
+
 // Padrões de DB que NÃO podem estar no diff staged dos arquivos C3.1
 const DB_PATTERNS = [
   "db.",
@@ -2556,6 +2634,66 @@ function main() {
       files.length = 0;
       files.push(...nonGuardFiles);
     }
+  }
+
+  // P23-R-10B check: if JWT session architecture scope files or guard files are modified, require authorization variable
+  // IMPORTANTE: R10B vem antes de R09Z/R09Y/R09X/R09W/R09U — reivindica guards e arquivos do fix primeiro
+  // (routers.ts está também no claim de janelas anteriores: a janela mais nova reivindica primeiro)
+  const p23_r10bJwtSessionFilesInChanges = files.filter(f => P23_R10B_JWT_SESSION_ARCHITECTURE_AUTHORIZED_FILES.includes(f));
+
+  // Janela R10B é fail-closed POR VALOR:
+  //   AUTH → somente os 2 guards (qualquer outro arquivo bloqueado)
+  //   FIX  → somente routers + jwt-auth + context + smart-auth + authStore + auth.service + teste autorizado
+  //   (guards, session.service.ts, jwt-hardening.ts, sdk.ts, oauth.ts, server/db/**, users.service.ts,
+  //    schema, migrations, baseline e package.json bloqueados)
+  const p23_r10bEnvValue = process.env.ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE;
+  if (p23_r10bEnvValue === P23_R10B_JWT_SESSION_AUTH_VALUE) {
+    const p23_r10bOutsideFiles = files.filter(f => !P23_R10B_AUTH_AUTHORIZED_FILES.includes(f));
+    if (p23_r10bOutsideFiles.length > 0) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos fora do escopo da janela P23-R-10B AUTH:\n");
+      p23_r10bOutsideFiles.forEach(f => console.error(" - " + f));
+      console.error("\nP23-R-10B AUTH permite somente: " + P23_R10B_AUTH_AUTHORIZED_FILES.join(", ") + "\n");
+      process.exit(1);
+    }
+  }
+  if (p23_r10bEnvValue === P23_R10B_JWT_SESSION_FIX_VALUE) {
+    const p23_r10bOutsideFiles = files.filter(f => !P23_R10B_FIX_AUTHORIZED_FILES.includes(f));
+    if (p23_r10bOutsideFiles.length > 0) {
+      console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+      console.error("Arquivos fora do escopo da janela P23-R-10B FIX:\n");
+      p23_r10bOutsideFiles.forEach(f => console.error(" - " + f));
+      console.error("\nP23-R-10B FIX permite somente: " + P23_R10B_FIX_AUTHORIZED_FILES.join(", ") + "\n");
+      process.exit(1);
+    }
+  }
+
+  if (p23_r10bJwtSessionFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p23_r10bJwtSessionFilesInChanges) {
+      const check = isP23_R10BJwtSessionArchitectureAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        if (check.reason) {
+          console.error("Motivo: " + check.reason + "\n");
+        }
+        console.error("BLOQUEADO — JWT session architecture requer ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE=P23_R10B_JWT_SESSION_FIX\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P23-R-10B, allow them
+    const nonR10BFiles = files.filter(f => !P23_R10B_JWT_SESSION_ARCHITECTURE_AUTHORIZED_FILES.includes(f));
+    if (nonR10BFiles.length === 0) {
+      console.log("\n📋 Arquivos P23-R-10B detectados:");
+      p23_r10bJwtSessionFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P23-R-10B formal window: ERP_AUTHORIZED_JWT_SESSION_ARCHITECTURE=" + p23_r10bEnvValue + " (JWT session architecture — login/context/impersonation fix)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the authorized files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonR10BFiles);
   }
 
   // P23-R-09Z check: if vendedor-by-userId/login/identity scope files or guard files are modified, require authorization variable
