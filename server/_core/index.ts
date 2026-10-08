@@ -884,11 +884,3 @@ if (process.platform === "win32") {
       );
   });
 }
-
-startServer().catch((e) => {
-  systemLogger.error(
-    { error: e instanceof Error ? e.message : String(e) },
-    "[BOOT] startServer falhou"
-  );
-  exitProcessInProductionUnlessDevelopment(1);
-});
