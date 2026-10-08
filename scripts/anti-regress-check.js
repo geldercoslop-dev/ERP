@@ -25,6 +25,23 @@ const p23AppSecretAuthorized = process.env.ERP_AUTHORIZED_CORE_SECURITY_UPDATE =
 const isP23AppSecretWindowActive = p23AppSecretAuthorized && files.length === P23_APP_SECRET_AUTHORIZED_FILES.size && 
                                      files.every(f => P23_APP_SECRET_AUTHORIZED_FILES.has(f));
 
+// 🔵 JANELA CIRÚRGICA P23-R-10C-DOUBLE-BOOT-FIX
+// Autoriza commit específico da correção do double-boot (remoção da autoexecução de startServer)
+// Requer variável: ERP_AUTHORIZED_DOUBLE_BOOT_FIX=P23_R10C_DOUBLE_BOOT_FIX
+// Permite somente os 2 arquivos específicos do fix:
+//   - server/_core/index.ts
+//   - tests/single-boot-guard.spec.ts
+// NÃO desabilita nenhum check globalmente: exige simultaneamente
+//   1. env FIX correto; 2. staged scope EXATO da janela; 3. arquivo exato abaixo.
+const P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES = new Set([
+  "server/_core/index.ts",
+  "tests/single-boot-guard.spec.ts",
+]);
+
+const p23R10CDoubleBootFixAuthorized = process.env.ERP_AUTHORIZED_DOUBLE_BOOT_FIX === "P23_R10C_DOUBLE_BOOT_FIX";
+const isP23R10CDoubleBootFixWindowActive = p23R10CDoubleBootFixAuthorized && files.length === P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES.size &&
+                                           files.every(f => P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES.has(f));
+
 // 🔵 ARQUIVOS DE INFRA DB LEGÍTIMOS
 // Exceção explícita para arquivos de configuração de banco que gerenciam pools
 const ALLOWED_DB_INFRA_FILES = new Set([
@@ -70,8 +87,13 @@ Use tipagem correta.
   // O pool.query("SELECT 1") na linha 166 é pré-existente e não faz parte da extração
   const skipDbCheckForP23Window = isP23AppSecretWindowActive && file === "server/_core/index.ts";
 
+  // Janela cirúrgica P23-R-10C-DOUBLE-BOOT: neutraliza falso positivo de DB direto em server/_core/index.ts
+  // (verificação de integridade pré-existente não relacionada ao fix; exige env FIX + scope exato + arquivo exato)
+  const skipDbCheckForR10CDoubleBootWindow = isP23R10CDoubleBootFixWindowActive && file === "server/_core/index.ts";
+
   if (
     !skipDbCheckForP23Window &&
+    !skipDbCheckForR10CDoubleBootWindow &&
     !file.startsWith("server/services") &&
     !ALLOWED_DB_INFRA_FILES.has(file) &&
     (

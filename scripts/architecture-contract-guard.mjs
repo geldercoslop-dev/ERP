@@ -748,6 +748,34 @@ const P23_R10B_FIX_AUTHORIZED_FILES = [
 // União (claiming): arquivos sob tutela da janela R10B em qualquer valor
 const P23_R10B_JWT_SESSION_ARCHITECTURE_AUTHORIZED_FILES = P23_R10B_FIX_AUTHORIZED_FILES.concat(P23_R10B_AUTH_AUTHORIZED_FILES);
 
+// Janela formal P23-R-10C-DOUBLE-BOOT - Correção do double-boot (autoexecução de startServer em _core/index.ts)
+// Dois valores distintos na mesma variável ERP_AUTHORIZED_DOUBLE_BOOT_FIX:
+//   AUTH (P23_R10C_DOUBLE_BOOT_AUTH) → fase AUTH: permite SOMENTE os 3 guards
+//   FIX  (P23_R10C_DOUBLE_BOOT_FIX)  → fase FIX: permite SOMENTE server/_core/index.ts + teste autorizado
+// FORA DO ESCOPO R10C-DOUBLE-BOOT: server/index.ts, server/cluster.ts, server/_core/** (exceto index.ts),
+//   tests/** (exceto single-boot-guard.spec.ts), client/**, server/security/**, server/db/**, schema,
+//   migrations, baseline, package.json, lockfile
+const P23_R10C_DOUBLE_BOOT_AUTH_VALUE = 'P23_R10C_DOUBLE_BOOT_AUTH';
+const P23_R10C_DOUBLE_BOOT_FIX_VALUE = 'P23_R10C_DOUBLE_BOOT_FIX';
+
+// Fase AUTH: somente os 3 guards podem ser alterados
+const P23_R10C_DOUBLE_BOOT_AUTH_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+  'scripts/anti-regress-check.js',
+];
+
+// Fase FIX: alvo do fix — server/_core/index.ts + teste autorizado
+// (guards, server/index.ts, cluster.ts, _core/**, tests/**, client/**, security/**, db/**,
+//  schema, migrations, baseline, package.json e lockfile ficam BLOQUEADOS sob o valor FIX)
+const P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES = [
+  'server/_core/index.ts',
+  'tests/single-boot-guard.spec.ts',
+];
+
+// União (claiming): arquivos sob tutela da janela R10C-DOUBLE-BOOT em qualquer valor
+const P23_R10C_DOUBLE_BOOT_AUTHORIZED_FILES = P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES.concat(P23_R10C_DOUBLE_BOOT_AUTH_AUTHORIZED_FILES);
+
 /**
  * Verifica se arquivo tem autorização P23-G1 para limpeza de types de product variations
  * Requer variável ERP_AUTHORIZED_TYPES_UPDATE=P23_G1_REMOVE_PRODUCT_VARIATIONS_TYPES
@@ -2504,6 +2532,51 @@ function isP23_R10BJwtSessionArchitectureAuthorized(filePath) {
   return { authorized: false };
 }
 
+/**
+ * Verifica se arquivo tem autorização P23-R-10C-DOUBLE-BOOT para o fix do double-boot
+ * Variável ERP_AUTHORIZED_DOUBLE_BOOT_FIX com 2 valores distintos:
+ *   =P23_R10C_DOUBLE_BOOT_AUTH → fase AUTH: permite SOMENTE os 3 guards
+ *   =P23_R10C_DOUBLE_BOOT_FIX  → fase FIX: permite SOMENTE server/_core/index.ts + tests/single-boot-guard.spec.ts
+ * Guards NÃO são autorizados sob o valor FIX — escopos mutuamente exclusivos.
+ * Janela fail-closed: com qualquer valor válido definido, arquivo fora do escopo é bloqueado.
+ */
+function isP23_R10CDoubleBootFixAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const envValue = process.env.ERP_AUTHORIZED_DOUBLE_BOOT_FIX;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Valor AUTH: permite SOMENTE os 3 guards (alvo do fix bloqueado na fase AUTH)
+  if (envValue === P23_R10C_DOUBLE_BOOT_AUTH_VALUE) {
+    if (P23_R10C_DOUBLE_BOOT_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+      return {
+        authorized: true,
+        reason: 'P23-R-10C-DOUBLE-BOOT-AUTH formal window: ERP_AUTHORIZED_DOUBLE_BOOT_FIX=' + P23_R10C_DOUBLE_BOOT_AUTH_VALUE + ' (guards only — fix targets locked)'
+      };
+    }
+    return { authorized: false };
+  }
+
+  // Valor diferente de AUTH e de FIX: bloqueia
+  if (envValue !== P23_R10C_DOUBLE_BOOT_FIX_VALUE) {
+    return { authorized: false };
+  }
+
+  // Valor FIX: permite SOMENTE server/_core/index.ts + teste autorizado (guards bloqueados sob FIX)
+  if (P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P23-R-10C-DOUBLE-BOOT-FIX formal window: ERP_AUTHORIZED_DOUBLE_BOOT_FIX=' + P23_R10C_DOUBLE_BOOT_FIX_VALUE + ' (double-boot startServer fix)'
+    };
+  }
+
+  // Arquivo fora do escopo do valor ativo: bloqueia
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   'server/db/core.ts',
@@ -2717,6 +2790,32 @@ function isFrozen(file) {
   // server/scripts/seed-admin.ts requer janela formal P23-R-09O para qualquer alteração
   if (relativePath === 'server/scripts/seed-admin.ts') {
     return { frozen: true, pattern: 'server/scripts/seed-admin.ts', p23_r09o_required: true };
+  }
+
+  // Verifica janela formal P23-R-10C-DOUBLE-BOOT (double-boot startServer fix)
+  // IMPORTANTE: R10C-DOUBLE-BOOT vem antes de R10B/R09Z/R09Y/R09X/R09W/R09U — reivindica guards e arquivos do fix primeiro
+  // (server/_core/index.ts está também no claim de janelas anteriores: a janela mais nova reivindica primeiro)
+  const p23_r10cDoubleBootCheck = isP23_R10CDoubleBootFixAuthorized(file);
+  if (p23_r10cDoubleBootCheck.authorized) {
+    return { frozen: false, exception: true, p23_r10c_double_boot_fix: p23_r10cDoubleBootCheck.reason };
+  }
+
+  // Janela R10C-DOUBLE-BOOT é fail-closed POR VALOR:
+  //   AUTH → somente os 3 guards (qualquer outro arquivo congelado)
+  //   FIX  → somente _core/index.ts + teste autorizado (guards e qualquer outro arquivo congelados)
+  if (process.env.ERP_AUTHORIZED_DOUBLE_BOOT_FIX === P23_R10C_DOUBLE_BOOT_AUTH_VALUE
+      && !P23_R10C_DOUBLE_BOOT_AUTH_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r10c_double_boot_out_of_scope: true };
+  }
+  if (process.env.ERP_AUTHORIZED_DOUBLE_BOOT_FIX === P23_R10C_DOUBLE_BOOT_FIX_VALUE
+      && !P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES.includes(relativePath)) {
+    return { frozen: true, pattern: relativePath, p23_r10c_double_boot_out_of_scope: true };
+  }
+
+  // Arquivos não-guard da janela P23-R-10C-DOUBLE-BOOT requerem autorização formal para qualquer alteração
+  if (P23_R10C_DOUBLE_BOOT_AUTHORIZED_FILES.includes(relativePath)
+      && !relativePath.startsWith('scripts/')) {
+    return { frozen: true, pattern: relativePath, p23_r10c_double_boot_required: true };
   }
 
   // Verifica janela formal P23-R-10B (JWT session architecture — login/context/impersonation fix)
