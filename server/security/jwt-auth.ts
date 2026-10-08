@@ -11,6 +11,8 @@ export interface JWTPayload {
   email: string;
   role: 'admin' | 'operator' | 'user';
   sessionId: string;
+  /** Presente somente em sessões de vendedor (P23-R-10B). Nunca autoridade: revalidado no DB. */
+  vendedorId?: number;
   iat?: number;
   exp?: number;
 }
@@ -119,6 +121,41 @@ class JWTAuth {
   }
 
   /**
+   * Gera SOMENTE o access token (sem refresh pair).
+   * P23-R-10B: o app não possui fluxo de refresh — emitir refresh token seria
+   * credencial extra sem consumidor. Login usa este método.
+   */
+  generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp' | 'sessionId'>): { accessToken: string; expiresIn: number; sessionId: string } {
+    const sessionId = this.generateSessionId();
+    const now = Math.floor(Date.now() / 1000);
+
+    const accessTokenPayload: JWTPayload = {
+      ...payload,
+      sessionId,
+      iat: now,
+      exp: now + this.parseExpiryToSeconds(this.accessTokenExpiry)
+    };
+
+    const accessToken = jwt.sign(accessTokenPayload, this.getAccessSecret(), {
+      algorithm: "HS256",
+    });
+
+    const expiresIn = this.parseExpiryToSeconds(this.accessTokenExpiry);
+
+    systemLogger.info({
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      email: payload.email,
+      role: payload.role,
+      vendedorId: payload.vendedorId,
+      sessionId,
+      expiresIn
+    }, 'JWT access token generated');
+
+    return { accessToken, expiresIn, sessionId };
+  }
+
+  /**
    * Verifica e decodifica um access token
    */
   verifyAccessToken(token: string): JWTPayload {
@@ -148,6 +185,7 @@ class JWTAuth {
         email: p.email,
         role: p.role as JWTPayload["role"],
         sessionId: p.sessionId,
+        vendedorId: typeof p.vendedorId === "number" ? p.vendedorId : undefined,
         iat: typeof p.iat === "number" ? p.iat : undefined,
         exp: typeof p.exp === "number" ? p.exp : undefined,
       };
@@ -327,9 +365,35 @@ export function getJwtAuth(): JWTAuth {
   return _jwtAuthInstance;
 }
 
-// Compatibilidade: exportar como getter para não quebrar imports existentes
-export const jwtAuth = new Proxy({} as JWTAuth, {
-  get(_target, prop) {
-    return getJwtAuth()[prop as keyof JWTAuth];
-  }
-});
+// Compatibilidade: facade explícito preserva a API pública sem Proxy.
+// P23-R-10B-FIX3: NADA executa em import-time — o módulo só aloca um objeto
+// literal de arrow functions. Cada método resolve a instância lazy via
+// getJwtAuth() no momento da chamada e invoca com `this` correto (sem bind).
+// Secrets/ENV nunca são lidos na importação.
+type JwtAuthPublicApi = Pick<
+  JWTAuth,
+  | "generateTokenPair"
+  | "generateAccessToken"
+  | "verifyAccessToken"
+  | "verifyRefreshToken"
+  | "extractTokenFromHeader"
+  | "shouldRefreshToken"
+  | "decodeToken"
+>;
+
+export const jwtAuth: JwtAuthPublicApi = {
+  generateTokenPair: (payload, tokenVersion) =>
+    getJwtAuth().generateTokenPair(payload, tokenVersion),
+  generateAccessToken: (payload) =>
+    getJwtAuth().generateAccessToken(payload),
+  verifyAccessToken: (token) =>
+    getJwtAuth().verifyAccessToken(token),
+  verifyRefreshToken: (token) =>
+    getJwtAuth().verifyRefreshToken(token),
+  extractTokenFromHeader: (authHeader) =>
+    getJwtAuth().extractTokenFromHeader(authHeader),
+  shouldRefreshToken: (token) =>
+    getJwtAuth().shouldRefreshToken(token),
+  decodeToken: (token) =>
+    getJwtAuth().decodeToken(token),
+};

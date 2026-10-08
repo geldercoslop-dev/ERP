@@ -18,6 +18,7 @@ import { checkRequestIdMemory, registerSuccessfulCreation, logDuplicationAttempt
 import { requireTenant } from "./_core/tenant.js";
 import { checkRateLimit, clearRateLimitForKey } from "./services/rateLimitService.js";
 import { logAuth } from "./services/auditService.js";
+import { jwtAuth } from "./security/jwt-auth.js";
 import { leoRouter } from "./routers/leo.js";
 import { leoAdminRouter } from "./routers/leo-admin.js";
 import { adminRouter } from "./routers/admin/index.js";
@@ -344,19 +345,28 @@ export const appRouter = router({
             audit(false);
             throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos" });
           }
-          const sessionValue = `u:${user.id}`;
-          ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
-          ctx.res.cookie("session", sessionValue, cookieOptions);
+          // P23-R-10B: sessão admin = JWT assinado (mesmo valor em cookie e Bearer).
+          // Role efetiva vem do DB: user.role 'admin' → claim 'admin'; caso contrário 'user'.
+          const effectiveRole = user.role === "admin" ? "admin" : "user";
+          const { accessToken } = jwtAuth.generateAccessToken({
+            userId: user.id,
+            tenantId: user.tenantId,
+            email: user.email ?? "",
+            role: effectiveRole,
+          });
+          ctx.res.cookie(COOKIE_NAME, accessToken, cookieOptions);
+          ctx.res.cookie("session", accessToken, cookieOptions);
           await usersService.touchLastSignedInGlobal(user.id);
           clearRateLimitForKey(rateLimitKey, user.tenantId);
           audit(true);
-          if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (admin)`);
+          if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (admin, JWT)`);
           return {
             ok: true,
-            sessionToken: sessionValue,
+            sessionToken: accessToken,
             openId: user.openId,
             name: user.name ?? "Administrador",
-            role: "admin",
+            role: effectiveRole === "admin" ? "admin" : "vendedor",
+            id: user.id,
           };
         }
 
@@ -379,26 +389,46 @@ export const appRouter = router({
           audit(false);
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Identidade inconsistente: vendedor fora do tenant do usuário" });
         }
+        // P23-R-10B: vínculo vendedor↔user obrigatório e vendedor deve estar ativo (fail closed)
+        if (vendedor.userId == null || vendedor.userId !== user.id) {
+          audit(false);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Identidade inconsistente: vendedor não vinculado ao usuário" });
+        }
+        if (vendedor.ativo !== true) {
+          audit(false);
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Vendedor inativo" });
+        }
         if (vendedor.senha) {
           const bcrypt = await getBcrypt();
           if (vendedor.senha.startsWith("$2")) {
             try {
               const match = await bcrypt.compare(password, vendedor.senha);
               if (match) {
-                const sessionValue = `v:${user.tenantId}:${vendedor.id}`;
-                ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
-                ctx.res.cookie("session", sessionValue, cookieOptions);
+                // P23-R-10B: sessão vendedor = JWT assinado. userId é SEMPRE users.id
+                // (ctx.user.id = users.id); vendedorId carrega vendedores.id.
+                // Claim role = users.role real do DB ('user'); a autoridade final
+                // é a revalidação do createContext, nunca este claim.
+                const { accessToken } = jwtAuth.generateAccessToken({
+                  userId: user.id,
+                  tenantId: user.tenantId,
+                  email: user.email ?? "",
+                  role: user.role,
+                  vendedorId: vendedor.id,
+                });
+                ctx.res.cookie(COOKIE_NAME, accessToken, cookieOptions);
+                ctx.res.cookie("session", accessToken, cookieOptions);
                 await usersService.touchLastSignedInGlobal(user.id);
                 clearRateLimitForKey(rateLimitKey, user.tenantId);
                 audit(true);
-                if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (vendedor)`);
+                if (process.env.NODE_ENV !== "production") console.log(`[auth.login] Cookie definido (vendedor, JWT)`);
                 return {
                   ok: true,
-                  sessionToken: sessionValue,
+                  sessionToken: accessToken,
                   openId: user.openId,
                   name: vendedor.nome ?? user.name ?? "Vendedor",
                   role: vendedor.admin ? "admin" : "vendedor",
                   vendedorId: vendedor.id,
+                  id: user.id,
                 };
               }
             } catch (bcryptError) {
@@ -419,26 +449,79 @@ export const appRouter = router({
         });
       }),
 
-    /** Admin only: troca sessão para vendedor (impersonate). Guarda token admin em cookie por 10 min. */
+    /** Admin only: troca sessão para vendedor (impersonate). Guarda JWT admin em cookie por 10 min. */
     impersonateVendedor: adminProcedure
       .input(z.object({ vendedorId: z.number().int().positive() }))
       .mutation(async ({ input, ctx }) => {
-        // P23-R-09X: tenant do contexto autenticado ANTES do lookup — vendedor deve existir no tenant do admin
+        // P23-R-10B: ctx.user já foi revalidado no DB (role admin confirmada por adminProcedure).
         const tenantId = ctx.user.tenantId ?? ctx.tenantId ?? 0;
         if (!tenantId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Tenant inválido para impersonation" });
         const vendedor = await usersService.getVendedorById(input.vendedorId, tenantId);
         if (!vendedor) throw new TRPCError({ code: "NOT_FOUND", message: "Vendedor não encontrado" });
-        const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
-        const currentToken = typeof ctx.req.headers.cookie === "string"
-          ? (cookie.parse(ctx.req.headers.cookie)[COOKIE_NAME] as string | undefined)
-          : undefined;
-        if (currentToken) {
-          const adminOpts = { ...getSessionCookieOptions(ctx.req), maxAge: ADMIN_SESSION_MAX_AGE_MS, path: "/" };
-          ctx.res.cookie(ADMIN_SESSION_COOKIE, currentToken, adminOpts);
+        // Vínculo + ativo obrigatórios: sem user vinculado não há identidade efetiva (fail closed)
+        if (vendedor.userId == null) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Vendedor sem usuário vinculado" });
         }
-        const sessionValue = `v:${tenantId}:${vendedor.id}`;
-        ctx.res.cookie(COOKIE_NAME, sessionValue, cookieOptions);
-        ctx.res.cookie("session", sessionValue, cookieOptions);
+        if (vendedor.ativo !== true) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Vendedor inativo" });
+        }
+        // Identidade efetiva = user REAL vinculado ao vendedor, dentro do mesmo tenant
+        const effectiveUser = await usersService.getUserById(vendedor.userId, tenantId);
+        if (!effectiveUser || effectiveUser.tenantId !== tenantId) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Identidade do vendedor inconsistente" });
+        }
+
+        const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
+
+        // admin_session = JWT admin ORIGINAL (assinado, nunca literal).
+        // Prioridade: cookie de sessão (fonte autoritativa server-side), senão Bearer/x-session-token.
+        let adminToken: string | undefined;
+        try {
+          const parsed = typeof ctx.req.headers.cookie === "string"
+            ? cookie.parse(ctx.req.headers.cookie)
+            : {};
+          adminToken = ["session", COOKIE_NAME]
+            .map((n) => parsed[n])
+            .find((v): v is string => typeof v === "string" && v.length > 0);
+        } catch {
+          adminToken = undefined;
+        }
+        if (!adminToken) {
+          const rawAuth = ctx.req.headers.authorization;
+          const m = typeof rawAuth === "string" ? rawAuth.match(/^\s*Bearer\s+(.+)$/i) : null;
+          if (m) adminToken = m[1].trim();
+        }
+        if (!adminToken) {
+          const xs = ctx.req.headers["x-session-token"];
+          if (typeof xs === "string" && xs.trim()) adminToken = xs.trim();
+        }
+        if (!adminToken) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Credencial admin ausente para preservar" });
+        }
+        // Sanidade: credencial preservada deve ser JWT válido do admin atual
+        try {
+          const p = jwtAuth.verifyAccessToken(adminToken);
+          if (p.userId !== ctx.user.id) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Credencial admin incoerente" });
+          }
+        } catch (e) {
+          if (e instanceof TRPCError) throw e;
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Credencial admin inválida para impersonation" });
+        }
+        const adminOpts = { ...getSessionCookieOptions(ctx.req), maxAge: ADMIN_SESSION_MAX_AGE_MS, path: "/" };
+        ctx.res.cookie(ADMIN_SESSION_COOKIE, adminToken, adminOpts);
+
+        // JWT efetivo de vendedor: userId = users.id vinculado (nunca inventa ID),
+        // role efetiva do DB do user vinculado — NUNCA herda admin do ator original.
+        const { accessToken } = jwtAuth.generateAccessToken({
+          userId: effectiveUser.id,
+          tenantId: effectiveUser.tenantId,
+          email: effectiveUser.email ?? "",
+          role: effectiveUser.role,
+          vendedorId: vendedor.id,
+        });
+        ctx.res.cookie(COOKIE_NAME, accessToken, cookieOptions);
+        ctx.res.cookie("session", accessToken, cookieOptions);
         const traceId = nanoid(10);
         await logAuditAction(
           "IMPERSONATE_START",
@@ -452,7 +535,7 @@ export const appRouter = router({
             traceId,
           }
         );
-        return { ok: true, vendedorId: vendedor.id, vendedorNome: vendedor.nome ?? undefined };
+        return { ok: true, sessionToken: accessToken, vendedorId: vendedor.id, vendedorNome: vendedor.nome ?? undefined };
       }),
 
     /** Restaura sessão admin a partir do cookie admin_session (só quando isImpersonating). */
@@ -462,11 +545,28 @@ export const appRouter = router({
       const parsed = rawCookie ? cookie.parse(rawCookie) : {};
       const adminToken = parsed[ADMIN_SESSION_COOKIE] as string | undefined;
       if (!adminToken || typeof adminToken !== "string") throw new TRPCError({ code: "BAD_REQUEST", message: "Sessão admin não encontrada." });
+
+      // P23-R-10B: admin_session é JWT — verificar assinatura/expiração e revalidar admin no DB.
+      let adminPayload;
+      try {
+        adminPayload = jwtAuth.verifyAccessToken(adminToken);
+      } catch {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Sessão admin inválida." });
+      }
+      const adminUser = await usersService.getUserById(adminPayload.userId, adminPayload.tenantId);
+      if (!adminUser || adminUser.role !== "admin" || adminUser.tenantId !== adminPayload.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sessão admin não autorizada." });
+      }
+      // Coerência: admin restaurado deve ser do mesmo tenant da sessão efetiva
+      if (ctx.tenantId !== adminPayload.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sessão admin de outro tenant." });
+      }
+
       const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
       ctx.res.cookie(COOKIE_NAME, adminToken, cookieOptions);
       ctx.res.cookie("session", adminToken, cookieOptions);
       ctx.res.clearCookie(ADMIN_SESSION_COOKIE, { path: "/", maxAge: 0, expires: new Date(0) });
-      const adminUserId = adminToken.startsWith("u:") ? parseInt(adminToken.slice(2), 10) : null;
+      const adminUserId = adminPayload.userId;
       const traceId = nanoid(10);
       const tenantId = await requireTenant(ctx);
       await logAuditAction(
@@ -475,13 +575,13 @@ export const appRouter = router({
         { restoredFrom: "admin_session" },
         {
           tenantId,
-          actorUserId: (Number.isFinite(adminUserId) && adminUserId !== null) ? adminUserId : undefined, 
+          actorUserId: adminUserId,
           actorVendedorId: ctx.vendedor?.id ?? undefined,
-          entityId: adminUserId != null ? String(adminUserId) : undefined,     
+          entityId: String(adminUserId),
           traceId,
         }
       );
-      return { ok: true };
+      return { ok: true, sessionToken: adminToken };
     }),
 
     logout: publicProcedure.mutation(({ ctx }) => {

@@ -330,7 +330,15 @@ async function checkAuth() {
  */
 async function doStopImpersonation(): Promise<void> {
   try {
-    await trpcCall("auth.stopImpersonation", null);
+    const data = (await trpcCall("auth.stopImpersonation", null)) as {
+      ok?: boolean;
+      sessionToken?: string;
+    } | null;
+    // P23-R-10B: o servidor restaura o JWT admin e o retorna — o client substitui
+    // o token armazenado para manter Bearer/cookie consistentes.
+    if (data && typeof data.sessionToken === "string" && data.sessionToken) {
+      setSessionToken(data.sessionToken);
+    }
     toast.success("Voltou ao painel de administrador.");
     await checkAuth();
     window.location.href = "/dashboard";

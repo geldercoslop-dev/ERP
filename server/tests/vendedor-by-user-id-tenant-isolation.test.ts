@@ -37,6 +37,7 @@ import {
 import * as usersService from "../services/users.service.js";
 import { appRouter } from "../routers.js";
 import { createContext } from "../_core/context.js";
+import { jwtAuth } from "../security/jwt-auth.js";
 import { resolveServiceActor } from "../_core/service-actor.js";
 import { validateTenantOwnership } from "../_core/tenant-ownership.js";
 
@@ -384,9 +385,14 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
     expect(res.role).toBe("vendedor");
     expect(res.vendedorId).toBe(vendAId);
     expect(res.vendedorId).not.toBe(vendXId);
-    // session token carrega tenant do user + id do vendedor correto
-    expect(res.sessionToken).toBe(`v:${TENANT_A}:${vendAId}`);
-    expect(cookies.some((c) => c.value === `v:${TENANT_A}:${vendAId}`)).toBe(true);
+    // P23-R-10B: session token é JWT assinado — payload carrega user/tenant/vendedor corretos
+    const payload = jwtAuth.verifyAccessToken(res.sessionToken!);
+    expect(payload.userId).toBe(userAId);
+    expect(payload.tenantId).toBe(TENANT_A);
+    expect(payload.vendedorId).toBe(vendAId);
+    expect(payload.vendedorId).not.toBe(vendXId);
+    // cookie session emitido pelo servidor carrega o MESMO JWT retornado ao client
+    expect(cookies.some((c) => c.value === res.sessionToken)).toBe(true);
   });
 
   itWithServiceContext("L2) senha errada falha com erro de autenticação (não 500)", async () => {
@@ -414,7 +420,12 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
 
     expect(res.ok).toBe(true);
     expect(res.vendedorId).toBe(vendAId);
-    expect(res.sessionToken).toBe(`v:${TENANT_A}:${vendAId}`);
+    // JWT assinado aponta para vendedor A no tenant A — nunca para X de B
+    const payload = jwtAuth.verifyAccessToken(res.sessionToken!);
+    expect(payload.vendedorId).toBe(vendAId);
+    expect(payload.vendedorId).not.toBe(vendXId);
+    expect(payload.tenantId).toBe(TENANT_A);
+    expect(payload.userId).toBe(userAId);
   });
 
   itWithServiceContext("L5) role/admin não vaza: A é admin=false, X é admin=true → resposta é vendedor", async () => {
@@ -436,7 +447,10 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
     expect(res.name).toBe(nomeVendB);
     expect(res.role).toBe("vendedor");
     expect(res.vendedorId).toBe(vendBId);
-    expect(res.sessionToken).toBe(`v:${TENANT_B}:${vendBId}`);
+    const payload = jwtAuth.verifyAccessToken(res.sessionToken!);
+    expect(payload.userId).toBe(userBId);
+    expect(payload.tenantId).toBe(TENANT_B);
+    expect(payload.vendedorId).toBe(vendBId);
   });
 
   // ═══════════ ACTOR / CONTEXTO ═══════════
@@ -536,13 +550,13 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
 
   // ═══════════ L7 — ENTRADA REAL PÓS-LOGIN (createContext oficial) ═══════════
 
-  itWithServiceContext("L7) token 'v:' produzido pelo login NÃO é consumido por createContext (BUG documentado)", async () => {
-    // 1) Login real produz o mecanismo de sessão
+  itWithServiceContext("L7) token JWT do login É consumido por createContext — identidade real + auth.me + protectedProcedure", async () => {
+    // 1) Login real produz JWT de sessão (P23-R-10B: substitui o antigo 'v:tenant:vend')
     const { ctx } = loginCtx();
     const caller = appRouter.createCaller(ctx);
     const res = await caller.auth.login({ username: openIdA, password: SENHA_A });
     expect(res.ok).toBe(true);
-    const token = res.sessionToken; // "v:<tenant>:<vendedorId>" — valor opaco, não impresso
+    const token = res.sessionToken; // JWT assinado — valor opaco, não impresso
     expect(typeof token).toBe("string");
 
     // 2) Passa o token pelo mecanismo OFICIAL que reconstrói o contexto (createContext)
@@ -563,13 +577,15 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
 
     const rebuilt = await createContext({ req, res: res2 });
 
-    // 3) BUG DE LOGIN/SESSÃO (P23-R-09Z): createContext só aceita JWT Bearer.
-    //    O token 'v:tenant:vend' NÃO é JWT → verifyAccessToken lança → user=null.
-    //    Resultado: sessão criada pelo login não é reconhecida por nenhuma
-    //    procedure protegida. Prova direta sem mascarar:
-    expect(rebuilt.user).toBeNull();
-    expect(rebuilt.vendedor).toBeNull();
-    expect(rebuilt.tenantId).toBeNull();
+    // 3) P23-R-10B: o JWT é verificado (assinatura/exp) e a identidade revalidada no DB —
+    //    user real, tenant real, vendedor real (tenant-safe: nunca X de B).
+    expect(rebuilt.user?.id).toBe(userAId);
+    expect(rebuilt.tenantId).toBe(TENANT_A);
+    expect(rebuilt.vendedor?.id).toBe(vendAId);
+    expect(rebuilt.vendedor?.id).not.toBe(vendXId);
+    expect(rebuilt.vendedor?.userId).toBe(userAId);
+    expect(rebuilt.vendedor?.ativo).toBe(true);
+    expect(rebuilt.isImpersonating).toBe(false);
 
     const callerAfterLogin = appRouter.createCaller({
       req,
@@ -579,7 +595,12 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
       vendedor: rebuilt.vendedor,
       isImpersonating: rebuilt.isImpersonating,
     } as unknown as CallerCtx);
-    await expect(callerAfterLogin.auth.me()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    // auth.me resolve a identidade real
+    const me = await callerAfterLogin.auth.me();
+    expect(me?.id).toBe(userAId);
+    // protectedProcedure real funciona com a sessão reconstruída
+    const lista = await callerAfterLogin.pendencias.list();
+    expect(Array.isArray(lista)).toBe(true);
   });
 
   // ═══════════ P2 — FLUXO REAL DE PEDIDO PERSISTIDO ═══════════

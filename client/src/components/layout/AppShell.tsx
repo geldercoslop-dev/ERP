@@ -44,6 +44,7 @@ import { menuConfig } from "../../config/menuConfig";
 import { GlobalSearch } from "../GlobalSearch";
 import { toast } from "sonner";
 import { trpc } from "../../lib/trpcClient";
+import { setSessionToken } from "../../lib/security/sessionToken";
 import { useApiHealth } from "../../contexts/ApiHealthContext";
 import { ApiStatusBanner } from "../ApiStatusBanner";
 
@@ -230,7 +231,12 @@ export default function AppShell({ children }: PropsWithChildren) {
   const isAdmin = user?.role === "admin";
   const vendedoresQuery = trpc.vendedores.list.useQuery(undefined, { enabled: isAdmin && trocarVendedorModalOpen });
   const impersonateMutation = trpc.auth.impersonateVendedor.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // P23-R-10B: persiste o JWT vendedor efetivo — Bearer/x-session-token/localStorage
+      // passam a carregar o mesmo JWT do cookie session emitido pelo servidor.
+      if (data && typeof data.sessionToken === "string" && data.sessionToken) {
+        setSessionToken(data.sessionToken);
+      }
       toast.success("Entrou como vendedor. Use 'Voltar ao admin' no topo para retornar.");
       setTrocarVendedorModalOpen(false);
       setTrocarVendedorId(null);
