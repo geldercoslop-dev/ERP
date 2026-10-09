@@ -2,7 +2,11 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    include: ['server/tests/**/*.test.ts', 'server/services/**/*.test.ts'],
+    include: [
+      'server/tests/**/*.test.ts',
+      'server/services/**/*.test.ts',
+      'tests/single-boot-guard.spec.ts',
+    ],
     exclude: [
       'node_modules',
       'dist',
