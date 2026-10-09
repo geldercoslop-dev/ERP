@@ -71,9 +71,10 @@ describe("single-boot guard — server/_core/index.ts", () => {
   const topLevel = topLevelLines(source).join("\n");
 
   it("não executa startServer() em top-level (import não inicia o servidor)", () => {
-    // Chamadas bare: startServer( sem preceder de "function ", "async function " ou identificador
+    // Chamadas bare: startServer( / await startServer( em top-level.
+    // Excluídas: a declaração (async) function startServer( e chamadas de membro x.startServer(.
     const bareCalls = topLevel.match(
-      /(?<![\w$])(?:await\s+)?startServer\s*\(/g,
+      /(?<![\w$.])(?<!function\s)(?:await\s+)?startServer\s*\(/g,
     );
     expect(bareCalls).toBeNull();
   });
