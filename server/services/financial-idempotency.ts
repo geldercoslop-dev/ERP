@@ -199,6 +199,15 @@ export async function executeWithIdempotency<T>(
   const check = await checkOperationProcessed(tenantId, operationKey, operationType);
   
   if (check.processed) {
+    // Corrida perdida: outra chamada idêntica marcou entre o check externo e este check.
+    // Se o caller forneceu onDuplicate, devolve replay idempotente em vez de explodir.
+    if (onDuplicate) {
+      return {
+        result: await onDuplicate(),
+        wasProcessed: true,
+        idempotencyKey: operationKey
+      };
+    }
     throw new ValidationError(`Operação ${operationType} já processada em ${check.record!.processedAt.toISOString()}`);
   }
   
