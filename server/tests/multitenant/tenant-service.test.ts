@@ -1,4 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect } from 'vitest';
+import {
+  beforeAllWithServiceContext,
+  itWithServiceContext,
+} from '../integration/service-context-harness.js';
 import * as usersService from '../../services/users.service.js';
 import * as inventoryService from '../../services/inventory.service.js';
 import { getDb, schema } from '../../db/index.js';
@@ -10,8 +14,11 @@ describe('Validação Direta de Filtros em Serviços', () => {
   const TENANT_1 = 2001;
   const TENANT_2 = 2002;
 
-  it('upsertUser deve respeitar o tenantId fornecido', async () => {
-    const db = await getDb();
+  // Bootstrap + contexto ALS obrigatórios: getDb/services falham sem bootstrapServer()
+  beforeAllWithServiceContext(async () => {});
+
+  itWithServiceContext('upsertUser deve respeitar o tenantId fornecido', async () => {
+    const dbConn = await getDb();
     const openId = `test-user-${Date.now()}`;
     
     // Criar no tenant 1
@@ -19,7 +26,7 @@ describe('Validação Direta de Filtros em Serviços', () => {
       openId,
       name: 'User T1',
       email: 't1@test.com'
-    } as any);
+    } as never);
 
     // Verificar no tenant 1
     const user1 = await usersService.getUserByOpenId(TENANT_1, openId);
@@ -31,17 +38,17 @@ describe('Validação Direta de Filtros em Serviços', () => {
     expect(user2).toBeNull();
 
     // Limpar
-    if (db) await db.delete(users).where(eq(users.openId, openId));
+    if (dbConn) await dbConn.delete(users).where(eq(users.openId, openId));
   });
 
-  it('createProduto deve vincular o tenantId corretamente', async () => {
-    const db = await getDb();
+  itWithServiceContext('createProduto deve vincular o tenantId corretamente', async () => {
+    const dbConn = await getDb();
     const desc = `Prod T1 ${Date.now()}`;
     
     const prod = await inventoryService.createProduto(TENANT_1, {
       descricao: desc,
       valorVenda: 50
-    } as any);
+    } as never);
 
     const saved = await inventoryService.getProdutoById(TENANT_1, prod.id);
     expect(saved).toBeDefined();
@@ -52,15 +59,15 @@ describe('Validação Direta de Filtros em Serviços', () => {
     expect(wrongTenant).toBeNull();
 
     // Limpar
-    if (db) await db.delete(produtos).where(eq(produtos.id, prod.id));
+    if (dbConn) await dbConn.delete(produtos).where(eq(produtos.id, prod.id));
   });
 
-  it('updateEstoqueProduto deve falhar se o produto não pertencer ao tenant', async () => {
-    const db = await getDb();
+  itWithServiceContext('updateEstoqueProduto deve falhar se o produto não pertencer ao tenant', async () => {
+    const dbConn = await getDb();
     const prod = await inventoryService.createProduto(TENANT_1, {
       descricao: 'Prod T1 para Estoque',
       valorVenda: 10
-    } as any);
+    } as never);
 
     // Tentar atualizar estoque usando TENANT_2
     await expect(inventoryService.updateEstoqueProduto(TENANT_2, {
@@ -69,6 +76,6 @@ describe('Validação Direta de Filtros em Serviços', () => {
     })).rejects.toThrow('Produto não encontrado ou acesso negado');
 
     // Limpar
-    if (db) await db.delete(produtos).where(eq(produtos.id, prod.id));
+    if (dbConn) await dbConn.delete(produtos).where(eq(produtos.id, prod.id));
   });
 }, 60_000);
