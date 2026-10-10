@@ -3,7 +3,8 @@ import jwt from "jsonwebtoken";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
 import { assertOwnership } from "../../_core/ownership.js";
-import * as db from "../../db/index.js";
+import * as ordersService from "../../services/orders.service.js";
+import * as clientesService from "../../services/clientes.service.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
 import { tenantMiddleware } from "../../middleware/tenant.middleware.js";
 import { startHttpTestServer, type HttpTestServer } from "./_http-test-server.js";
@@ -47,7 +48,8 @@ describe("P0.7 Security - TENANT leak", () => {
   });
 
   it("serviço: bloqueia tenant A acessando pedido de tenant B", async () => {
-    vi.spyOn(db, "getPedidoById").mockResolvedValue({ id: 9, tenantId: tenantB, clienteId: 77 } as never);
+    vi.spyOn(ordersService, "getPedidoById").mockResolvedValue({ id: 9, tenantId: tenantB, clienteId: 77 } as never);
+    vi.spyOn(clientesService, "getClienteOwnershipRowById").mockResolvedValue({ id: 77, tenantId: tenantB, userId: 999 } as never);
 
     const call = assertOwnership(
       {
@@ -65,7 +67,7 @@ describe("P0.7 Security - TENANT leak", () => {
   });
 
   it("serviço: bloqueia ownership mesmo no mesmo tenant quando owner difere", async () => {
-    vi.spyOn(db, "getClienteOwnerRowById").mockResolvedValue({ id: 88, tenantId: tenantA, userId: 999 } as never);
+    vi.spyOn(clientesService, "getClienteOwnershipRowById").mockResolvedValue({ id: 88, tenantId: tenantA, userId: 999 } as never);
 
     const call = assertOwnership(
       {
@@ -83,7 +85,7 @@ describe("P0.7 Security - TENANT leak", () => {
   });
 
   it("http: bloqueia token do tenant A tentando recurso do tenant B", async () => {
-    const tokenTenantA = jwt.sign({ userId: 111, tenantId: tenantA, role: "user" }, jwtSecret, {
+    const tokenTenantA = jwt.sign({ userId: 111, tenantId: tenantA, role: "user", email: "t@t.com", sessionId: "s1" }, jwtSecret, {
       expiresIn: "30m",
     });
 
