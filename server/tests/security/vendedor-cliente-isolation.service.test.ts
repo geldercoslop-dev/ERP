@@ -1,7 +1,12 @@
 /**
  * Prova: vendedor B não lê cliente exclusivo do vendedor A (mesmo tenant).
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, expect } from "vitest";
+import {
+  afterAllWithServiceContext,
+  beforeAllWithServiceContext,
+  itWithServiceContext,
+} from "../integration/service-context-harness.js";
 import { eq, and } from "drizzle-orm";
 import { getDb, getInsertId, clientes, clienteVendedores, vendedores } from "../../db/core.js";
 import * as clientesService from "../../services/clientes.service.js";
@@ -13,14 +18,14 @@ describe("Isolamento vendedor A vs B (clientes.service)", () => {
   let vendedorBId: number;
   let clienteSoloId: number;
 
-  beforeAll(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("DB indisponível para teste de isolamento");
+  beforeAllWithServiceContext(async () => {
+    const dbConn = await getDb();
+    if (!dbConn) throw new Error("DB indisponível para teste de isolamento");
 
-    await db.delete(clientes).where(eq(clientes.tenantId, TENANT));
-    await db.delete(vendedores).where(eq(vendedores.tenantId, TENANT));
+    await dbConn.delete(clientes).where(eq(clientes.tenantId, TENANT));
+    await dbConn.delete(vendedores).where(eq(vendedores.tenantId, TENANT));
 
-    const ra = await db.insert(vendedores).values({
+    const ra = await dbConn.insert(vendedores).values({
       tenantId: TENANT,
       nome: "Vendedor A Iso",
       admin: false,
@@ -28,7 +33,7 @@ describe("Isolamento vendedor A vs B (clientes.service)", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    const rb = await db.insert(vendedores).values({
+    const rb = await dbConn.insert(vendedores).values({
       tenantId: TENANT,
       nome: "Vendedor B Iso",
       admin: false,
@@ -45,7 +50,7 @@ describe("Isolamento vendedor A vs B (clientes.service)", () => {
     });
     clienteSoloId = created.data?.id ?? 0;
 
-    await db.insert(clienteVendedores).values({
+    await dbConn.insert(clienteVendedores).values({
       tenantId: TENANT,
       clienteId: clienteSoloId,
       vendedorId: vendedorAId,
@@ -54,30 +59,31 @@ describe("Isolamento vendedor A vs B (clientes.service)", () => {
     });
   });
 
-  afterAll(async () => {
-    const db = await getDb();
-    if (!db) return;
-    await db.delete(clienteVendedores).where(
+  afterAllWithServiceContext(async () => {
+    const dbConn = await getDb();
+    if (!dbConn) return;
+    await dbConn.delete(clienteVendedores).where(
       and(eq(clienteVendedores.clienteId, clienteSoloId), eq(clienteVendedores.vendedorId, vendedorAId))
     );
-    await db.delete(clientes).where(eq(clientes.id, clienteSoloId));
-    await db.delete(vendedores).where(eq(vendedores.id, vendedorAId));
-    await db.delete(vendedores).where(eq(vendedores.id, vendedorBId));
+    await dbConn.delete(clientes).where(eq(clientes.id, clienteSoloId));
+    await dbConn.delete(vendedores).where(eq(vendedores.id, vendedorAId));
+    await dbConn.delete(vendedores).where(eq(vendedores.id, vendedorBId));
   });
 
-  it("vendedor B: getClienteById retorna null", async () => {
+  itWithServiceContext("vendedor B: getClienteById retorna null", async () => {
     const actorB = { role: "vendedor" as const, vendedorId: vendedorBId };
     const row = await clientesService.getClienteById(TENANT, actorB, clienteSoloId);
-    expect(row).toBeNull();
+    // getClienteById retorna { success, data? } — acesso negado vem como data: undefined
+    expect(row.data ?? null).toBeNull();
   });
 
-  it("vendedor B: searchClientesByNome não retorna cliente de A", async () => {
+  itWithServiceContext("vendedor B: searchClientesByNome não retorna cliente de A", async () => {
     const actorB = { role: "vendedor" as const, vendedorId: vendedorBId };
     const found = await clientesService.searchClientesByNome(TENANT, actorB, "Cliente Só", 20);
     expect(found.data?.some((c: { id: number }) => c.id === clienteSoloId) ?? false).toBe(false);
   });
 
-  it("admin: ainda vê o cliente", async () => {
+  itWithServiceContext("admin: ainda vê o cliente", async () => {
     const row = await clientesService.getClienteById(TENANT, ADMIN_ACTOR, clienteSoloId);
     expect(row.data).not.toBeNull();
     expect(row.data?.id).toBe(clienteSoloId);

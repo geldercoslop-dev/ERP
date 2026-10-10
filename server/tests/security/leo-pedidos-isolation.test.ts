@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  beforeAllWithServiceContext,
+  itWithServiceContext,
+} from "../integration/service-context-harness.js";
 import { agentPermissions } from "../../leo/security/agent-permissions.js";
 import { getPedidoByNumeroForActor, resolveVendedorIdForCreate } from "../../services/orders.service.js";
 import { ADMIN_ACTOR } from "../../_core/service-actor.js";
@@ -22,6 +26,9 @@ const baseInput = {
 };
 
 describe("LEO / pedidos — isolamento e permissões", () => {
+  // Apenas bootstrap: os testes de lógica pura não precisam de contexto, mas
+  // getPedidoByNumeroForActor acessa getDb() e exige bootstrapServer().
+  beforeAllWithServiceContext(async () => {});
   it("bloqueia tool sem userId no contexto", () => {
     const r = agentPermissions.hasPermission("buscar_pedido", {
       tenantId: 1,
@@ -42,7 +49,7 @@ describe("LEO / pedidos — isolamento e permissões", () => {
     expect(r.allowed).toBe(true);
   });
 
-  it("getPedidoByNumeroForActor: sem registro retorna null", async () => {
+  itWithServiceContext("getPedidoByNumeroForActor: sem registro retorna null", async () => {
     const p = await getPedidoByNumeroForActor(999999, { role: "vendedor", vendedorId: 1 }, 1);
     expect(p).toBeNull();
   });
