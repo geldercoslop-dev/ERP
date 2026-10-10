@@ -6,7 +6,7 @@
  *
  * Não altera infra/middleware/auth — apenas chama serviços.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, expect } from "vitest";
 import { eq, and, inArray, gte, sql } from "drizzle-orm";
 import { getDb, getInsertId } from "../db/index.js";
 import {
@@ -33,11 +33,16 @@ import { PedidoStatus } from "../shared/domain-status.js";
 import { BoletoStatus } from "../shared/domain-status.js";
 import { nanoid } from "nanoid";
 import { ADMIN_ACTOR } from "../_core/service-actor.js";
+import { ValidationError } from "../_core/errors/app-error.js";
+import {
+  beforeAllWithServiceContext,
+  afterAllWithServiceContext,
+  itWithServiceContext,
+} from "../tests/integration/service-context-harness.js";
 
 const RUN = process.env.RUN_REAL_CORE_TESTS !== "0" && process.env.RUN_REAL_CORE_TESTS !== "false";
 const TENANT_ID = Number(process.env.TEST_CORE_TENANT_ID || 99001);
 
-let dbAvailable = false;
 let testStart = new Date(0);
 let vendedorId = 0;
 let produtoId = 0;
@@ -56,24 +61,14 @@ async function seedVendedor(): Promise<number> {
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  const id = getInsertId(if (!isRecord(r)) {
-  throw new ValidationError("Invalid record");
-}
-const validatedRecord = r;<string, unknown>);
+  const id = getInsertId(r);
   if (!id) throw new ValidationError("vendedor id");
   return id;
 }
 
 describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
-  beforeAll(async () => {
+  beforeAllWithServiceContext(async () => {
     testStart = new Date();
-    const db = await getDb();
-    if (!db) {
-      dbAvailable = false;
-      return;
-    }
-    dbAvailable = true;
-    try {
 
     vendedorId = await seedVendedor();
 
@@ -92,14 +87,13 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
       nome: "Cliente Core Base",
       telefone: `55${nanoid(10).replace(/\D/g, "").slice(0, 11)}`,
     });
-    clienteBaseId = c.id;
-    } catch {
-      dbAvailable = false;
-    }
+    expect(c.success, c.error).toBe(true);
+    const cId = c.data?.id ?? 0;
+    expect(cId).toBeGreaterThan(0);
+    clienteBaseId = cId;
   });
 
-  afterAll(async () => {
-    if (!dbAvailable) return;
+  afterAllWithServiceContext(async () => {
     const db = await getDb();
     if (!db) return;
 
@@ -146,12 +140,12 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
     };
   }
 
-  it("1) Idempotência: 10 requests paralelos com MESMO payload → 1 pedido criado", async () => {
-    if (!dbAvailable) return;
+  itWithServiceContext("1) Idempotência: 10 requests paralelos com MESMO payload → 1 pedido criado", async () => {
+
     const input = buildPedidoInput(clienteBaseId, `551199999${nanoid(4)}`);
 
     const results = await Promise.all(
-      Array.from({ length: 10 }, () => createPedidoSafe(TENANT_ID, input, ADMIN_ACTOR))
+      Array.from({ length: 10 }, () => createPedidoSafe(TENANT_ID, input, ADMIN_ACTOR, vendedorId))
     );
 
     const ok = results.filter((r) => r.success && r.pedidoId > 0);
@@ -197,8 +191,8 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
       );
   });
 
-  it("2) Concorrência: 10 pedidos distintos (clientes diferentes) em paralelo — estoque não fica negativo", async () => {
-    if (!dbAvailable) return;
+  itWithServiceContext("2) Concorrência: 10 pedidos distintos (clientes diferentes) em paralelo — estoque não fica negativo", async () => {
+
     const db = await getDb();
     if (!db) throw new ValidationError("db");
 
@@ -214,11 +208,14 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
         nome: `Core Par ${i}`,
         telefone: `5511${base}${i}${nanoid(4)}`,
       });
-      clientesIds.push(c.id);
+      expect(c.success, c.error).toBe(true);
+      const cId = c.data?.id ?? 0;
+      expect(cId).toBeGreaterThan(0);
+      clientesIds.push(cId);
     }
     
     const inputs = clientesIds.map((cid) => buildPedidoInput(cid, `55${nanoid(11)}`));
-    const results = await Promise.all(inputs.map((inp) => createPedidoSafe(TENANT_ID, inp, ADMIN_ACTOR)));
+    const results = await Promise.all(inputs.map((inp) => createPedidoSafe(TENANT_ID, inp, ADMIN_ACTOR, vendedorId)));
 
     const success = results.filter((r) => r.success);
     expect(success.length).toBe(10);
@@ -246,8 +243,8 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
       .where(and(eq(produtos.tenantId, TENANT_ID), eq(produtos.id, produtoId)));
   });
 
-  it("3) Financeiro: baixa parcial de boleto em paralelo — estado final consistente (valorAberto 0)", async () => {
-    if (!dbAvailable) return;
+  itWithServiceContext("3) Financeiro: baixa parcial de boleto em paralelo — estado final consistente (valorAberto 0)", async () => {
+
     const db = await getDb();
     if (!db) throw new ValidationError("db");
 
@@ -275,10 +272,7 @@ describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    const pedidoPk = getInsertId(if (!isRecord(ins)) {
-  throw new ValidationError("Invalid record");
-}
-const validatedRecord = ins;<string, unknown>);
+    const pedidoPk = getInsertId(ins);
     if (!pedidoPk) throw new ValidationError("pedido");
 
     const [bIns] = await db.insert(boletos).values({
@@ -292,10 +286,7 @@ const validatedRecord = ins;<string, unknown>);
       dataVencimento: new Date(),
       status: BoletoStatus.ABERTO,
     });
-    const boletoId = getInsertId(if (!isRecord(bIns)) {
-  throw new ValidationError("Invalid record");
-}
-const validatedRecord = bIns;<string, unknown>);
+    const boletoId = getInsertId(bIns);
     if (!boletoId) throw new ValidationError("boleto");
 
     const parcelResults = await Promise.all(
@@ -313,15 +304,18 @@ const validatedRecord = bIns;<string, unknown>);
     await db.delete(pedidos).where(eq(pedidos.id, pedidoPk));
   });
 
-  it("4) Consistência: criar → atualizar status → excluir — pedido some do DB", async () => {
-    if (!dbAvailable) return;
+  itWithServiceContext("4) Consistência: criar → atualizar status → excluir — pedido some do DB", async () => {
+
 
     const c = await clientesService.createCliente(TENANT_ID, {
       nome: "CRUD",
       telefone: `55119${String(Date.now()).slice(-8)}${nanoid(3)}`,
     });
+    expect(c.success, c.error).toBe(true);
+    const cId = c.data?.id ?? 0;
+    expect(cId).toBeGreaterThan(0);
 
-    const created = await createPedidoSafe(TENANT_ID, buildPedidoInput(c.id, `55${nanoid(11)}`), ADMIN_ACTOR);
+    const created = await createPedidoSafe(TENANT_ID, buildPedidoInput(cId, `55${nanoid(11)}`), ADMIN_ACTOR, vendedorId);
     expect(created.success).toBe(true);
     const pid = created.pedidoId;
 
@@ -335,11 +329,11 @@ const validatedRecord = bIns;<string, unknown>);
 
     const db = await getDb();
     if (!db) throw new ValidationError("db");
-    await db.delete(clientes).where(eq(clientes.id, c.id));
+    await db.delete(clientes).where(eq(clientes.id, cId));
   });
 
-  it("5) Edge: pedido sem itens falha explicitamente", async () => {
-    if (!dbAvailable) return;
+  itWithServiceContext("5) Edge: pedido sem itens falha explicitamente", async () => {
+
     await expect(
       createPedidoSafe(TENANT_ID, {
         vendedorId,
@@ -354,12 +348,13 @@ const validatedRecord = bIns;<string, unknown>);
     ).rejects.toThrow();
   });
 
-  it("6) Edge: status inválido não passa silenciosamente", async () => {
-    if (!dbAvailable) return;
+  itWithServiceContext("6) Edge: status inválido não passa silenciosamente", async () => {
+
     const created = await createPedidoSafe(
       TENANT_ID,
       buildPedidoInput(clienteBaseId, `55119${nanoid(10)}`, "77.50"),
-      ADMIN_ACTOR
+      ADMIN_ACTOR,
+      vendedorId
     );
     expect(created.success).toBe(true);
 

@@ -6,7 +6,6 @@
 import { eq, and, sql } from "drizzle-orm";
 import { getDb } from '../db/index.js';
 import { DbResult, toDbResult } from '../_core/db-result.js';
-import { nanoid } from "nanoid";
 import { InfrastructureError, ValidationError } from '../_core/errors/typed-errors.js';
 
 // Tabela de controle de idempotência (se não existir, criar via schema)
@@ -53,7 +52,8 @@ export async function checkOperationProcessed(
 
   try {
     // Query usando SQL direto para verificar tabela de idempotência
-    const result = await db.execute(sql`
+    // mysql2 retorna tupla [rows, fields] — unwrap obrigatório
+    const [rows] = await db.execute(sql`
       SELECT id, tenant_id, operation_key, operation_type, processed_at, metadata
       FROM financial_idempotency 
       WHERE tenant_id = ${tenantId} 
@@ -62,11 +62,10 @@ export async function checkOperationProcessed(
       LIMIT 1
       FOR UPDATE
     `);
+    const records = Array.isArray(rows) ? rows : [];
+    const record = records[0] as Record<string, unknown> | undefined;
 
-    if (result.length > 0) {
-      const rawRecord = result[0] as unknown;
-      const record = rawRecord as Record<string, unknown>;
-      
+    if (record) {
       return {
         processed: true,
         record: {
@@ -99,29 +98,39 @@ export async function markOperationProcessed(
   operationKey: string,
   operationType: string,
   metadata?: Record<string, unknown>
-): Promise<void> {
+): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new InfrastructureError("Database not available");
 
-  const idempotencyId = nanoid(10);
-  
   try {
+    // id é INT AUTO_INCREMENT na tabela real — omitido do INSERT
     await db.execute(sql`
       INSERT INTO financial_idempotency (
-        id, tenant_id, operation_key, operation_type, processed_at, metadata
+        tenant_id, operation_key, operation_type, processed_at, metadata
       ) VALUES (
-        ${idempotencyId}, ${tenantId}, ${operationKey}, ${operationType}, NOW(), 
+        ${tenantId}, ${operationKey}, ${operationType}, NOW(), 
         ${metadata ? JSON.stringify(metadata) : null}
       )
     `);
   } catch (error) {
-    // Ignorar erro de duplicação (concorrência)
-    if (error instanceof Error && (!error.message.includes('UNIQUE constraint failed') && 
-        !error.message.includes('duplicate key'))) {
+    // Ignorar erro de duplicação (concorrência).
+    // drizzle embrulha erros MySQL em "Failed query:" — checar errno 1062 e mensagem também no cause.
+    const isDupError = (e: unknown): boolean => {
+      const errno = (e as { errno?: number })?.errno ??
+        (e instanceof Error && e.cause ? (e.cause as { errno?: number }).errno : undefined);
+      if (errno === 1062) return true;
+      const msgs = [e, e instanceof Error ? e.cause : null]
+        .map((x) => (x instanceof Error ? x.message : ''))
+        .join(' ');
+      return msgs.includes('UNIQUE constraint failed') || msgs.includes('duplicate key') || msgs.includes('Duplicate entry');
+    };
+    if (!isDupError(error)) {
       throw error;
     }
-    // Se for erro de duplicação, ignorar silenciosamente
+    // Duplicidade = outra chamada concorrente marcou primeiro → este caller é o perdedor
+    return false;
   }
+  return true;
 }
 
 /**
@@ -133,7 +142,7 @@ async function createIdempotencyTable(): Promise<void> {
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS financial_idempotency (
-      id VARCHAR(20) PRIMARY KEY,
+      id INT PRIMARY KEY AUTO_INCREMENT,
       tenant_id INTEGER NOT NULL,
       operation_key VARCHAR(255) NOT NULL,
       operation_type VARCHAR(50) NOT NULL,
@@ -180,7 +189,8 @@ export async function executeWithIdempotency<T>(
   operationType: string,
   resourceId: number,
   operation: () => Promise<T>,
-  operationData?: Record<string, unknown>
+  operationData?: Record<string, unknown>,
+  onDuplicate?: () => Promise<T>
 ): Promise<{ result: T; wasProcessed: boolean; idempotencyKey: string }> {
   // Gerar chave
   const operationKey = generateIdempotencyKey(operationType, resourceId, operationData);
@@ -193,7 +203,19 @@ export async function executeWithIdempotency<T>(
   }
   
   // Marcar como processado ANTES de executar (prevenção de race condition)
-  await markOperationProcessed(tenantId, operationKey, operationType, operationData);
+  const marked = await markOperationProcessed(tenantId, operationKey, operationType, operationData);
+
+  if (!marked) {
+    // Corrida perdida: chamada concorrente idêntica já marcou → NÃO executar a operação
+    if (onDuplicate) {
+      return {
+        result: await onDuplicate(),
+        wasProcessed: true,
+        idempotencyKey: operationKey
+      };
+    }
+    throw new ValidationError(`Operação ${operationType} para recurso ${resourceId} em processamento concorrente (dedup)`);
+  }
   
   try {
     // Executar operação
@@ -230,10 +252,12 @@ export async function cleanupOldIdempotencyRecords(daysToKeep: number = 90): Pro
   const db = await getDb();
   if (!db) throw new InfrastructureError("Database not available");
 
-  const result = await db.execute(sql`
-    DELETE FROM financial_idempotency 
+  // mysql2 retorna tupla [ResultSetHeader, fields] para DELETE
+  const [header] = await db.execute(sql`
+    DELETE FROM financial_idempotency
     WHERE processed_at < DATE_SUB(NOW(), INTERVAL ${daysToKeep} DAY)
   `);
+  const affected = typeof header?.affectedRows === 'number' ? header.affectedRows : 0;
 
-  return result.length; // número de registros removidos
+  return affected; // número de registros removidos
 }

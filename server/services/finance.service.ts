@@ -424,7 +424,17 @@ export async function baixarBoletoParcial(
         return { success: true, novoAberto, novoStatus };
       });
     },
-    { valorPago }
+    { valorPago },
+    async () => {
+      // Perdedor da corrida idempotente: retorna estado atual sem executar a baixa novamente
+      const current = await getBoletoById(tenantId, boletoId);
+      if (!current) throw new ValidationError("Boleto não encontrado");
+      return {
+        success: true,
+        novoAberto: Number(current.valorAberto),
+        novoStatus: current.status
+      };
+    }
   ).then(result => ({
     ...result.result,
     idempotencyKey: result.idempotencyKey
