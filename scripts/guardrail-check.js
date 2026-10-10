@@ -35,6 +35,19 @@ const P23_B_AUTHORIZED_FILES = [
   "drizzle/meta/0005_snapshot.json",
 ];
 
+// Janela formal P7 - Schema pedidos numero unique por tenant
+const P7_PEDIDOS_NUMERO_AUTHORIZED_FILES = [
+  "drizzle/schema.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/0010_pedidos_numero_unique_por_tenant.sql",
+];
+
+// Janela formal P7-GUARD - Alteração dos guards para criar a janela P7
+const P7_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   "server/db/core.ts",
@@ -127,6 +140,68 @@ function isP23_BAuthorizedSchemaUpdate(filePath) {
     return {
       authorized: true,
       reason: "P23-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (product sku schema)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P7 para unique composta pedidos (tenant_id, numero)
+ * Requer variável ERP_AUTHORIZED_SCHEMA_FIX=P7_PEDIDOS_NUMERO_TENANT_UNIQUE
+ * Permite somente os 3 arquivos específicos da P7
+ */
+function isP7AuthorizedSchemaUpdate(filePath) {
+  const authorizedValue = "P7_PEDIDOS_NUMERO_TENANT_UNIQUE";
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_FIX;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P7_PEDIDOS_NUMERO_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P7 formal window: ERP_AUTHORIZED_SCHEMA_FIX=" + authorizedValue + " (pedidos numero unique por tenant)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P7-GUARD para alteração dos próprios guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P7_PEDIDOS_NUMERO_TENANT_UNIQUE_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isP7GuardWindowAuthorized(filePath) {
+  const authorizedValue = "P7_PEDIDOS_NUMERO_TENANT_UNIQUE_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P7_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P7-GUARD formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard window creation)"
     };
   }
 
@@ -2712,6 +2787,34 @@ function main() {
     }
   }
 
+  // P7-GUARD-WINDOW check: if the 2 guard scripts are modified, require guard-update authorization variable
+  // IMPORTANTE: P7-GUARD-WINDOW vem antes de R10C-DOUBLE-BOOT — a janela mais nova reivindica os guards primeiro
+  const p7GuardWindowFilesInChanges = files.filter(f => P7_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p7GuardWindowFilesInChanges.length > 0) {
+    // Validate ALL files individually to ensure strict security
+    for (const file of p7GuardWindowFilesInChanges) {
+      const check = isP7GuardWindowAuthorized(file);
+      if (!check.authorized) {
+        console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+        console.error("Arquivo não autorizado: " + file + "\n");
+        console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=P7_PEDIDOS_NUMERO_TENANT_UNIQUE_GUARD_WINDOW\n");
+        process.exit(1);
+      }
+    }
+    // If all changed files are authorized by P7-GUARD-WINDOW, allow them
+    const nonP7GuardWindowFiles = files.filter(f => !P7_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+    if (nonP7GuardWindowFiles.length === 0) {
+      console.log("\n📋 Arquivos P7-GUARD-WINDOW detectados:");
+      p7GuardWindowFilesInChanges.forEach(f => console.log(" - " + f));
+      console.log("\n✔ Guardrail OK — P7-GUARD-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + process.env.ERP_AUTHORIZED_GUARD_UPDATE + " (guard window creation)\n");
+      return;
+    }
+    // If there are other files besides the authorized ones, continue checking
+    // But remove the authorized files from the list since they're already authorized
+    files.length = 0;
+    files.push(...nonP7GuardWindowFiles);
+  }
+
   // P23-R-10C-DOUBLE-BOOT check: if double-boot fix scope files or guard files are modified, require authorization variable
   // IMPORTANTE: R10C-DOUBLE-BOOT vem antes de R10B/R09Z/R09Y/R09X/R09W/R09U — reivindica guards e arquivos do fix primeiro
   // (server/_core/index.ts está também no claim de janelas anteriores: a janela mais nova reivindica primeiro)
@@ -3939,6 +4042,20 @@ function main() {
         console.log("\n📋 Arquivos P23-B detectados:");
         violations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — " + p23_bCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P7 authorized schema update: pedidos numero unique por tenant
+    // Requer variável ERP_AUTHORIZED_SCHEMA_FIX=P7_PEDIDOS_NUMERO_TENANT_UNIQUE
+    // Verifica se todas as violações são dos arquivos P7 autorizados
+    const allP7Authorized = violations.every(v => P7_PEDIDOS_NUMERO_AUTHORIZED_FILES.includes(v));
+    if (allP7Authorized) {
+      const p7Check = isP7AuthorizedSchemaUpdate(violations[0]);
+      if (p7Check.authorized) {
+        console.log("\n📋 Arquivos P7 detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p7Check.reason + "\n");
         return;
       }
     }

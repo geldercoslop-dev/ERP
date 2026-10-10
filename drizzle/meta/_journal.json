@@ -57,6 +57,13 @@
       "when": 1778380000000,
       "tag": "0009_create_stock_movements",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1791660000000,
+      "tag": "0010_pedidos_numero_unique_por_tenant",
+      "breakpoints": true
     }
   ]
 }

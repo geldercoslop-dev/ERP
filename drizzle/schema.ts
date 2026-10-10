@@ -256,7 +256,7 @@ export const pedidos = mysqlTable(
   {
     id: int("id").primaryKey().autoincrement(),
     tenantId: int("tenant_id").notNull(),
-    numero: int("numero").notNull().unique(),
+    numero: int("numero").notNull(),
     vendedorId: int("vendedor_id").notNull().references(() => vendedores.id),
     clienteId: int("cliente_id").notNull().references(() => clientes.id),
     clienteNome: varchar("cliente_nome", { length: 255 }).notNull(),
@@ -292,6 +292,7 @@ export const pedidos = mysqlTable(
     clienteIdx: index("pedidos_cliente_idx").on(table.clienteId),
     statusIdx: index("pedidos_status_idx").on(table.status),
     numeroIdx: index("pedidos_numero_idx").on(table.numero),
+    tenantNumeroUnique: unique("pedidos_tenant_numero_unique").on(table.tenantId, table.numero),
     createdAtIdx: index("pedidos_created_at_idx").on(table.createdAt),
   }),
 );

@@ -67,6 +67,19 @@ const P23_B_AUTHORIZED_FILES = [
   'drizzle/meta/0005_snapshot.json',
 ];
 
+// Janela formal P7 - Schema pedidos numero unique por tenant
+const P7_PEDIDOS_NUMERO_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0010_pedidos_numero_unique_por_tenant.sql',
+];
+
+// Janela formal P7-GUARD - Alteração dos guards para criar a janela P7
+const P7_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Áreas permitidas para evolução (domínio)
 const ALLOWED_PATTERNS = [
   'server/services/',
@@ -136,6 +149,70 @@ function isP23_BAuthorizedSchemaUpdate(filePath) {
     return {
       authorized: true,
       reason: 'P23-B formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (product sku schema)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P7 para unique composta pedidos (tenant_id, numero)
+ * Requer variável ERP_AUTHORIZED_SCHEMA_FIX=P7_PEDIDOS_NUMERO_TENANT_UNIQUE
+ * Permite somente os 3 arquivos específicos da P7
+ */
+function isP7AuthorizedSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P7_PEDIDOS_NUMERO_TENANT_UNIQUE';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_FIX;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P7_PEDIDOS_NUMERO_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P7 formal window: ERP_AUTHORIZED_SCHEMA_FIX=' + authorizedValue + ' (pedidos numero unique por tenant)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P7-GUARD para alteração dos próprios guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P7_PEDIDOS_NUMERO_TENANT_UNIQUE_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isP7GuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P7_PEDIDOS_NUMERO_TENANT_UNIQUE_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P7_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P7-GUARD formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard window creation)'
     };
   }
 
@@ -2653,6 +2730,18 @@ function isFrozen(file) {
   const p23_bCheck = isP23_BAuthorizedSchemaUpdate(file);
   if (p23_bCheck.authorized) {
     return { frozen: false, exception: true, p23_b: p23_bCheck.reason };
+  }
+
+  // Verifica janela formal P7 (schema pedidos numero unique por tenant)
+  const p7Check = isP7AuthorizedSchemaUpdate(file);
+  if (p7Check.authorized) {
+    return { frozen: false, exception: true, p7: p7Check.reason };
+  }
+
+  // Verifica janela formal P7-GUARD (alteração dos guards para janela P7)
+  const p7GuardCheck = isP7GuardWindowAuthorized(file);
+  if (p7GuardCheck.authorized) {
+    return { frozen: false, exception: true, p7_guard: p7GuardCheck.reason };
   }
 
   // Verifica janela formal P23-E (limpeza do journal drizzle)
