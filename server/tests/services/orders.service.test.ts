@@ -9,10 +9,25 @@ import {
 import { ADMIN_ACTOR } from "../../_core/service-actor";
 
 // Mock local para evitar import direto de DB
-const mockGetDb = vi.fn();
+// vi.hoisted garante inicialização antes das factories de vi.mock (hoisted acima dos consts)
+const mockGetDb = vi.hoisted(() => vi.fn());
 
 vi.mock("../../db/index", () => ({
   getDb: mockGetDb,
+  insertAuditLog: vi.fn().mockResolvedValue(undefined),
+  getInsertId: vi.fn(() => 1),
+  // Tabelas do schema consumidas pelo service — placeholders: os métodos do db mockado ignoram o alvo
+  pedidos: {},
+  itensPedido: {},
+  contasReceber: {},
+  produtos: {},
+  clienteVendedores: {},
+  counters: {},
+  idempotencyKeys: {},
+  pendencias: {},
+}));
+
+vi.mock("../../services/audit-service", () => ({
   insertAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -149,7 +164,8 @@ describe("OrdersService", () => {
     });
 
     it("deve lançar erro quando status está vazio", async () => {
-      await expect(updatePedidoStatus(1, 1, "")).rejects.toThrow("status obrigatório");
+      // Contrato atual: validateStatus produz 'pedido.status inválido: "<valor>" (permitido: ...)'
+      await expect(updatePedidoStatus(1, 1, "")).rejects.toThrow(/pedido\.status inválido/);
     });
   });
 
@@ -160,7 +176,13 @@ describe("OrdersService", () => {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
+        for: vi.fn().mockReturnThis(),
+        transaction: vi.fn(),
       };
+      // tx recebe o mesmo objeto encadeável — queries dentro da tx retornam [] (pedido inexistente)
+      mockDb.transaction.mockImplementation(
+        async (callback: (tx: typeof mockDb) => Promise<unknown>) => callback(mockDb),
+      );
       mockGetDb.mockResolvedValue(mockDb as never);
 
       await expect(cancelarPedidoSafe(1, 999, ADMIN_ACTOR)).rejects.toThrow(/Pedido não encontrado|NOT_FOUND/);
