@@ -5,7 +5,7 @@
 
 import { describe, expect } from "vitest";
 import { eq, and, inArray } from "drizzle-orm";
-import { nanoid } from "nanoid";
+
 import { runAsScriptService } from "../../core/service-context.js";
 import { getDb, getInsertId } from "../../db/index.js";
 import {
@@ -61,9 +61,11 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
     if (!conn) throw new Error("Database connection failed");
     dbConn = conn;
 
-    const suffix = nanoid(6).replace(/[^0-9a-z]/gi, "x");
-    const phoneA = (`11998${suffix}`).slice(0, 11);
-    const phoneB = (`11997${suffix}`).slice(0, 11);
+    // Suffix só dígitos: letras do nanoid colapsam no normalizeTelefone e podem
+    // colidir com resíduos de runs abortadas (dedupe por telefone no tenant).
+    const suffix = String(Date.now()).slice(-6);
+    const phoneA = `11998${suffix}`;
+    const phoneB = `11997${suffix}`;
 
     console.log("\n🔧 Setup: Criando cenários de teste...\n");
 
@@ -112,7 +114,10 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
       userId: userAId,
       vendedorIdPrincipal: vendedorAId,
     });
-    clienteAId = clienteAResult.id;
+    // createCliente retorna { success, data?: { id } }
+    expect(clienteAResult.success, clienteAResult.error).toBe(true);
+    expect(clienteAResult.data?.id).toBeGreaterThan(0);
+    clienteAId = clienteAResult.data?.id ?? 0;
 
     const clienteBResult = await clientesService.createCliente(TEST_TENANT_ID, {
       nome: "Cliente B",
@@ -120,7 +125,9 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
       userId: userBId,
       vendedorIdPrincipal: vendedorBId,
     });
-    clienteBId = clienteBResult.id;
+    expect(clienteBResult.success).toBe(true);
+    expect(clienteBResult.data?.id).toBeGreaterThan(0);
+    clienteBId = clienteBResult.data?.id ?? 0;
 
     const pedidoAResult = await createPedidoSafe(TEST_TENANT_ID, {
       vendedorId: vendedorAId,
@@ -177,58 +184,60 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
 
   itWithServiceContext("CLIENTES: Vendedor A acessa cliente A via service", async () => {
     const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorA, clienteAId);
-    expect(cliente).not.toBeNull();
-    expect(cliente?.id).toBe(clienteAId);
-    expect(cliente?.userId).toBe(actorVendedorA.userId);
+    expect(cliente.success).toBe(true);
+    expect(cliente.data?.id).toBe(clienteAId);
+    // ownership via clienteVendedores: acesso concedido prova vínculo vendedor→cliente
   });
 
   itWithServiceContext("CLIENTES: Vendedor A NÃO acessa cliente B via service", async () => {
     const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorA, clienteBId);
-    expect(cliente).toBeNull();
+    // acesso negado vem como { success: true, data: undefined }
+    expect(cliente.data ?? null).toBeNull();
   });
 
   itWithServiceContext("CLIENTES: Vendedor B acessa cliente B via service", async () => {
     const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorB, clienteBId);
-    expect(cliente).not.toBeNull();
-    expect(cliente?.id).toBe(clienteBId);
-    expect(cliente?.userId).toBe(actorVendedorB.userId);
+    expect(cliente.success).toBe(true);
+    expect(cliente.data?.id).toBe(clienteBId);
+    // ownership via clienteVendedores: acesso concedido prova vínculo vendedor→cliente
   });
 
   itWithServiceContext("CLIENTES: Vendedor B NÃO acessa cliente A via service", async () => {
     const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorB, clienteAId);
-    expect(cliente).toBeNull();
+    expect(cliente.data ?? null).toBeNull();
   });
 
   itWithServiceContext("CLIENTES: Admin acessa cliente A", async () => {
     const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorAdmin, clienteAId);
-    expect(cliente).not.toBeNull();
-    expect(cliente?.id).toBe(clienteAId);
+    expect(cliente.success).toBe(true);
+    expect(cliente.data?.id).toBe(clienteAId);
   });
 
   itWithServiceContext("CLIENTES: Admin acessa cliente B", async () => {
     const cliente = await clientesService.getClienteById(TEST_TENANT_ID, actorAdmin, clienteBId);
-    expect(cliente).not.toBeNull();
-    expect(cliente?.id).toBe(clienteBId);
+    expect(cliente.success).toBe(true);
+    expect(cliente.data?.id).toBe(clienteBId);
   });
 
   itWithServiceContext("CLIENTES: Vendedor A lista apenas seus clientes", async () => {
     const result = await clientesService.listClientes(TEST_TENANT_ID, actorVendedorA, {});
-    expect(result.items.length).toBeGreaterThan(0);
-    const clienteAInList = result.items.some((c: Cliente) => c.id === clienteAId);
+    expect(result.success).toBe(true);
+    expect(result.data?.items.length ?? 0).toBeGreaterThan(0);
+    const clienteAInList = (result.data?.items ?? []).some((c: Cliente) => c.id === clienteAId);
     expect(clienteAInList).toBe(true);
   });
 
   itWithServiceContext("CLIENTES: Vendedor A não pode editar cliente B", async () => {
-    await expect(
-      clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteBId, { nome: "Cliente B Editado" })
-    ).rejects.toThrow();
+    // updateCliente retorna { success, error? } — acesso negado não lança exceção
+    const result = await clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteBId, { nome: "Cliente B Editado" });
+    expect(result.success).toBe(false);
   });
 
   itWithServiceContext("CLIENTES: Vendedor A pode editar cliente A", async () => {
     const result = await clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteAId, {
       nome: "Cliente A Atualizado",
     });
-    expect(result.id).toBe(clienteAId);
+    expect(result.success).toBe(true);
   });
 
   itWithServiceContext("PEDIDOS: Vendedor A acessa pedido de cliente A", async () => {
@@ -266,13 +275,13 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
 
   itWithServiceContext("SEGURANÇA: getClienteById negado retorna null", async () => {
     const r = await clientesService.getClienteById(TEST_TENANT_ID, actorVendedorA, clienteBId);
-    expect(r).toBeNull();
+    expect(r.data ?? null).toBeNull();
   });
 
   itWithServiceContext("SEGURANÇA: updateCliente negado menciona acesso", async () => {
-    await expect(
-      clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteBId, { nome: "Teste" })
-    ).rejects.toThrow(/acesso|Acesso|negado/i);
+    const result = await clientesService.updateCliente(TEST_TENANT_ID, actorVendedorA, clienteBId, { nome: "Teste" });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/acesso|Acesso|negado/i);
   });
 
   itWithServiceContext("SEGURANÇA: PedidoAccessError FORBIDDEN em pedido alheio", async () => {
