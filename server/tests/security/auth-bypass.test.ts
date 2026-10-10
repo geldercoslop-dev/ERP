@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { apiRouter } from "../../api-routes.js";
+import { authMiddleware } from "../../middleware/auth.middleware.js";
 import { startHttpTestServer, type HttpTestServer } from "./_http-test-server.js";
 
 describe("P0.7 Security - AUTH bypass", () => {
@@ -8,7 +8,11 @@ describe("P0.7 Security - AUTH bypass", () => {
   beforeAll(async () => {
     process.env.JWT_SECRET = process.env.JWT_SECRET || "p0-7-test-secret";
     server = await startHttpTestServer((app) => {
-      app.use("/api", apiRouter);
+      // Rota fake protegida: prova o authMiddleware (apiRouter real é stub sem rotas REST)
+      app.use("/api", authMiddleware);
+      app.get("/api/clients", (_req, res) => {
+        res.status(200).json({ ok: true });
+      });
     });
     console.log(`[AUTH-BYPASS] server interno ativo em ${server.baseUrl}`);
   });
