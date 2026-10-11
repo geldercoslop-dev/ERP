@@ -1,20 +1,22 @@
 /**
  * Anti-regressão: CORS policy, headers Helmet, rate limit tRPC, auditoria de domínio.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 import express from "express";
-import http from "node:http";
 import { securityHeadersMiddleware } from "../security/security-headers.js";
 import { getAllowedOriginsList } from "../security/cors-policy.js";
 import { createLeoRateLimit, trpcPathIncludesProcedure } from "../security/rate-limiting.js";
 import type { Request } from "express";
-import * as db from "../db/index.js";
+import { AuditLogService } from "../services/audit-log.service.js";
 import { auditEntityChange } from "../_core/domain-audit.js";
+import {
+  beforeAllWithServiceContext,
+  itWithServiceContext,
+} from "./integration/service-context-harness.js";
 
 function listen(app: express.Application): Promise<{ port: number; close: () => Promise<void> }> {
   return new Promise((resolve, reject) => {
-    const server = http.createServer(app);
-    server.listen(0, "127.0.0.1", () => {
+    const server = app.listen(0, "127.0.0.1", () => {
       const addr = server.address();
       const port = typeof addr === "object" && addr ? addr.port : 0;
       resolve({
@@ -27,6 +29,10 @@ function listen(app: express.Application): Promise<{ port: number; close: () => 
 }
 
 describe("Produção — blindagem HTTP", () => {
+  // Bootstrap necessário: createLeoRateLimit usa Redis via getRedisClient(),
+  // que exige bootstrapServer() completado (bootstrap gate).
+  beforeAllWithServiceContext(async () => {});
+
   it("CORS: produção sem ALLOWED_ORIGINS → lista vazia (nunca *)", () => {
     const prev = process.env.NODE_ENV;
     const prevOrigins = process.env.ALLOWED_ORIGINS;
@@ -54,12 +60,16 @@ describe("Produção — blindagem HTTP", () => {
     }
   });
 
-  it("Rate limit LEO: após limite retorna 429 em path leo.*", async () => {
+  itWithServiceContext("Rate limit LEO: após limite retorna 429 em path leo.*", async () => {
+    // tenantId único por RUN (hoisted fora do middleware): a chave Redis é
+    // tenant:{id}:ratelimit:leo:{ip}:{endpoint} e persiste por windowMs;
+    // runs consecutivos com tenant fixo herdavam o contador esgotado.
+    const runTenantId = 100_000 + (Date.now() % 899_999);
     const app = express();
     app.use("/api/trpc", (req, _res, next) => {
       (req as express.Request & { user?: { userId: number; tenantId: number } }).user = {
         userId: 1,
-        tenantId: 1,
+        tenantId: runTenantId,
       };
       next();
     });
@@ -95,17 +105,21 @@ describe("Produção — blindagem HTTP", () => {
 });
 
 describe("Produção — audit domain", () => {
-  let spy: ReturnType<typeof vi.spyOn>;
+  let spy: MockInstance<typeof AuditLogService.logAction>;
 
   beforeEach(() => {
-    spy = vi.spyOn(db, "insertAuditLog").mockImplementation(async () => {});
+    // insertAuditLog foi removido de db/index; o contrato atual é
+    // auditEntityChange -> logAuditAction -> AuditLogService.logAction(payload).
+    spy = vi
+      .spyOn(AuditLogService, "logAction")
+      .mockImplementation(async () => ({ success: true }));
   });
 
   afterEach(() => {
     spy.mockRestore();
   });
 
-  it("auditEntityChange chama insertAuditLog com tenant e ação", async () => {
+  it("auditEntityChange chama AuditLogService.logAction com tenant e ação", async () => {
     await auditEntityChange(
       { user: { id: 10, role: "admin" } },
       7,
@@ -119,7 +133,8 @@ describe("Produção — audit domain", () => {
     expect(arg.tenantId).toBe(7);
     expect(arg.action).toBe("create");
     expect(arg.entity).toBe("cliente");
-    expect(arg.entityId).toBe(99);
+    // entityId é stringificado por domain-audit (String(entityId)).
+    expect(arg.entityId).toBe("99");
     expect(arg.actorUserId).toBe(10);
   });
 });
