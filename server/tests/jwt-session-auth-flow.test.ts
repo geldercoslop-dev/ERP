@@ -863,9 +863,9 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
     delete env.JWT_ACCESS_SECRET;
     delete env.JWT_REFRESH_SECRET;
     const out = execFileSync(
-      "pnpm",
-      ["exec", "tsx", scriptPath],
-      { env, encoding: "utf-8", shell: true, timeout: 90_000 }
+      process.execPath,
+      [join(process.cwd(), "node_modules/tsx/dist/cli.mjs"), scriptPath],
+      { env, encoding: "utf-8", timeout: 90_000 }
     );
     const result = JSON.parse(out.trim().split("\n").pop()!);
     // importOk=true: nenhuma execução sensível ocorreu no import (sem secrets, sem bootstrap)
