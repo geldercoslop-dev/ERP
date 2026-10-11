@@ -51,8 +51,11 @@ const pedidosCriados = new Set<number>();
 describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segurança + stress", () => {
   beforeAllWithServiceContext(async () => {
     const sfx = nanoid(8).replace(/[^0-9a-z]/gi, "h");
-    phoneA = (`21998${sfx}`).slice(0, 11);
-    phoneB = (`21997${sfx}`).slice(0, 11);
+    // Suffix do telefone só dígitos: letras do nanoid colapsam no normalizeTelefone
+    // e podem colidir com resíduos de runs abortadas (dedupe por telefone no tenant).
+    const phoneSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(-6);
+    phoneA = `21998${phoneSuffix}`;
+    phoneB = `21997${phoneSuffix}`;
 
     const userA = await createPedidosHeavyTestUser(TENANT, `heavy-a-${sfx}`, "Heavy A");
     userAId = userA.userId;

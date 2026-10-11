@@ -107,9 +107,12 @@ export async function createSkuOrderScenario(
   });
   const vendedorId = getInsertId(vendedorInsert);
 
+  // Suffix do telefone só dígitos: letras do nanoid colapsam no normalizeTelefone
+  // e podem colidir com resíduos de runs abortadas (dedupe por telefone no tenant).
+  const phoneSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(-6);
   const clienteResult = await clientesService.createCliente(tenantId, {
     nome: `Cliente ${scenarioName} ${suffix}`,
-    telefone: (`11996${suffix}`).slice(0, 11),
+    telefone: `11996${phoneSuffix}`,
     userId,
     vendedorIdPrincipal: vendedorId,
   });
