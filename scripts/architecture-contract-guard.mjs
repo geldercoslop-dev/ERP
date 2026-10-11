@@ -352,6 +352,20 @@ const P23_R08E_STOCK_MOVEMENTS_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P21-TENANTS - Restore da master table tenants (migration 0009)
+const P21_TENANTS_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0009_migration_1791761270681.sql',
+  'drizzle/meta/0009_snapshot.json',
+];
+
+// Janela formal P21-TENANTS-WINDOW - Guard files for tenants restore migration
+const P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Janela formal P23-APP-SECRET-WINDOW - App Secret middleware extraction
 const P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES = [
   'server/_core/index.ts',
@@ -1165,6 +1179,72 @@ function isP23_R08EStockMovementsWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: 'P23-R08E-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for stock movements)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P21-TENANTS para restore da master table tenants
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P21_TENANTS_RESTORE
+ * Permite somente os 4 arquivos específicos da migration 0009 tenants
+ */
+function isP21TenantsAuthorizedSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P21_TENANTS_RESTORE';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P21_TENANTS_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P21-TENANTS formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (tenants master table restore)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P21-TENANTS-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P21_TENANTS_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP21TenantsGuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P21_TENANTS_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P21-TENANTS-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for tenants restore)'
     };
   }
 
@@ -2802,6 +2882,18 @@ function isFrozen(file) {
   const p23_r08eWindowCheck = isP23_R08EStockMovementsWindowAuthorized(file);
   if (p23_r08eWindowCheck.authorized) {
     return { frozen: false, exception: true, p23_r08e_window: p23_r08eWindowCheck.reason };
+  }
+
+  // Verifica janela formal P21-TENANTS (restore da master table tenants)
+  const p21TenantsCheck = isP21TenantsAuthorizedSchemaUpdate(file);
+  if (p21TenantsCheck.authorized) {
+    return { frozen: false, exception: true, p21_tenants: p21TenantsCheck.reason };
+  }
+
+  // Verifica janela formal P21-TENANTS-WINDOW (guard update for tenants restore)
+  const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(file);
+  if (p21TenantsWindowCheck.authorized) {
+    return { frozen: false, exception: true, p21_tenants_window: p21TenantsWindowCheck.reason };
   }
 
   // Verifica janela formal P23-APP-SECRET (app secret middleware extraction)

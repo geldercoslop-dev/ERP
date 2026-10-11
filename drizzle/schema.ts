@@ -746,3 +746,22 @@ export const stockMovements = mysqlTable(
     tenantProdutoIdx: index("stock_movements_tenant_produto_idx").on(table.tenantId, table.produtoId),
   }),
 );
+
+// Master table de tenants — restaurada conforme baseline (.audit/baseline-inspection).
+// SEM references() entrantes/saídas agora: testes usam tenantIds arbitrários sem row
+// correspondente; FKs físicas ficam para follow-up dedicado.
+export const tenants = mysqlTable(
+  "tenants",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    nomeEmpresa: varchar("nome_empresa", { length: 255 }).notNull(),
+    plano: varchar("plano", { length: 50 }),
+    status: mysqlEnum("status", ["ACTIVE", "SUSPENDED", "DELETED"]).notNull().default("ACTIVE"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    nomeEmpresaIdx: index("tenants_nome_empresa_idx").on(table.nomeEmpresa),
+    statusIdx: index("tenants_status_idx").on(table.status),
+  }),
+);

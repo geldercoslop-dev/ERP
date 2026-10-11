@@ -48,6 +48,20 @@ const P7_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P21-TENANTS - Restore da master table tenants (migration 0009)
+const P21_TENANTS_AUTHORIZED_FILES = [
+  "drizzle/schema.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/0009_migration_1791761270681.sql",
+  "drizzle/meta/0009_snapshot.json",
+];
+
+// Janela formal P21-TENANTS-WINDOW - Guard files for tenants restore migration
+const P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   "server/db/core.ts",
@@ -202,6 +216,68 @@ function isP7GuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: "P7-GUARD formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard window creation)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P21-TENANTS para restore da master table tenants
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P21_TENANTS_RESTORE
+ * Permite somente os 4 arquivos específicos da migration 0009 tenants
+ */
+function isP21TenantsAuthorizedSchemaUpdate(filePath) {
+  const authorizedValue = "P21_TENANTS_RESTORE";
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P21_TENANTS_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P21-TENANTS formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (tenants master table restore)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P21-TENANTS-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P21_TENANTS_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isP21TenantsGuardWindowAuthorized(filePath) {
+  const authorizedValue = "P21_TENANTS_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P21-TENANTS-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for tenants restore)"
     };
   }
 
@@ -2787,6 +2863,37 @@ function main() {
     }
   }
 
+  // P21-TENANTS-WINDOW check: if guard files are modified with P21-TENANTS-WINDOW window active, allow them
+  // IMPORTANTE: P21-TENANTS-WINDOW vem antes de P7-GUARD-WINDOW — a janela mais nova reivindica os guards primeiro
+  const p21TenantsWindowFilesInChanges = files.filter(f => P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p21TenantsWindowFilesInChanges.length > 0) {
+    const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(p21TenantsWindowFilesInChanges[0]);
+    if (p21TenantsWindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of p21TenantsWindowFilesInChanges) {
+        const check = isP21TenantsGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=P21_TENANTS_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by P21-TENANTS-WINDOW, allow them
+      const nonP21TenantsWindowFiles = files.filter(f => !P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonP21TenantsWindowFiles.length === 0) {
+        console.log("\n📋 Arquivos P21-TENANTS-WINDOW detectados:");
+        p21TenantsWindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p21TenantsWindowCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonP21TenantsWindowFiles);
+    }
+  }
+
   // P7-GUARD-WINDOW check: if the 2 guard scripts are modified, require guard-update authorization variable
   // IMPORTANTE: P7-GUARD-WINDOW vem antes de R10C-DOUBLE-BOOT — a janela mais nova reivindica os guards primeiro
   const p7GuardWindowFilesInChanges = files.filter(f => P7_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
@@ -4216,6 +4323,53 @@ function main() {
         console.log("\n📋 Arquivos P23-COUNTERS + P23-COUNTERS-WINDOW detectados:");
         violations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — " + p23_countersCheck.reason + " + " + p23_countersWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P21-TENANTS authorized schema update: restore da master table tenants
+    // Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P21_TENANTS_RESTORE
+    // Permite somente os 4 arquivos da migration 0009 tenants
+    const allP21_Tenants_Authorized = violations.every(v => P21_TENANTS_AUTHORIZED_FILES.includes(v));
+    if (allP21_Tenants_Authorized && violations.length > 0) {
+      const p21TenantsCheck = isP21TenantsAuthorizedSchemaUpdate(violations[0]);
+      if (p21TenantsCheck.authorized) {
+        console.log("\n📋 Arquivos P21-TENANTS detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p21TenantsCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P21-TENANTS-WINDOW authorized guard update: guard files for tenants restore
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P21_TENANTS_GUARD_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allP21_TenantsWindow_Authorized = violations.every(v => P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allP21_TenantsWindow_Authorized && violations.length > 0) {
+      const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(violations[0]);
+      if (p21TenantsWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P21-TENANTS-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p21TenantsWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P21-TENANTS mixed case: both drizzle files and guard files staged
+    // Requires BOTH ERP_AUTHORIZED_SCHEMA_UPDATE and ERP_AUTHORIZED_GUARD_UPDATE
+    const hasP21DrizzleFiles = violations.some(v => P21_TENANTS_AUTHORIZED_FILES.includes(v));
+    const hasP21GuardFiles = violations.some(v => P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    const onlyP21Files = violations.every(v =>
+      P21_TENANTS_AUTHORIZED_FILES.includes(v) ||
+      P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)
+    );
+    if (hasP21DrizzleFiles && hasP21GuardFiles && onlyP21Files) {
+      const p21TenantsCheck = isP21TenantsAuthorizedSchemaUpdate(violations.find(v => P21_TENANTS_AUTHORIZED_FILES.includes(v)));
+      const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(violations.find(v => P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)));
+      if (p21TenantsCheck.authorized && p21TenantsWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P21-TENANTS + P21-TENANTS-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p21TenantsCheck.reason + " + " + p21TenantsWindowCheck.reason + "\n");
         return;
       }
     }

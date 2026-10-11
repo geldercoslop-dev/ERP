@@ -64,6 +64,13 @@
       "when": 1791660000000,
       "tag": "0010_pedidos_numero_unique_por_tenant",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1791761272300,
+      "tag": "0009_migration_1791761270681",
+      "breakpoints": true
     }
   ]
 }

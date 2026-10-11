@@ -31,18 +31,19 @@ async function main(): Promise<void> {
   try {
     console.log("[seed-tenant] Criando tenant padrão...");
     
-    // Inserir tenant padrão
-    const [tenantResult] = await connection.execute(
-      `INSERT INTO tenants (nome_empresa, plano, status, createdAt) VALUES (?, ?, ?, NOW())`,
+    // Inserir tenant padrão (idempotente: id=1, alinhado com migration)
+    await connection.execute(
+      `INSERT INTO tenants (id, nome_empresa, plano, status) VALUES (1, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE nome_empresa = VALUES(nome_empresa)`,
       ["Empresa Padrão", "PROFESSIONAL", "ACTIVE"]
     );
     
-    const tenantId = (tenantResult as any).insertId;
-    console.log(`[seed-tenant] Tenant criado com ID: ${tenantId}`);
+    const tenantId = 1;
+    console.log(`[seed-tenant] Tenant padrão garantido com ID: ${tenantId}`);
     
     // Inserir usuário admin
     const [userResult] = await connection.execute(
-      `INSERT INTO users (tenantId, openId, name, email, role, createdAt, updatedAt, lastSignedIn) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
+      `INSERT INTO users (tenant_id, open_id, name, email, role, created_at, updated_at, last_signed_in) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
       [tenantId, "admin-local", "Administrador", "admin@local.com", "admin"]
     );
     
@@ -51,7 +52,7 @@ async function main(): Promise<void> {
     
     // Inserir vendedor admin
     const [vendedorResult] = await connection.execute(
-      `INSERT INTO vendedores (tenantId, userId, nome, admin, ativo, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+      `INSERT INTO vendedores (tenant_id, user_id, nome, admin, ativo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
       [tenantId, userId, "Administrador", 1, 1]
     );
     
