@@ -30,6 +30,8 @@ import {
 
 const TENANT = 998;
 
+// Flag para ativar testes de integração com banco real
+const INTEGRATION_DB_READY = true;
 
 let userAId = 0;
 let userBId = 0;
@@ -65,25 +67,29 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
     actorA = { role: "vendedor", userId: userAId, vendedorId: vendedorAId };
     actorB = { role: "vendedor", userId: userBId, vendedorId: vendedorBId };
 
-    clienteAId = (
-      await clientesService.createCliente(TENANT, {
-        nome: "Cliente Heavy A",
-        telefone: phoneA,
-        userId: userAId,
-        vendedorIdPrincipal: vendedorAId,
-      })
-    ).id;
-    clienteBId = (
-      await clientesService.createCliente(TENANT, {
-        nome: "Cliente Heavy B",
-        telefone: phoneB,
-        userId: userBId,
-        vendedorIdPrincipal: vendedorBId,
-      })
-    ).id;
+    const clienteAResult = await clientesService.createCliente(TENANT, {
+      nome: "Cliente Heavy A",
+      telefone: phoneA,
+      userId: userAId,
+      vendedorIdPrincipal: vendedorAId,
+    });
+    // createCliente retorna { success, data?: { id } }
+    expect(clienteAResult.success, clienteAResult.error).toBe(true);
+    expect(clienteAResult.data?.id).toBeGreaterThan(0);
+    clienteAId = clienteAResult.data?.id ?? 0;
+
+    const clienteBResult = await clientesService.createCliente(TENANT, {
+      nome: "Cliente Heavy B",
+      telefone: phoneB,
+      userId: userBId,
+      vendedorIdPrincipal: vendedorBId,
+    });
+    expect(clienteBResult.success, clienteBResult.error).toBe(true);
+    expect(clienteBResult.data?.id).toBeGreaterThan(0);
+    clienteBId = clienteBResult.data?.id ?? 0;
   });
 
-  afterAll(async () => {
+  afterAllWithServiceContext(async () => {
     await cleanupPedidosHeavyTestData(TENANT, {
       pedidoIds: [...pedidosCriados],
       clienteIds: [clienteAId, clienteBId],
@@ -176,7 +182,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
     }
   });
 
-  it("erros: payload inválido → exceção controlada", async () => {
+  itWithServiceContext("erros: payload inválido → exceção controlada", async () => {
     await expect(
       createPedidoSafe(TENANT, {
         vendedorId: vendedorAId,
@@ -219,7 +225,7 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
             custo: 0,
           },
         ],
-      }, ADMIN_ACTOR)
+      }, actorA)
     ).rejects.toThrow(/Quantidade|quantidade|inválid/i);
   });
 
