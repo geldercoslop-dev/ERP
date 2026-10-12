@@ -5,6 +5,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from './integration/service-context-harness.js';
+import { ensureTenantExists } from './integration/helpers/tenant.helper.js';
 import * as usersService from '../services/users.service.js';
 import * as inventoryService from '../services/inventory.service.js';
 import * as clientesService from '../services/clientes.service.js';
@@ -43,6 +44,10 @@ describe('Multi-Tenant Isolation - JWT-Based Security Test', () => {
       await dbConn.delete(clientes).where(or(eq(clientes.tenantId, TENANT_A), eq(clientes.tenantId, TENANT_B)));
       await dbConn.delete(vendedores).where(or(eq(vendedores.tenantId, TENANT_A), eq(vendedores.tenantId, TENANT_B)));
       await dbConn.delete(users).where(or(eq(users.tenantId, TENANT_A), eq(users.tenantId, TENANT_B)));
+
+      // Pais em `tenants` antes de users/vendedores via service (fundação p/ FK futura)
+      await ensureTenantExists(dbConn, TENANT_A);
+      await ensureTenantExists(dbConn, TENANT_B);
     }
 
     // Criar userA no tenantA

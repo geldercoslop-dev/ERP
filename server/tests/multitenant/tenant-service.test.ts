@@ -3,6 +3,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from '../integration/service-context-harness.js';
+import { ensureTenantExists } from '../integration/helpers/tenant.helper.js';
 import * as usersService from '../../services/users.service.js';
 import * as inventoryService from '../../services/inventory.service.js';
 import { getDb, schema } from '../../db/index.js';
@@ -15,7 +16,13 @@ describe('Validação Direta de Filtros em Serviços', () => {
   const TENANT_2 = 2002;
 
   // Bootstrap + contexto ALS obrigatórios: getDb/services falham sem bootstrapServer()
-  beforeAllWithServiceContext(async () => {});
+  // Pais em `tenants` antes de upsertUser/inserts tenant-scoped (fundação p/ FK futura)
+  beforeAllWithServiceContext(async () => {
+    const dbConn = await getDb();
+    if (!dbConn) throw new Error("Database connection failed");
+    await ensureTenantExists(dbConn, TENANT_1);
+    await ensureTenantExists(dbConn, TENANT_2);
+  });
 
   itWithServiceContext('upsertUser deve respeitar o tenantId fornecido', async () => {
     const dbConn = await getDb();
