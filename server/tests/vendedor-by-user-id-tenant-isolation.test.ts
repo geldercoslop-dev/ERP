@@ -23,6 +23,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./integration/service-context-harness.js";
+import { ensureTenantExists } from "./integration/helpers/tenant.helper.js";
 import {
   users,
   vendedores,
@@ -42,9 +43,9 @@ import { resolveServiceActor } from "../_core/service-actor.js";
 import { validateTenantOwnership } from "../_core/tenant-ownership.js";
 
 // Dois tenants distintos reservados SOMENTE para este teste
-// (range 93xxx, diferente de R09U/R09W/R09X/R09Y — sem interferência)
-const TENANT_A = 93021;
-const TENANT_B = 93022;
+// (range 94xxx — 93021/93022 colidia com R09Y name-permission; range 94 resolve)
+const TENANT_A = 94031;
+const TENANT_B = 94032;
 
 const SENHA_A = "r09z-Senha-A!";
 const SENHA_B = "r09z-Senha-B!";
@@ -122,6 +123,10 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
     openIdB = `r09z_b_${suffix}@test.local`;
     nomeVendA = `Vend R09Z A ${suffix}`;
     nomeVendB = `Vend R09Z B ${suffix}`;
+
+    // Pais em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TENANT_A);
+    await ensureTenantExists(dbConn, TENANT_B);
 
     // ─── Users ───
     const insUA = await dbConn.insert(users).values({

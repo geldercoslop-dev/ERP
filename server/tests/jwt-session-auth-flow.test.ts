@@ -25,6 +25,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./integration/service-context-harness.js";
+import { ensureTenantExists } from "./integration/helpers/tenant.helper.js";
 import { users, vendedores } from "../../drizzle/schema.js";
 import * as usersService from "../services/users.service.js";
 import { appRouter } from "../routers.js";
@@ -188,6 +189,10 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
     const conn = await getDb();
     if (!conn) throw new Error("Database connection failed");
     dbConn = conn;
+
+    // Pais em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TENANT_C);
+    await ensureTenantExists(dbConn, TENANT_D);
 
     const suffix = nanoid(6).replace(/[^0-9a-z]/gi, "x");
     openIdAdmin = `r10b_adm_${suffix}@test.local`;
