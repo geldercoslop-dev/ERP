@@ -428,6 +428,59 @@ const P28D3_TROCAR_VENDEDOR_PRINCIPAL_GUARD_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal AUTH-LOGIN-HARDENING - Hardening de login/auth:
+// refresh de sessão, logout robusto, redução de token em localStorage,
+// testes auth (logout/refresh/rate-limit/adminProcedure), UI label/normalizeRole
+// e limpeza controlada de auth dead code.
+const AUTH_LOGIN_HARDENING_AUTHORIZED_FILES = [
+  // Backend
+  'server/routers.ts',
+  'server/_core/context.ts',
+  'server/_core/trpc.ts',
+  'server/_core/tenant.ts',
+  'server/_core/cookies.ts',
+  'server/_core/secure-context.ts',
+  'server/security/jwt-auth.ts',
+  'server/middlewares/jwt-auth-middleware.ts',
+  'server/middleware/auth.middleware.ts',
+  'server/middlewares/require-auth-context.ts',
+  'server/services/users.service.ts',
+  // Client
+  'client/src/pages/Login.tsx',
+  'client/src/store/authStore.ts',
+  'client/src/lib/security/sessionToken.ts',
+  'client/src/lib/security/apiClient.ts',
+  'client/src/lib/apiClient.ts',
+  'client/src/lib/trpcClient.ts',
+  'client/src/lib/routeGuards.ts',
+  'client/src/lib/security/routeGuards.ts',
+  'client/src/App.tsx',
+  'client/src/components/ProtectedRoute.tsx',
+  'client/src/components/routing/ProtectedRoute.tsx',
+  'client/src/hooks/useRouteAccess.tsx',
+  'client/src/_core/hooks/useAuth.ts',
+  // Testes
+  'server/tests/jwt-session-auth-flow.test.ts',
+  'server/tests/auth-bypass.test.ts',
+  'server/tests/security/auth-bypass.test.ts',
+  'server/tests/tenant-auth.test.ts',
+  'server/tests/multitenant/tenant-auth.test.ts',
+  'tests/auth-security.test.ts',
+  'server/tests/auth-refresh-logout.test.ts',
+  'server/tests/auth-rate-limit.test.ts',
+  'server/tests/auth-admin-procedure.test.ts',
+  // Dead code auth (somente se confirmados não montados)
+  'server/routers/smart-auth.ts',
+  'server/_core/auth-detection.ts',
+  'server/_core/auth-security.ts',
+];
+
+// Janela formal AUTH-LOGIN-HARDENING-WINDOW - Guard files for auth login hardening window
+const AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Janela formal P26 - Add official db:bootstrap:fresh script (fresh empty-DB bootstrap)
 const P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES = [
   'package.json',
@@ -1584,6 +1637,72 @@ function isP28D3TrocarVendedorPrincipalGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: 'P28D3-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for clientes troca de vendedor principal)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-LOGIN-HARDENING para implementações de auth
+ * Requer variável ERP_AUTHORIZED_AUTH_HARDENING_UPDATE=AUTH_LOGIN_HARDENING_V1
+ * Permite somente os arquivos específicos da lista AUTH_LOGIN_HARDENING_AUTHORIZED_FILES
+ */
+function isAuthLoginHardeningAuthorizedUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'AUTH_LOGIN_HARDENING_V1';
+  const envValue = process.env.ERP_AUTHORIZED_AUTH_HARDENING_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_LOGIN_HARDENING_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'AUTH-LOGIN-HARDENING formal window: ERP_AUTHORIZED_AUTH_HARDENING_UPDATE=' + authorizedValue + ' (auth login hardening)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-LOGIN-HARDENING-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_LOGIN_HARDENING_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isAuthLoginHardeningGuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'AUTH_LOGIN_HARDENING_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'AUTH-LOGIN-HARDENING-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for auth login hardening)'
     };
   }
 
@@ -3340,6 +3459,19 @@ function isFrozen(file) {
   const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(file);
   if (p21TenantsWindowCheck.authorized) {
     return { frozen: false, exception: true, p21_tenants_window: p21TenantsWindowCheck.reason };
+  }
+
+  // Verifica janela formal AUTH-LOGIN-HARDENING (hardening de login/auth)
+  // IMPORTANTE: AUTH-LOGIN-HARDENING vem antes de P28D3/P28C/P28B/P26 — a janela mais nova reivindica primeiro
+  const authHardeningCheck = isAuthLoginHardeningAuthorizedUpdate(file);
+  if (authHardeningCheck.authorized) {
+    return { frozen: false, exception: true, auth_login_hardening: authHardeningCheck.reason };
+  }
+
+  // Verifica janela formal AUTH-LOGIN-HARDENING-WINDOW (guard update for auth login hardening)
+  const authHardeningWindowCheck = isAuthLoginHardeningGuardWindowAuthorized(file);
+  if (authHardeningWindowCheck.authorized) {
+    return { frozen: false, exception: true, auth_login_hardening_window: authHardeningWindowCheck.reason };
   }
 
   // Verifica janela formal P28D3 (troca de vendedor principal de cliente existente)

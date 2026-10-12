@@ -137,6 +137,59 @@ const P28D3_TROCAR_VENDEDOR_PRINCIPAL_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal AUTH-LOGIN-HARDENING - Hardening de login/auth:
+// refresh de sessão, logout robusto, redução de token em localStorage,
+// testes auth (logout/refresh/rate-limit/adminProcedure), UI label/normalizeRole
+// e limpeza controlada de auth dead code.
+const AUTH_LOGIN_HARDENING_AUTHORIZED_FILES = [
+  // Backend
+  "server/routers.ts",
+  "server/_core/context.ts",
+  "server/_core/trpc.ts",
+  "server/_core/tenant.ts",
+  "server/_core/cookies.ts",
+  "server/_core/secure-context.ts",
+  "server/security/jwt-auth.ts",
+  "server/middlewares/jwt-auth-middleware.ts",
+  "server/middleware/auth.middleware.ts",
+  "server/middlewares/require-auth-context.ts",
+  "server/services/users.service.ts",
+  // Client
+  "client/src/pages/Login.tsx",
+  "client/src/store/authStore.ts",
+  "client/src/lib/security/sessionToken.ts",
+  "client/src/lib/security/apiClient.ts",
+  "client/src/lib/apiClient.ts",
+  "client/src/lib/trpcClient.ts",
+  "client/src/lib/routeGuards.ts",
+  "client/src/lib/security/routeGuards.ts",
+  "client/src/App.tsx",
+  "client/src/components/ProtectedRoute.tsx",
+  "client/src/components/routing/ProtectedRoute.tsx",
+  "client/src/hooks/useRouteAccess.tsx",
+  "client/src/_core/hooks/useAuth.ts",
+  // Testes
+  "server/tests/jwt-session-auth-flow.test.ts",
+  "server/tests/auth-bypass.test.ts",
+  "server/tests/security/auth-bypass.test.ts",
+  "server/tests/tenant-auth.test.ts",
+  "server/tests/multitenant/tenant-auth.test.ts",
+  "tests/auth-security.test.ts",
+  "server/tests/auth-refresh-logout.test.ts",
+  "server/tests/auth-rate-limit.test.ts",
+  "server/tests/auth-admin-procedure.test.ts",
+  // Dead code auth (somente se confirmados não montados)
+  "server/routers/smart-auth.ts",
+  "server/_core/auth-detection.ts",
+  "server/_core/auth-security.ts",
+];
+
+// Janela formal AUTH-LOGIN-HARDENING-WINDOW - Guard files for auth login hardening window
+const AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P28B para campos GRS de clientes + unique por tenant
  * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
@@ -316,6 +369,68 @@ function isP28D3TrocarVendedorPrincipalGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: "P28D3-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for clientes troca de vendedor principal)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-LOGIN-HARDENING para implementações de auth
+ * Requer variável ERP_AUTHORIZED_AUTH_HARDENING_UPDATE=AUTH_LOGIN_HARDENING_V1
+ * Permite somente os arquivos específicos da lista AUTH_LOGIN_HARDENING_AUTHORIZED_FILES
+ */
+function isAuthLoginHardeningAuthorizedUpdate(filePath) {
+  const authorizedValue = "AUTH_LOGIN_HARDENING_V1";
+  const envValue = process.env.ERP_AUTHORIZED_AUTH_HARDENING_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_LOGIN_HARDENING_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "AUTH-LOGIN-HARDENING formal window: ERP_AUTHORIZED_AUTH_HARDENING_UPDATE=" + authorizedValue + " (auth login hardening)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-LOGIN-HARDENING-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_LOGIN_HARDENING_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isAuthLoginHardeningGuardWindowAuthorized(filePath) {
+  const authorizedValue = "AUTH_LOGIN_HARDENING_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "AUTH-LOGIN-HARDENING-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for auth login hardening)"
     };
   }
 
@@ -3289,6 +3404,68 @@ function main() {
     }
   }
 
+  // AUTH-LOGIN-HARDENING-WINDOW check: if guard files are modified with AUTH-LOGIN-HARDENING-WINDOW window active, allow them
+  // IMPORTANTE: AUTH-LOGIN-HARDENING-WINDOW vem antes de P28D3-WINDOW/P28C-WINDOW/P28B-WINDOW/P26-WINDOW — a janela mais nova reivindica os guards primeiro
+  const authHardeningWindowFilesInChanges = files.filter(f => AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (authHardeningWindowFilesInChanges.length > 0) {
+    const authWindowCheck = isAuthLoginHardeningGuardWindowAuthorized(authHardeningWindowFilesInChanges[0]);
+    if (authWindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of authHardeningWindowFilesInChanges) {
+        const check = isAuthLoginHardeningGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=AUTH_LOGIN_HARDENING_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by AUTH-WINDOW, allow them
+      const nonAuthWindowFiles = files.filter(f => !AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonAuthWindowFiles.length === 0) {
+        console.log("\n📋 Arquivos AUTH-LOGIN-HARDENING-WINDOW detectados:");
+        authHardeningWindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authWindowCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonAuthWindowFiles);
+    }
+  }
+
+  // AUTH-LOGIN-HARDENING check: arquivos de conteúdo autorizados pela janela AUTH-LOGIN-HARDENING
+  // IMPORTANTE: vem antes das janelas P28D3/P28C/R10* que reivindicam server/routers.ts — a janela mais nova reivindica primeiro
+  const authHardeningFilesInChanges = files.filter(f => AUTH_LOGIN_HARDENING_AUTHORIZED_FILES.includes(f));
+  if (authHardeningFilesInChanges.length > 0) {
+    const authCheck = isAuthLoginHardeningAuthorizedUpdate(authHardeningFilesInChanges[0]);
+    if (authCheck.authorized) {
+      // Validate ALL AUTH files individually to ensure strict security
+      for (const file of authHardeningFilesInChanges) {
+        const check = isAuthLoginHardeningAuthorizedUpdate(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — auth login hardening requer ERP_AUTHORIZED_AUTH_HARDENING_UPDATE=AUTH_LOGIN_HARDENING_V1\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by AUTH, allow them
+      const nonAuthFiles = files.filter(f => !AUTH_LOGIN_HARDENING_AUTHORIZED_FILES.includes(f));
+      if (nonAuthFiles.length === 0) {
+        console.log("\n📋 Arquivos AUTH-LOGIN-HARDENING detectados:");
+        authHardeningFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonAuthFiles);
+    }
+  }
+
   // P28D3-WINDOW check: if guard files are modified with P28D3-WINDOW window active, allow them
   // IMPORTANTE: P28D3-WINDOW vem antes de P28C-WINDOW/P28B-WINDOW/P26-WINDOW — a janela mais nova reivindica os guards primeiro
   const p28d3WindowFilesInChanges = files.filter(f => P28D3_TROCAR_VENDEDOR_PRINCIPAL_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
@@ -4633,6 +4810,35 @@ function main() {
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
+    // AUTH-LOGIN-HARDENING authorized update: hardening de login/auth
+    // Requer variável ERP_AUTHORIZED_AUTH_HARDENING_UPDATE=AUTH_LOGIN_HARDENING_V1
+    // Permite somente os arquivos específicos da lista AUTH_LOGIN_HARDENING_AUTHORIZED_FILES
+    // IMPORTANTE: AUTH-LOGIN-HARDENING vem antes das janelas anteriores — a janela mais nova reivindica primeiro
+    const allAuth_Authorized = violations.every(v => AUTH_LOGIN_HARDENING_AUTHORIZED_FILES.includes(v));
+    if (allAuth_Authorized && violations.length > 0) {
+      const authCheck = isAuthLoginHardeningAuthorizedUpdate(violations[0]);
+      if (authCheck.authorized) {
+        console.log("\n📋 Arquivos AUTH-LOGIN-HARDENING detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // AUTH-LOGIN-HARDENING-WINDOW authorized guard update: guard files for auth login hardening
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_LOGIN_HARDENING_GUARD_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allAuth_Window_Authorized = violations.every(v => AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allAuth_Window_Authorized && violations.length > 0) {
+      const authWindowCheck = isAuthLoginHardeningGuardWindowAuthorized(violations[0]);
+      if (authWindowCheck.authorized) {
+        console.log("\n📋 Arquivos AUTH-LOGIN-HARDENING-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
     // P28D3 authorized update: troca de vendedor principal de cliente existente
     // Requer variável ERP_AUTHORIZED_CLIENTES_VENDEDOR_PRINCIPAL_UPDATE=P28D3_TROCAR_VENDEDOR_PRINCIPAL
     // Permite somente os 6 arquivos específicos da P28D3
