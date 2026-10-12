@@ -412,6 +412,22 @@ const P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P28D3-TROCAR-VENDEDOR-PRINCIPAL - Admin troca vendedor principal de cliente existente
+const P28D3_TROCAR_VENDEDOR_PRINCIPAL_AUTHORIZED_FILES = [
+  'server/routers.ts',
+  'server/services/clientes.service.ts',
+  'server/services/cached-clientes.service.ts',
+  'shared/types/payloads-clientes.ts',
+  'server/tests/clientes-vendedor-principal.test.ts',
+  'tests/integration/ownership.test.ts',
+];
+
+// Janela formal P28D3-WINDOW - Guard files for clientes troca de vendedor principal window
+const P28D3_TROCAR_VENDEDOR_PRINCIPAL_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Janela formal P26 - Add official db:bootstrap:fresh script (fresh empty-DB bootstrap)
 const P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES = [
   'package.json',
@@ -1502,6 +1518,72 @@ function isP28CClientesGrsGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: 'P28C-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for clientes grs fields backend)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P28D3 para troca de vendedor principal de cliente existente
+ * Requer variável ERP_AUTHORIZED_CLIENTES_VENDEDOR_PRINCIPAL_UPDATE=P28D3_TROCAR_VENDEDOR_PRINCIPAL
+ * Permite somente os 6 arquivos específicos da P28D3 (router/service/cached/tipos/testes)
+ */
+function isP28D3TrocarVendedorPrincipalAuthorizedUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P28D3_TROCAR_VENDEDOR_PRINCIPAL';
+  const envValue = process.env.ERP_AUTHORIZED_CLIENTES_VENDEDOR_PRINCIPAL_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28D3_TROCAR_VENDEDOR_PRINCIPAL_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P28D3-TROCAR-VENDEDOR-PRINCIPAL formal window: ERP_AUTHORIZED_CLIENTES_VENDEDOR_PRINCIPAL_UPDATE=' + authorizedValue + ' (clientes troca de vendedor principal)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P28D3-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P28D3_TROCAR_VENDEDOR_PRINCIPAL_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP28D3TrocarVendedorPrincipalGuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P28D3_TROCAR_VENDEDOR_PRINCIPAL_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28D3_TROCAR_VENDEDOR_PRINCIPAL_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P28D3-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for clientes troca de vendedor principal)'
     };
   }
 
@@ -3258,6 +3340,19 @@ function isFrozen(file) {
   const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(file);
   if (p21TenantsWindowCheck.authorized) {
     return { frozen: false, exception: true, p21_tenants_window: p21TenantsWindowCheck.reason };
+  }
+
+  // Verifica janela formal P28D3 (troca de vendedor principal de cliente existente)
+  // IMPORTANTE: P28D3 vem antes de P28C/P28B/P26 — a janela mais nova reivindica primeiro
+  const p28d3ClientesCheck = isP28D3TrocarVendedorPrincipalAuthorizedUpdate(file);
+  if (p28d3ClientesCheck.authorized) {
+    return { frozen: false, exception: true, p28d3_trocar_vendedor_principal: p28d3ClientesCheck.reason };
+  }
+
+  // Verifica janela formal P28D3-WINDOW (guard update for clientes troca de vendedor principal)
+  const p28d3WindowCheck = isP28D3TrocarVendedorPrincipalGuardWindowAuthorized(file);
+  if (p28d3WindowCheck.authorized) {
+    return { frozen: false, exception: true, p28d3_trocar_vendedor_principal_window: p28d3WindowCheck.reason };
   }
 
   // Verifica janela formal P28C (clientes GRS backend fields: service/router/tipos/testes)
