@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   decimal,
   index,
   int,
@@ -209,6 +210,13 @@ export const clientes = mysqlTable(
     condominio: text("condominio"),
     bloco: varchar("bloco", { length: 50 }),
     apartamento: varchar("apartamento", { length: 50 }),
+    cep: varchar("cep", { length: 9 }),
+    cpf: varchar("cpf", { length: 14 }),
+    dataNascimento: date("data_nascimento"),
+    observacao: text("observacao"),
+    situacao: mysqlEnum("situacao", ["ATIVO", "INATIVO", "PROSPECT"])
+      .default("ATIVO")
+      .notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
@@ -221,7 +229,10 @@ export const clientes = mysqlTable(
     ),
     nomeIdx: index("clientes_nome_idx").on(table.nome),
     telefoneIdx: index("clientes_telefone_idx").on(table.telefone),
-    clienteUnicoNorm: unique("clientes_telefone_nome_sobrenome_unique").on(
+    clienteUnicoNorm: unique(
+      "clientes_tenant_telefone_nome_sobrenome_unique",
+    ).on(
+      table.tenantId,
       table.telefoneNorm,
       table.nomeNorm,
       table.sobrenomeNorm,
