@@ -5,6 +5,9 @@ import { Search, UserPlus, Pencil, Trash2, Users } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Textarea } from "../../components/ui/textarea";
+import { Badge } from "../../components/ui/badge";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { PAGE_WRAPPER, PAGE_MAIN } from "../../components/layout/pageLayout";
 
@@ -12,6 +15,8 @@ import { trpc } from "../../lib/trpcClient";
 import { maskPhoneBr, onlyDigits, maskCpf, maskCep } from "../../lib/masks";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
+
+type SituacaoCliente = "ATIVO" | "INATIVO" | "PROSPECT";
 
 type ClienteForm = {
   id?: number;
@@ -26,6 +31,12 @@ type ClienteForm = {
   cidade?: string;
   uf?: string;
   referencia?: string;
+  condominio?: string;
+  bloco?: string;
+  apartamento?: string;
+  dataNascimento?: string;
+  observacao?: string;
+  situacao?: SituacaoCliente;
 };
 
 /** Linha retornada pela listagem (API paginada ou legado). */
@@ -43,6 +54,13 @@ function extractClientesList(d: unknown): ClienteListRow[] {
 
 function upper(v: string) {
   return (v ?? "").toUpperCase();
+}
+
+/** YYYY-MM-DD (ou ISO) -> dd/mm/aaaa, sem depender de fuso. */
+function fmtDateBr(v?: string) {
+  const s = String(v ?? "").slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
 }
 
 
@@ -93,6 +111,7 @@ export default function ClientesConnected() {
   });
 
   const [busca, setBusca] = useState("");
+  const [filtroSituacao, setFiltroSituacao] = useState<"TODAS" | SituacaoCliente>("TODAS");
   const [editId, setEditId] = useState<number | null>(null);
 
   const [form, setForm] = useState<ClienteForm>({
@@ -107,6 +126,12 @@ export default function ClientesConnected() {
     cidade: "",
     uf: "",
     referencia: "",
+    condominio: "",
+    bloco: "",
+    apartamento: "",
+    dataNascimento: "",
+    observacao: "",
+    situacao: "ATIVO",
   });
 
   function reset() {
@@ -122,6 +147,12 @@ export default function ClientesConnected() {
       cidade: "",
       uf: "",
       referencia: "",
+      condominio: "",
+      bloco: "",
+      apartamento: "",
+      dataNascimento: "",
+      observacao: "",
+      situacao: "ATIVO",
     });
   }
 
@@ -140,6 +171,12 @@ export default function ClientesConnected() {
       cidade: c.cidade ?? "",
       uf: c.uf ?? "",
       referencia: c.referencia ?? "",
+      condominio: c.condominio ?? "",
+      bloco: c.bloco ?? "",
+      apartamento: c.apartamento ?? "",
+      dataNascimento: String(c.dataNascimento ?? "").slice(0, 10),
+      observacao: c.observacao ?? "",
+      situacao: c.situacao ?? "ATIVO",
     });
     setLocation("/clientes?modo=cadastro");
   }
@@ -149,12 +186,15 @@ export default function ClientesConnected() {
   const items = useMemo(() => {
     const term = upper(busca.trim());
     const arr = listData;
-    const filtered = !term
-      ? arr
-      : arr.filter((c) => {
-          const hay = upper(`${c.nome ?? ""} ${c.telefone ?? ""} ${c.cidade ?? ""} ${c.uf ?? ""}`);
-          return hay.includes(term);
-        });
+    const filtered = arr.filter((c) => {
+      const matchSituacao = filtroSituacao === "TODAS" || (c.situacao ?? "ATIVO") === filtroSituacao;
+      if (!matchSituacao) return false;
+      if (!term) return true;
+      const hay = upper(
+        `${c.nome ?? ""} ${c.telefone ?? ""} ${c.cidade ?? ""} ${c.uf ?? ""} ${c.cpf ?? ""} ${c.cep ?? ""} ${c.situacao ?? ""} ${c.condominio ?? ""} ${c.bloco ?? ""} ${c.apartamento ?? ""}`
+      );
+      return hay.includes(term);
+    });
 
     return filtered.sort((a, b) => {
       const da = new Date(a.createdAt ?? 0).getTime();
@@ -162,7 +202,7 @@ export default function ClientesConnected() {
       if (db !== da) return db - da;
       return (b.id ?? 0) - (a.id ?? 0);
     });
-  }, [listData, busca]);
+  }, [listData, busca, filtroSituacao]);
 
   const saving = mCreate.isPending || mUpdate.isPending;
 
@@ -182,6 +222,12 @@ export default function ClientesConnected() {
       cidade: upper(form.cidade ?? "") || undefined,
       uf: upper(form.uf ?? "") || undefined,
       referencia: upper(form.referencia ?? "") || undefined,
+      condominio: (form.condominio ?? "").trim() || undefined,
+      bloco: (form.bloco ?? "").trim() || undefined,
+      apartamento: (form.apartamento ?? "").trim() || undefined,
+      dataNascimento: form.dataNascimento?.trim() || undefined,
+      observacao: form.observacao?.trim() || undefined,
+      situacao: form.situacao || "ATIVO",
     };
 
     const updateKeys: (keyof ClienteForm)[] = [
@@ -196,6 +242,12 @@ export default function ClientesConnected() {
       "cidade",
       "uf",
       "referencia",
+      "condominio",
+      "bloco",
+      "apartamento",
+      "dataNascimento",
+      "observacao",
+      "situacao",
     ];
 
     if (editId) {
@@ -314,6 +366,53 @@ export default function ClientesConnected() {
                 <Label className="text-slate-700 font-medium">Referência</Label>
                 <Input value={form.referencia ?? ""} onChange={(e) => setForm((s) => ({ ...s, referencia: e.target.value }))} className="bg-white border-slate-200 text-slate-900" />
               </div>
+
+              <div className="md:col-span-4">
+                <Label className="text-slate-700 font-medium">Condomínio</Label>
+                <Input value={form.condominio ?? ""} onChange={(e) => setForm((s) => ({ ...s, condominio: e.target.value }))} className="bg-white border-slate-200 text-slate-900" />
+              </div>
+
+              <div className="md:col-span-2">
+                <Label className="text-slate-700 font-medium">Bloco</Label>
+                <Input value={form.bloco ?? ""} onChange={(e) => setForm((s) => ({ ...s, bloco: e.target.value }))} className="bg-white border-slate-200 text-slate-900" />
+              </div>
+
+              <div className="md:col-span-2">
+                <Label className="text-slate-700 font-medium">Apartamento</Label>
+                <Input value={form.apartamento ?? ""} onChange={(e) => setForm((s) => ({ ...s, apartamento: e.target.value }))} className="bg-white border-slate-200 text-slate-900" />
+              </div>
+
+              <div className="md:col-span-4">
+                <Label className="text-slate-700 font-medium">Data de Nascimento</Label>
+                <Input type="date" value={form.dataNascimento ?? ""} onChange={(e) => setForm((s) => ({ ...s, dataNascimento: e.target.value }))} className="bg-white border-slate-200 text-slate-900" />
+              </div>
+
+              <div className="md:col-span-4">
+                <Label className="text-slate-700 font-medium">Situação</Label>
+                <Select
+                  value={form.situacao ?? "ATIVO"}
+                  onValueChange={(v) => setForm((s) => ({ ...s, situacao: v as SituacaoCliente }))}
+                >
+                  <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ATIVO">Ativo</SelectItem>
+                    <SelectItem value="INATIVO">Inativo</SelectItem>
+                    <SelectItem value="PROSPECT">Prospect</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-8">
+                <Label className="text-slate-700 font-medium">Observação</Label>
+                <Textarea
+                  value={form.observacao ?? ""}
+                  onChange={(e) => setForm((s) => ({ ...s, observacao: e.target.value }))}
+                  className="bg-white border-slate-200 text-slate-900"
+                  rows={2}
+                />
+              </div>
             </div>
 
             <div className="mt-5 flex gap-2">
@@ -335,12 +434,24 @@ export default function ClientesConnected() {
               Clientes cadastrados
             </div>
 
-            <div className="w-full max-w-md">
+            <div className="flex items-center gap-2 w-full max-w-md">
               <Input
-                placeholder="Buscar por nome, telefone ou cidade..."
+                placeholder="Buscar por nome, telefone, cidade ou CPF..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
+                className="flex-1"
               />
+              <Select value={filtroSituacao} onValueChange={(v) => setFiltroSituacao(v as typeof filtroSituacao)}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODAS">Todas</SelectItem>
+                  <SelectItem value="ATIVO">Ativo</SelectItem>
+                  <SelectItem value="INATIVO">Inativo</SelectItem>
+                  <SelectItem value="PROSPECT">Prospect</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -352,10 +463,37 @@ export default function ClientesConnected() {
             {items.map((c) => (
               <div key={c.id} className="p-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="font-black truncate">{upper(c.nome ?? "")}</div>
+                  <div className="font-black truncate flex items-center gap-2">
+                    {upper(c.nome ?? "")}
+                    <Badge
+                      variant={
+                        c.situacao === "INATIVO"
+                          ? "destructive"
+                          : c.situacao === "PROSPECT"
+                            ? "secondary"
+                            : "default"
+                      }
+                    >
+                      {c.situacao ?? "ATIVO"}
+                    </Badge>
+                  </div>
                   <div className="text-sm text-muted-foreground truncate">
                     {(c.telefone ?? "—")} • {upper(c.cidade ?? "—")} {c.uf ? `- ${upper(c.uf)}` : ""}
                   </div>
+                  {(c.cpf || c.cep || c.condominio || c.bloco || c.apartamento || c.dataNascimento) && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {[
+                        c.cpf ? `CPF ${maskCpf(c.cpf)}` : null,
+                        c.cep ? `CEP ${maskCep(c.cep)}` : null,
+                        [c.condominio, c.bloco, c.apartamento].filter(Boolean).length > 0
+                          ? `Cond. ${upper([c.condominio, c.bloco, c.apartamento].filter(Boolean).join(" "))}`
+                          : null,
+                        c.dataNascimento ? `Nasc. ${fmtDateBr(c.dataNascimento)}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" • ")}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
