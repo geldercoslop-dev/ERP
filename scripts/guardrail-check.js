@@ -62,6 +62,20 @@ const P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P24D - FK física users/vendedores -> tenants (migration 0011)
+const P24D_TENANT_FKS_AUTHORIZED_FILES = [
+  "drizzle/schema.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/0011_tenant_fks_users_vendedores.sql",
+  "drizzle/meta/0011_snapshot.json",
+];
+
+// Janela formal P24D-WINDOW - Guard files for tenant FKs migration
+const P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   "server/db/core.ts",
@@ -278,6 +292,68 @@ function isP21TenantsGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: "P21-TENANTS-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for tenants restore)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P24D para FK física users/vendedores -> tenants
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P24D_TENANT_FKS
+ * Permite somente os 4 arquivos específicos da migration 0011 tenant fks
+ */
+function isP24DTenantFksAuthorizedSchemaUpdate(filePath) {
+  const authorizedValue = "P24D_TENANT_FKS";
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P24D_TENANT_FKS_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P24D formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (tenant fks users/vendedores -> tenants)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P24D-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P24D_TENANT_FK_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isP24DTenantFkGuardWindowAuthorized(filePath) {
+  const authorizedValue = "P24D_TENANT_FK_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P24D-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for tenant fks migration)"
     };
   }
 
@@ -2863,6 +2939,37 @@ function main() {
     }
   }
 
+  // P24D-WINDOW check: if guard files are modified with P24D-WINDOW window active, allow them
+  // IMPORTANTE: P24D-WINDOW vem antes de P21-TENANTS-WINDOW/P7-GUARD-WINDOW — a janela mais nova reivindica os guards primeiro
+  const p24dWindowFilesInChanges = files.filter(f => P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p24dWindowFilesInChanges.length > 0) {
+    const p24dWindowCheck = isP24DTenantFkGuardWindowAuthorized(p24dWindowFilesInChanges[0]);
+    if (p24dWindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of p24dWindowFilesInChanges) {
+        const check = isP24DTenantFkGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=P24D_TENANT_FK_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by P24D-WINDOW, allow them
+      const nonP24dWindowFiles = files.filter(f => !P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonP24dWindowFiles.length === 0) {
+        console.log("\n📋 Arquivos P24D-WINDOW detectados:");
+        p24dWindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p24dWindowCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonP24dWindowFiles);
+    }
+  }
+
   // P21-TENANTS-WINDOW check: if guard files are modified with P21-TENANTS-WINDOW window active, allow them
   // IMPORTANTE: P21-TENANTS-WINDOW vem antes de P7-GUARD-WINDOW — a janela mais nova reivindica os guards primeiro
   const p21TenantsWindowFilesInChanges = files.filter(f => P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
@@ -4370,6 +4477,53 @@ function main() {
         console.log("\n📋 Arquivos P21-TENANTS + P21-TENANTS-WINDOW detectados:");
         violations.forEach(f => console.log(" - " + f));
         console.log("\n✔ Guardrail OK — " + p21TenantsCheck.reason + " + " + p21TenantsWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P24D authorized schema update: FK física users/vendedores -> tenants
+    // Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P24D_TENANT_FKS
+    // Permite somente os 4 arquivos da migration 0011 tenant fks
+    const allP24D_TenantFks_Authorized = violations.every(v => P24D_TENANT_FKS_AUTHORIZED_FILES.includes(v));
+    if (allP24D_TenantFks_Authorized && violations.length > 0) {
+      const p24dTenantFksCheck = isP24DTenantFksAuthorizedSchemaUpdate(violations[0]);
+      if (p24dTenantFksCheck.authorized) {
+        console.log("\n📋 Arquivos P24D detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p24dTenantFksCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P24D-WINDOW authorized guard update: guard files for tenant fks migration
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P24D_TENANT_FK_GUARD_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allP24D_Window_Authorized = violations.every(v => P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allP24D_Window_Authorized && violations.length > 0) {
+      const p24dWindowCheck = isP24DTenantFkGuardWindowAuthorized(violations[0]);
+      if (p24dWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P24D-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p24dWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P24D mixed case: both drizzle files and guard files staged
+    // Requires BOTH ERP_AUTHORIZED_SCHEMA_UPDATE=P24D_TENANT_FKS and ERP_AUTHORIZED_GUARD_UPDATE=P24D_TENANT_FK_GUARD_WINDOW
+    const hasP24DDrizzleFiles = violations.some(v => P24D_TENANT_FKS_AUTHORIZED_FILES.includes(v));
+    const hasP24DGuardFiles = violations.some(v => P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    const onlyP24DFiles = violations.every(v =>
+      P24D_TENANT_FKS_AUTHORIZED_FILES.includes(v) ||
+      P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)
+    );
+    if (hasP24DDrizzleFiles && hasP24DGuardFiles && onlyP24DFiles) {
+      const p24dTenantFksCheck = isP24DTenantFksAuthorizedSchemaUpdate(violations.find(v => P24D_TENANT_FKS_AUTHORIZED_FILES.includes(v)));
+      const p24dWindowCheck = isP24DTenantFkGuardWindowAuthorized(violations.find(v => P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)));
+      if (p24dTenantFksCheck.authorized && p24dWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P24D + P24D-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p24dTenantFksCheck.reason + " + " + p24dWindowCheck.reason + "\n");
         return;
       }
     }

@@ -366,6 +366,20 @@ const P21_TENANTS_GUARD_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P24D - FK física users/vendedores -> tenants (migration 0011)
+const P24D_TENANT_FKS_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0011_tenant_fks_users_vendedores.sql',
+  'drizzle/meta/0011_snapshot.json',
+];
+
+// Janela formal P24D-WINDOW - Guard files for tenant FKs migration
+const P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Janela formal P23-APP-SECRET-WINDOW - App Secret middleware extraction
 const P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES = [
   'server/_core/index.ts',
@@ -1245,6 +1259,72 @@ function isP21TenantsGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: 'P21-TENANTS-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for tenants restore)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P24D para FK física users/vendedores -> tenants
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P24D_TENANT_FKS
+ * Permite somente os 4 arquivos específicos da migration 0011 tenant fks
+ */
+function isP24DTenantFksAuthorizedSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P24D_TENANT_FKS';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P24D_TENANT_FKS_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P24D formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (tenant fks users/vendedores -> tenants)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P24D-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P24D_TENANT_FK_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP24DTenantFkGuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P24D_TENANT_FK_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P24D-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for tenant fks migration)'
     };
   }
 
@@ -2894,6 +2974,18 @@ function isFrozen(file) {
   const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(file);
   if (p21TenantsWindowCheck.authorized) {
     return { frozen: false, exception: true, p21_tenants_window: p21TenantsWindowCheck.reason };
+  }
+
+  // Verifica janela formal P24D (FK física users/vendedores -> tenants, migration 0011)
+  const p24dTenantFksCheck = isP24DTenantFksAuthorizedSchemaUpdate(file);
+  if (p24dTenantFksCheck.authorized) {
+    return { frozen: false, exception: true, p24d_tenant_fks: p24dTenantFksCheck.reason };
+  }
+
+  // Verifica janela formal P24D-WINDOW (guard update for tenant fks migration)
+  const p24dTenantFkWindowCheck = isP24DTenantFkGuardWindowAuthorized(file);
+  if (p24dTenantFkWindowCheck.authorized) {
+    return { frozen: false, exception: true, p24d_tenant_fk_window: p24dTenantFkWindowCheck.reason };
   }
 
   // Verifica janela formal P23-APP-SECRET (app secret middleware extraction)
