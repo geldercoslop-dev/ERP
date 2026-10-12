@@ -10,6 +10,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./service-context-harness.js";
+import { ensureTenantExists } from "./helpers/tenant.helper.js";
 import * as financeService from "../../services/finance.service.js";
 import { caixaMensal } from "../../../drizzle/schema.js";
 
@@ -29,6 +30,9 @@ describe.skipIf(!INTEGRATION_DB_READY)("CAIXA MENSAL - TESTE REAL", () => {
     dbConn = conn;
 
     console.log("\n🔧 Setup: Criando dados de teste para validação de caixa mensal...\n");
+
+    // Pai em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TEST_TENANT_ID);
 
     // Criar caixa mensal
     const insCaixa = await dbConn.insert(caixaMensal).values({

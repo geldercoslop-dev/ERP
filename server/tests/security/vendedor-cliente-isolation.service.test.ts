@@ -7,6 +7,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "../integration/service-context-harness.js";
+import { ensureTenantExists } from "../integration/helpers/tenant.helper.js";
 import { eq, and } from "drizzle-orm";
 import { getDb, getInsertId, clientes, clienteVendedores, vendedores } from "../../db/core.js";
 import * as clientesService from "../../services/clientes.service.js";
@@ -24,6 +25,9 @@ describe("Isolamento vendedor A vs B (clientes.service)", () => {
 
     await dbConn.delete(clientes).where(eq(clientes.tenantId, TENANT));
     await dbConn.delete(vendedores).where(eq(vendedores.tenantId, TENANT));
+
+    // Pai em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TENANT);
 
     const ra = await dbConn.insert(vendedores).values({
       tenantId: TENANT,

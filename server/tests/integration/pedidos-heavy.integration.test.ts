@@ -10,6 +10,8 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./service-context-harness.js";
+import { ensureTenantExists } from "./helpers/tenant.helper.js";
+import { getDb } from "../../db/index.js";
 import { type ServiceActor, ADMIN_ACTOR } from "../../_core/service-actor.js";
 import * as clientesService from "../../services/clientes.service.js";
 import {
@@ -56,6 +58,11 @@ describe.skipIf(!INTEGRATION_DB_READY)("PEDIDOS — integração pesada + segura
     const phoneSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(-6);
     phoneA = `21998${phoneSuffix}`;
     phoneB = `21997${phoneSuffix}`;
+
+    // Pai em `tenants` antes de users/vendedores criados via service (fundação p/ FK futura)
+    const dbConn = await getDb();
+    if (!dbConn) throw new Error("Database connection failed");
+    await ensureTenantExists(dbConn, TENANT);
 
     const userA = await createPedidosHeavyTestUser(TENANT, `heavy-a-${sfx}`, "Heavy A");
     userAId = userA.userId;

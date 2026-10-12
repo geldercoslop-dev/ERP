@@ -11,6 +11,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./service-context-harness.js";
+import { ensureTenantExists } from "./helpers/tenant.helper.js";
 import * as inventoryService from "../../services/inventory.service.js";
 import { users, vendedores, produtos } from "../../../drizzle/schema.js";
 
@@ -34,6 +35,9 @@ describe.skipIf(!INTEGRATION_DB_READY)("PREÇO VIGENTE - TESTE REAL", () => {
     const suffix = nanoid(6).replace(/[^0-9a-z]/gi, "x");
 
     console.log("\n🔧 Setup: Criando dados de teste para validação de preço vigente...\n");
+
+    // Pai em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TEST_TENANT_ID);
 
     // Criar usuário
     const insUser = await dbConn.insert(users).values({

@@ -7,6 +7,8 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./service-context-harness.js";
+import { ensureTenantExists } from "./helpers/tenant.helper.js";
+import { getDb } from "../../db/index.js";
 import * as stockSafetyService from "../../services/stock-safety.service.js";
 
 const TEST_TENANT_ID = 999;
@@ -17,6 +19,12 @@ const INTEGRATION_DB_READY = true;
 describe.skipIf(!INTEGRATION_DB_READY)("STOCK SAFETY - getStockMovements TESTE REAL", () => {
   beforeAllWithServiceContext(async () => {
     console.log("\n🔧 Setup: Conectando ao banco para validação de getStockMovements...\n");
+
+    // Pai em `tenants` garantido mesmo sem inserts diretos (fundação p/ FK futura)
+    const dbConn = await getDb();
+    if (!dbConn) throw new Error("Database connection failed");
+    await ensureTenantExists(dbConn, TEST_TENANT_ID);
+
     console.log("\n✅ Setup concluído!\n");
   });
 

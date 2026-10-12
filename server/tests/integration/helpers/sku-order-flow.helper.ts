@@ -1,6 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDb, getInsertId } from "../../../db/index.js";
+import { ensureTenantExists } from "./tenant.helper.js";
 import * as clientesService from "../../../services/clientes.service.js";
 import * as skuService from "../../../services/sku.service.js";
 import {
@@ -89,6 +90,10 @@ export async function createSkuOrderScenario(
   const scenarioName = buildScenarioName(options);
   const suffix = nanoid(8).replace(/[^0-9a-z]/gi, "x");
   const initialStock = options?.initialStock ?? 100;
+
+  // Pais em `tenants` antes de qualquer insert filho (fundação p/ FK futura)
+  await ensureTenantExists(conn, tenantId);
+  await ensureTenantExists(conn, otherTenantId);
 
   const userInsert = await conn.insert(users).values({
     tenantId,

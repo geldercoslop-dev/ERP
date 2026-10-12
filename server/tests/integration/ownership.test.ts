@@ -13,6 +13,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./service-context-harness.js";
+import { ensureTenantExists } from "./helpers/tenant.helper.js";
 import type { Cliente } from "../../db/core.js";
 import type { ServiceActor } from "../../_core/service-actor.js";
 import * as clientesService from "../../services/clientes.service.js";
@@ -68,6 +69,9 @@ describe.skipIf(!INTEGRATION_DB_READY)("OWNERSHIP HARDENING - TESTE REAL", () =>
     const phoneB = `11997${suffix}`;
 
     console.log("\n🔧 Setup: Criando cenários de teste...\n");
+
+    // Pai em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TEST_TENANT_ID);
 
     const insUserA = await dbConn.insert(users).values({
       tenantId: TEST_TENANT_ID,
