@@ -39,6 +39,7 @@ import {
   afterAllWithServiceContext,
   itWithServiceContext,
 } from "../tests/integration/service-context-harness.js";
+import { ensureTenantExists } from "../tests/integration/helpers/tenant.helper.js";
 
 const RUN = process.env.RUN_REAL_CORE_TESTS !== "0" && process.env.RUN_REAL_CORE_TESTS !== "false";
 const TENANT_ID = Number(process.env.TEST_CORE_TENANT_ID || 99001);
@@ -69,6 +70,10 @@ async function seedVendedor(): Promise<number> {
 describe.skipIf(!RUN)("CORE: negócio real (DB)", () => {
   beforeAllWithServiceContext(async () => {
     testStart = new Date();
+
+    const db = await getDb();
+    if (!db) throw new ValidationError("no db");
+    await ensureTenantExists(db, TENANT_ID);
 
     vendedorId = await seedVendedor();
 
