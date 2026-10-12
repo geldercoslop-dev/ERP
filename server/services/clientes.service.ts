@@ -645,13 +645,21 @@ export async function associarClienteVendedor(tenantId: number, clienteId: numbe
     if (principal) {
       await dbConn.update(clienteVendedores)
         .set({ tipo: "SECUNDARIO" })
-        .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.tipo, "PRINCIPAL")));
+        .where(and(
+          eq(clienteVendedores.tenantId, tenantId),
+          eq(clienteVendedores.clienteId, clienteId),
+          eq(clienteVendedores.tipo, "PRINCIPAL")
+        ));
     }
   
     // Verificar se associação já existe
     const existing = await dbConn.select()
       .from(clienteVendedores)
-      .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)))
+      .where(and(
+        eq(clienteVendedores.tenantId, tenantId),
+        eq(clienteVendedores.clienteId, clienteId),
+        eq(clienteVendedores.vendedorId, vendedorId)
+      ))
       .limit(1);
   
     if (existing.length > 0) {
@@ -975,8 +983,97 @@ export async function removerAssociacaoClienteVendedor(tenantId: number, cliente
     }
   
     await dbConn.delete(clienteVendedores)
-      .where(and(eq(clienteVendedores.clienteId, clienteId), eq(clienteVendedores.vendedorId, vendedorId)));
+      .where(and(
+        eq(clienteVendedores.tenantId, tenantId),
+        eq(clienteVendedores.clienteId, clienteId),
+        eq(clienteVendedores.vendedorId, vendedorId)
+      ));
     
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * P28D3 — Troca administrativa do vendedor principal de um cliente existente.
+ * Atômica: despromove todos os PRINCIPALs antigos para SECUNDARIO e promove/upserta
+ * o novo vínculo como PRINCIPAL em uma única transaction.
+ * Tenant-safe: cliente e vendedor precisam pertencer ao tenant; todos os WHEREs carregam tenantId.
+ * Preserva histórico: o vínculo antigo vira SECUNDARIO (não é deletado) e o createdAt
+ * de vínculo existente não é reescrito na promoção.
+ */
+export async function setVendedorPrincipal(tenantId: number, clienteId: number, vendedorId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return { success: false, error: "tenantId obrigatório" };
+    }
+    if (!Number.isInteger(clienteId) || clienteId <= 0) {
+      return { success: false, error: "clienteId obrigatório" };
+    }
+    if (!Number.isInteger(vendedorId) || vendedorId <= 0) {
+      return { success: false, error: "vendedorId obrigatório" };
+    }
+
+    const dbConn = await getDb();
+    assertDbConnection(dbConn);
+
+    // Cliente deve pertencer ao tenant — cross-tenant bloqueado antes de tocar em vínculos
+    const cliente = await dbConn.select({ id: clientes.id })
+      .from(clientes)
+      .where(and(eq(clientes.tenantId, tenantId), eq(clientes.id, clienteId)))
+      .limit(1);
+    if (cliente.length === 0) {
+      return { success: false, error: "Cliente não encontrado" };
+    }
+
+    // Vendedor deve pertencer ao mesmo tenant — impede vínculo cross-tenant
+    const vendedor = await dbConn.select({ id: vendedores.id })
+      .from(vendedores)
+      .where(and(eq(vendedores.tenantId, tenantId), eq(vendedores.id, vendedorId)))
+      .limit(1);
+    if (vendedor.length === 0) {
+      return { success: false, error: "Vendedor não encontrado neste tenant" };
+    }
+
+    await dbConn.transaction(async (tx: DbTx) => {
+      // 1. Despromove TODOS os PRINCIPALs do cliente no tenant (invariante: no máx. 1 por cliente)
+      await tx.update(clienteVendedores)
+        .set({ tipo: "SECUNDARIO" })
+        .where(and(
+          eq(clienteVendedores.tenantId, tenantId),
+          eq(clienteVendedores.clienteId, clienteId),
+          eq(clienteVendedores.tipo, "PRINCIPAL")
+        ));
+
+      // 2. Promove vínculo existente preservando createdAt, ou cria novo como PRINCIPAL
+      const existing = await tx.select()
+        .from(clienteVendedores)
+        .where(and(
+          eq(clienteVendedores.tenantId, tenantId),
+          eq(clienteVendedores.clienteId, clienteId),
+          eq(clienteVendedores.vendedorId, vendedorId)
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await tx.update(clienteVendedores)
+          .set({ tipo: "PRINCIPAL" })
+          .where(and(
+            eq(clienteVendedores.tenantId, tenantId),
+            eq(clienteVendedores.id, existing[0].id)
+          ));
+      } else {
+        await tx.insert(clienteVendedores).values({
+          tenantId,
+          clienteId,
+          vendedorId,
+          tipo: "PRINCIPAL",
+          createdAt: new Date(),
+        });
+      }
+    });
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };

@@ -1343,7 +1343,26 @@ export const appRouter = router({
         await clientesService.createClienteVinculo(tenantId, input.clienteId, vendedor.id, input.tipo ?? "SECUNDARIO");
         return { ok: true };
       }),
-    
+
+    // P28D3 — somente admin pode trocar o vendedor principal de um cliente existente.
+    // Edição cadastral (update) continua sem vendedorIdPrincipal.
+    setVendedorPrincipal: adminProcedure
+      .input(z.object({
+        clienteId: z.number().int().positive(),
+        vendedorId: z.number().int().positive(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = await requireTenant(ctx);
+        const out = await cachedClientes.setVendedorPrincipal(tenantId, input.clienteId, input.vendedorId);
+        if (!out.success) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: out.error ?? "Falha ao definir vendedor principal" });
+        }
+        await auditEntityChange(ctx, tenantId, "update", "cliente", input.clienteId, {
+          vendedorPrincipalId: input.vendedorId,
+        });
+        return { ok: true };
+      }),
+
     update: protectedProcedure
       .input(z.object({
         id: z.number(),

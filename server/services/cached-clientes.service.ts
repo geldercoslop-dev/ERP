@@ -205,5 +205,28 @@ export async function removerAssociacaoClienteVendedor(
   return result;
 }
 
+/**
+ * P28D3 — Troca o vendedor principal de um cliente e invalida caches relacionados.
+ * Invalidação somente após sucesso do service (nunca antes).
+ */
+export async function setVendedorPrincipal(
+  tenantId: number,
+  clienteId: number,
+  vendedorId: number
+): Promise<{ success: boolean; error?: string }> {
+  const result = await clientesService.setVendedorPrincipal(tenantId, clienteId, vendedorId);
+  if (!result.success) {
+    return result;
+  }
+
+  // Invalidar todos os caches relacionados a este cliente (somente após sucesso)
+  invalidateClientesCachesForTenant(tenantId, clienteId);
+  logInfo("Cache de clientes invalidado após troca de vendedor principal", {
+    payload: { tenantId, clienteId, vendedorId },
+  });
+
+  return result;
+}
+
 export const searchClientesByTelefone = clientesService.getClienteByTelefone;
 export const searchClientesByNome = clientesService.searchClientesByNome;
