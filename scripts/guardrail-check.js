@@ -103,6 +103,24 @@ const P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P28C-CLIENTES-GRS-FIELDS - Backend de clientes persiste/filtra campos GRS
+const P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES = [
+  "server/services/clientes.service.ts",
+  "server/services/cached-clientes.service.ts",
+  "server/routers.ts",
+  "shared/types/payloads-clientes.ts",
+  "client/src/types/cliente.types.ts",
+  "client/src/hooks/useClientes.ts",
+  "server/tests/clientes-grs-fields.test.ts",
+  "tests/services/clientes.service.test.ts",
+];
+
+// Janela formal P28C-WINDOW - Guard files for clientes GRS backend fields window
+const P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P28B para campos GRS de clientes + unique por tenant
  * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
@@ -158,6 +176,68 @@ function isP28BClientesCamposGrsGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: "P28B-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for clientes campos grs migration)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P28C para backend de campos GRS de clientes
+ * Requer variável ERP_AUTHORIZED_CLIENTES_GRS_UPDATE=P28C_CLIENTES_GRS_FIELDS
+ * Permite somente os 8 arquivos específicos da P28C
+ */
+function isP28CClientesGrsFieldsAuthorizedUpdate(filePath) {
+  const authorizedValue = "P28C_CLIENTES_GRS_FIELDS";
+  const envValue = process.env.ERP_AUTHORIZED_CLIENTES_GRS_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P28C-CLIENTES-GRS-FIELDS formal window: ERP_AUTHORIZED_CLIENTES_GRS_UPDATE=" + authorizedValue + " (clientes GRS backend fields)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P28C-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P28C_CLIENTES_GRS_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isP28CClientesGrsGuardWindowAuthorized(filePath) {
+  const authorizedValue = "P28C_CLIENTES_GRS_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P28C-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for clientes grs fields backend)"
     };
   }
 
@@ -3131,6 +3211,68 @@ function main() {
     }
   }
 
+  // P28C-WINDOW check: if guard files are modified with P28C-WINDOW window active, allow them
+  // IMPORTANTE: P28C-WINDOW vem antes de P28B-WINDOW/P26-WINDOW — a janela mais nova reivindica os guards primeiro
+  const p28cWindowFilesInChanges = files.filter(f => P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p28cWindowFilesInChanges.length > 0) {
+    const p28cWindowCheck = isP28CClientesGrsGuardWindowAuthorized(p28cWindowFilesInChanges[0]);
+    if (p28cWindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of p28cWindowFilesInChanges) {
+        const check = isP28CClientesGrsGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=P28C_CLIENTES_GRS_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by P28C-WINDOW, allow them
+      const nonP28cWindowFiles = files.filter(f => !P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonP28cWindowFiles.length === 0) {
+        console.log("\n📋 Arquivos P28C-WINDOW detectados:");
+        p28cWindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28cWindowCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonP28cWindowFiles);
+    }
+  }
+
+  // P28C check: arquivos de conteúdo autorizados pela janela P28C-CLIENTES-GRS-FIELDS
+  // IMPORTANTE: vem antes das janelas R10*/R09* que reivindicam server/routers.ts — a janela mais nova reivindica primeiro
+  const p28cFilesInChanges = files.filter(f => P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES.includes(f));
+  if (p28cFilesInChanges.length > 0) {
+    const p28cCheck = isP28CClientesGrsFieldsAuthorizedUpdate(p28cFilesInChanges[0]);
+    if (p28cCheck.authorized) {
+      // Validate ALL P28C files individually to ensure strict security
+      for (const file of p28cFilesInChanges) {
+        const check = isP28CClientesGrsFieldsAuthorizedUpdate(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — clientes GRS backend requer ERP_AUTHORIZED_CLIENTES_GRS_UPDATE=P28C_CLIENTES_GRS_FIELDS\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by P28C, allow them
+      const nonP28cFiles = files.filter(f => !P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES.includes(f));
+      if (nonP28cFiles.length === 0) {
+        console.log("\n📋 Arquivos P28C detectados:");
+        p28cFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28cCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonP28cFiles);
+    }
+  }
+
   // P28B-WINDOW check: if guard files are modified with P28B-WINDOW window active, allow them
   // IMPORTANTE: P28B-WINDOW vem antes de P26-WINDOW/P24D-WINDOW — a janela mais nova reivindica os guards primeiro
   const p28bWindowFilesInChanges = files.filter(f => P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
@@ -4351,6 +4493,54 @@ function main() {
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
+    // P28C authorized update: backend de campos GRS de clientes
+    // Requer variável ERP_AUTHORIZED_CLIENTES_GRS_UPDATE=P28C_CLIENTES_GRS_FIELDS
+    // Permite somente os 8 arquivos específicos da P28C
+    // IMPORTANTE: P28C vem antes das janelas anteriores — a janela mais nova reivindica primeiro
+    const allP28C_Authorized = violations.every(v => P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES.includes(v));
+    if (allP28C_Authorized && violations.length > 0) {
+      const p28cCheck = isP28CClientesGrsFieldsAuthorizedUpdate(violations[0]);
+      if (p28cCheck.authorized) {
+        console.log("\n📋 Arquivos P28C detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28cCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P28C-WINDOW authorized guard update: guard files for clientes grs fields backend
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P28C_CLIENTES_GRS_GUARD_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allP28C_Window_Authorized = violations.every(v => P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allP28C_Window_Authorized && violations.length > 0) {
+      const p28cWindowCheck = isP28CClientesGrsGuardWindowAuthorized(violations[0]);
+      if (p28cWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P28C-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28cWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P28C mixed case: both content files and guard files staged
+    // Requires BOTH ERP_AUTHORIZED_CLIENTES_GRS_UPDATE=P28C_CLIENTES_GRS_FIELDS and ERP_AUTHORIZED_GUARD_UPDATE=P28C_CLIENTES_GRS_GUARD_WINDOW
+    const hasP28CContentFiles = violations.some(v => P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES.includes(v));
+    const hasP28CGuardFiles = violations.some(v => P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    const onlyP28CFiles = violations.every(v =>
+      P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES.includes(v) ||
+      P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)
+    );
+    if (hasP28CContentFiles && hasP28CGuardFiles && onlyP28CFiles) {
+      const p28cCheck = isP28CClientesGrsFieldsAuthorizedUpdate(violations.find(v => P28C_CLIENTES_GRS_FIELDS_AUTHORIZED_FILES.includes(v)));
+      const p28cWindowCheck = isP28CClientesGrsGuardWindowAuthorized(violations.find(v => P28C_CLIENTES_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)));
+      if (p28cCheck.authorized && p28cWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P28C + P28C-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28cCheck.reason + " + " + p28cWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
     // P28B authorized schema update: clientes GRS fields + tenant unique
     // Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
     // Permite somente os 4 arquivos da migration 0012
