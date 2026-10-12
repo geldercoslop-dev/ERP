@@ -18,6 +18,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./integration/service-context-harness.js";
+import { ensureTenantExists } from "./integration/helpers/tenant.helper.js";
 import { vendedores } from "../../drizzle/schema.js";
 import * as usersService from "../services/users.service.js";
 
@@ -57,6 +58,10 @@ describe("vendedores mutation — isolamento multi-tenant (P23-R-09W)", () => {
     await dbConn
       .delete(vendedores)
       .where(or(eq(vendedores.tenantId, TENANT_A), eq(vendedores.tenantId, TENANT_B)));
+
+    // Pais em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TENANT_A);
+    await ensureTenantExists(dbConn, TENANT_B);
 
     // Vendedor do tenant A (alvo dos cenários positivos)
     const insA = await dbConn.insert(vendedores).values({
