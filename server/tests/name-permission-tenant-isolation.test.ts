@@ -26,6 +26,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./integration/service-context-harness.js";
+import { ensureTenantExists } from "./integration/helpers/tenant.helper.js";
 import { auditLogs, users, vendedores } from "../../drizzle/schema.js";
 import * as usersService from "../services/users.service.js";
 import { usersTool } from "../tools/users.tool.js";
@@ -101,6 +102,10 @@ describe("P23-R-09Y — lookups por nome + permissões Leo multi-tenant", () => 
     userNameB = `User R09Y B ${suffix}`;
     userSharedName = `User R09Y Shared ${suffix}`;
     nomeInexistente = `Inexistente R09Y ${suffix}`;
+
+    // Pais em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TENANT_A);
+    await ensureTenantExists(dbConn, TENANT_B);
 
     // ─── Vendedores ───
     // Vendedor exclusivo do tenant A (não-admin)
