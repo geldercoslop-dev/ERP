@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Search, UserPlus, Pencil, Trash2, Users } from "lucide-react";
+import { Search, UserPlus, Pencil, Trash2, Users, Eye } from "lucide-react";
 
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -37,6 +37,8 @@ type ClienteForm = {
   dataNascimento?: string;
   observacao?: string;
   situacao?: SituacaoCliente;
+  /** Somente create/admin: id do vendedor principal como string (Select). */
+  vendedorIdPrincipal?: string;
 };
 
 /** Linha retornada pela listagem (API paginada ou legado). */
@@ -61,6 +63,16 @@ function fmtDateBr(v?: string) {
   const s = String(v ?? "").slice(0, 10);
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+}
+
+/** Campo read-only do card de perfil. */
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs font-bold text-slate-500">{label}</div>
+      <div className="text-slate-800 break-words">{value}</div>
+    </div>
+  );
 }
 
 
@@ -113,6 +125,7 @@ export default function ClientesConnected() {
   const [busca, setBusca] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState<"TODAS" | SituacaoCliente>("TODAS");
   const [editId, setEditId] = useState<number | null>(null);
+  const [selectedClienteId, setSelectedClienteId] = useState<number | null>(null);
 
   const [form, setForm] = useState<ClienteForm>({
     nome: "",
@@ -153,6 +166,7 @@ export default function ClientesConnected() {
       dataNascimento: "",
       observacao: "",
       situacao: "ATIVO",
+      vendedorIdPrincipal: "",
     });
   }
 
@@ -177,11 +191,33 @@ export default function ClientesConnected() {
       dataNascimento: String(c.dataNascimento ?? "").slice(0, 10),
       observacao: c.observacao ?? "",
       situacao: c.situacao ?? "ATIVO",
+      vendedorIdPrincipal: "",
     });
     setLocation("/clientes?modo=cadastro");
   }
 
   const listData = useMemo(() => extractClientesList(qList.data), [qList.data]);
+
+  const selectedCliente = useMemo(
+    () => (selectedClienteId != null ? listData.find((c) => c.id === selectedClienteId) ?? null : null),
+    [listData, selectedClienteId]
+  );
+
+  useEffect(() => {
+    if (selectedClienteId != null && !selectedCliente) setSelectedClienteId(null);
+  }, [selectedClienteId, selectedCliente]);
+
+  const qVendPrincipal = trpc.clientes.getVendedorPrincipal.useQuery(
+    { clienteId: selectedClienteId ?? 0 },
+    { enabled: selectedClienteId != null }
+  );
+
+  // adminProcedure: só dispara para admin
+  const qVendedores = trpc.vendedores.list.useQuery(undefined, { enabled: isAdmin });
+  const vendedoresLista = useMemo(
+    () => (Array.isArray(qVendedores.data) ? (qVendedores.data as { id: number; nome: string }[]) : []),
+    [qVendedores.data]
+  );
 
   const items = useMemo(() => {
     const term = upper(busca.trim());
@@ -256,7 +292,14 @@ export default function ClientesConnected() {
         ...pick(patch as ClienteForm & Record<string, unknown>, updateKeys),
       } as never);
     } else {
-      mCreate.mutate(patch as never);
+      // vendedorIdPrincipal: só admin pode definir no create; nunca vai no update
+      const createVars: Record<string, unknown> = { ...patch };
+      if (isAdmin && patch.vendedorIdPrincipal?.trim()) {
+        createVars.vendedorIdPrincipal = Number(patch.vendedorIdPrincipal);
+      } else {
+        delete createVars.vendedorIdPrincipal;
+      }
+      mCreate.mutate(createVars as never);
     }
   }
 
@@ -404,6 +447,34 @@ export default function ClientesConnected() {
                 </Select>
               </div>
 
+              {isAdmin && !editId && (
+                <div className="md:col-span-4">
+                  <Label className="text-slate-700 font-medium">Vendedor Principal</Label>
+                  <Select
+                    value={form.vendedorIdPrincipal || "NONE"}
+                    onValueChange={(v) => setForm((s) => ({ ...s, vendedorIdPrincipal: v === "NONE" ? "" : v }))}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                      <SelectValue placeholder="Opcional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">Sem vínculo inicial</SelectItem>
+                      {vendedoresLista.map((v) => (
+                        <SelectItem key={v.id} value={String(v.id)}>
+                          {v.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {isAdmin && editId != null && (
+                <div className="md:col-span-12 text-xs text-muted-foreground">
+                  Alteração de vendedor principal será liberada em fase backend.
+                </div>
+              )}
+
               <div className="md:col-span-8">
                 <Label className="text-slate-700 font-medium">Observação</Label>
                 <Textarea
@@ -422,6 +493,69 @@ export default function ClientesConnected() {
               <Button variant="outline" onClick={reset}>
                 Limpar
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Perfil detalhado (somente no modo perfil, quando há cliente selecionado) */}
+        {modo === "perfil" && selectedCliente && (
+          <div className="bg-white/95 text-slate-800 border border-slate-200 rounded-2xl shadow-sm p-5 mb-6">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2 font-black text-slate-900">
+                <Eye className="h-5 w-5" />
+                {upper(selectedCliente.nome ?? "")}
+                <Badge
+                  variant={
+                    selectedCliente.situacao === "INATIVO"
+                      ? "destructive"
+                      : selectedCliente.situacao === "PROSPECT"
+                        ? "secondary"
+                        : "default"
+                  }
+                >
+                  {selectedCliente.situacao ?? "ATIVO"}
+                </Badge>
+              </div>
+              <Button variant="outline" onClick={() => setSelectedClienteId(null)}>
+                Fechar perfil
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+              <Field label="Telefone" value={selectedCliente.telefone ? maskPhoneBr(selectedCliente.telefone) : "—"} />
+              <Field label="Telefone recado" value={selectedCliente.telefoneRecado ? maskPhoneBr(selectedCliente.telefoneRecado) : "—"} />
+              <Field label="CPF" value={selectedCliente.cpf ? maskCpf(selectedCliente.cpf) : "—"} />
+              <Field label="CEP" value={selectedCliente.cep ? maskCep(selectedCliente.cep) : "—"} />
+              <Field
+                label="Endereço"
+                value={upper([selectedCliente.rua, selectedCliente.numero].filter(Boolean).join(", ")) || "—"}
+              />
+              <Field label="Bairro" value={upper(selectedCliente.bairro ?? "") || "—"} />
+              <Field
+                label="Cidade/UF"
+                value={upper([selectedCliente.cidade, selectedCliente.uf].filter(Boolean).join("/")) || "—"}
+              />
+              <Field label="Referência" value={upper(selectedCliente.referencia ?? "") || "—"} />
+              <Field label="Condomínio" value={upper(selectedCliente.condominio ?? "") || "—"} />
+              <Field label="Bloco" value={upper(selectedCliente.bloco ?? "") || "—"} />
+              <Field label="Apartamento" value={upper(selectedCliente.apartamento ?? "") || "—"} />
+              <Field
+                label="Nascimento"
+                value={selectedCliente.dataNascimento ? fmtDateBr(selectedCliente.dataNascimento) : "—"}
+              />
+              <Field
+                label="Vendedor principal"
+                value={
+                  qVendPrincipal.isLoading
+                    ? "Carregando..."
+                    : (qVendPrincipal.data?.vendedorNome ?? "Sem vendedor principal")
+                }
+              />
+              <Field label="Cadastrado em" value={selectedCliente.createdAt ? fmtDateBr(selectedCliente.createdAt) : "—"} />
+              <div className="md:col-span-3">
+                <div className="text-xs font-bold text-slate-500">Observação</div>
+                <div className="text-slate-800 break-words">{selectedCliente.observacao?.trim() || "—"}</div>
+              </div>
             </div>
           </div>
         )}
@@ -462,7 +596,7 @@ export default function ClientesConnected() {
           <div className="divide-y border rounded-xl overflow-hidden">
             {items.map((c) => (
               <div key={c.id} className="p-3 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedClienteId(c.id)}>
                   <div className="font-black truncate flex items-center gap-2">
                     {upper(c.nome ?? "")}
                     <Badge
@@ -497,6 +631,17 @@ export default function ClientesConnected() {
                 </div>
 
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedClienteId(c.id);
+                      setLocation("/clientes?modo=perfil");
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ver
+                  </Button>
+
                   <Button variant="outline" onClick={() => loadForEdit(c)}>
                     <Pencil className="h-4 w-4 mr-1" />
                     Editar
