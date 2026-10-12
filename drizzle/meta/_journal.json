@@ -71,6 +71,13 @@
       "when": 1791761272300,
       "tag": "0009_migration_1791761270681",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1791768433905,
+      "tag": "0011_tenant_fks_users_vendedores",
+      "breakpoints": true
     }
   ]
 }

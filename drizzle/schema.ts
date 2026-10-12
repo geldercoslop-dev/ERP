@@ -15,7 +15,7 @@ export const users = mysqlTable(
   "users",
   {
     id: int("id").primaryKey().autoincrement(),
-    tenantId: int("tenant_id").notNull(),
+    tenantId: int("tenant_id").notNull().references(() => tenants.id),
     openId: varchar("open_id", { length: 64 }).notNull().unique(),
     name: text("name"),
     email: varchar("email", { length: 320 }),
@@ -35,7 +35,7 @@ export const vendedores = mysqlTable(
   "vendedores",
   {
     id: int("id").primaryKey().autoincrement(),
-    tenantId: int("tenant_id").notNull(),
+    tenantId: int("tenant_id").notNull().references(() => tenants.id),
     userId: int("user_id").references(() => users.id),
     nome: varchar("nome", { length: 255 }).notNull(),
     telefone: varchar("telefone", { length: 20 }),
