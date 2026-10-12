@@ -190,6 +190,49 @@ const AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal AUTH-DB-SESSION - Autenticação correta com sessão persistida em banco:
+// tabela de sessões, refresh token rotacionado (hash), logout com revogação
+// server-side, access token validado contra sessão ativa, cookie-only no browser.
+const AUTH_DB_SESSION_AUTHORIZED_FILES = [
+  // Schema/migration
+  "drizzle/schema.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/meta/0013_snapshot.json",
+  "drizzle/0013_auth_sessions.sql",
+  // Backend
+  "server/routers.ts",
+  "server/security/jwt-auth.ts",
+  "server/_core/context.ts",
+  "server/_core/cookies.ts",
+  "server/_core/secure-context.ts",
+  "server/_core/session.service.ts",
+  "server/middlewares/jwt-auth-middleware.ts",
+  "server/middleware/auth.middleware.ts",
+  "server/middlewares/require-auth-context.ts",
+  "server/services/users.service.ts",
+  // Client
+  "client/src/store/authStore.ts",
+  "client/src/lib/security/sessionToken.ts",
+  "client/src/lib/security/apiClient.ts",
+  "client/src/lib/trpcClient.ts",
+  "client/src/pages/Login.tsx",
+  // Testes
+  "server/tests/auth-refresh-logout.test.ts",
+  "server/tests/auth-db-session.test.ts",
+  "server/tests/auth-rate-limit.test.ts",
+  "server/tests/auth-admin-procedure.test.ts",
+  "server/tests/jwt-session-auth-flow.test.ts",
+  "server/tests/security/auth-bypass.test.ts",
+  "server/tests/multitenant/tenant-auth.test.ts",
+  "tests/auth-security.test.ts",
+];
+
+// Janela formal AUTH-DB-SESSION-WINDOW - Guard files for auth db session window
+const AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P28B para campos GRS de clientes + unique por tenant
  * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
@@ -431,6 +474,68 @@ function isAuthLoginHardeningGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: "AUTH-LOGIN-HARDENING-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for auth login hardening)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-DB-SESSION para implementações de sessão persistida
+ * Requer variável ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=AUTH_DB_SESSION_V1
+ * Permite somente os arquivos específicos da lista AUTH_DB_SESSION_AUTHORIZED_FILES
+ */
+function isAuthDbSessionAuthorizedUpdate(filePath) {
+  const authorizedValue = "AUTH_DB_SESSION_V1";
+  const envValue = process.env.ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_DB_SESSION_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "AUTH-DB-SESSION formal window: ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=" + authorizedValue + " (auth db-backed session)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-DB-SESSION-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_DB_SESSION_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isAuthDbSessionGuardWindowAuthorized(filePath) {
+  const authorizedValue = "AUTH_DB_SESSION_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "AUTH-DB-SESSION-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for auth db session)"
     };
   }
 
@@ -3404,6 +3509,68 @@ function main() {
     }
   }
 
+  // AUTH-DB-SESSION-WINDOW check: if guard files are modified with AUTH-DB-SESSION-WINDOW window active, allow them
+  // IMPORTANTE: AUTH-DB-SESSION-WINDOW vem antes de AUTH-LOGIN-HARDENING-WINDOW/P28D3-WINDOW/P28C-WINDOW — a janela mais nova reivindica os guards primeiro
+  const authDbSessionWindowFilesInChanges = files.filter(f => AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (authDbSessionWindowFilesInChanges.length > 0) {
+    const authDbWindowCheck = isAuthDbSessionGuardWindowAuthorized(authDbSessionWindowFilesInChanges[0]);
+    if (authDbWindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of authDbSessionWindowFilesInChanges) {
+        const check = isAuthDbSessionGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=AUTH_DB_SESSION_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by AUTH-DB-SESSION-WINDOW, allow them
+      const nonAuthDbWindowFiles = files.filter(f => !AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonAuthDbWindowFiles.length === 0) {
+        console.log("\n📋 Arquivos AUTH-DB-SESSION-WINDOW detectados:");
+        authDbSessionWindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authDbWindowCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonAuthDbWindowFiles);
+    }
+  }
+
+  // AUTH-DB-SESSION check: arquivos de conteúdo autorizados pela janela AUTH-DB-SESSION
+  // IMPORTANTE: vem antes das janelas AUTH-LOGIN-HARDENING/P28D3 que reivindicam server/routers.ts — a janela mais nova reivindica primeiro
+  const authDbSessionFilesInChanges = files.filter(f => AUTH_DB_SESSION_AUTHORIZED_FILES.includes(f));
+  if (authDbSessionFilesInChanges.length > 0) {
+    const authDbCheck = isAuthDbSessionAuthorizedUpdate(authDbSessionFilesInChanges[0]);
+    if (authDbCheck.authorized) {
+      // Validate ALL AUTH-DB-SESSION files individually to ensure strict security
+      for (const file of authDbSessionFilesInChanges) {
+        const check = isAuthDbSessionAuthorizedUpdate(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — auth db session requer ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=AUTH_DB_SESSION_V1\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by AUTH-DB-SESSION, allow them
+      const nonAuthDbFiles = files.filter(f => !AUTH_DB_SESSION_AUTHORIZED_FILES.includes(f));
+      if (nonAuthDbFiles.length === 0) {
+        console.log("\n📋 Arquivos AUTH-DB-SESSION detectados:");
+        authDbSessionFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authDbCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonAuthDbFiles);
+    }
+  }
+
   // AUTH-LOGIN-HARDENING-WINDOW check: if guard files are modified with AUTH-LOGIN-HARDENING-WINDOW window active, allow them
   // IMPORTANTE: AUTH-LOGIN-HARDENING-WINDOW vem antes de P28D3-WINDOW/P28C-WINDOW/P28B-WINDOW/P26-WINDOW — a janela mais nova reivindica os guards primeiro
   const authHardeningWindowFilesInChanges = files.filter(f => AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
@@ -4810,6 +4977,35 @@ function main() {
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
+    // AUTH-DB-SESSION authorized update: autenticação com sessão persistida em banco
+    // Requer variável ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=AUTH_DB_SESSION_V1
+    // Permite somente os arquivos específicos da lista AUTH_DB_SESSION_AUTHORIZED_FILES
+    // IMPORTANTE: AUTH-DB-SESSION vem antes das janelas anteriores — a janela mais nova reivindica primeiro
+    const allAuthDb_Authorized = violations.every(v => AUTH_DB_SESSION_AUTHORIZED_FILES.includes(v));
+    if (allAuthDb_Authorized && violations.length > 0) {
+      const authDbCheck = isAuthDbSessionAuthorizedUpdate(violations[0]);
+      if (authDbCheck.authorized) {
+        console.log("\n📋 Arquivos AUTH-DB-SESSION detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authDbCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // AUTH-DB-SESSION-WINDOW authorized guard update: guard files for auth db session
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_DB_SESSION_GUARD_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allAuthDb_Window_Authorized = violations.every(v => AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allAuthDb_Window_Authorized && violations.length > 0) {
+      const authDbWindowCheck = isAuthDbSessionGuardWindowAuthorized(violations[0]);
+      if (authDbWindowCheck.authorized) {
+        console.log("\n📋 Arquivos AUTH-DB-SESSION-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authDbWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
     // AUTH-LOGIN-HARDENING authorized update: hardening de login/auth
     // Requer variável ERP_AUTHORIZED_AUTH_HARDENING_UPDATE=AUTH_LOGIN_HARDENING_V1
     // Permite somente os arquivos específicos da lista AUTH_LOGIN_HARDENING_AUTHORIZED_FILES

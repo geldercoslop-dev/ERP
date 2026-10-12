@@ -481,6 +481,49 @@ const AUTH_LOGIN_HARDENING_GUARD_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal AUTH-DB-SESSION - Autenticação correta com sessão persistida em banco:
+// tabela de sessões, refresh token rotacionado (hash), logout com revogação
+// server-side, access token validado contra sessão ativa, cookie-only no browser.
+const AUTH_DB_SESSION_AUTHORIZED_FILES = [
+  // Schema/migration
+  'drizzle/schema.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/meta/0013_snapshot.json',
+  'drizzle/0013_auth_sessions.sql',
+  // Backend
+  'server/routers.ts',
+  'server/security/jwt-auth.ts',
+  'server/_core/context.ts',
+  'server/_core/cookies.ts',
+  'server/_core/secure-context.ts',
+  'server/_core/session.service.ts',
+  'server/middlewares/jwt-auth-middleware.ts',
+  'server/middleware/auth.middleware.ts',
+  'server/middlewares/require-auth-context.ts',
+  'server/services/users.service.ts',
+  // Client
+  'client/src/store/authStore.ts',
+  'client/src/lib/security/sessionToken.ts',
+  'client/src/lib/security/apiClient.ts',
+  'client/src/lib/trpcClient.ts',
+  'client/src/pages/Login.tsx',
+  // Testes
+  'server/tests/auth-refresh-logout.test.ts',
+  'server/tests/auth-db-session.test.ts',
+  'server/tests/auth-rate-limit.test.ts',
+  'server/tests/auth-admin-procedure.test.ts',
+  'server/tests/jwt-session-auth-flow.test.ts',
+  'server/tests/security/auth-bypass.test.ts',
+  'server/tests/multitenant/tenant-auth.test.ts',
+  'tests/auth-security.test.ts',
+];
+
+// Janela formal AUTH-DB-SESSION-WINDOW - Guard files for auth db session window
+const AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Janela formal P26 - Add official db:bootstrap:fresh script (fresh empty-DB bootstrap)
 const P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES = [
   'package.json',
@@ -1703,6 +1746,72 @@ function isAuthLoginHardeningGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: 'AUTH-LOGIN-HARDENING-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for auth login hardening)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-DB-SESSION para implementações de sessão persistida
+ * Requer variável ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=AUTH_DB_SESSION_V1
+ * Permite somente os arquivos específicos da lista AUTH_DB_SESSION_AUTHORIZED_FILES
+ */
+function isAuthDbSessionAuthorizedUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'AUTH_DB_SESSION_V1';
+  const envValue = process.env.ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_DB_SESSION_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'AUTH-DB-SESSION formal window: ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=' + authorizedValue + ' (auth db-backed session)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-DB-SESSION-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_DB_SESSION_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isAuthDbSessionGuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'AUTH_DB_SESSION_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'AUTH-DB-SESSION-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for auth db session)'
     };
   }
 
@@ -3459,6 +3568,19 @@ function isFrozen(file) {
   const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(file);
   if (p21TenantsWindowCheck.authorized) {
     return { frozen: false, exception: true, p21_tenants_window: p21TenantsWindowCheck.reason };
+  }
+
+  // Verifica janela formal AUTH-DB-SESSION (sessão persistida em banco para auth)
+  // IMPORTANTE: AUTH-DB-SESSION vem antes de AUTH-LOGIN-HARDENING/P28D3/P28C/P28B/P26 — a janela mais nova reivindica primeiro
+  const authDbSessionCheck = isAuthDbSessionAuthorizedUpdate(file);
+  if (authDbSessionCheck.authorized) {
+    return { frozen: false, exception: true, auth_db_session: authDbSessionCheck.reason };
+  }
+
+  // Verifica janela formal AUTH-DB-SESSION-WINDOW (guard update for auth db session)
+  const authDbSessionWindowCheck = isAuthDbSessionGuardWindowAuthorized(file);
+  if (authDbSessionWindowCheck.authorized) {
+    return { frozen: false, exception: true, auth_db_session_window: authDbSessionWindowCheck.reason };
   }
 
   // Verifica janela formal AUTH-LOGIN-HARDENING (hardening de login/auth)
