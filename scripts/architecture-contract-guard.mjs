@@ -380,6 +380,20 @@ const P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P28B-CLIENTES-CAMPOS-GRS - Campos GRS em clientes + unique por tenant (migration 0012)
+const P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES = [
+  'drizzle/schema.ts',
+  'drizzle/meta/_journal.json',
+  'drizzle/0012_clientes_campos_grs.sql',
+  'drizzle/meta/0012_snapshot.json',
+];
+
+// Janela formal P28B-WINDOW - Guard files for clientes GRS fields migration
+const P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Janela formal P26 - Add official db:bootstrap:fresh script (fresh empty-DB bootstrap)
 const P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES = [
   'package.json',
@@ -1338,6 +1352,72 @@ function isP24DTenantFkGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: 'P24D-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for tenant fks migration)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P28B para campos GRS de clientes + unique por tenant
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
+ * Permite somente os 4 arquivos específicos da migration 0012 clientes campos grs
+ */
+function isP28BClientesCamposGrsAuthorizedSchemaUpdate(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P28B_CLIENTES_CAMPOS_GRS';
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P28B-CLIENTES-CAMPOS-GRS formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=' + authorizedValue + ' (clientes GRS fields + tenant unique)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P28B-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP28BClientesCamposGrsGuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P28B-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for clientes campos grs migration)'
     };
   }
 
@@ -3094,6 +3174,19 @@ function isFrozen(file) {
   const p21TenantsWindowCheck = isP21TenantsGuardWindowAuthorized(file);
   if (p21TenantsWindowCheck.authorized) {
     return { frozen: false, exception: true, p21_tenants_window: p21TenantsWindowCheck.reason };
+  }
+
+  // Verifica janela formal P28B (clientes GRS fields + tenant unique, migration 0012)
+  // IMPORTANTE: P28B vem antes de P26/P24D — a janela mais nova reivindica primeiro
+  const p28bClientesCheck = isP28BClientesCamposGrsAuthorizedSchemaUpdate(file);
+  if (p28bClientesCheck.authorized) {
+    return { frozen: false, exception: true, p28b_clientes_campos_grs: p28bClientesCheck.reason };
+  }
+
+  // Verifica janela formal P28B-WINDOW (guard update for clientes campos grs migration)
+  const p28bWindowCheck = isP28BClientesCamposGrsGuardWindowAuthorized(file);
+  if (p28bWindowCheck.authorized) {
+    return { frozen: false, exception: true, p28b_clientes_campos_grs_window: p28bWindowCheck.reason };
   }
 
   // Verifica janela formal P26 (add fresh db bootstrap script)

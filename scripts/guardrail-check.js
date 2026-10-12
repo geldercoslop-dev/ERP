@@ -89,6 +89,82 @@ const P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P28B-CLIENTES-CAMPOS-GRS - Campos GRS em clientes + unique por tenant (migration 0012)
+const P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES = [
+  "drizzle/schema.ts",
+  "drizzle/meta/_journal.json",
+  "drizzle/0012_clientes_campos_grs.sql",
+  "drizzle/meta/0012_snapshot.json",
+];
+
+// Janela formal P28B-WINDOW - Guard files for clientes GRS fields migration
+const P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
+/**
+ * Verifica se arquivo tem autorização P28B para campos GRS de clientes + unique por tenant
+ * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
+ * Permite somente os 4 arquivos específicos da migration 0012 clientes campos grs
+ */
+function isP28BClientesCamposGrsAuthorizedSchemaUpdate(filePath) {
+  const authorizedValue = "P28B_CLIENTES_CAMPOS_GRS";
+  const envValue = process.env.ERP_AUTHORIZED_SCHEMA_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P28B-CLIENTES-CAMPOS-GRS formal window: ERP_AUTHORIZED_SCHEMA_UPDATE=" + authorizedValue + " (clientes GRS fields + tenant unique)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P28B-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isP28BClientesCamposGrsGuardWindowAuthorized(filePath) {
+  const authorizedValue = "P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P28B-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for clientes campos grs migration)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   "server/db/core.ts",
@@ -3055,6 +3131,37 @@ function main() {
     }
   }
 
+  // P28B-WINDOW check: if guard files are modified with P28B-WINDOW window active, allow them
+  // IMPORTANTE: P28B-WINDOW vem antes de P26-WINDOW/P24D-WINDOW — a janela mais nova reivindica os guards primeiro
+  const p28bWindowFilesInChanges = files.filter(f => P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p28bWindowFilesInChanges.length > 0) {
+    const p28bWindowCheck = isP28BClientesCamposGrsGuardWindowAuthorized(p28bWindowFilesInChanges[0]);
+    if (p28bWindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of p28bWindowFilesInChanges) {
+        const check = isP28BClientesCamposGrsGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by P28B-WINDOW, allow them
+      const nonP28bWindowFiles = files.filter(f => !P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonP28bWindowFiles.length === 0) {
+        console.log("\n📋 Arquivos P28B-WINDOW detectados:");
+        p28bWindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28bWindowCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonP28bWindowFiles);
+    }
+  }
+
   // P26-WINDOW check: if guard files are modified with P26-WINDOW window active, allow them
   // IMPORTANTE: P26-WINDOW vem antes de P24D-WINDOW/P21-TENANTS-WINDOW — a janela mais nova reivindica os guards primeiro
   const p26WindowFilesInChanges = files.filter(f => P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
@@ -4244,6 +4351,54 @@ function main() {
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
+    // P28B authorized schema update: clientes GRS fields + tenant unique
+    // Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
+    // Permite somente os 4 arquivos da migration 0012
+    // IMPORTANTE: P28B vem antes das janelas anteriores — a janela mais nova reivindica primeiro
+    const allP28B_Authorized = violations.every(v => P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES.includes(v));
+    if (allP28B_Authorized && violations.length > 0) {
+      const p28bCheck = isP28BClientesCamposGrsAuthorizedSchemaUpdate(violations[0]);
+      if (p28bCheck.authorized) {
+        console.log("\n📋 Arquivos P28B detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28bCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P28B-WINDOW authorized guard update: guard files for clientes campos grs migration
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allP28B_Window_Authorized = violations.every(v => P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allP28B_Window_Authorized && violations.length > 0) {
+      const p28bWindowCheck = isP28BClientesCamposGrsGuardWindowAuthorized(violations[0]);
+      if (p28bWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P28B-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28bWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
+    // P28B mixed case: both drizzle files and guard files staged
+    // Requires BOTH ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS and ERP_AUTHORIZED_GUARD_UPDATE=P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW
+    const hasP28BDrizzleFiles = violations.some(v => P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES.includes(v));
+    const hasP28BGuardFiles = violations.some(v => P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    const onlyP28BFiles = violations.every(v =>
+      P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES.includes(v) ||
+      P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)
+    );
+    if (hasP28BDrizzleFiles && hasP28BGuardFiles && onlyP28BFiles) {
+      const p28bCheck = isP28BClientesCamposGrsAuthorizedSchemaUpdate(violations.find(v => P28B_CLIENTES_CAMPOS_GRS_AUTHORIZED_FILES.includes(v)));
+      const p28bWindowCheck = isP28BClientesCamposGrsGuardWindowAuthorized(violations.find(v => P28B_CLIENTES_CAMPOS_GRS_GUARD_WINDOW_AUTHORIZED_FILES.includes(v)));
+      if (p28bCheck.authorized && p28bWindowCheck.authorized) {
+        console.log("\n📋 Arquivos P28B + P28B-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p28bCheck.reason + " + " + p28bWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
     // P23-COUNTERS-WINDOW check: if guard files are in violations, require guard window variable
     const guardFilesInViolations = violations.filter(v => P23_COUNTERS_TENANT_UNIQUE_WINDOW_AUTHORIZED_FILES.includes(v));
     if (guardFilesInViolations.length > 0) {
