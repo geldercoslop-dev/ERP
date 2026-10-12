@@ -22,6 +22,7 @@ import {
   beforeAllWithServiceContext,
   itWithServiceContext,
 } from "./integration/service-context-harness.js";
+import { ensureTenantExists } from "./integration/helpers/tenant.helper.js";
 import { vendedores } from "../../drizzle/schema.js";
 import * as usersService from "../services/users.service.js";
 
@@ -51,6 +52,10 @@ describe("getVendedorById — isolamento multi-tenant (P23-R-09X)", () => {
     const suffix = nanoid(6).replace(/[^0-9a-z]/gi, "x");
     nomeA = `Vend ById A ${suffix}`;
     nomeB = `Vend ById B ${suffix}`;
+
+    // Pais em `tenants` antes de inserts filhos (fundação p/ FK futura)
+    await ensureTenantExists(dbConn, TENANT_A);
+    await ensureTenantExists(dbConn, TENANT_B);
 
     // Vendedor do tenant A
     const insA = await dbConn.insert(vendedores).values({
