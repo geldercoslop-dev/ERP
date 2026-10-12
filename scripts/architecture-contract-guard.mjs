@@ -380,6 +380,19 @@ const P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES = [
   'scripts/architecture-contract-guard.mjs',
 ];
 
+// Janela formal P26 - Add official db:bootstrap:fresh script (fresh empty-DB bootstrap)
+const P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES = [
+  'package.json',
+  'server/scripts/bootstrap-fresh-db.ts',
+  'docs/operations/FRESH_DB_BOOTSTRAP.md',
+];
+
+// Janela formal P26-WINDOW - Guard files for fresh db bootstrap window registration
+const P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES = [
+  'scripts/guardrail-check.js',
+  'scripts/architecture-contract-guard.mjs',
+];
+
 // Janela formal P23-APP-SECRET-WINDOW - App Secret middleware extraction
 const P23_APP_SECRET_MIDDLEWARE_EXTRACTION_AUTHORIZED_FILES = [
   'server/_core/index.ts',
@@ -1325,6 +1338,113 @@ function isP24DTenantFkGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: 'P24D-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for tenant fks migration)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P26 para adicionar o script db:bootstrap:fresh
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P26_FRESH_DB_BOOTSTRAP_SCRIPT
+ * Permite somente:
+ *   - package.json (apenas para adicionar "db:bootstrap:fresh": "tsx server/scripts/bootstrap-fresh-db.ts")
+ *   - server/scripts/bootstrap-fresh-db.ts (novo script de bootstrap de banco vazio)
+ *   - docs/operations/FRESH_DB_BOOTSTRAP.md (documentação oficial)
+ */
+function isP26FreshDbBootstrapAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P26_FRESH_DB_BOOTSTRAP_SCRIPT';
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES.includes(relativePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a adição do script db:bootstrap:fresh
+    if (relativePath === 'package.json') {
+      try {
+        const diff = execSync('git diff --cached package.json').toString();
+
+        const lines = diff.split('\n');
+        let hasBootstrapScriptAddition = false;
+
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') ||
+              line.startsWith('index ') ||
+              line.startsWith('---') ||
+              line.startsWith('+++') ||
+              line.startsWith('@@')) {
+            continue;
+          }
+
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a adição exata do script db:bootstrap:fresh
+            if (line === '+    "db:bootstrap:fresh": "tsx server/scripts/bootstrap-fresh-db.ts",') {
+              hasBootstrapScriptAddition = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain addition of db:bootstrap:fresh script. Found: ' + line };
+            }
+          }
+        }
+
+        if (!hasBootstrapScriptAddition) {
+          return { authorized: false, reason: 'package.json diff must contain addition of db:bootstrap:fresh script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+
+    return {
+      authorized: true,
+      reason: 'P26-AUTH formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=' + authorizedValue + ' (add fresh db bootstrap script)'
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P26-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard:
+ *   - scripts/guardrail-check.js
+ *   - scripts/architecture-contract-guard.mjs
+ */
+function isP26FreshDbBootstrapGuardWindowAuthorized(filePath) {
+  const relativePath = relative(ROOT, filePath).replace(/\\/g, '/');
+  const authorizedValue = 'P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW';
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES.includes(relativePath)) {
+    return {
+      authorized: true,
+      reason: 'P26-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=' + authorizedValue + ' (guard update for fresh db bootstrap window)'
     };
   }
 
@@ -2976,6 +3096,19 @@ function isFrozen(file) {
     return { frozen: false, exception: true, p21_tenants_window: p21TenantsWindowCheck.reason };
   }
 
+  // Verifica janela formal P26 (add fresh db bootstrap script)
+  // IMPORTANTE: P26 vem antes de P24D — a janela mais nova reivindica primeiro
+  const p26FreshDbBootstrapCheck = isP26FreshDbBootstrapAuthorized(file);
+  if (p26FreshDbBootstrapCheck.authorized) {
+    return { frozen: false, exception: true, p26_fresh_db_bootstrap: p26FreshDbBootstrapCheck.reason };
+  }
+
+  // Verifica janela formal P26-WINDOW (guard update for fresh db bootstrap window)
+  const p26FreshDbBootstrapWindowCheck = isP26FreshDbBootstrapGuardWindowAuthorized(file);
+  if (p26FreshDbBootstrapWindowCheck.authorized) {
+    return { frozen: false, exception: true, p26_fresh_db_bootstrap_window: p26FreshDbBootstrapWindowCheck.reason };
+  }
+
   // Verifica janela formal P24D (FK física users/vendedores -> tenants, migration 0011)
   const p24dTenantFksCheck = isP24DTenantFksAuthorizedSchemaUpdate(file);
   if (p24dTenantFksCheck.authorized) {
@@ -3362,6 +3495,10 @@ function isFrozen(file) {
       }
       // Exceção especial: package.json requer janela formal P23-R-09H para remover test:hard-shutdown
       if (relativePath === 'package.json') {
+        const p26FreshDbCheck = isP26FreshDbBootstrapAuthorized(file);
+        if (p26FreshDbCheck.authorized) {
+          return { frozen: false, exception: true, p26_fresh_db_bootstrap: p26FreshDbCheck.reason };
+        }
         const p23_r09hCheck = isP23_R09HRemoveHardTestShutdownScriptAliasAuthorized(file);
         if (p23_r09hCheck.authorized) {
           return { frozen: false, exception: true, p23_r09h_hard_test_shutdown: p23_r09hCheck.reason };

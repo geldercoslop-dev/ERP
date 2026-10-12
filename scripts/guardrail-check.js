@@ -76,6 +76,19 @@ const P24D_TENANT_FK_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/architecture-contract-guard.mjs",
 ];
 
+// Janela formal P26 - Add official db:bootstrap:fresh script (fresh empty-DB bootstrap)
+const P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES = [
+  "package.json",
+  "server/scripts/bootstrap-fresh-db.ts",
+  "docs/operations/FRESH_DB_BOOTSTRAP.md",
+];
+
+// Janela formal P26-WINDOW - Guard files for fresh db bootstrap window registration
+const P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 // Janela formal P23-CORE - Core audit stub removal
 const P23_CORE_AUTHORIZED_FILES = [
   "server/db/core.ts",
@@ -354,6 +367,109 @@ function isP24DTenantFkGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: "P24D-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for tenant fks migration)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P26 para adicionar o script db:bootstrap:fresh
+ * Requer variável ERP_AUTHORIZED_PACKAGE_UPDATE=P26_FRESH_DB_BOOTSTRAP_SCRIPT
+ * Permite somente:
+ *   - package.json (apenas para adicionar "db:bootstrap:fresh": "tsx server/scripts/bootstrap-fresh-db.ts")
+ *   - server/scripts/bootstrap-fresh-db.ts (novo script de bootstrap de banco vazio)
+ *   - docs/operations/FRESH_DB_BOOTSTRAP.md (documentação oficial)
+ */
+function isP26FreshDbBootstrapAuthorized(filePath) {
+  const authorizedValue = "P26_FRESH_DB_BOOTSTRAP_SCRIPT";
+  const envValue = process.env.ERP_AUTHORIZED_PACKAGE_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES.includes(filePath)) {
+    // Se for package.json, precisa verificar que o diff contém apenas a adição do script db:bootstrap:fresh
+    if (filePath === "package.json") {
+      try {
+        const diff = execSync('git diff --cached package.json').toString();
+
+        const lines = diff.split('\n');
+        let hasBootstrapScriptAddition = false;
+
+        for (const line of lines) {
+          // Ignorar linhas de cabeçalho do diff
+          if (line.startsWith('diff --git') ||
+              line.startsWith('index ') ||
+              line.startsWith('---') ||
+              line.startsWith('+++') ||
+              line.startsWith('@@')) {
+            continue;
+          }
+
+          // Verificar linhas de alteração
+          if (line.startsWith('+') || line.startsWith('-')) {
+            // Permitir apenas a adição exata do script db:bootstrap:fresh
+            if (line === '+    "db:bootstrap:fresh": "tsx server/scripts/bootstrap-fresh-db.ts",') {
+              hasBootstrapScriptAddition = true;
+            } else {
+              // Bloquear qualquer outra alteração
+              return { authorized: false, reason: 'package.json diff can only contain addition of db:bootstrap:fresh script. Found: ' + line };
+            }
+          }
+        }
+
+        if (!hasBootstrapScriptAddition) {
+          return { authorized: false, reason: 'package.json diff must contain addition of db:bootstrap:fresh script' };
+        }
+      } catch (error) {
+        return { authorized: false, reason: 'Failed to check package.json diff' };
+      }
+    }
+
+    return {
+      authorized: true,
+      reason: "P26-AUTH formal window: ERP_AUTHORIZED_PACKAGE_UPDATE=" + authorizedValue + " (add fresh db bootstrap script)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização P26-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW
+ * Permite somente os 2 guards
+ */
+function isP26FreshDbBootstrapGuardWindowAuthorized(filePath) {
+  const authorizedValue = "P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "P26-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for fresh db bootstrap window)"
     };
   }
 
@@ -2936,6 +3052,70 @@ function main() {
       // Continue checking non-guard files
       files.length = 0;
       files.push(...nonGuardFiles);
+    }
+  }
+
+  // P26-WINDOW check: if guard files are modified with P26-WINDOW window active, allow them
+  // IMPORTANTE: P26-WINDOW vem antes de P24D-WINDOW/P21-TENANTS-WINDOW — a janela mais nova reivindica os guards primeiro
+  const p26WindowFilesInChanges = files.filter(f => P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (p26WindowFilesInChanges.length > 0) {
+    const p26WindowCheck = isP26FreshDbBootstrapGuardWindowAuthorized(p26WindowFilesInChanges[0]);
+    if (p26WindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of p26WindowFilesInChanges) {
+        const check = isP26FreshDbBootstrapGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by P26-WINDOW, allow them
+      const nonP26WindowFiles = files.filter(f => !P26_FRESH_DB_BOOTSTRAP_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonP26WindowFiles.length === 0) {
+        console.log("\n📋 Arquivos P26-WINDOW detectados:");
+        p26WindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p26WindowCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonP26WindowFiles);
+    }
+  }
+
+  // P26 check: if package.json or P26 files are modified for fresh db bootstrap script, require authorization variable
+  const p26FreshDbFilesInChanges = files.filter(f => P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES.includes(f));
+  if (p26FreshDbFilesInChanges.length > 0) {
+    const p26FreshDbCheck = isP26FreshDbBootstrapAuthorized(p26FreshDbFilesInChanges[0]);
+    if (p26FreshDbCheck.authorized) {
+      // Validate ALL P26 files individually to ensure strict security
+      for (const file of p26FreshDbFilesInChanges) {
+        const check = isP26FreshDbBootstrapAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          if (check.reason) {
+            console.error("Motivo: " + check.reason + "\n");
+          }
+          console.error("BLOQUEADO — fresh db bootstrap script requer ERP_AUTHORIZED_PACKAGE_UPDATE=P26_FRESH_DB_BOOTSTRAP_SCRIPT\n");
+          process.exit(1);
+        }
+      }
+      // If all changed files are authorized by P26, allow them
+      const nonP26Files = files.filter(f => !P26_FRESH_DB_BOOTSTRAP_AUTHORIZED_FILES.includes(f));
+      if (nonP26Files.length === 0) {
+        console.log("\n📋 Arquivos P26 detectados:");
+        p26FreshDbFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + p26FreshDbCheck.reason + "\n");
+        return;
+      }
+      // If there are other files besides the authorized ones, continue checking
+      // But remove the authorized files from the list since they're already authorized
+      files.length = 0;
+      files.push(...nonP26Files);
     }
   }
 
