@@ -57,6 +57,7 @@
     "db:generate": "node scripts/db/drizzle-wrapper.mjs generate",
     "db:introspect:deterministic": "echo '❌ INTROSPECT DESATIVADO - schema.ts é contrato de domínio, não reflexo do DB. Use db:generate para migrations controladas.' && exit 1",
     "db:migrate": "tsx server/scripts/run-migrate.ts",
+    "db:bootstrap:fresh": "tsx server/scripts/bootstrap-fresh-db.ts",
     "db:validate:post": "tsx scripts/validate-post-migration.ts",
     "db:validate": "tsx server/scripts/validate-idempotency-table.ts",
     "test:db": "tsx server/scripts/test-db-connection.ts",
