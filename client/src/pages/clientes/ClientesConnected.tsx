@@ -122,6 +122,16 @@ export default function ClientesConnected() {
     onSettled: () => utils.clientes.list.invalidate(),
   });
 
+  // P28D4 — troca de vendedor principal de cliente existente (somente admin; backend P28D3)
+  const mSetPrincipal = trpc.clientes.setVendedorPrincipal.useMutation({
+    onSuccess: () => {
+      toast.success("Vendedor principal atualizado!");
+      utils.clientes.list.invalidate();
+      utils.clientes.getVendedorPrincipal.invalidate();
+    },
+    onError: (e) => toast.error(e.message || "Erro ao definir vendedor principal"),
+  });
+
   const [busca, setBusca] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState<"TODAS" | SituacaoCliente>("TODAS");
   const [editId, setEditId] = useState<number | null>(null);
@@ -207,9 +217,10 @@ export default function ClientesConnected() {
     if (selectedClienteId != null && !selectedCliente) setSelectedClienteId(null);
   }, [selectedClienteId, selectedCliente]);
 
+  // P28D4 — também alimenta o Select do form em edição (editId tem prioridade)
   const qVendPrincipal = trpc.clientes.getVendedorPrincipal.useQuery(
-    { clienteId: selectedClienteId ?? 0 },
-    { enabled: selectedClienteId != null }
+    { clienteId: editId ?? selectedClienteId ?? 0 },
+    { enabled: editId != null || selectedClienteId != null }
   );
 
   // adminProcedure: só dispara para admin
@@ -218,6 +229,17 @@ export default function ClientesConnected() {
     () => (Array.isArray(qVendedores.data) ? (qVendedores.data as { id: number; nome: string }[]) : []),
     [qVendedores.data]
   );
+
+  // Preenche o Select com o principal atual quando abre edição (só se o campo estiver vazio,
+  // para não sobrescrever escolha do usuário nem repovoar após a troca)
+  useEffect(() => {
+    if (editId == null) return;
+    const vid = qVendPrincipal.data?.vendedorId;
+    if (vid != null && (form.vendedorIdPrincipal ?? "") === "") {
+      setForm((s) => ({ ...s, vendedorIdPrincipal: String(vid) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId, qVendPrincipal.data?.vendedorId]);
 
   const items = useMemo(() => {
     const term = upper(busca.trim());
@@ -291,6 +313,11 @@ export default function ClientesConnected() {
         id: editId,
         ...pick(patch as ClienteForm & Record<string, unknown>, updateKeys),
       } as never);
+      // P28D4 — troca de principal via procedure admin dedicada; nunca por clientes.update
+      const vid = patch.vendedorIdPrincipal?.trim();
+      if (isAdmin && vid && Number(vid) !== qVendPrincipal.data?.vendedorId) {
+        mSetPrincipal.mutate({ clienteId: editId, vendedorId: Number(vid) });
+      }
     } else {
       // vendedorIdPrincipal: só admin pode definir no create; nunca vai no update
       const createVars: Record<string, unknown> = { ...patch };
@@ -447,7 +474,7 @@ export default function ClientesConnected() {
                 </Select>
               </div>
 
-              {isAdmin && !editId && (
+              {isAdmin && (
                 <div className="md:col-span-4">
                   <Label className="text-slate-700 font-medium">Vendedor Principal</Label>
                   <Select
@@ -458,7 +485,9 @@ export default function ClientesConnected() {
                       <SelectValue placeholder="Opcional" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="NONE">Sem vínculo inicial</SelectItem>
+                      <SelectItem value="NONE">
+                        {editId ? "Manter atual / sem alteração" : "Sem vínculo inicial"}
+                      </SelectItem>
                       {vendedoresLista.map((v) => (
                         <SelectItem key={v.id} value={String(v.id)}>
                           {v.nome}
@@ -466,12 +495,6 @@ export default function ClientesConnected() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-              )}
-
-              {isAdmin && editId != null && (
-                <div className="md:col-span-12 text-xs text-muted-foreground">
-                  Alteração de vendedor principal será liberada em fase backend.
                 </div>
               )}
 
