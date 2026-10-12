@@ -35,6 +35,11 @@ export type CreateClienteInput = {
   condominio?: string | null;
   bloco?: string | null;
   apartamento?: string | null;
+  cpf?: string | null;
+  cep?: string | null;
+  dataNascimento?: string | Date | null;
+  observacao?: string | null;
+  situacao?: ClienteSituacao;
   id?: number;
   vendedorIdPrincipal?: number;
 };
@@ -61,7 +66,28 @@ export type CreateClienteWithVendedorInput = {
   condominio?: string | null;
   bloco?: string | null;
   apartamento?: string | null;
+  cpf?: string | null;
+  cep?: string | null;
+  dataNascimento?: string | Date | null;
+  observacao?: string | null;
+  situacao?: ClienteSituacao;
 };
+
+/** Situação cadastral do cliente (coluna situacao, default ATIVO). */
+export type ClienteSituacao = "ATIVO" | "INATIVO" | "PROSPECT";
+
+/**
+ * Normaliza dataNascimento (string 'YYYY-MM-DD' | Date) para Date|null.
+ * Usa meio-dia local para evitar drift de fuso ao serializar para coluna DATE.
+ */
+function normalizeDataNascimento(value: string | Date | null | undefined): Date | null {
+  if (value == null) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const s = value.trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(`${s}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
 
 /** Vínculo cliente_vendedores válido no tenant (prova de escopo vendedor). */
 async function vendedorLinkedToCliente(
@@ -227,6 +253,13 @@ export async function createCliente(
       uf: data.uf?.trim() || null,
       referencia: data.referencia?.trim() || null,
       condominio: data.condominio?.trim() || null,
+      bloco: data.bloco?.trim() || null,
+      apartamento: data.apartamento?.trim() || null,
+      cpf: data.cpf?.trim() || null,
+      cep: data.cep?.trim() || null,
+      dataNascimento: normalizeDataNascimento(data.dataNascimento),
+      observacao: data.observacao?.trim() || null,
+      situacao: data.situacao || "ATIVO",
     });
     
     const clienteId = getInsertId(result);
@@ -348,6 +381,7 @@ export async function listClientes(
     page?: number;
     pageSize?: number;
     busca?: string;
+    situacao?: ClienteSituacao;
     /** Somente admin: filtrar listagem a um vendedor. */
     vendedorId?: number;
   }
@@ -362,7 +396,7 @@ export async function listClientes(
     assertDbConnection(dbConn);
 
     const safeParams = params ?? {};
-    const { page = 1, pageSize = 50, busca } = safeParams;
+    const { page = 1, pageSize = 50, busca, situacao } = safeParams;
     const limit = Math.min(pageSize, 100);
     const offset = (page - 1) * pageSize;
 
@@ -383,8 +417,13 @@ export async function listClientes(
       conditions.push(
         sql`(${clientes.nome} LIKE ${searchTerm} OR 
               ${clientes.telefone} LIKE ${searchTerm} OR 
-              ${clientes.cidade} LIKE ${searchTerm})`
+              ${clientes.cidade} LIKE ${searchTerm} OR
+              ${clientes.cpf} LIKE ${searchTerm})`
       );
+    }
+
+    if (situacao) {
+      conditions.push(eq(clientes.situacao, situacao));
     }
 
     // Filtrar por vendedorId (compatibilidade)
@@ -403,6 +442,13 @@ export async function listClientes(
           sobrenomeNorm: clientes.sobrenomeNorm,
           cidade: clientes.cidade,
           uf: clientes.uf,
+          bloco: clientes.bloco,
+          apartamento: clientes.apartamento,
+          cep: clientes.cep,
+          cpf: clientes.cpf,
+          dataNascimento: clientes.dataNascimento,
+          observacao: clientes.observacao,
+          situacao: clientes.situacao,
           createdAt: clientes.createdAt,
           updatedAt: clientes.updatedAt,
         })
@@ -449,6 +495,13 @@ export async function listClientes(
           sobrenomeNorm: clientes.sobrenomeNorm,
           cidade: clientes.cidade,
           uf: clientes.uf,
+          bloco: clientes.bloco,
+          apartamento: clientes.apartamento,
+          cep: clientes.cep,
+          cpf: clientes.cpf,
+          dataNascimento: clientes.dataNascimento,
+          observacao: clientes.observacao,
+          situacao: clientes.situacao,
           createdAt: clientes.createdAt,
           updatedAt: clientes.updatedAt,
         })
@@ -534,13 +587,22 @@ export async function updateCliente(tenantId: number, actor: ServiceActor, id: n
       updateData.telefone = telefone;
     }
     
-    const fields: (keyof CreateClienteInput)[] = ['telefoneRecado', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'referencia', 'condominio'];
+    const fields: (keyof CreateClienteInput)[] = ['telefoneRecado', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'referencia', 'condominio', 'bloco', 'apartamento', 'cpf', 'cep', 'observacao'];
     const updatePayload = updateData as Record<string, string | number | null | Date>;
     for (const f of fields) {
       const v = data[f];
       if (v !== undefined) {
         updatePayload[f] = (typeof v === 'string' ? v.trim() : v) || null;
       }
+    }
+
+    // situacao é NOT NULL: ignora null; ausência não toca no campo
+    if (data.situacao !== undefined && data.situacao !== null) {
+      updatePayload.situacao = data.situacao;
+    }
+    // dataNascimento: ausente = não toca; presente (inclui null) = normaliza
+    if (data.dataNascimento !== undefined) {
+      updatePayload.dataNascimento = normalizeDataNascimento(data.dataNascimento);
     }
     
     await dbConn.update(clientes)
@@ -666,6 +728,13 @@ export async function getOrCreateCliente(
       uf: data.uf || null,
       referencia: data.referencia || null,
       condominio: data.condominio || null,
+      bloco: data.bloco || null,
+      apartamento: data.apartamento || null,
+      cpf: data.cpf || null,
+      cep: data.cep || null,
+      dataNascimento: normalizeDataNascimento(data.dataNascimento),
+      observacao: data.observacao || null,
+      situacao: data.situacao || "ATIVO",
     });
 
     const clienteId = getInsertId(created);
@@ -739,6 +808,13 @@ export async function resolveClienteVendaInTransaction(
     uf?: string | null;
     referencia?: string | null;
     condominio?: string | null;
+    bloco?: string | null;
+    apartamento?: string | null;
+    cpf?: string | null;
+    cep?: string | null;
+    dataNascimento?: string | Date | null;
+    observacao?: string | null;
+    situacao?: ClienteSituacao;
   }
 ): Promise<number> {
   if (!clienteData.telefone) {
@@ -782,6 +858,13 @@ export async function resolveClienteVendaInTransaction(
     uf: clienteData.uf || null,
     referencia: clienteData.referencia || null,
     condominio: clienteData.condominio || null,
+    bloco: clienteData.bloco || null,
+    apartamento: clienteData.apartamento || null,
+    cpf: clienteData.cpf || null,
+    cep: clienteData.cep || null,
+    dataNascimento: normalizeDataNascimento(clienteData.dataNascimento),
+    observacao: clienteData.observacao || null,
+    situacao: clienteData.situacao || "ATIVO",
   });
 
   const clienteId = getInsertId(created);

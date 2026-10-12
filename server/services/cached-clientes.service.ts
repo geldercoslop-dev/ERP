@@ -31,7 +31,7 @@ const CACHE_TTL = {
 export async function listClientes(
   tenantId: number,
   actor: ServiceActor,
-  params: { page?: number; pageSize?: number; busca?: string; vendedorId?: number }
+  params: { page?: number; pageSize?: number; busca?: string; situacao?: clientesService.ClienteSituacao; vendedorId?: number }
 ): Promise<{ success: boolean; data?: { items: Cliente[]; total: number; page: number; pageSize: number }; error?: string }> {
   return clientesService.listClientes(tenantId, actor, params);
 }

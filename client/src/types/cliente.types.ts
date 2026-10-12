@@ -19,6 +19,9 @@ export interface Cliente {
   condominio?: string;
   bloco?: string;
   apartamento?: string;
+  dataNascimento?: string;
+  observacao?: string;
+  situacao?: "ATIVO" | "INATIVO" | "PROSPECT";
   createdAt?: string;
   updatedAt?: string;
 }
@@ -38,6 +41,9 @@ export interface ClienteCreateInput {
   condominio?: string;
   bloco?: string;
   apartamento?: string;
+  dataNascimento?: string;
+  observacao?: string;
+  situacao?: "ATIVO" | "INATIVO" | "PROSPECT";
   vendedorIdPrincipal?: number;
 }
 
@@ -56,4 +62,5 @@ export interface ClienteListResponse {
 export interface ClienteListParams {
   page?: number;
   pageSize?: number;
+  situacao?: "ATIVO" | "INATIVO" | "PROSPECT";
 }

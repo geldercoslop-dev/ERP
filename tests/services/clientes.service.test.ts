@@ -8,6 +8,13 @@ vi.mock("../../server/db/core", async (importOriginal) => {
   return {
     ...actual,
     getDb: vi.fn(),
+  };
+});
+
+vi.mock("../../server/services/audit-service", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../server/services/audit-service")>();
+  return {
+    ...actual,
     insertAuditLog: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -42,17 +49,18 @@ describe("ClientesService", () => {
 
       const result = await clientesService.createCliente(1, clienteData);
 
-      expect(result).toEqual({ id: 99 });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ id: 99 });
       expect(mockDb.insert).toHaveBeenCalled();
     });
 
-    it("deve lançar erro quando tenantId não é fornecido", async () => {
-      await expect(
-        clientesService.createCliente(0, {
-          nome: "X",
-          telefone: "11999999999",
-        })
-      ).rejects.toThrow(/tenantId obrigatório/);
+    it("deve falhar quando tenantId não é fornecido", async () => {
+      const res = await clientesService.createCliente(0, {
+        nome: "X",
+        telefone: "11999999999",
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toMatch(/tenantId obrigatório/);
     });
   });
 
@@ -67,7 +75,8 @@ describe("ClientesService", () => {
       vi.mocked(getDb).mockResolvedValue(mockDb as never);
 
       const result = await clientesService.getClienteById(1, ADMIN_ACTOR, 99999);
-      expect(result).toBeNull();
+      expect(result.success).toBe(false);
+      expect(result.data ?? null).toBeNull();
     });
   });
 });

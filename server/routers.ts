@@ -1242,6 +1242,7 @@ export const appRouter = router({
       .input(z.object({
         page: z.number().min(1).optional(),
         pageSize: z.number().min(1).max(100).optional(),
+        situacao: z.enum(["ATIVO", "INATIVO", "PROSPECT"]).optional(),
       }).optional())
       .query(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);
@@ -1251,6 +1252,7 @@ export const appRouter = router({
         const listResult = await cachedClientes.listClientes(tenantId, actor, {
           page,
           pageSize,
+          situacao: input?.situacao,
         });
         if (!listResult.success || !listResult.data) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: listResult.error ?? "Falha ao listar clientes" });
@@ -1292,6 +1294,9 @@ export const appRouter = router({
         condominio: z.string().optional(),
         bloco: z.string().optional(),
         apartamento: z.string().optional(),
+        dataNascimento: z.string().optional(),
+        observacao: z.string().optional(),
+        situacao: z.enum(["ATIVO", "INATIVO", "PROSPECT"]).optional(),
         vendedorIdPrincipal: z.number().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1353,6 +1358,12 @@ export const appRouter = router({
         cidade: z.string().optional(),
         uf: z.string().optional(),
         referencia: z.string().optional(),
+        condominio: z.string().optional(),
+        bloco: z.string().optional(),
+        apartamento: z.string().optional(),
+        dataNascimento: z.string().optional(),
+        observacao: z.string().optional(),
+        situacao: z.enum(["ATIVO", "INATIVO", "PROSPECT"]).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = await requireTenant(ctx);

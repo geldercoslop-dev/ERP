@@ -13,7 +13,7 @@ const DEFAULT_QUERY_OPTIONS = {
  * Hook centralizado para gerenciar a listagem de clientes.
  * Encapsula normalização, totalizadores e cache.
  */
-export function useClientes(filters?: any) {
+export function useClientes(filters?: { page?: number; pageSize?: number; situacao?: "ATIVO" | "INATIVO" | "PROSPECT" }) {
   const query = trpc.clientes.list.useQuery(filters, DEFAULT_QUERY_OPTIONS);
 
   const data = useMemo(() => normalizeListResponse<Cliente>(query.data), [query.data]);

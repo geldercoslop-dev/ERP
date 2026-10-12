@@ -26,6 +26,11 @@ export interface ClientePayload {
   condominio?: string | null;
   bloco?: string | null;
   apartamento?: string | null;
+  cpf?: string | null;
+  cep?: string | null;
+  dataNascimento?: string | Date | null;
+  observacao?: string | null;
+  situacao?: "ATIVO" | "INATIVO" | "PROSPECT";
 }
 
 /**
@@ -56,6 +61,7 @@ export interface ClienteFilters {
   page?: number;
   pageSize?: number;
   busca?: string;
+  situacao?: "ATIVO" | "INATIVO" | "PROSPECT";
   vendedorId?: number;
   userId?: number;
 }
