@@ -243,6 +243,22 @@ const AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/anti-regress-check.js",
 ];
 
+// Janela formal AUTH-H8A - Fix do rate limiter para requests anônimas /api/* (BUG1):
+// requests sem user/tenant derrubavam o processo via getTenantIdFromRequest
+// (ValidationError -> unhandledRejection -> process exit até em /api/csrf-token).
+// Fix: anônimo usa bucket ip:/rota; autenticado usa tenant: quando disponível;
+// erros internos vão para next(err) — nunca throw em middleware async.
+const AUTH_H8A_AUTHORIZED_FILES = [
+  "server/security/redis-rate-limit.ts",
+  "server/tests/redis-rate-limit-anon.test.ts",
+];
+
+// Janela formal AUTH-H8A-WINDOW - Guard files for auth-h8a rate limiter anon fix window
+const AUTH_H8A_GUARD_WINDOW_AUTHORIZED_FILES = [
+  "scripts/guardrail-check.js",
+  "scripts/architecture-contract-guard.mjs",
+];
+
 /**
  * Verifica se arquivo tem autorização P28B para campos GRS de clientes + unique por tenant
  * Requer variável ERP_AUTHORIZED_SCHEMA_UPDATE=P28B_CLIENTES_CAMPOS_GRS
@@ -546,6 +562,68 @@ function isAuthDbSessionGuardWindowAuthorized(filePath) {
     return {
       authorized: true,
       reason: "AUTH-DB-SESSION-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for auth db session)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-H8A para o fix do rate limiter anônimo
+ * Requer variável ERP_AUTHORIZED_RATE_LIMITER_ANON_FIX=AUTH_H8A_RATE_LIMITER_ANON_V1
+ * Permite somente os 2 arquivos específicos do fix
+ */
+function isAuthH8AAuthorizedUpdate(filePath) {
+  const authorizedValue = "AUTH_H8A_RATE_LIMITER_ANON_V1";
+  const envValue = process.env.ERP_AUTHORIZED_RATE_LIMITER_ANON_FIX;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_H8A_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "AUTH-H8A formal window: ERP_AUTHORIZED_RATE_LIMITER_ANON_FIX=" + authorizedValue + " (rate limiter anon /api fix)"
+    };
+  }
+
+  // Arquivo fora da lista: bloqueia mesmo com variável correta
+  return { authorized: false };
+}
+
+/**
+ * Verifica se arquivo tem autorização AUTH-H8A-WINDOW para alterar os guards
+ * Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_H8A_RATE_LIMITER_ANON_GUARD_WINDOW
+ * Permite somente os 2 arquivos de guard
+ */
+function isAuthH8AGuardWindowAuthorized(filePath) {
+  const authorizedValue = "AUTH_H8A_RATE_LIMITER_ANON_GUARD_WINDOW";
+  const envValue = process.env.ERP_AUTHORIZED_GUARD_UPDATE;
+
+  // Sem variável: bloqueia
+  if (!envValue) {
+    return { authorized: false };
+  }
+
+  // Variável errada: bloqueia
+  if (envValue !== authorizedValue) {
+    return { authorized: false };
+  }
+
+  // Variável correta: verifica se arquivo está na lista exata
+  if (AUTH_H8A_GUARD_WINDOW_AUTHORIZED_FILES.includes(filePath)) {
+    return {
+      authorized: true,
+      reason: "AUTH-H8A-WINDOW formal window: ERP_AUTHORIZED_GUARD_UPDATE=" + authorizedValue + " (guard update for rate limiter anon fix)"
     };
   }
 
@@ -3519,6 +3597,62 @@ function main() {
     }
   }
 
+  // AUTH-H8A-WINDOW check: if guard files are modified with AUTH-H8A window active, allow them
+  // IMPORTANTE: AUTH-H8A-WINDOW vem antes de AUTH-DB-SESSION-WINDOW/AUTH-LOGIN-HARDENING-WINDOW/... — a janela mais nova reivindica os guards primeiro
+  const authH8AWindowFilesInChanges = files.filter(f => AUTH_H8A_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+  if (authH8AWindowFilesInChanges.length > 0) {
+    const authH8AWindowCheck = isAuthH8AGuardWindowAuthorized(authH8AWindowFilesInChanges[0]);
+    if (authH8AWindowCheck.authorized) {
+      // Validate ALL guard files individually to ensure strict security
+      for (const file of authH8AWindowFilesInChanges) {
+        const check = isAuthH8AGuardWindowAuthorized(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — guard update requer ERP_AUTHORIZED_GUARD_UPDATE=AUTH_H8A_RATE_LIMITER_ANON_GUARD_WINDOW\n");
+          process.exit(1);
+        }
+      }
+      const nonAuthH8AWindowFiles = files.filter(f => !AUTH_H8A_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
+      if (nonAuthH8AWindowFiles.length === 0) {
+        console.log("\n📋 Arquivos AUTH-H8A-WINDOW detectados:");
+        authH8AWindowFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authH8AWindowCheck.reason + "\n");
+        return;
+      }
+      files.length = 0;
+      files.push(...nonAuthH8AWindowFiles);
+    }
+  }
+
+  // AUTH-H8A check: arquivos de conteúdo autorizados pela janela AUTH-H8A
+  // IMPORTANTE: vem antes das janelas AUTH-DB-SESSION/AUTH-LOGIN-HARDENING — a janela mais nova reivindica primeiro
+  const authH8AFilesInChanges = files.filter(f => AUTH_H8A_AUTHORIZED_FILES.includes(f));
+  if (authH8AFilesInChanges.length > 0) {
+    const authH8ACheck = isAuthH8AAuthorizedUpdate(authH8AFilesInChanges[0]);
+    if (authH8ACheck.authorized) {
+      // Validate ALL AUTH-H8A files individually to ensure strict security
+      for (const file of authH8AFilesInChanges) {
+        const check = isAuthH8AAuthorizedUpdate(file);
+        if (!check.authorized) {
+          console.error("\n🚫 VIOLAÇÃO DE ARQUITETURA DETECTADA\n");
+          console.error("Arquivo não autorizado: " + file + "\n");
+          console.error("BLOQUEADO — rate limiter anon fix requer ERP_AUTHORIZED_RATE_LIMITER_ANON_FIX=AUTH_H8A_RATE_LIMITER_ANON_V1\n");
+          process.exit(1);
+        }
+      }
+      const nonAuthH8AFiles = files.filter(f => !AUTH_H8A_AUTHORIZED_FILES.includes(f));
+      if (nonAuthH8AFiles.length === 0) {
+        console.log("\n📋 Arquivos AUTH-H8A detectados:");
+        authH8AFilesInChanges.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authH8ACheck.reason + "\n");
+        return;
+      }
+      files.length = 0;
+      files.push(...nonAuthH8AFiles);
+    }
+  }
+
   // AUTH-DB-SESSION-WINDOW check: if guard files are modified with AUTH-DB-SESSION-WINDOW window active, allow them
   // IMPORTANTE: AUTH-DB-SESSION-WINDOW vem antes de AUTH-LOGIN-HARDENING-WINDOW/P28D3-WINDOW/P28C-WINDOW — a janela mais nova reivindica os guards primeiro
   const authDbSessionWindowFilesInChanges = files.filter(f => AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES.includes(f));
@@ -4987,6 +5121,35 @@ function main() {
   const violations = checkBlocked(files);
 
   if (violations.length > 0) {
+    // AUTH-H8A authorized update: fix do rate limiter para requests anônimas /api/*
+    // Requer variável ERP_AUTHORIZED_RATE_LIMITER_ANON_FIX=AUTH_H8A_RATE_LIMITER_ANON_V1
+    // Permite somente server/security/redis-rate-limit.ts e seu teste
+    // IMPORTANTE: AUTH-H8A vem antes das janelas anteriores — a janela mais nova reivindica primeiro
+    const allAuthH8A_Authorized = violations.every(v => AUTH_H8A_AUTHORIZED_FILES.includes(v));
+    if (allAuthH8A_Authorized && violations.length > 0) {
+      const authH8ACheck = isAuthH8AAuthorizedUpdate(violations[0]);
+      if (authH8ACheck.authorized) {
+        console.log("\n📋 Arquivos AUTH-H8A detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authH8ACheck.reason + "\n");
+        return;
+      }
+    }
+
+    // AUTH-H8A-WINDOW authorized guard update: guard files for rate limiter anon fix
+    // Requer variável ERP_AUTHORIZED_GUARD_UPDATE=AUTH_H8A_RATE_LIMITER_ANON_GUARD_WINDOW
+    // Permite somente scripts/guardrail-check.js e scripts/architecture-contract-guard.mjs
+    const allAuthH8A_Window_Authorized = violations.every(v => AUTH_H8A_GUARD_WINDOW_AUTHORIZED_FILES.includes(v));
+    if (allAuthH8A_Window_Authorized && violations.length > 0) {
+      const authH8AWindowCheck = isAuthH8AGuardWindowAuthorized(violations[0]);
+      if (authH8AWindowCheck.authorized) {
+        console.log("\n📋 Arquivos AUTH-H8A-WINDOW detectados:");
+        violations.forEach(f => console.log(" - " + f));
+        console.log("\n✔ Guardrail OK — " + authH8AWindowCheck.reason + "\n");
+        return;
+      }
+    }
+
     // AUTH-DB-SESSION authorized update: autenticação com sessão persistida em banco
     // Requer variável ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=AUTH_DB_SESSION_V1
     // Permite somente os arquivos específicos da lista AUTH_DB_SESSION_AUTHORIZED_FILES

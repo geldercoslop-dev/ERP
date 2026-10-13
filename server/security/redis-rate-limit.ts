@@ -1,6 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { getRedisClient } from "../infra/redis.js";
-import { ValidationError } from '../_core/errors/typed-errors.js';
 
 export type RedisRateLimitOptions = {
   name: string;
@@ -47,17 +46,22 @@ function normalizeIp(req: Request): string {
   return String(ip).trim() || "unknown";
 }
 
-function getTenantIdFromRequest(req: Request): number {
+/**
+ * Extrai tenantId do request quando disponível (pós-auth).
+ * Requests anônimas (pré-login: /api/csrf-token, auth.login, etc.) retornam null —
+ * rate limit por tenant só se aplica quando há tenant; anônimo usa IP/rota.
+ */
+function getTenantIdFromRequest(req: Request): number | null {
   const tenantId = (req as { user?: { tenantId?: number }; tenantId?: number }).user?.tenantId || (req as { tenantId?: number }).tenantId;
   if (!tenantId || typeof tenantId !== 'number' || tenantId <= 0) {
-    throw new ValidationError("RATE_LIMIT: tenantId obrigatório no request para isolamento multi-tenant");
+    return null;
   }
   return tenantId;
 }
 
 function defaultKeySuffix(req: Request): string {
   const tenantId = getTenantIdFromRequest(req);
-  return String(tenantId);
+  return tenantId !== null ? `tenant:${tenantId}` : `ip:${normalizeIp(req)}`;
 }
 
 export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): RequestHandler {
@@ -86,13 +90,22 @@ export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): 
 
     const redis = getRedisClient();
     if (!redis) {
-      throw new Error("Redis unavailable - rate limit enforced");
+      // Fail-closed sem derrubar o processo: Express trata via error handler (500)
+      next(new Error("Redis unavailable - rate limit enforced"));
+      return;
     }
 
     try {
-      const tenantId = getTenantIdFromRequest(req);
       const endpoint = (req.path || req.url || "unknown").split("?")[0];
-      const key = `tenant:${tenantId}:ratelimit:${name}:${normalizeIp(req)}:${endpoint}`;
+      // Identidade do bucket: tenant quando autenticado; IP para requests anônimas.
+      // keySuffix customizado pode requerer tenant — fallback para IP preserva anônimos.
+      let identity: string;
+      try {
+        identity = keySuffix(req);
+      } catch {
+        identity = `ip:${normalizeIp(req)}`;
+      }
+      const key = `ratelimit:${name}:${identity}:${endpoint}`;
       const now = Date.now();
       const raw = (await redis.eval(
         LUA_FIXED_WINDOW,
@@ -137,7 +150,8 @@ export function createRedisRateLimitMiddleware(options: RedisRateLimitOptions): 
         path: req.originalUrl || req.url,
         error: error instanceof Error ? error.message : String(error),
       });
-      throw new Error("Redis rate limit operation failed");
+      // Nunca propagar exceção de middleware async: unhandledRejection derruba o processo.
+      next(error instanceof Error ? error : new Error("Redis rate limit operation failed"));
     }
   };
 }
