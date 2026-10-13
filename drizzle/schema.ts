@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  datetime,
   decimal,
   index,
   int,
@@ -52,6 +53,35 @@ export const vendedores = mysqlTable(
     tenantIdIdx: index("vendedores_tenant_id_idx").on(table.tenantId),
     userIdIdx: index("vendedores_user_id_idx").on(table.userId),
     nomeIdx: index("vendedores_nome_idx").on(table.nome),
+  }),
+);
+
+// AUTH-H4 / AUTH_DB_SESSION_V1 — sessões persistidas para auth DB-backed.
+// sessionId corresponde ao claim JWT sessionId; refresh token nunca é guardado
+// puro (somente hash); revogação server-side via revoked_at/revoked_reason.
+export const authSessions = mysqlTable(
+  "auth_sessions",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    sessionId: varchar("session_id", { length: 64 }).notNull().unique(),
+    tenantId: int("tenant_id").notNull().references(() => tenants.id),
+    userId: int("user_id").notNull().references(() => users.id),
+    vendedorId: int("vendedor_id").references(() => vendedores.id),
+    role: mysqlEnum("role", ["admin", "operator", "user"]).notNull(),
+    refreshTokenHash: varchar("refresh_token_hash", { length: 255 }).notNull(),
+    refreshTokenExpiresAt: datetime("refresh_token_expires_at", { mode: "date" }).notNull(),
+    revokedAt: datetime("revoked_at", { mode: "date" }),
+    revokedReason: varchar("revoked_reason", { length: 255 }),
+    lastUsedAt: datetime("last_used_at", { mode: "date" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index("auth_sessions_tenant_id_idx").on(table.tenantId),
+    userIdIdx: index("auth_sessions_user_id_idx").on(table.userId),
+    vendedorIdIdx: index("auth_sessions_vendedor_id_idx").on(table.vendedorId),
+    refreshTokenHashIdx: index("auth_sessions_refresh_token_hash_idx").on(table.refreshTokenHash),
+    revokedAtIdx: index("auth_sessions_revoked_at_idx").on(table.revokedAt),
   }),
 );
 
