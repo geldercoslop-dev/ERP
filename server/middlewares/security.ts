@@ -8,6 +8,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../_core/logger.js';
 import { isString, isObject, isNumber } from '../_core/validators.js';
+import { COOKIE_NAME } from '../../shared/const.js';
 
 interface SecurityConfig {
   maxHeaderSize: number;
@@ -122,6 +123,18 @@ function validatePayloadSize(req: Request, maxSize: number): boolean {
 }
 
 /**
+ * AUTH-H8C: nome oficial do cookie httpOnly de sessão (COOKIE_NAME =
+ * "session_token" em shared/const) colide com o padrão XSS /on\w+\s*=/i
+ * ("sessi**on_token=**"). No header `cookie`, remove-se APENAS o prefixo
+ * "nome=" desse cookie conhecido antes do scan — o VALOR do cookie continua
+ * inspecionado. Nomes desconhecidos que casam padrões perigosos e headers
+ * arbitrários seguem bloqueados.
+ */
+function stripKnownSessionCookiePrefix(cookieHeader: string): string {
+  return cookieHeader.replace(new RegExp(`${COOKIE_NAME}=`, "gi"), "");
+}
+
+/**
  * Detecta padrões suspeitos em headers
  */
 function detectSuspiciousHeaders(headers: Record<string, string>): string[] {
@@ -136,18 +149,21 @@ function detectSuspiciousHeaders(headers: Record<string, string>): string[] {
     /drop\s+table/i,
     /insert\s+into/i
   ];
-  
+
   for (const [key, value] of Object.entries(headers)) {
     if (!isString(key) || !isString(value)) continue;
-    
+
+    const inspected =
+      key.toLowerCase() === 'cookie' ? stripKnownSessionCookiePrefix(value) : value;
+
     for (const pattern of patterns) {
-      if (pattern.test(value)) {
+      if (pattern.test(inspected)) {
         suspicious.push(`${key}: ${value}`);
         break;
       }
     }
   }
-  
+
   return suspicious;
 }
 
