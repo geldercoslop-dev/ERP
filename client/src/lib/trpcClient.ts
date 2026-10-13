@@ -50,7 +50,7 @@ function logTrpcError(procedure: string, input: TrpcCallInput, response: unknown
 }
 
 /**
- * Extrai `result.data.json` do batch (formato `{ "0": { ... } }` ou array `[{ ... }]`).
+ * Extrai `result.data` cru do batch (formato `{ "0": { ... } }` ou array `[{ ... }]`).
  * Lança se formato inválido ou se o slot contém erro tRPC.
  */
 function safeParseTrpc(json: unknown): unknown {
@@ -89,17 +89,12 @@ function safeParseTrpc(json: unknown): unknown {
   }
 
   const result = row.result;
-  if (!isPlainObject(result)) {
+  if (!isPlainObject(result) || !("data" in result)) {
     return null;
   }
-  const data = result.data;
-  if (!isPlainObject(data)) {
-    return null;
-  }
-  if (!("json" in data)) {
-    return null;
-  }
-  return data.json;
+  // AUTH-H8B: transformer identidade — `result.data` já é o valor cru do
+  // procedure (sem wrapper { json: ... }, que só existe com superjson).
+  return result.data ?? null;
 }
 
 function parseTrpcResponseBody(
@@ -147,14 +142,10 @@ export async function trpcCall(procedure: string, input?: TrpcCallInput): Promis
   const path = procedure.replace(/^\//, "");
   const url = `${origin}/api/trpc/${path}?batch=1`;
 
-  const jsonBody: Payload | null =
-    input === undefined ? {} : input === null ? null : input;
-
-  const body = JSON.stringify({
-    "0": {
-      json: jsonBody,
-    },
-  });
+  // AUTH-H8B: o servidor usa transformer identidade (sem superjson) — o slot
+  // de batch recebe o input cru, sem envelope { json: ... }. Formato idêntico
+  // ao do httpBatchLink: {"0": input}; input undefined serializa como {}.
+  const body = JSON.stringify({ "0": input });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TRPC_CALL_TIMEOUT_MS);

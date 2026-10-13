@@ -33,7 +33,8 @@ async function tryRefreshSession(): Promise<boolean> {
           Accept: "application/json",
           ...buildSessionHeaders(),
         },
-        body: JSON.stringify({ "0": { json: null } }),
+        // AUTH-H8B: transformer identidade — input cru no slot de batch (sem { json }).
+        body: JSON.stringify({ "0": null }),
       });
       if (!res.ok) return false;
       // Fail-closed: só sucesso se o batch tRPC vier sem `error`.

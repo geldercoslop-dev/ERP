@@ -6,6 +6,7 @@ export default defineConfig({
       'server/tests/**/*.test.ts',
       'server/services/**/*.test.ts',
       'tests/single-boot-guard.spec.ts',
+      'tests/client/**/*.test.ts',
     ],
     exclude: [
       'node_modules',
