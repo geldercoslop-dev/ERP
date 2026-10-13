@@ -6,6 +6,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { constantTimeCompare } from './timing-safe.js';
+import { COOKIE_NAME } from '../../shared/const.js';
 
 // Configuration interface for middleware
 export interface AppSecretMiddlewareConfig {
@@ -99,7 +101,35 @@ export function createAppSecretMiddleware(config: AppSecretMiddlewareConfig) {
       // For browser requests: CSRF + JWT can substitute for x-app-secret
       // GET requests don't need x-app-secret if they have JWT
       const isSafeMethod = ["GET", "HEAD", "OPTIONS"].includes(req.method);
-      const isMutationWithProtection = hasCsrfToken && (hasJwtToken || isSafeMethod);
+
+      /*
+       * AUTH-H8D: POST tRPC do SPA cookie-only.
+       * O browser oficial NÃO envia x-app-secret (VITE_APP_SECRET inexistente)
+       * nem Authorization (política cookie-only, AUTH-H6). Para POST em
+       * /api/trpc/*, exigimos evidência de sessão legítima:
+       *   1) cookie oficial de sessão presente (session_token/session/refresh_token);
+       *   2) CSRF double-submit VÁLIDO (cookie csrf-token === header x-csrf-token,
+       *      em tempo constante — mesmo critério de csrf-protection.ts).
+       * A autenticidade da sessão continua validada pelo router tRPC; aqui só
+       * liberamos a passagem quando há evidência real de browser autenticado.
+       * x-session-token NÃO é consultado nem aceito como mecanismo.
+       */
+      const csrfCookieToken = req.cookies?.["csrf-token"];
+      const csrfHeaderToken = req.get("x-csrf-token");
+      const csrfPairValid =
+        typeof csrfCookieToken === "string" && csrfCookieToken.length > 0 &&
+        typeof csrfHeaderToken === "string" && csrfHeaderToken.length > 0 &&
+        constantTimeCompare(csrfCookieToken, csrfHeaderToken);
+      const hasSessionCookie = Boolean(
+        req.cookies?.[COOKIE_NAME] ||
+        req.cookies?.["session"] ||
+        req.cookies?.["refresh_token"]
+      );
+      const isTrpcSessionPost =
+        path.startsWith("/api/trpc/") && hasSessionCookie && csrfPairValid;
+
+      const isMutationWithProtection =
+        (hasCsrfToken && (hasJwtToken || isSafeMethod)) || isTrpcSessionPost;
 
       if (!isMutationWithProtection && !hasBearerAuth) {
         console.log('>>> BLOCKED BEFORE ROUTES', {
