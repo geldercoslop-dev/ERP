@@ -5,6 +5,7 @@ import type { UserWithTenant } from "../types/schema-extended.js";
 import { jwtAuth } from "../security/jwt-auth.js";
 import { COOKIE_NAME, ADMIN_SESSION_COOKIE } from "../../shared/const.js";
 import * as usersService from "../services/users.service.js";
+import { isAccessSessionValid } from "./session.service.js";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -46,6 +47,19 @@ async function revalidateJwtIdentity(token: string): Promise<ResolvedIdentity | 
 
   if (!Number.isInteger(payload.userId) || payload.userId <= 0) return null;
   if (!Number.isInteger(payload.tenantId) || payload.tenantId <= 0) return null;
+  if (typeof payload.sessionId !== "string" || !payload.sessionId) return null;
+
+  // AUTH-H5: sessão persistida obrigatória — access token só vale enquanto a
+  // sessão existir em auth_sessions, não estiver revogada, estiver dentro da
+  // janela de refresh e bater tenant/user/vendedor com o payload. Logout e
+  // revogação derrubam o access imediatamente.
+  const sessionOk = await isAccessSessionValid({
+    sessionId: payload.sessionId,
+    tenantId: payload.tenantId,
+    userId: payload.userId,
+    vendedorId: typeof payload.vendedorId === "number" ? payload.vendedorId : null,
+  });
+  if (!sessionOk) return null;
 
   // User REAL no banco — tenant-first: id+tenant juntos (mismatch → null)
   const user = await usersService.getUserById(payload.userId, payload.tenantId);

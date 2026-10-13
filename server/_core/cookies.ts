@@ -1,5 +1,8 @@
 import type { CookieOptions, Request } from "express";
 
+/** AUTH-H5: nome canônico do cookie httpOnly de refresh token (cookie-only, nunca body/localStorage). */
+export const REFRESH_COOKIE_NAME = "refresh_token";
+
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function isIpAddress(host: string) {
@@ -52,4 +55,18 @@ export function getSessionCookieOptions(
   };
 
   return options;
+}
+
+/**
+ * AUTH-H5: opções do cookie refresh_token — mesma política de
+ * httpOnly/sameSite/secure/path do cookie de sessão, com maxAge da janela
+ * de refresh (JWT_REFRESH_EXPIRY, default 7d quando ausente).
+ * O refresh token só trafega neste cookie httpOnly — nunca em body ou
+ * localStorage.
+ */
+export function getRefreshCookieOptions(
+  req: Request,
+  maxAgeMs: number
+): CookieOptions {
+  return { ...getSessionCookieOptions(req), maxAge: maxAgeMs };
 }

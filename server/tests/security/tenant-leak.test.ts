@@ -98,7 +98,9 @@ describe("P0.7 Security - TENANT leak", () => {
 
     console.log("[TENANT-LEAK:HTTP-CROSS]", { status: res.status, body });
 
-    expect([403, 404]).toContain(res.status);
+    // AUTH-H5: authMiddleware exige sessão persistida — token sem auth_sessions
+    // morre em 401 antes do tenantMiddleware (403/404). Todos bloqueiam o leak.
+    expect([401, 403, 404]).toContain(res.status);
     expect(JSON.stringify(body)).not.toContain("safe\":true");
   });
 });

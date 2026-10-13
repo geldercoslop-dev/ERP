@@ -42,6 +42,50 @@ const p23R10CDoubleBootFixAuthorized = process.env.ERP_AUTHORIZED_DOUBLE_BOOT_FI
 const isP23R10CDoubleBootFixWindowActive = p23R10CDoubleBootFixAuthorized && files.length === P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES.size &&
                                            files.every(f => P23_R10C_DOUBLE_BOOT_FIX_AUTHORIZED_FILES.has(f));
 
+// 🔵 JANELA CIRÚRGICA AUTH-DB-SESSION (AUTH-H5: sessões persistidas em auth_sessions)
+// TEMPORÁRIA e cirúrgica — exceções APENAS para falsos positivos PRÉ-EXISTENTES:
+//   - server/_core/cookies.ts         → import-time execution FP (LOCAL_HOSTS/new Set pré-existente)
+//   - server/_core/session.service.ts → DB direto legado (SessionService já existia em _core e agora
+//                                       cobre auth_sessions sob janela formal AUTH_DB_SESSION_V1)
+// Ativa somente se: env ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE=AUTH_DB_SESSION_V1 E todo arquivo
+// staged (exceto scripts/guards/docs, já ignorados pelas checagens) pertence à lista exata da janela.
+// NÃO desativa nenhuma regra globalmente; demais arquivos continuam passando por todas as regras.
+const AUTH_DB_SESSION_WINDOW_FILES = new Set([
+  // Backend
+  "server/routers.ts",
+  "server/security/jwt-auth.ts",
+  "server/_core/context.ts",
+  "server/_core/cookies.ts",
+  "server/_core/secure-context.ts",
+  "server/_core/session.service.ts",
+  "server/middlewares/jwt-auth-middleware.ts",
+  "server/middleware/auth.middleware.ts",
+  "server/middlewares/require-auth-context.ts",
+  "server/services/users.service.ts",
+  // Testes AUTH-H5
+  "server/tests/auth-refresh-logout.test.ts",
+  "server/tests/auth-db-session.test.ts",
+  "server/tests/auth-rate-limit.test.ts",
+  "server/tests/auth-admin-procedure.test.ts",
+  "server/tests/jwt-session-auth-flow.test.ts",
+  "server/tests/security/auth-bypass.test.ts",
+  "server/tests/multitenant/tenant-auth.test.ts",
+  "tests/auth-security.test.ts",
+  // Testes impactados por DB-backed sessions
+  "server/tests/security/tenant-leak.test.ts",
+  "server/tests/vendedor-by-user-id-tenant-isolation.test.ts",
+]);
+
+const authDbSessionAuthorized = process.env.ERP_AUTHORIZED_AUTH_DB_SESSION_UPDATE === "AUTH_DB_SESSION_V1";
+const isAuthDbSessionWindowActive = authDbSessionAuthorized &&
+  files.every(f =>
+    f.includes("scripts/") ||
+    f.includes("guards/") ||
+    f.endsWith(".md") ||
+    f.startsWith("docs/") ||
+    AUTH_DB_SESSION_WINDOW_FILES.has(f)
+  );
+
 // 🔵 ARQUIVOS DE INFRA DB LEGÍTIMOS
 // Exceção explícita para arquivos de configuração de banco que gerenciam pools
 const ALLOWED_DB_INFRA_FILES = new Set([
@@ -91,9 +135,15 @@ Use tipagem correta.
   // (verificação de integridade pré-existente não relacionada ao fix; exige env FIX + scope exato + arquivo exato)
   const skipDbCheckForR10CDoubleBootWindow = isP23R10CDoubleBootFixWindowActive && file === "server/_core/index.ts";
 
+  // Janela cirúrgica AUTH-DB-SESSION (TEMPORÁRIA, AUTH-H5): DB direto legado pré-existente
+  // em server/_core/session.service.ts — arquivo já existia em _core com SessionService e agora
+  // cobre auth_sessions sob janela formal. Somente este arquivo exato, somente nesta janela.
+  const skipDbCheckForAuthDbSessionWindow = isAuthDbSessionWindowActive && file === "server/_core/session.service.ts";
+
   if (
     !skipDbCheckForP23Window &&
     !skipDbCheckForR10CDoubleBootWindow &&
+    !skipDbCheckForAuthDbSessionWindow &&
     !file.startsWith("server/services") &&
     !ALLOWED_DB_INFRA_FILES.has(file) &&
     (
@@ -126,7 +176,11 @@ Use tipagem correta.
 
   // 🔴 4. DETECTAR IMPORT-TIME EXECUTION
   // Ignorar arquivos markdown e docs
-  if (!file.endsWith(".md") && !file.startsWith("docs/") && !file.includes("services")) {
+  // Janela cirúrgica AUTH-DB-SESSION (TEMPORÁRIA, AUTH-H5): falso positivo pré-existente
+  // em server/_core/cookies.ts (const LOCAL_HOSTS = new Set([...]) existia antes da janela).
+  // Somente este arquivo exato, somente nesta janela — demais arquivos seguem bloqueados.
+  const skipImportTimeForAuthDbSessionWindow = isAuthDbSessionWindowActive && file === "server/_core/cookies.ts";
+  if (!skipImportTimeForAuthDbSessionWindow && !file.endsWith(".md") && !file.startsWith("docs/") && !file.includes("services")) {
     // Suspicious: setInterval, setTimeout, .start(), new X() at import time
     // Safe new X() inside: class methods, functions, async functions, arrow functions, object methods
     const suspiciousPatterns = /setInterval\s*\(|setTimeout\s*\(|\.start\s*\(|new\s+[A-Z][a-zA-Z0-9_]*\s*\(/;

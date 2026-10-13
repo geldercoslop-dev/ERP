@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import type { JWTPayload } from '../security/jwt-auth.js';
 import { InfrastructureError } from '../_core/errors/typed-errors.js';
+import { isAccessSessionValid } from '../_core/session.service.js';
 
 type AuthenticatedRequest = Request & {
   user?: Request['user'];
@@ -41,58 +42,77 @@ function getJwtSecret(): string {
 }
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
-  try {
-    const authReq = req as AuthenticatedRequest;
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader) {
-      res.status(401).json({
-        success: false,
-        error: 'No authorization header',
-        message: 'Authorization token is required'
-      });
-      return;
-    }
+  void (async () => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader) {
+        res.status(401).json({
+          success: false,
+          error: 'No authorization header',
+          message: 'Authorization token is required'
+        });
+        return;
+      }
 
-    // Extract token from "Bearer <token>"
-    const token = authHeader.split(' ')[1];
-    
-    if (!token) {
-      res.status(401).json({
-        success: false,
-        error: 'Invalid authorization format',
-        message: 'Authorization header must be in format "Bearer <token>"'
-      });
-      return;
-    }
+      // Extract token from "Bearer <token>"
+      const token = authHeader.split(' ')[1];
+      
+      if (!token) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid authorization format',
+          message: 'Authorization header must be in format "Bearer <token>"'
+        });
+        return;
+      }
 
-    // Verify JWT token
-    const decoded = jwt.verify(token, getJwtSecret());
-    
-    // Validate decoded token structure
-    if (!isJWTPayload(decoded)) {
+      // Verify JWT token
+      const decoded = jwt.verify(token, getJwtSecret());
+      
+      // Validate decoded token structure
+      if (!isJWTPayload(decoded)) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid token structure',
+          message: 'Authentication failed'
+        });
+        return;
+      }
+
+      // AUTH-H5: sessão persistida obrigatória — access morre se a sessão
+      // estiver revogada/inexistente ou tenant/user/vendedor divergirem.
+      const sessionOk = await isAccessSessionValid({
+        sessionId: decoded.sessionId,
+        tenantId: decoded.tenantId,
+        userId: decoded.userId,
+        vendedorId: typeof decoded.vendedorId === "number" ? decoded.vendedorId : null,
+      });
+      if (!sessionOk) {
+        res.status(401).json({
+          success: false,
+          error: 'Session revoked or expired',
+          message: 'Authentication failed'
+        });
+        return;
+      }
+      
+      // Attach user info to request
+      authReq.user = decoded as Request['user'];
+      authReq.userId = decoded.userId;
+      
+      next();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Invalid token';
+      
       res.status(401).json({
         success: false,
-        error: 'Invalid token structure',
+        error: 'Invalid or expired token',
         message: 'Authentication failed'
       });
-      return;
     }
-    
-    // Attach user info to request
-    authReq.user = decoded as Request['user'];
-    authReq.userId = decoded.userId;
-    
-    next();
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Invalid token';
-    
-    res.status(401).json({
-      success: false,
-      error: 'Invalid or expired token',
-      message: 'Authentication failed'
-    });
-  }
+  })();
 }
 
 /**
@@ -101,31 +121,44 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
  * Allows requests without token but sets user info if token is present
  */
 export function optionalAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
-  try {
-    const authReq = req as AuthenticatedRequest;
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader) {
-      // No token, continue without auth
-      return next();
-    }
+  void (async () => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader) {
+        // No token, continue without auth
+        next();
+        return;
+      }
 
-    const token = authHeader.split(' ')[1];
-    
-    if (!token) {
-      return next();
-    }
+      const token = authHeader.split(' ')[1];
+      
+      if (!token) {
+        next();
+        return;
+      }
 
-    const decoded = jwt.verify(token, getJwtSecret());
-    
-    if (isJWTPayload(decoded)) {
-      authReq.user = decoded as Request['user'];
-      authReq.userId = decoded.userId;
+      const decoded = jwt.verify(token, getJwtSecret());
+      
+      if (isJWTPayload(decoded)) {
+        // AUTH-H5: só propaga usuário se a sessão persistida estiver ativa.
+        const sessionOk = await isAccessSessionValid({
+          sessionId: decoded.sessionId,
+          tenantId: decoded.tenantId,
+          userId: decoded.userId,
+          vendedorId: typeof decoded.vendedorId === "number" ? decoded.vendedorId : null,
+        });
+        if (sessionOk) {
+          authReq.user = decoded as Request['user'];
+          authReq.userId = decoded.userId;
+        }
+      }
+      
+      next();
+    } catch (error: unknown) {
+      // Invalid token, continue without auth
+      next();
     }
-    
-    next();
-  } catch (error: unknown) {
-    // Invalid token, continue without auth
-    next();
-  }
+  })();
 }

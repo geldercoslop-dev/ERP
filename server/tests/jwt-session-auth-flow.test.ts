@@ -26,11 +26,12 @@ import {
   itWithServiceContext,
 } from "./integration/service-context-harness.js";
 import { ensureTenantExists } from "./integration/helpers/tenant.helper.js";
-import { users, vendedores } from "../../drizzle/schema.js";
+import { users, vendedores, authSessions } from "../../drizzle/schema.js";
 import * as usersService from "../services/users.service.js";
 import { appRouter } from "../routers.js";
 import { smartAuthRouter } from "../routers/smart-auth.js";
 import { createContext } from "../_core/context.js";
+import { createAuthSession, hashRefreshToken } from "../_core/session.service.js";
 
 // Tenants reservados SOMENTE para esta suite (range 95xxx — sem colisão)
 const TENANT_C = 95011;
@@ -274,6 +275,11 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
 
   afterAllWithServiceContext(async () => {
     if (!dbConn) return;
+    // AUTH-H5: logins desta suite criam linhas em auth_sessions (FKs RESTRICT
+    // para tenants/users/vendedores) — apagar sessões antes dos pais.
+    await dbConn
+      .delete(authSessions)
+      .where(inArray(authSessions.tenantId, [TENANT_C, TENANT_D]));
     const vendIds = [vendId, vendAdmId, vendDelId, vendXId].filter((i) => i > 0);
     const userIds = [userAdminId, userVendId, userVendAdmId, userFlipId, userDelId].filter((i) => i > 0);
     if (vendIds.length > 0) {
@@ -359,7 +365,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   // ═══════════ LOGIN → CONTEXTO → PROCEDURES ═══════════
 
   itWithServiceContext("LOGIN-06) login → createContext resolve identidade real", async () => {
-    const token = vendToken();
+    const token = await vendToken();
     const rebuilt = await rebuildContext({ bearer: token, sessionCookie: token });
     expect(rebuilt.user).not.toBeNull();
     expect(rebuilt.user!.id).toBe(userVendId);
@@ -370,7 +376,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   });
 
   itWithServiceContext("LOGIN-07) login → auth.me retorna identidade correta", async () => {
-    const rebuilt = await rebuildContext({ sessionCookie: vendToken() });
+    const rebuilt = await rebuildContext({ sessionCookie: await vendToken() });
     const me = await callerFromRebuilt(rebuilt).auth.me();
     expect(me).not.toBeNull();
     expect(me!.id).toBe(userVendId);
@@ -380,7 +386,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   });
 
   itWithServiceContext("LOGIN-08/12) login → protectedProcedure real funciona (cores.list)", async () => {
-    const rebuilt = await rebuildContext({ sessionCookie: vendToken() });
+    const rebuilt = await rebuildContext({ sessionCookie: await vendToken() });
     const caller2 = callerFromRebuilt(rebuilt);
     // cores.list = protectedProcedure com requireTenant — prova "entrada no ERP"
     const cores = await caller2.cores.list();
@@ -389,7 +395,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   });
 
   itWithServiceContext("LOGIN-09/10/11) tenantId, userId e vendedorId corretos no contexto", async () => {
-    const rebuilt = await rebuildContext({ sessionCookie: vendToken() });
+    const rebuilt = await rebuildContext({ sessionCookie: await vendToken() });
     expect(rebuilt.tenantId).toBe(TENANT_C);
     expect(rebuilt.user!.id).toBe(userVendId); // users.id — nunca vendedores.id
     expect(rebuilt.user!.id).not.toBe(vendId);
@@ -412,7 +418,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   // ═══════════ TOKENS INVÁLIDOS ═══════════
 
   itWithServiceContext("LOGIN-13) token adulterado (payload modificado, assinatura quebrada) rejeita", async () => {
-    const forged = tamperToken(vendToken());
+    const forged = tamperToken(await vendToken());
     const rebuilt = await rebuildContext({ bearer: forged, sessionCookie: forged });
     expect(rebuilt.user).toBeNull();
     expect(rebuilt.vendedor).toBeNull();
@@ -456,7 +462,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   });
 
   itWithServiceContext("LOGIN-17) vendedor.ativo=false após emissão → sessão rejeitada", async () => {
-    const token = vendToken();
+    const token = await vendToken();
     await dbConn.update(vendedores).set({ ativo: false }).where(eq(vendedores.id, vendId));
     try {
       const rebuilt = await rebuildContext({ bearer: token });
@@ -468,7 +474,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   });
 
   itWithServiceContext("LOGIN-18) vínculo vendedor.userId divergente → sessão rejeitada", async () => {
-    const token = vendToken();
+    const token = await vendToken();
     await dbConn.update(vendedores).set({ userId: userAdminId }).where(eq(vendedores.id, vendId));
     try {
       const rebuilt = await rebuildContext({ bearer: token });
@@ -532,7 +538,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   // ═══════════ LOGOUT ═══════════
 
   itWithServiceContext("LOGIN-25) logout limpa sessão: próximo auth.me sem credencial falha", async () => {
-    const token = vendToken();
+    const token = await vendToken();
     const rebuilt = await rebuildContext({ sessionCookie: token });
     const { caller: authed } = callerCtxFromRebuilt(
       rebuilt,
@@ -557,25 +563,47 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
 
   // ═══════════ IMPERSONATION ═══════════
 
-  /** JWT admin assinado — revalidado no DB pelo createContext exatamente como o de login. */
-  function adminLoginSession(): string {
-    return mintSignedJwt({
+  /** Sessão admin persistida + JWT — revalidado no DB exatamente como o de login. */
+  async function adminLoginSession(): Promise<string> {
+    const token = mintSignedJwt({
       userId: userAdminId,
       tenantId: TENANT_C,
       email: openIdAdmin,
       role: "admin",
     });
+    const sessionId = jwtAuth.verifyAccessToken(token).sessionId;
+    await createAuthSession({
+      sessionId,
+      tenantId: TENANT_C,
+      userId: userAdminId,
+      vendedorId: null,
+      role: "admin",
+      refreshTokenHash: hashRefreshToken(`test:${sessionId}`),
+      refreshTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+    return token;
   }
 
-  /** JWT vendedor A assinado — usado em testes de contexto (não de login) para evitar rate-limit. */
-  function vendToken(): string {
-    return mintSignedJwt({
+  /** Sessão vendedor A persistida + JWT — usado em testes de contexto (não de login) para evitar rate-limit. */
+  async function vendToken(): Promise<string> {
+    const token = mintSignedJwt({
       userId: userVendId,
       tenantId: TENANT_C,
       email: openIdVend,
       role: "user",
       vendedorId: vendId,
     });
+    const sessionId = jwtAuth.verifyAccessToken(token).sessionId;
+    await createAuthSession({
+      sessionId,
+      tenantId: TENANT_C,
+      userId: userVendId,
+      vendedorId: vendId,
+      role: "user",
+      refreshTokenHash: hashRefreshToken(`test:${sessionId}`),
+      refreshTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+    return token;
   }
 
   itWithServiceContext("LOGIN-27) admin impersonate vendedor funciona (admin_session=JWT, session=JWT vendedor)", async () => {
@@ -718,7 +746,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   // ═══════════ FIX2 — admin_session NÃO AUTENTICA SOZINHO ═══════════
 
   itWithServiceContext("FIX2-A) admin_session válido SEM sessão efetiva → UNAUTHORIZED", async () => {
-    const adminToken = adminLoginSession();
+    const adminToken = await adminLoginSession();
     const rebuilt = await rebuildContext({ adminSession: adminToken });
     expect(rebuilt.user).toBeNull();
     expect(rebuilt.tenantId).toBeNull();
@@ -728,15 +756,15 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   });
 
   itWithServiceContext("FIX2-B) admin_session válido + sessão vendedor mesmo tenant → impersonation", async () => {
-    const adminToken = adminLoginSession();
-    const rebuilt = await rebuildContext({ sessionCookie: vendToken(), adminSession: adminToken });
+    const adminToken = await adminLoginSession();
+    const rebuilt = await rebuildContext({ sessionCookie: await vendToken(), adminSession: adminToken });
     expect(rebuilt.isImpersonating).toBe(true);
     expect(rebuilt.user!.id).toBe(userVendId);
     expect(rebuilt.vendedor!.id).toBe(vendId);
   });
 
   itWithServiceContext("FIX2-C) admin_session válido + sessão INVÁLIDA → fail closed total", async () => {
-    const adminToken = adminLoginSession();
+    const adminToken = await adminLoginSession();
     const rebuilt = await rebuildContext({ sessionCookie: "jwt.forged.invalid", adminSession: adminToken });
     expect(rebuilt.user).toBeNull();
     expect(rebuilt.tenantId).toBeNull();
@@ -745,7 +773,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
   });
 
   itWithServiceContext("FIX2-D) admin_session adulterado + sessão vendedor → sem impersonation", async () => {
-    const token = vendToken();
+    const token = await vendToken();
     const rebuilt = await rebuildContext({
       sessionCookie: token,
       adminSession: tamperToken(token),
@@ -785,7 +813,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
 
   itWithServiceContext("FIX2-ROLE-X) vendedor.admin de OUTRO tenant não eleva role de A", async () => {
     // vendXId (tenant D, admin=true) aponta para userVendId — sessão de A não usa X
-    const rebuilt = await rebuildContext({ bearer: vendToken() });
+    const rebuilt = await rebuildContext({ bearer: await vendToken() });
     expect(rebuilt.user!.role).toBe("user"); // vendId tem admin=false; X em D não vaza
     expect(rebuilt.vendedor!.id).toBe(vendId);
     await expect(callerFromRebuilt(rebuilt).vendedores.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -808,7 +836,7 @@ describe("P23-R-10B — fluxo JWT de sessão ponta a ponta", () => {
     expect(fp(vendTok)).toBe(fp(cookies.find((c) => c.name === "session")!.value));
 
     // Impersonate: admin original vai p/ admin_session; session retorna JWT vendedor == sessionToken
-    const adminToken = adminLoginSession();
+    const adminToken = await adminLoginSession();
     const adminRebuilt = await rebuildContext({ bearer: adminToken, sessionCookie: adminToken });
     const impCookies: Array<{ name: string; value: string }> = [];
     const { caller: impCaller } = callerCtxFromRebuilt(

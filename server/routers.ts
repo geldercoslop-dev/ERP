@@ -1,7 +1,14 @@
 import cookie from "cookie";
 import { ValidationError } from './_core/errors/typed-errors.js';
 import { COOKIE_NAME, ONE_YEAR_MS, ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_MS } from "../shared/const.js";
-import { getSessionCookieOptions } from "./_core/cookies.js";
+import { getSessionCookieOptions, getRefreshCookieOptions, REFRESH_COOKIE_NAME } from "./_core/cookies.js";
+import {
+  hashRefreshToken,
+  createAuthSession,
+  findValidSessionForRefresh,
+  rotateSessionRefresh,
+  revokeAuthSession,
+} from "./_core/session.service.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import { publicProcedure, protectedProcedure, adminProcedure, requireRole, router } from "./_core/trpc.js";
 import { TRPCError } from "@trpc/server";
@@ -348,14 +355,28 @@ export const appRouter = router({
           // P23-R-10B: sessão admin = JWT assinado (mesmo valor em cookie e Bearer).
           // Role efetiva vem do DB: user.role 'admin' → claim 'admin'; caso contrário 'user'.
           const effectiveRole = user.role === "admin" ? "admin" : "user";
-          const { accessToken } = jwtAuth.generateAccessToken({
+          // AUTH-H5: par access+refresh compartilha o mesmo sessionId; o refresh
+          // trafega apenas em cookie httpOnly e é persistido SOMENTE como hash.
+          const { accessToken, refreshToken, expiresIn } = jwtAuth.generateTokenPair({
             userId: user.id,
             tenantId: user.tenantId,
             email: user.email ?? "",
             role: effectiveRole,
+          }, 0);
+          const refreshPayload = jwtAuth.verifyRefreshToken(refreshToken);
+          const refreshExpirySeconds = jwtAuth.getRefreshExpirySeconds();
+          await createAuthSession({
+            sessionId: refreshPayload.sessionId,
+            tenantId: user.tenantId,
+            userId: user.id,
+            vendedorId: null,
+            role: effectiveRole,
+            refreshTokenHash: hashRefreshToken(refreshToken),
+            refreshTokenExpiresAt: new Date(Date.now() + refreshExpirySeconds * 1000),
           });
           ctx.res.cookie(COOKIE_NAME, accessToken, cookieOptions);
           ctx.res.cookie("session", accessToken, cookieOptions);
+          ctx.res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions(ctx.req, refreshExpirySeconds * 1000));
           await usersService.touchLastSignedInGlobal(user.id);
           clearRateLimitForKey(rateLimitKey, user.tenantId);
           audit(true);
@@ -363,6 +384,7 @@ export const appRouter = router({
           return {
             ok: true,
             sessionToken: accessToken,
+            expiresIn,
             openId: user.openId,
             name: user.name ?? "Administrador",
             role: effectiveRole === "admin" ? "admin" : "vendedor",
@@ -408,15 +430,29 @@ export const appRouter = router({
                 // (ctx.user.id = users.id); vendedorId carrega vendedores.id.
                 // Claim role = users.role real do DB ('user'); a autoridade final
                 // é a revalidação do createContext, nunca este claim.
-                const { accessToken } = jwtAuth.generateAccessToken({
+                // AUTH-H5: par access+refresh (mesmo sessionId) + sessão
+                // persistida com vendedor_id. Refresh só em cookie httpOnly/hash.
+                const { accessToken, refreshToken, expiresIn } = jwtAuth.generateTokenPair({
                   userId: user.id,
                   tenantId: user.tenantId,
                   email: user.email ?? "",
                   role: user.role,
                   vendedorId: vendedor.id,
+                }, 0);
+                const refreshPayload = jwtAuth.verifyRefreshToken(refreshToken);
+                const refreshExpirySeconds = jwtAuth.getRefreshExpirySeconds();
+                await createAuthSession({
+                  sessionId: refreshPayload.sessionId,
+                  tenantId: user.tenantId,
+                  userId: user.id,
+                  vendedorId: vendedor.id,
+                  role: user.role,
+                  refreshTokenHash: hashRefreshToken(refreshToken),
+                  refreshTokenExpiresAt: new Date(Date.now() + refreshExpirySeconds * 1000),
                 });
                 ctx.res.cookie(COOKIE_NAME, accessToken, cookieOptions);
                 ctx.res.cookie("session", accessToken, cookieOptions);
+                ctx.res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions(ctx.req, refreshExpirySeconds * 1000));
                 await usersService.touchLastSignedInGlobal(user.id);
                 clearRateLimitForKey(rateLimitKey, user.tenantId);
                 audit(true);
@@ -424,6 +460,7 @@ export const appRouter = router({
                 return {
                   ok: true,
                   sessionToken: accessToken,
+                  expiresIn,
                   openId: user.openId,
                   name: vendedor.nome ?? user.name ?? "Vendedor",
                   role: vendedor.admin ? "admin" : "vendedor",
@@ -448,6 +485,92 @@ export const appRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos" });
         });
       }),
+
+    /**
+     * AUTH-H5: refresh cookie-only com rotação de refresh token.
+     * Lê SOMENTE o cookie httpOnly refresh_token — nunca body/header.
+     * Fail closed: qualquer divergência → UNAUTHORIZED (mesmo erro para
+     * cookie ausente, JWT inválido, hash divergente, sessão revogada,
+     * expirada ou identidade inválida no DB).
+     */
+    refresh: publicProcedure.mutation(async ({ ctx }) => {
+      return runWithServiceInvocationAsync(buildBootstrapInvocation(1), async () => {
+        const unauthorized = () =>
+          new TRPCError({ code: "UNAUTHORIZED", message: "Sessão expirada. Faça login novamente." });
+
+        const parsed = typeof ctx.req.headers.cookie === "string"
+          ? cookie.parse(ctx.req.headers.cookie)
+          : {};
+        const refreshToken = parsed[REFRESH_COOKIE_NAME];
+        if (!refreshToken || typeof refreshToken !== "string") throw unauthorized();
+
+        let refreshPayload;
+        try {
+          refreshPayload = jwtAuth.verifyRefreshToken(refreshToken);
+        } catch {
+          throw unauthorized();
+        }
+        if (!refreshPayload.sessionId) throw unauthorized();
+        if (!Number.isInteger(refreshPayload.userId) || refreshPayload.userId <= 0) throw unauthorized();
+        if (!Number.isInteger(refreshPayload.tenantId) || refreshPayload.tenantId <= 0) throw unauthorized();
+
+        // Sessão persistida: sessionId + hash + tenant/user do payload,
+        // não revogada e dentro da janela de refresh.
+        const presentedHash = hashRefreshToken(refreshToken);
+        const session = await findValidSessionForRefresh({
+          sessionId: refreshPayload.sessionId,
+          refreshTokenHash: presentedHash,
+          tenantId: refreshPayload.tenantId,
+          userId: refreshPayload.userId,
+        });
+        if (!session) throw unauthorized();
+
+        // Revalidação DB (fail closed): user real no tenant; se a sessão for
+        // de vendedor, vínculo + ativo também são revalidados.
+        const user = await usersService.getUserById(session.userId, session.tenantId);
+        if (!user || user.tenantId !== session.tenantId) throw unauthorized();
+        if (session.vendedorId != null) {
+          const vendedor = await usersService.getVendedorById(session.vendedorId, session.tenantId);
+          if (!vendedor || vendedor.tenantId !== session.tenantId) throw unauthorized();
+          if (vendedor.userId == null || vendedor.userId !== user.id) throw unauthorized();
+          if (vendedor.ativo !== true) throw unauthorized();
+        }
+
+        // Role efetiva do DB atual (mesma derivação do login), nunca do claim.
+        const effectiveRole = user.role === "admin" ? "admin" : "user";
+        const refreshExpirySeconds = jwtAuth.getRefreshExpirySeconds();
+
+        // Rotação: novo access + novo refresh no MESMO sessionId.
+        const newAccess = jwtAuth.generateAccessTokenForSession({
+          userId: user.id,
+          tenantId: session.tenantId,
+          email: user.email ?? "",
+          role: effectiveRole,
+          vendedorId: session.vendedorId ?? undefined,
+        }, session.sessionId);
+        const { refreshToken: newRefreshToken } = jwtAuth.generateRefreshTokenForSession(
+          { userId: user.id, tenantId: session.tenantId },
+          session.sessionId,
+          refreshPayload.tokenVersion + 1
+        );
+
+        // Rotação atômica: se o hash já foi rotacionado (replay) ou a sessão
+        // foi revogada entre a leitura e o update → UNAUTHORIZED.
+        const rotated = await rotateSessionRefresh({
+          sessionId: session.sessionId,
+          expectedRefreshTokenHash: presentedHash,
+          newRefreshTokenHash: hashRefreshToken(newRefreshToken),
+          newRefreshTokenExpiresAt: new Date(Date.now() + refreshExpirySeconds * 1000),
+        });
+        if (!rotated) throw unauthorized();
+
+        const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
+        ctx.res.cookie(COOKIE_NAME, newAccess.accessToken, cookieOptions);
+        ctx.res.cookie("session", newAccess.accessToken, cookieOptions);
+        ctx.res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, getRefreshCookieOptions(ctx.req, refreshExpirySeconds * 1000));
+        return { ok: true, sessionToken: newAccess.accessToken, expiresIn: newAccess.expiresIn };
+      });
+    }),
 
     /** Admin only: troca sessão para vendedor (impersonate). Guarda JWT admin em cookie por 10 min. */
     impersonateVendedor: adminProcedure
@@ -513,12 +636,24 @@ export const appRouter = router({
 
         // JWT efetivo de vendedor: userId = users.id vinculado (nunca inventa ID),
         // role efetiva do DB do user vinculado — NUNCA herda admin do ator original.
-        const { accessToken } = jwtAuth.generateAccessToken({
+        const { accessToken, sessionId: impersonatedSessionId } = jwtAuth.generateAccessToken({
           userId: effectiveUser.id,
           tenantId: effectiveUser.tenantId,
           email: effectiveUser.email ?? "",
           role: effectiveUser.role,
           vendedorId: vendedor.id,
+        });
+        // AUTH-H5: sessão impersonada persistida — exigida pela validação
+        // de acesso. Sem refresh real (hash marker); janela = admin_session (10min);
+        // revogada no stopImpersonation.
+        await createAuthSession({
+          sessionId: impersonatedSessionId,
+          tenantId: effectiveUser.tenantId,
+          userId: effectiveUser.id,
+          vendedorId: vendedor.id,
+          role: effectiveUser.role === "admin" ? "admin" : "user",
+          refreshTokenHash: hashRefreshToken(`impersonated:${impersonatedSessionId}`),
+          refreshTokenExpiresAt: new Date(Date.now() + ADMIN_SESSION_MAX_AGE_MS),
         });
         ctx.res.cookie(COOKIE_NAME, accessToken, cookieOptions);
         ctx.res.cookie("session", accessToken, cookieOptions);
@@ -562,6 +697,19 @@ export const appRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Sessão admin de outro tenant." });
       }
 
+      // AUTH-H5: revoga a sessão impersonada persistida — o admin retorna
+      // à sessão original (que permanece ativa em auth_sessions).
+      const effectiveToken = parsed["session"] ?? parsed[COOKIE_NAME];
+      if (typeof effectiveToken === "string") {
+        const decoded = jwtAuth.decodeToken(effectiveToken);
+        const sid = decoded && typeof decoded === "object"
+          ? (decoded as { sessionId?: unknown }).sessionId
+          : undefined;
+        if (typeof sid === "string" && sid) {
+          await revokeAuthSession(sid, "impersonation_stop");
+        }
+      }
+
       const cookieOptions = { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS };
       ctx.res.cookie(COOKIE_NAME, adminToken, cookieOptions);
       ctx.res.cookie("session", adminToken, cookieOptions);
@@ -584,11 +732,45 @@ export const appRouter = router({
       return { ok: true, sessionToken: adminToken };
     }),
 
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       if (process.env.NODE_ENV !== "production") console.log("[auth.logout] Removendo cookies de sessão");
+
+      // AUTH-H5: revogação server-side — logout nunca é só clearCookie.
+      // Coleta sessionId de TODAS as credenciais presentes (sessão efetiva,
+      // admin_session em impersonation e refresh) — verify primeiro, decode
+      // como fallback para access já expirado — e revoga no banco.
+      const parsed = typeof ctx.req.headers.cookie === "string"
+        ? cookie.parse(ctx.req.headers.cookie)
+        : {};
+      const sessionIdsToRevoke = new Set<string>();
+      const collectSessionId = (token: string | undefined, kind: "access" | "refresh") => {
+        if (!token || typeof token !== "string") return;
+        try {
+          const payload = kind === "access"
+            ? jwtAuth.verifyAccessToken(token)
+            : jwtAuth.verifyRefreshToken(token);
+          if (payload.sessionId) sessionIdsToRevoke.add(payload.sessionId);
+          return;
+        } catch {
+          // expirado/inválido — tenta decode abaixo
+        }
+        const decoded = jwtAuth.decodeToken(token);
+        const sid = decoded && typeof decoded === "object"
+          ? (decoded as { sessionId?: unknown }).sessionId
+          : undefined;
+        if (typeof sid === "string" && sid) sessionIdsToRevoke.add(sid);
+      };
+      collectSessionId(parsed["session"], "access");
+      collectSessionId(parsed[COOKIE_NAME], "access");
+      collectSessionId(parsed[ADMIN_SESSION_COOKIE], "access");
+      collectSessionId(parsed[REFRESH_COOKIE_NAME], "refresh");
+      for (const sid of sessionIdsToRevoke) {
+        await revokeAuthSession(sid, "logout");
+      }
+
       // Limpar todos os possíveis cookies em todas as combinações de path/domain
-      const cookieNames = [COOKIE_NAME, "session", ADMIN_SESSION_COOKIE];
+      const cookieNames = [COOKIE_NAME, "session", ADMIN_SESSION_COOKIE, REFRESH_COOKIE_NAME];
       const domains = ["localhost", undefined];
       const paths = ["/", "/api", undefined];
 

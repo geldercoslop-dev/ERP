@@ -71,7 +71,7 @@ class JWTAuth {
   /**
    * Gera um par de tokens (access + refresh)
    */
-  generateTokenPair(payload: Omit<JWTPayload, 'iat' | 'exp'>, tokenVersion: number = 0): TokenPair {
+  generateTokenPair(payload: Omit<JWTPayload, 'iat' | 'exp' | 'sessionId'> & { sessionId?: string }, tokenVersion: number = 0): TokenPair {
     const sessionId = this.generateSessionId();
     const now = Math.floor(Date.now() / 1000);
 
@@ -153,6 +153,83 @@ class JWTAuth {
     }, 'JWT access token generated');
 
     return { accessToken, expiresIn, sessionId };
+  }
+
+  /**
+   * AUTH-H5: gera access token para uma sessão persistida existente.
+   * Usado na rotação de refresh: o sessionId NÃO muda — só o JWT é renovado.
+   */
+  generateAccessTokenForSession(
+    payload: Omit<JWTPayload, 'iat' | 'exp' | 'sessionId'>,
+    sessionId: string
+  ): { accessToken: string; expiresIn: number } {
+    const now = Math.floor(Date.now() / 1000);
+
+    const accessTokenPayload: JWTPayload = {
+      ...payload,
+      sessionId,
+      iat: now,
+      exp: now + this.parseExpiryToSeconds(this.accessTokenExpiry)
+    };
+
+    const accessToken = jwt.sign(accessTokenPayload, this.getAccessSecret(), {
+      algorithm: "HS256",
+    });
+
+    const expiresIn = this.parseExpiryToSeconds(this.accessTokenExpiry);
+
+    systemLogger.info({
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      role: payload.role,
+      sessionId,
+      expiresIn
+    }, 'JWT access token generated for existing session');
+
+    return { accessToken, expiresIn };
+  }
+
+  /**
+   * AUTH-H5: gera refresh token para sessão existente (rotação).
+   * sessionId preservado; tokenVersion incrementado a cada rotação.
+   */
+  generateRefreshTokenForSession(
+    payload: { userId: number; tenantId: number },
+    sessionId: string,
+    tokenVersion: number
+  ): { refreshToken: string } {
+    const now = Math.floor(Date.now() / 1000);
+
+    const refreshTokenPayload: RefreshTokenPayload = {
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      sessionId,
+      tokenVersion,
+      iat: now,
+      exp: now + this.parseExpiryToSeconds(this.refreshTokenExpiry)
+    };
+
+    const refreshToken = jwt.sign(refreshTokenPayload, this.getRefreshSecret(), {
+      algorithm: "HS256",
+    });
+
+    systemLogger.info({
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      sessionId,
+      tokenVersion
+    }, 'JWT refresh token generated (rotation)');
+
+    return { refreshToken };
+  }
+
+  /**
+   * AUTH-H5: expiração do refresh token em segundos.
+   * Fonte única para cookie maxAge e auth_sessions.refresh_token_expires_at.
+   */
+  getRefreshExpirySeconds(): number {
+    this.ensureInitialized();
+    return this.parseExpiryToSeconds(this.refreshTokenExpiry);
   }
 
   /**
@@ -374,6 +451,9 @@ type JwtAuthPublicApi = Pick<
   JWTAuth,
   | "generateTokenPair"
   | "generateAccessToken"
+  | "generateAccessTokenForSession"
+  | "generateRefreshTokenForSession"
+  | "getRefreshExpirySeconds"
   | "verifyAccessToken"
   | "verifyRefreshToken"
   | "extractTokenFromHeader"
@@ -386,6 +466,12 @@ export const jwtAuth: JwtAuthPublicApi = {
     getJwtAuth().generateTokenPair(payload, tokenVersion),
   generateAccessToken: (payload) =>
     getJwtAuth().generateAccessToken(payload),
+  generateAccessTokenForSession: (payload, sessionId) =>
+    getJwtAuth().generateAccessTokenForSession(payload, sessionId),
+  generateRefreshTokenForSession: (payload, sessionId, tokenVersion) =>
+    getJwtAuth().generateRefreshTokenForSession(payload, sessionId, tokenVersion),
+  getRefreshExpirySeconds: () =>
+    getJwtAuth().getRefreshExpirySeconds(),
   verifyAccessToken: (token) =>
     getJwtAuth().verifyAccessToken(token),
   verifyRefreshToken: (token) =>

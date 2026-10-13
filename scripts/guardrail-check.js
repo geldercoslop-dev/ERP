@@ -225,12 +225,22 @@ const AUTH_DB_SESSION_AUTHORIZED_FILES = [
   "server/tests/security/auth-bypass.test.ts",
   "server/tests/multitenant/tenant-auth.test.ts",
   "tests/auth-security.test.ts",
+  // Testes impactados pela sessão DB-backed (AUTH-H5):
+  // - tenant-leak: JWT sem sessão persistida morre 401 antes do tenantMiddleware (fail-closed)
+  // - vendedor-by-user-id: cleanup auth_sessions antes de vendedores/users (FKs RESTRICT)
+  // NOTA: vendedor-by-user-id também está sob tutela R10B — esta janela reivindica primeiro
+  // quando a mudança é relacionada a DB-backed sessions (AUTH_DB_SESSION_V1).
+  "server/tests/security/tenant-leak.test.ts",
+  "server/tests/vendedor-by-user-id-tenant-isolation.test.ts",
 ];
 
 // Janela formal AUTH-DB-SESSION-WINDOW - Guard files for auth db session window
+// anti-regress-check.js incluído: janela AUTH_DB_SESSION_V1 também regulariza
+// exceções cirúrgicas de falsos positivos neste script (AUTH-H5B).
 const AUTH_DB_SESSION_GUARD_WINDOW_AUTHORIZED_FILES = [
   "scripts/guardrail-check.js",
   "scripts/architecture-contract-guard.mjs",
+  "scripts/anti-regress-check.js",
 ];
 
 /**

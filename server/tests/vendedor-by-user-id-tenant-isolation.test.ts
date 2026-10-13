@@ -34,6 +34,7 @@ import {
   contasReceber,
   counters,
   idempotencyKeys,
+  authSessions,
 } from "../../drizzle/schema.js";
 import * as usersService from "../services/users.service.js";
 import { appRouter } from "../routers.js";
@@ -291,6 +292,12 @@ describe("P23-R-09Z — vendedor por userId + login + actor multi-tenant", () =>
     if (Number.isInteger(clienteAId) && clienteAId > 0) {
       await dbConn.delete(clientes).where(eq(clientes.id, clienteAId));
     }
+
+    // AUTH-H5: logins desta suite criam linhas em auth_sessions (FKs RESTRICT
+    // para tenants/users/vendedores) — apagar sessões antes dos pais.
+    await dbConn
+      .delete(authSessions)
+      .where(or(eq(authSessions.tenantId, TENANT_A), eq(authSessions.tenantId, TENANT_B)));
 
     const vids = [vendAId, vendBId, vendXId].filter((id) => Number.isInteger(id) && id > 0);
     if (vids.length > 0) {

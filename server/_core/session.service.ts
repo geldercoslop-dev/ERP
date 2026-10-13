@@ -1,9 +1,13 @@
 // Serviço de sessão seguro usando tabela sessions do banco
 // Substitui backdoor "admin-session" por autenticação real
 
+import crypto from "crypto";
 import { nanoid } from "nanoid";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { executeQuery } from "../config/database.js";
 import { InfrastructureError } from "./errors/typed-errors.js";
+import { getDb } from "../db/index.js";
+import { authSessions } from "../../drizzle/schema.js";
 
 interface SessionData {
   userId: number;
@@ -178,3 +182,160 @@ export class SessionService {
 }
 
 export default SessionService;
+
+// ============================================================================
+// AUTH-H5 / AUTH_DB_SESSION_V1 — sessões persistidas na tabela oficial
+// `auth_sessions` (Drizzle). Regras invioláveis:
+// - refresh token NUNCA é persistido puro: somente SHA-256 hex do JWT
+// - acesso só é válido enquanto a sessão existir, não estiver revogada e
+//   estiver dentro da janela de refresh (refresh_token_expires_at > now)
+// - tenant_id/user_id/vendedor_id sempre conferem com o payload do JWT
+// ============================================================================
+
+export type AuthSessionRole = "admin" | "operator" | "user";
+
+export type AuthSessionRow = typeof authSessions.$inferSelect;
+
+export interface CreateAuthSessionInput {
+  sessionId: string;
+  tenantId: number;
+  userId: number;
+  /** null em sessão admin; obrigatório em sessão de vendedor. */
+  vendedorId: number | null;
+  role: AuthSessionRole;
+  /** SHA-256 hex do refresh token — nunca o token puro. */
+  refreshTokenHash: string;
+  refreshTokenExpiresAt: Date;
+}
+
+/** Hash do refresh token para persistência/lookup (sha256 hex, determinístico). */
+export function hashRefreshToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/** Insere registro de sessão persistida (login/impersonation). */
+export async function createAuthSession(input: CreateAuthSessionInput): Promise<void> {
+  const db = await getDb();
+  const now = new Date();
+  await db.insert(authSessions).values({
+    sessionId: input.sessionId,
+    tenantId: input.tenantId,
+    userId: input.userId,
+    vendedorId: input.vendedorId,
+    role: input.role,
+    refreshTokenHash: input.refreshTokenHash,
+    refreshTokenExpiresAt: input.refreshTokenExpiresAt,
+    lastUsedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+/**
+ * Sessão elegível para refresh: session_id + hash conferem com o payload JWT,
+ * não revogada e dentro da janela de refresh. Anti-tenant: tenant_id/user_id
+ * sempre filtrados pelo payload — nunca busca global por sessionId.
+ */
+export async function findValidSessionForRefresh(input: {
+  sessionId: string;
+  refreshTokenHash: string;
+  tenantId: number;
+  userId: number;
+}): Promise<AuthSessionRow | null> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(authSessions)
+    .where(
+      and(
+        eq(authSessions.sessionId, input.sessionId),
+        eq(authSessions.refreshTokenHash, input.refreshTokenHash),
+        eq(authSessions.tenantId, input.tenantId),
+        eq(authSessions.userId, input.userId),
+        isNull(authSessions.revokedAt),
+        gt(authSessions.refreshTokenExpiresAt, new Date())
+      )
+    )
+    .limit(1);
+  return rows.length > 0 ? rows[0] : null;
+}
+
+/**
+ * Rotação atômica do refresh token: só aplica se o hash atual ainda for o
+ * esperado (replay de refresh antigo ou corrida → affectedRows 0 → false).
+ */
+export async function rotateSessionRefresh(input: {
+  sessionId: string;
+  expectedRefreshTokenHash: string;
+  newRefreshTokenHash: string;
+  newRefreshTokenExpiresAt: Date;
+}): Promise<boolean> {
+  const db = await getDb();
+  const now = new Date();
+  const result = await db
+    .update(authSessions)
+    .set({
+      refreshTokenHash: input.newRefreshTokenHash,
+      refreshTokenExpiresAt: input.newRefreshTokenExpiresAt,
+      lastUsedAt: now,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(authSessions.sessionId, input.sessionId),
+        eq(authSessions.refreshTokenHash, input.expectedRefreshTokenHash),
+        isNull(authSessions.revokedAt)
+      )
+    );
+  const affected = Array.isArray(result)
+    ? (result[0] as { affectedRows?: number })?.affectedRows
+    : (result as { affectedRows?: number })?.affectedRows;
+  return typeof affected === "number" && affected > 0;
+}
+
+/** Revogação server-side (logout, fim de impersonation, admin revoga). Idempotente. */
+export async function revokeAuthSession(sessionId: string, reason: string): Promise<void> {
+  const db = await getDb();
+  const now = new Date();
+  await db
+    .update(authSessions)
+    .set({ revokedAt: now, revokedReason: reason, updatedAt: now })
+    .where(and(eq(authSessions.sessionId, sessionId), isNull(authSessions.revokedAt)));
+}
+
+/**
+ * Validação por-request do access token: a sessão precisa existir em
+ * auth_sessions, não estar revogada, estar dentro da janela de refresh e
+ * bater tenant_id/user_id/vendedor_id com o payload do JWT.
+ * Se qualquer condição falhar, o access token morre imediatamente
+ * (logout, revogação, fim da janela de refresh, sessão de outro tenant).
+ */
+export async function isAccessSessionValid(input: {
+  sessionId: string;
+  tenantId: number;
+  userId: number;
+  /** null quando o payload não carrega vendedorId (sessão admin). */
+  vendedorId: number | null;
+}): Promise<boolean> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      tenantId: authSessions.tenantId,
+      userId: authSessions.userId,
+      vendedorId: authSessions.vendedorId,
+    })
+    .from(authSessions)
+    .where(
+      and(
+        eq(authSessions.sessionId, input.sessionId),
+        isNull(authSessions.revokedAt),
+        gt(authSessions.refreshTokenExpiresAt, new Date())
+      )
+    )
+    .limit(1);
+  if (rows.length === 0) return false;
+  const row = rows[0];
+  if (row.tenantId !== input.tenantId || row.userId !== input.userId) return false;
+  if ((row.vendedorId ?? null) !== input.vendedorId) return false;
+  return true;
+}

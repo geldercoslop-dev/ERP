@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { jwtAuth, JWTPayload } from '../security/jwt-auth.js';
 import { systemLogger } from '../_core/logger.js';
+import { isAccessSessionValid } from '../_core/session.service.js';
 
 /**
  * Extensão para incluir usuário autenticado no Request
@@ -48,6 +49,31 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
 
       try {
         const payload = jwtAuth.verifyAccessToken(token);
+
+        // AUTH-H5: sessão persistida obrigatória — access morre se a sessão
+        // estiver revogada/inexistente ou tenant/user/vendedor divergirem.
+        const sessionOk = await isAccessSessionValid({
+          sessionId: payload.sessionId,
+          tenantId: payload.tenantId,
+          userId: payload.userId,
+          vendedorId: typeof payload.vendedorId === "number" ? payload.vendedorId : null,
+        });
+        if (!sessionOk) {
+          systemLogger.warn({
+            userId: payload.userId,
+            sessionId: payload.sessionId,
+            method: req.method,
+            url: req.url,
+            traceId: req.traceId,
+          }, 'JWT authentication failed - session revoked or expired');
+          res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Session revoked or expired',
+            code: 'SESSION_REVOKED',
+          });
+          return;
+        }
+
         req.user = payload;
         req.sessionId = payload.sessionId;
 
@@ -122,37 +148,48 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
  * Se não for válido ou não existir, continua sem usuário
  */
 export function optionalAuthentication(req: Request, res: Response, next: NextFunction): void {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = jwtAuth.extractTokenFromHeader(authHeader);
+  void (async () => {
+    try {
+      const authHeader = req.headers.authorization;
+      const token = jwtAuth.extractTokenFromHeader(authHeader);
 
-    if (token) {
-      const payload = jwtAuth.verifyAccessToken(token);
-      req.user = payload;
-      req.sessionId = payload.sessionId;
+      if (token) {
+        const payload = jwtAuth.verifyAccessToken(token);
+        // AUTH-H5: só propaga usuário se a sessão persistida estiver ativa.
+        const sessionOk = await isAccessSessionValid({
+          sessionId: payload.sessionId,
+          tenantId: payload.tenantId,
+          userId: payload.userId,
+          vendedorId: typeof payload.vendedorId === "number" ? payload.vendedorId : null,
+        });
+        if (sessionOk) {
+          req.user = payload;
+          req.sessionId = payload.sessionId;
 
+          systemLogger.debug({
+            userId: payload.userId,
+            tenantId: payload.tenantId,
+            email: payload.email,
+            role: payload.role,
+            sessionId: payload.sessionId,
+            method: req.method,
+            url: req.url,
+            traceId: req.traceId
+          }, 'Optional authentication successful');
+        }
+      }
+    } catch (error) {
+      // Ignora erros de autenticação opcional
       systemLogger.debug({
-        userId: payload.userId,
-        tenantId: payload.tenantId,
-        email: payload.email,
-        role: payload.role,
-        sessionId: payload.sessionId,
         method: req.method,
         url: req.url,
+        error: error instanceof Error ? error.message : String(error),
         traceId: req.traceId
-      }, 'Optional authentication successful');
+      }, 'Optional authentication failed - continuing without user');
     }
-  } catch (error) {
-    // Ignora erros de autenticação opcional
-    systemLogger.debug({
-      method: req.method,
-      url: req.url,
-      error: error instanceof Error ? error.message : String(error),
-      traceId: req.traceId
-    }, 'Optional authentication failed - continuing without user');
-  }
 
-  next();
+    next();
+  })();
 }
 
 /**
