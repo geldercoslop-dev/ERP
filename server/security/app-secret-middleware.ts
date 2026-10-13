@@ -151,8 +151,29 @@ export function createAppSecretMiddleware(config: AppSecretMiddlewareConfig) {
       }
     }
 
+    // BUG-WAF-DELETE: o identificador da procedure tRPC faz parte do path
+    // (/api/trpc/<proc>) e pode colidir com MALICIOUS_PATTERNS — ex.:
+    // clientes.delete, produtos.delete, vendedores.delete casam \bdelete\b.
+    // O identificador é validado pelo próprio tRPC (charset restrito de
+    // identificador, incl. separador de sub-router "." e batch ","); remover
+    // só esse segmento do alvo de inspeção. Query string, resto do path,
+    // body e req.query permanecem integralmente inspecionados.
+    // Decodifica o URL antes de inspecionar: padrões perigosos escondidos por
+    // percent-encoding (ex.: %20union%20select) não devem evadir o scan.
+    const rawUrl = req.originalUrl || req.url;
+    let decodedUrl = rawUrl;
+    try {
+      decodedUrl = decodeURIComponent(rawUrl);
+    } catch {
+      // Encoding malformado: inspeciona o URL cru (fail-safe).
+    }
+    const urlForInspection = decodedUrl.replace(
+      /(\/api\/trpc\/)[\w.,]+/i,
+      "$1",
+    );
+
     const inspectionTargets = [
-      req.originalUrl || req.url,
+      urlForInspection,
       typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {}),
       JSON.stringify(req.query ?? {}),
     ].join(" ");

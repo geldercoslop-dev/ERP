@@ -253,15 +253,32 @@ function validateEnv(errors: string[]): void {
 }
 
 function validateInitMigration(errors: string[]): void {
-  const hasInitInMigrations = fs.existsSync(MIGRATIONS_DIR)
-    ? fs.readdirSync(MIGRATIONS_DIR).some((name) => !name.startsWith('.') && /init|0000/i.test(name))
-    : false;
-  const hasInitInMeta = fs.existsSync(META_DIR)
-    ? fs.readdirSync(META_DIR).some((name) => /0000|init/i.test(name))
-    : false;
+  // Convenção "baseline locked" (docs/operations/FRESH_DB_BOOTSTRAP.md):
+  // as migrations 0000/0001 foram squasheadas na baseline e o init oficial
+  // de banco vazio é `npm run db:bootstrap:fresh`
+  // (server/scripts/bootstrap-fresh-db.ts). As migrations em drizzle/ são
+  // delta-only e o journal legitimamente começa em 0002.
+  const DRIZZLE_DIR = path.join(ROOT, 'drizzle');
+  const hasInitMigration = [MIGRATIONS_DIR, DRIZZLE_DIR, META_DIR].some(
+    (dir) => fs.existsSync(dir) && fs.readdirSync(dir).some((name) => !name.startsWith('.') && /init|0000/i.test(name))
+  );
+  if (hasInitMigration) return;
 
-  if (!hasInitInMigrations && !hasInitInMeta) {
-    errors.push('[MIGRATION] migration init ausente (drizzle/migrations ou drizzle/meta)');
+  // Sem migration init explícita: exige o mecanismo baseline documentado —
+  // script de bootstrap + journal com entries (prova de baseline existente).
+  const journalPath = path.join(META_DIR, '_journal.json');
+  let journalHasEntries = false;
+  try {
+    const journal = JSON.parse(fs.readFileSync(journalPath, 'utf8')) as { entries?: unknown[] };
+    journalHasEntries = Array.isArray(journal.entries) && journal.entries.length > 0;
+  } catch {
+    journalHasEntries = false;
+  }
+  const hasBaselineBootstrap =
+    fs.existsSync(path.join(ROOT, 'server', 'scripts', 'bootstrap-fresh-db.ts')) && journalHasEntries;
+
+  if (!hasBaselineBootstrap) {
+    errors.push('[MIGRATION] migration init ausente e sem mecanismo baseline (bootstrap-fresh-db + journal)');
   }
 }
 
@@ -292,8 +309,10 @@ const forbiddenPatterns = [
   /\bdb\s*\./g,
   /drizzle/gi,
   /mysql/gi,
-  /execute\s*\(/g,
-  /query\s*\(/g,
+  // execute()/query() SÓ contam como acesso a DB quando o receiver é um handle
+  // de banco. Sem âncora, casam o contrato `execute` das tools/controllers
+  // (ex.: async execute(input, ctx), tool.execute(...)) — falso positivo.
+  /\b(?:db|pool|conn|connection|database|drizzle)\s*\.\s*(?:execute|query)\s*\(/gi,
   /sql`/g,
 ];
 const forbiddenDirs = [
@@ -337,10 +356,10 @@ function main(): void {
   validateHealthWithoutServices(errors);
 
   if (errors.length > 0) {
+    // Reporta TODOS os erros: filtrar por tag escondia falhas reais
+    // (ENV/MIGRATION/HEALTH/DRIZZLE saíam como exit 1 silencioso).
     for (const err of errors) {
-      if (err.includes('[ARCH_VIOLATION]')) {
-        console.error(err);
-      }
+      console.error(err);
     }
     process.exit(1);
   }

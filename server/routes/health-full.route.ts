@@ -2,6 +2,7 @@ import type { Application, Request, Response } from "express";
 import crypto from "node:crypto";
 import { createClient } from "redis";
 import { pingDatabase } from "../services/database-health.service.js";
+import { config } from "../config/env.js";
 
 type HealthDependency = {
   status: "ok" | "error";
@@ -69,7 +70,7 @@ function authLightCheck(): {
 } {
   const t0 = Date.now();
   try {
-    const secret = process.env.JWT_ACCESS_SECRET?.trim();
+    const secret = config.security.jwtAccessSecret?.trim();
     if (!secret || secret.length < 32) {
       return {
         ok: false,

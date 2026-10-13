@@ -1,7 +1,7 @@
 import { performance } from "perf_hooks";
 import { sql } from "drizzle-orm";
 import { getDb } from "../db/index.js";
-import { assertNoDirectDbAccess } from "../leo/security/leo-db-guard.js";
+import { assertNoDirectDbAccess } from "../_core/db-access-guard.js";
 import { safeDbCall } from "./safe-db-call.js";
 
 type StatusRow = { Variable_name?: string; Value?: string | number };

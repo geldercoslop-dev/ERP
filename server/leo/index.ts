@@ -5,8 +5,6 @@
  */
 
 
-import { assertNoDirectDbAccess } from '../_core/db-access-guard.js';
-
 // Core - Infrastructure
 export * from '../_core/env.js';
 export * from '../_core/logger.js';

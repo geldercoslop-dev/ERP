@@ -70,6 +70,21 @@ async function main() {
     if (normalized.includes("/server/examples/")) continue;
     if (normalized.includes("/server/infra/backup/")) continue;
     if (normalized.endsWith("/server/_core/loadEnv.ts")) continue;
+    // Testes: seedam/observam env deliberadamente (ex.: escrevem secrets mínimos,
+    // conectam via DATABASE_URL cru). parseEnv não escreve e sai do processo
+    // em env parcial — não substitui uso em harness de teste.
+    if (normalized.includes("/server/tests/")) continue;
+    // Camada de env: probes pré-validação (infraGuard) precisam observar o env
+    // cru; usar parseEnv aqui é circular (ele process.exit em env inválido,
+    // enquanto estas funções existem justamente para reportar a invalidez).
+    if (normalized.includes("/server/_core/env/")) continue;
+    // Diagnóstico de boot: reporta 'SET'/'NOT_SET' dentro do caminho de falha
+    // de validação — precisa ler o env mesmo inválido.
+    if (normalized.endsWith("/server/_core/boot-validator.ts")) continue;
+    // Fonte de config do Redis (lazy, sem crash no init): precisa do REDIS_URL
+    // CRU para distinguir URL explícita de sintetizada — parseEnv normaliza
+    // REDIS_URL sempre, mudando a semântica do branch.
+    if (normalized.endsWith("/server/infra/redis.ts")) continue;
     const c = read(f);
     const m = c.match(/\bprocess\.env\.(JWT_ACCESS_SECRET|JWT_REFRESH_SECRET|DATABASE_URL|REDIS_URL)\b/);
     if (m) envViolations.push(`${f}: uso proibido de process.env.${m[1]} (use parseEnv)`);
