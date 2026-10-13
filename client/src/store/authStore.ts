@@ -1,7 +1,7 @@
 // Versão simplificada do authStore.ts sem zustand
 // Para uso temporário até que o zustand seja instalado corretamente
 
-import { setSessionToken } from '../lib/security/sessionToken';
+import { setSessionToken, clearSessionToken } from '../lib/security/sessionToken';
 import { trpcCall } from '../lib/trpcClient';
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
@@ -165,6 +165,9 @@ async function login(username: string, password: string) {
     
     if (data?.ok) {
       setLoginConfirmadoNestaSessao(true);
+      // AUTH-H6: sessionToken NÃO é persistido — a sessão é o cookie httpOnly
+      // setado pelo backend. Mantido só em memória transitória (compat Node/teste;
+      // no browser setSessionToken é no-op).
       const token = data.sessionToken;
       if (typeof token === "string" && token) {
         setSessionToken(token);
@@ -244,7 +247,7 @@ async function logout() {
 
   try {
     setLoginConfirmadoNestaSessao(false);
-    setSessionToken(null);
+    clearSessionToken(); // AUTH-H6: remove grs-session-token legado + memória
     localStorage.removeItem("manus-runtime-user-info");
     localStorage.removeItem("manus-auth-store");
   } catch {}

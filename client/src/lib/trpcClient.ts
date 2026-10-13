@@ -5,7 +5,7 @@
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import type { AppRouter } from "../../../server/routers";
-import { authenticatedFetch, shouldSuppress401Redirect } from "./security/apiClient";
+import { authenticatedFetch, shouldSuppress401Redirect, GRS_AUTH_UNAUTHORIZED_EVENT } from "./security/apiClient";
 import { GRS_API_NETWORK_ERROR } from "./api/events";
 import { GRS_API_ORIGIN } from "./apiOrigin";
 import { InfrastructureError } from "./errors/typed-errors.js";
@@ -188,7 +188,15 @@ export async function trpcCall(procedure: string, input?: TrpcCallInput): Promis
   const text = await res.text();
 
   if (res.status === 401) {
+    // AUTH-H6: o 401 que chega aqui já passou pela tentativa única de
+    // auth.refresh dentro de authenticatedFetch e falhou. Dispara o evento
+    // para o SessionExpiredBridge limpar o estado auth e redirecionar.
     if (typeof window !== "undefined" && !shouldSuppress401Redirect(url)) {
+      try {
+        window.dispatchEvent(new CustomEvent(GRS_AUTH_UNAUTHORIZED_EVENT, { detail: { url } }));
+      } catch {
+        /* ambiente sem CustomEvent */
+      }
       window.location.assign("/login");
     }
     try {
@@ -215,7 +223,7 @@ export async function trpcCall(procedure: string, input?: TrpcCallInput): Promis
   return parseTrpcResponseBody(text, procedure, input);
 }
 
-/** Única instância tRPC React. Sessão: cookie + x-session-token (via authenticatedFetch no link). */
+/** Única instância tRPC React. Sessão: cookie httpOnly (AUTH-H6, via authenticatedFetch no link). */
 export const trpc = createTRPCReact<AppRouter>();
 
 export { getSessionToken, setSessionToken } from "./security/sessionToken";
